@@ -1,0 +1,32 @@
+.card {
+  display: flex;
+  flex-direction: column;
+}
+
+.image {
+  width: 100%;
+  aspect-ratio: 3 / 4;
+  background: #eee;
+  animation: pulse 1.2s ease-in-out infinite;
+}
+
+.text {
+  padding-top: 8px;
+}
+
+.line {
+  height: 12px;
+  background: #eee;
+  margin-bottom: 6px;
+  animation: pulse 1.2s ease-in-out infinite;
+}
+
+.short {
+  width: 60%;
+}
+
+@keyframes pulse {
+  0% { opacity: .6; }
+  50% { opacity: 1; }
+  100% { opacity: .6; }
+}

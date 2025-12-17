@@ -1,0 +1,104 @@
+.productCard {
+  cursor: pointer;
+}
+
+.imageWrapper {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 4 / 5;
+  overflow: hidden;
+  /* background: linear-gradient(
+    180deg,
+    #f5f5f5 0%,
+    #eb3f3f 100%
+  ); */
+}
+  
+  .imageWrapper::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: #f5f5f5;
+  z-index: 0;
+}
+
+.cardText {
+  padding-top: 8px;
+}
+
+.cardTitle {
+  font-size: 14px;
+  color: #212121;
+  margin-bottom: 4px;
+  line-height: 1.3em;
+  font-family: futura-pt,sans-serif;
+  font-weight: 400;
+  letter-spacing: .6px;
+  line-height: 22px;
+  box-sizing: border-box;
+}
+
+.cardPrice {
+  font-size: 100%;
+  font-weight: 600;
+  color: #212121;
+  letter-spacing: .8px;
+  white-space: nowrap;
+  border: 0;
+  vertical-align: initial;
+  margin: 0;
+  padding: 0;
+}
+
+.imageLoader {
+  position: absolute;
+  inset: 0;
+  background: #eee;
+  animation: pulse 1.2s ease-in-out infinite;
+  z-index: 0;
+}
+
+@keyframes pulse {
+  0% { opacity: .6; }
+  50% { opacity: 1; }
+  100% { opacity: .6; }
+}
+
+.imageMain {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+
+  object-fit: cover;        
+  object-position: center;
+
+  z-index: 1;
+  transition: opacity 0.2s ease, transform 0.4s ease;
+
+  padding: 12px;
+}
+
+.imageHover {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+
+  object-fit: cover;        
+  object-position: center;
+  opacity: 0;
+  z-index: 1;
+
+  padding: 12px;
+}
+
+.productCard:hover .imageMain {
+  opacity: 0;
+}
+
+
+.productCard:hover .imageHover {
+  opacity: 1;
+  transform: scale(1.04);
+}

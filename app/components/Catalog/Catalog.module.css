@@ -1,0 +1,105 @@
+.page {
+  background: #fafafa;
+  min-height: 100vh;
+}
+
+.container {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 24px 20px;
+}
+
+.filters {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+  margin-bottom: 32px;
+  flex-wrap: wrap;
+}
+
+.filters select,
+.filters input,
+.filters button {
+  padding: 8px 12px;
+  font-size: 14px;
+}
+
+.grid {
+  display: grid;
+  gap: 16px;
+  justify-content: start;
+  grid-template-columns: repeat(5, 260px);
+}
+
+/* 4 колонки */
+@media (max-width: 1400px) {
+  .grid {
+    grid-template-columns: repeat(4, 260px);
+  }
+}
+
+/* 3 колонки */
+@media (max-width: 1100px) {
+  .grid {
+    grid-template-columns: repeat(3, 260px);
+  }
+}
+
+
+.filterControl {
+  display: block;
+  position: relative;
+
+  padding: 8px 40px 8px 16px;
+
+  font-size: 14px;
+  line-height: 20px;
+  color: #000;
+  border: 1px solid #e3e3e3;
+  background-color: #fff;
+
+  cursor: pointer;
+  appearance: none;       /* убираем системный стиль select */
+}
+
+/* hover */
+@media (hover: hover) and (pointer: fine) {
+  .filterControl:hover {
+    border-color: #111;
+  }
+}
+
+/* focus */
+.filterControl:focus {
+  outline: none;
+  border-color: #111;
+}
+
+
+
+.navbar {
+  display: flex;
+  gap: 24px;
+  padding: 12px 0;
+  margin-bottom: 24px;
+  border-bottom: 1px solid #e5e5e5;
+  overflow-x: auto;
+}
+
+.navItem {
+  font-size: 14px;
+  font-weight: 500;
+  color: #666;
+  cursor: pointer;
+  white-space: nowrap;
+  padding-bottom: 6px;
+}
+
+.navItem:hover {
+  color: #000;
+}
+
+.active {
+  color: #000;
+  border-bottom: 2px solid #000;
+}

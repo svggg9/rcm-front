@@ -1,0 +1,70 @@
+.header {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+
+  background: #fff;
+  border-bottom: 1px solid #e5e5e5;
+}
+
+/* ===== TOP ROW ===== */
+.topRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  height: 56px;
+  padding: 0 24px;
+}
+
+.logo {
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: 4px;
+  white-space: nowrap;
+}
+
+.actions {
+  display: flex;
+  gap: 16px;
+}
+
+.actions button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 18px;
+}
+
+/* ===== BOTTOM ROW (categories) ===== */
+.categories {
+  display: flex;
+  gap: 24px;
+  align-items: center;
+  min-height: 44px; /* ← ключ */
+  padding: 0 24px;
+  overflow-x: auto;
+}
+
+.category {
+  font-size: 14px;
+  color: #666;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.category:hover {
+  color: #000;
+}
+
+.active {
+  color: #000;
+  font-weight: 600;
+  border-bottom: 2px solid #000;
+  padding-bottom: 4px;
+}
+
+.loading {
+  font-size: 14px;
+  color: #999;
+}
