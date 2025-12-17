@@ -79,6 +79,16 @@ export function Header() {
       <nav className={styles.categories}>
         {loading && <span className={styles.loading}>Загрузка…</span>}
 
+          {/* ВСЕ ТОВАРЫ */}
+          <span
+            className={`${styles.category} ${
+              !activeCategory ? styles.active : ""
+            }`}
+            onClick={() => router.push("/")}
+          >
+            Все
+          </span>
+
         {!loading &&
           categories.map((cat) => (
             <span
