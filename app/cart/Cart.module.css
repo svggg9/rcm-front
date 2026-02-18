@@ -1,0 +1,63 @@
+.page {
+  max-width: 900px;
+  margin: 40px auto;
+}
+
+.row {
+  display: flex;
+  gap: 16px;
+  padding: 16px 0;
+  border-bottom: 1px solid #eee;
+  align-items: center;
+}
+
+.image {
+  object-fit: cover;
+}
+
+.meta {
+  flex: 1;
+}
+
+.sub {
+  color: #666;
+}
+
+.qty {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.qtyValue {
+  min-width: 20px;
+  text-align: center;
+}
+
+.remove {
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+.total {
+  margin-top: 24px;
+}
+
+.footer {
+  margin-top: 16px;
+}
+
+.checkoutBtn {
+  padding: 12px 18px;
+  border-radius: 10px;
+  border: 1px solid #000;
+  background: #000;
+  color: #fff;
+  cursor: pointer;
+}
+
+.checkoutBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
