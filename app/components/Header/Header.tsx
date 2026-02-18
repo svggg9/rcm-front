@@ -25,7 +25,6 @@ export function Header() {
   const isAuth = useClientAuth();
   const cartCount = useCartCount();
 
-
   useEffect(() => {
     apiFetch("http://localhost:9696/api/categories")
       .then((r: Response) => r.json())
@@ -52,43 +51,43 @@ export function Header() {
         </Link>
 
         <div className={styles.actions}>
-          <button title="Поиск">🔍</button>
-
-          <Link href="/account" title="Личный кабинет">
-            👤
+          {/* CART */}
+          <Link href="/cart" title="Корзина" className={styles.iconButton}>
+            <span className={styles.cart}>
+              <img src="/icons/bag.svg" alt="Cart" />
+              {cartCount > 0 && (
+                <span className={styles.cartBadge}>{cartCount}</span>
+              )}
+            </span>
           </Link>
 
-          <Link href="/cart" title="Корзина" className={styles.cart}>
-            🛒
-            {cartCount > 0 && (
-              <span className={styles.cartBadge}>
-                {cartCount}
-              </span>
-            )}
-          </Link>
-
+          {/* AUTH: одна кнопка */}
           {isAuth === null ? null : isAuth ? (
-            <button onClick={logout} title="Выйти">
-              🚪
+            <button
+              onClick={logout}
+              title="Выйти"
+              className={styles.iconButton}
+              type="button"
+            >
+              <img src="/icons/login.svg" alt="Logout" />
             </button>
           ) : (
-            <>
-              <Link href="/auth/login" title="Войти">
-                Вход
-              </Link>
-              <Link href="/auth/register" title="Регистрация">
-                Рег
-              </Link>
-            </>
+            <Link
+              href="/auth/login"
+              title="Войти"
+              className={styles.iconButton}
+            >
+              <img src="/icons/login.svg" alt="Login" />
+            </Link>
           )}
         </div>
+
       </div>
 
       {/* CATEGORIES */}
       <nav className={styles.categories}>
         {loading && <span className={styles.loading}>Загрузка…</span>}
 
-        {/* ВСЕ ТОВАРЫ */}
         <span
           className={`${styles.category} ${
             !activeCategory ? styles.active : ""
