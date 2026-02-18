@@ -19,9 +19,8 @@ export function Header() {
 
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
-
   const [mounted, setMounted] = useState(false);
-  
+
   useEffect(() => {
     setMounted(true);
 
@@ -43,7 +42,6 @@ export function Header() {
 
   return (
     <header className={styles.header}>
-      {/* TOP ROW */}
       <div className={styles.topRow}>
         <div />
 
@@ -52,42 +50,45 @@ export function Header() {
         </Link>
 
         <div className={styles.actions}>
-        <button title="Поиск">🔍</button>
+          <Link
+            href="/cart"
+            title="Корзина"
+            className={styles.iconButton}
+          >
+            <img src="/icons/bag.svg" alt="Cart" />
+          </Link>
 
-        <Link href="/account" title="Личный кабинет">
-            👤
-        </Link>
-
-        <Link href="/cart" title="Корзина">
-            🛒
-        </Link>
-
-        {!mounted ? null : isAuth ? (
-            <button onClick={logout} title="Выйти">
-            🚪
+          {!mounted ? null : isAuth ? (
+            <button
+              onClick={logout}
+              title="Выйти"
+              className={styles.iconButton}
+            >
+              <img src="/icons/login.svg" alt="Logout" />
             </button>
-        ) : (
-            <>
-            <Link href="/auth/login" title="Войти">🔑</Link>
-            <Link href="/auth/register" title="Регистрация">📝</Link>
-            </>
-        )}
+          ) : (
+            <Link
+              href="/auth/login"
+              title="Войти"
+              className={styles.iconButton}
+            >
+              <img src="/icons/login.svg" alt="Login" />
+            </Link>
+          )}
         </div>
       </div>
 
-      {/* CATEGORIES */}
       <nav className={styles.categories}>
         {loading && <span className={styles.loading}>Загрузка…</span>}
 
-          {/* ВСЕ ТОВАРЫ */}
-          <span
-            className={`${styles.category} ${
-              !activeCategory ? styles.active : ""
-            }`}
-            onClick={() => router.push("/")}
-          >
-            Все
-          </span>
+        <span
+          className={`${styles.category} ${
+            !activeCategory ? styles.active : ""
+          }`}
+          onClick={() => router.push("/")}
+        >
+          Все
+        </span>
 
         {!loading &&
           categories.map((cat) => (
