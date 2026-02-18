@@ -1,9 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { apiFetch } from "../lib/api";
 import { getCartId } from "../lib/auth";
 import { emitCartChanged } from "../lib/cartEvents";
+import { useClientAuth } from "../lib/useClientAuth";
+import styles from "./Cart.module.css";
 
 type CartItem = {
   productId: number;
@@ -17,6 +20,9 @@ type CartItem = {
 };
 
 export default function CartPage() {
+  const router = useRouter();
+  const isAuth = useClientAuth();
+
   const [items, setItems] = useState<CartItem[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -41,10 +47,9 @@ export default function CartPage() {
       .then((r: Response) => r.json())
       .then((data: CartItem[]) => {
         setItems(data);
-        emitCartChanged(); // 👈 ВАЖНО
+        emitCartChanged();
       });
   }
-
 
   function removeItem(variantId: number) {
     apiFetch(
@@ -54,50 +59,54 @@ export default function CartPage() {
       .then((r: Response) => r.json())
       .then((data: CartItem[]) => {
         setItems(data);
-        emitCartChanged(); // 👈 ВАЖНО
+        emitCartChanged();
       });
   }
 
-
-  const total = items.reduce(
-    (sum, i) => sum + i.price * i.quantity,
-    0
+  const total = useMemo(
+    () => items.reduce((sum, i) => sum + i.price * i.quantity, 0),
+    [items]
   );
+
+  function goCheckout() {
+    if (items.length === 0) return;
+    if (isAuth === null) return;
+
+    if (!isAuth) {
+      router.push("/auth/login?next=/checkout");
+      return;
+    }
+
+    router.push("/checkout");
+  }
 
   if (loading) return <div>Загрузка корзины…</div>;
 
   return (
-    <div style={{ maxWidth: 900, margin: "40px auto" }}>
+    <div className={styles.page}>
       <h1>Корзина</h1>
 
       {items.length === 0 && <p>Корзина пуста</p>}
 
       {items.map((item) => (
-        <div
-          key={item.variantId}
-          style={{
-            display: "flex",
-            gap: 16,
-            padding: "16px 0",
-            borderBottom: "1px solid #eee",
-          }}
-        >
+        <div key={item.variantId} className={styles.row}>
           <img
             src={item.imageUrl}
             width={80}
             height={80}
-            style={{ objectFit: "cover" }}
+            className={styles.image}
+            alt=""
           />
 
-          <div style={{ flex: 1 }}>
+          <div className={styles.meta}>
             <div>{item.title}</div>
-            <div>
+            <div className={styles.sub}>
               {item.size} / {item.color}
             </div>
             <div>{item.price} ₽</div>
           </div>
 
-          <div>
+          <div className={styles.qty}>
             <button
               disabled={item.quantity <= 1}
               onClick={() => updateQty(item.variantId, item.quantity - 1)}
@@ -105,24 +114,30 @@ export default function CartPage() {
               −
             </button>
 
-            <span style={{ margin: "0 8px" }}>
-              {item.quantity}
-            </span>
+            <span className={styles.qtyValue}>{item.quantity}</span>
 
             <button onClick={() => updateQty(item.variantId, item.quantity + 1)}>
               +
-            </button>   
+            </button>
           </div>
 
-          <button onClick={() => removeItem(item.variantId)}>
+          <button className={styles.remove} onClick={() => removeItem(item.variantId)}>
             ✕
           </button>
         </div>
       ))}
 
-      <h2 style={{ marginTop: 24 }}>
-        Итого: {total.toLocaleString()} ₽
-      </h2>
+      <h2 className={styles.total}>Итого: {total.toLocaleString()} ₽</h2>
+
+      <div className={styles.footer}>
+        <button
+          onClick={goCheckout}
+          disabled={items.length === 0 || isAuth === null}
+          className={styles.checkoutBtn}
+        >
+          Оформить заказ
+        </button>
+      </div>
     </div>
   );
 }
