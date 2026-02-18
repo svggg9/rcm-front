@@ -4,6 +4,7 @@ import { use, useEffect, useState } from "react";
 import { apiFetch } from "../../lib/api";
 import { getCartId, isAuthenticated } from "../../lib/auth";
 import { useRouter } from "next/navigation";
+import { emitCartChanged } from "../../lib/cartEvents";
 
 type Variant = {
   id: number;
@@ -58,28 +59,35 @@ export default function ProductPage({
   const image = safeProduct.images[0];
 
   async function addToCart() {
-    if (!isAuthenticated()) {
-      router.push("/auth/login");
+    if (!cartId) {
+      alert("Не удалось создать корзину");
       return;
     }
-
-    if (!cartId) return;
 
     const variantId = safeProduct.variants[0].id;
 
     try {
       setAdding(true);
 
-      await apiFetch(
+      const res = await apiFetch(
         `http://localhost:9696/api/cart/add?cartId=${cartId}&variantId=${variantId}&qty=1`,
         { method: "POST" }
       );
 
-      alert("Товар добавлен в корзину");
+      if (!res.ok) {
+        const text = await res.text();
+        throw new Error(text || "Ошибка добавления в корзину");
+      }
+
+      emitCartChanged(); // 👈 мгновенный фидбек
+    } catch (e) {
+      alert((e as Error).message);
     } finally {
       setAdding(false);
     }
   }
+
+
 
   return (
     <div style={{ padding: 24, maxWidth: 900, margin: "0 auto" }}>

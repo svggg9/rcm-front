@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { apiFetch } from "../lib/api";
 import { getCartId } from "../lib/auth";
+import { emitCartChanged } from "../lib/cartEvents";
 
 type CartItem = {
   productId: number;
@@ -38,8 +39,12 @@ export default function CartPage() {
       { method: "PUT" }
     )
       .then((r: Response) => r.json())
-      .then((data: CartItem[]) => setItems(data));
+      .then((data: CartItem[]) => {
+        setItems(data);
+        emitCartChanged(); // 👈 ВАЖНО
+      });
   }
+
 
   function removeItem(variantId: number) {
     apiFetch(
@@ -47,8 +52,12 @@ export default function CartPage() {
       { method: "DELETE" }
     )
       .then((r: Response) => r.json())
-      .then((data: CartItem[]) => setItems(data));
+      .then((data: CartItem[]) => {
+        setItems(data);
+        emitCartChanged(); // 👈 ВАЖНО
+      });
   }
+
 
   const total = items.reduce(
     (sum, i) => sum + i.price * i.quantity,
@@ -89,7 +98,10 @@ export default function CartPage() {
           </div>
 
           <div>
-            <button onClick={() => updateQty(item.variantId, item.quantity - 1)}>
+            <button
+              disabled={item.quantity <= 1}
+              onClick={() => updateQty(item.variantId, item.quantity - 1)}
+            >
               −
             </button>
 
@@ -99,7 +111,7 @@ export default function CartPage() {
 
             <button onClick={() => updateQty(item.variantId, item.quantity + 1)}>
               +
-            </button>
+            </button>   
           </div>
 
           <button onClick={() => removeItem(item.variantId)}>

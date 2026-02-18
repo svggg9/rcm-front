@@ -5,7 +5,9 @@ import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import styles from "./Header.module.css";
 import { apiFetch } from "../../lib/api";
-import { isAuthenticated, clearAuth } from "../../lib/auth";
+import { clearAuth } from "../../lib/auth";
+import { useClientAuth } from "../../lib/useClientAuth";
+import { useCartCount } from "../../lib/useCartCount";
 
 type Category = {
   id: number;
@@ -20,11 +22,11 @@ export function Header() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const [mounted, setMounted] = useState(false);
-  
-  useEffect(() => {
-    setMounted(true);
+  const isAuth = useClientAuth();
+  const cartCount = useCartCount();
 
+
+  useEffect(() => {
     apiFetch("http://localhost:9696/api/categories")
       .then((r: Response) => r.json())
       .then((data: Category[]) => {
@@ -39,8 +41,6 @@ export function Header() {
     router.push("/");
   }
 
-  const isAuth = mounted && isAuthenticated();
-
   return (
     <header className={styles.header}>
       {/* TOP ROW */}
@@ -52,26 +52,35 @@ export function Header() {
         </Link>
 
         <div className={styles.actions}>
-        <button title="Поиск">🔍</button>
+          <button title="Поиск">🔍</button>
 
-        <Link href="/account" title="Личный кабинет">
+          <Link href="/account" title="Личный кабинет">
             👤
-        </Link>
+          </Link>
 
-        <Link href="/cart" title="Корзина">
+          <Link href="/cart" title="Корзина" className={styles.cart}>
             🛒
-        </Link>
+            {cartCount > 0 && (
+              <span className={styles.cartBadge}>
+                {cartCount}
+              </span>
+            )}
+          </Link>
 
-        {!mounted ? null : isAuth ? (
+          {isAuth === null ? null : isAuth ? (
             <button onClick={logout} title="Выйти">
-            🚪
+              🚪
             </button>
-        ) : (
+          ) : (
             <>
-            <Link href="/auth/login" title="Войти">🔑</Link>
-            <Link href="/auth/register" title="Регистрация">📝</Link>
+              <Link href="/auth/login" title="Войти">
+                Вход
+              </Link>
+              <Link href="/auth/register" title="Регистрация">
+                Рег
+              </Link>
             </>
-        )}
+          )}
         </div>
       </div>
 
@@ -79,15 +88,15 @@ export function Header() {
       <nav className={styles.categories}>
         {loading && <span className={styles.loading}>Загрузка…</span>}
 
-          {/* ВСЕ ТОВАРЫ */}
-          <span
-            className={`${styles.category} ${
-              !activeCategory ? styles.active : ""
-            }`}
-            onClick={() => router.push("/")}
-          >
-            Все
-          </span>
+        {/* ВСЕ ТОВАРЫ */}
+        <span
+          className={`${styles.category} ${
+            !activeCategory ? styles.active : ""
+          }`}
+          onClick={() => router.push("/")}
+        >
+          Все
+        </span>
 
         {!loading &&
           categories.map((cat) => (
