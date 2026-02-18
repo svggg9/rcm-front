@@ -5,7 +5,9 @@ import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import styles from "./Header.module.css";
 import { apiFetch } from "../../lib/api";
-import { isAuthenticated, clearAuth } from "../../lib/auth";
+import { clearAuth } from "../../lib/auth";
+import { useClientAuth } from "../../lib/useClientAuth";
+import { useCartCount } from "../../lib/useCartCount";
 
 type Category = {
   id: number;
@@ -19,11 +21,11 @@ export function Header() {
 
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
-  const [mounted, setMounted] = useState(false);
+
+  const isAuth = useClientAuth();
+  const cartCount = useCartCount();
 
   useEffect(() => {
-    setMounted(true);
-
     apiFetch("http://localhost:9696/api/categories")
       .then((r: Response) => r.json())
       .then((data: Category[]) => {
@@ -38,10 +40,9 @@ export function Header() {
     router.push("/");
   }
 
-  const isAuth = mounted && isAuthenticated();
-
   return (
     <header className={styles.header}>
+      {/* TOP ROW */}
       <div className={styles.topRow}>
         <div />
 
@@ -50,19 +51,23 @@ export function Header() {
         </Link>
 
         <div className={styles.actions}>
-          <Link
-            href="/cart"
-            title="Корзина"
-            className={styles.iconButton}
-          >
-            <img src="/icons/bag.svg" alt="Cart" />
+          {/* CART */}
+          <Link href="/cart" title="Корзина" className={styles.iconButton}>
+            <span className={styles.cart}>
+              <img src="/icons/bag.svg" alt="Cart" />
+              {cartCount > 0 && (
+                <span className={styles.cartBadge}>{cartCount}</span>
+              )}
+            </span>
           </Link>
 
-          {!mounted ? null : isAuth ? (
+          {/* AUTH: одна кнопка */}
+          {isAuth === null ? null : isAuth ? (
             <button
               onClick={logout}
               title="Выйти"
               className={styles.iconButton}
+              type="button"
             >
               <img src="/icons/login.svg" alt="Logout" />
             </button>
@@ -76,8 +81,10 @@ export function Header() {
             </Link>
           )}
         </div>
+
       </div>
 
+      {/* CATEGORIES */}
       <nav className={styles.categories}>
         {loading && <span className={styles.loading}>Загрузка…</span>}
 

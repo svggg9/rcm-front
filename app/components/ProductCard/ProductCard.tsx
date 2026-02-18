@@ -26,7 +26,7 @@ export function ProductCard({ product }: { product: Product }) {
   return (
     <Link
       href={`/product/${product.id}`}
-      style={{ textDecoration: "none", display: "block" }}
+      className="block"
     >
       <div className={styles.productCard}> 
 

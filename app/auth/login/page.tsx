@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { setAuth } from "../../lib/auth";
+import { setAuth, getCartId } from "../../lib/auth";
 import { apiFetch } from "../../lib/api";
 
 export default function LoginPage() {
@@ -11,18 +11,25 @@ export default function LoginPage() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
-  
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError("");
 
     try {
+      // ✅ 1️⃣ берём guestCartId (он ВСЕГДА должен существовать)
+      const cartId = getCartId();
+
       const res = await apiFetch(
         "http://localhost:9696/api/auth/login",
         {
           method: "POST",
-          body: JSON.stringify({ username, password }),
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            username,
+            password,
+            cartId, // 🔑 КЛЮЧЕВОЕ ИЗМЕНЕНИЕ
+          }),
         }
       );
 
@@ -31,9 +38,12 @@ export default function LoginPage() {
       }
 
       const data: { token: string; cartId: string } = await res.json();
-      setAuth(data.token, data.cartId);
-      router.push("/");
 
+      // ✅ 2️⃣ сохраняем auth + userCartId
+      setAuth(data.token, data.cartId);
+
+      // ✅ 3️⃣ редирект
+      router.push("/");
     } catch (err) {
       setError((err as Error).message);
     }
