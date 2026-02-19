@@ -1,10 +1,11 @@
+// app/seller/orders/[id]/page.tsx
 "use client";
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { apiFetch } from "../../lib/api";
-import { useClientAuth } from "../../lib/useClientAuth";
-import styles from "./Order.module.css";
+import { apiFetch } from "../../../lib/api";
+import { useClientAuth } from "../../../lib/useClientAuth";
+import styles from "./SellerOrder.module.css";
 
 type OrderItem = {
   productTitle: string;
@@ -23,21 +24,21 @@ type OrderResponse = {
   items: OrderItem[];
 };
 
-export default function OrderPage() {
+export default function SellerOrderPage() {
   const router = useRouter();
   const params = useParams<{ id: string }>();
   const isAuth = useClientAuth();
 
   const [order, setOrder] = useState<OrderResponse | null>(null);
   const [loading, setLoading] = useState(true);
-  const [paying, setPaying] = useState(false);
+  const [shipping, setShipping] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const orderId = params?.id;
 
   useEffect(() => {
     if (isAuth === null) return;
-    if (!isAuth) router.push("/auth/login");
+    if (!isAuth) router.push("/auth/login?next=/seller/orders");
   }, [isAuth, router]);
 
   useEffect(() => {
@@ -46,11 +47,11 @@ export default function OrderPage() {
     setLoading(true);
     setError(null);
 
-    apiFetch(`http://localhost:9696/api/orders/${orderId}`)
+    apiFetch(`http://localhost:9696/api/orders/${orderId}/seller`)
       .then(async (r: Response) => {
         if (!r.ok) {
-          const text = await r.text();
-          throw new Error(text || "Не удалось загрузить заказ");
+          const text = await r.text().catch(() => "");
+          throw new Error(text || `Ошибка загрузки (${r.status})`);
         }
         return r.json();
       })
@@ -64,54 +65,29 @@ export default function OrderPage() {
       });
   }, [orderId]);
 
-    async function complete() {
+  async function ship() {
     if (!order) return;
 
+    setShipping(true);
     setError(null);
 
     try {
-        const r = await apiFetch(
-        `http://localhost:9696/api/orders/${order.id}/complete`,
-        { method: "POST" }
-        );
-
-        if (!r.ok) {
-        const text = await r.text().catch(() => "");
-        setError(text || "Ошибка завершения заказа");
-        return;
-        }
-
-        const updated: OrderResponse = await r.json();
-        setOrder(updated);
-    } catch {
-        setError("Ошибка завершения заказа (network)");
-    }
-    }
-
-  async function pay() {
-    if (!order) return;
-
-    setPaying(true);
-    setError(null);
-
-    try {
-      const r = await apiFetch(
-        `http://localhost:9696/api/pay/${order.id}`,
-        { method: "POST" }
-      );
+      const r = await apiFetch(`http://localhost:9696/api/orders/${order.id}/ship`, {
+        method: "POST",
+      });
 
       if (!r.ok) {
-        const text = await r.text();
-        setError(text || "Ошибка оплаты");
+        const text = await r.text().catch(() => "");
+        setError(text || `Ошибка отправки (${r.status})`);
         return;
       }
 
       const updated: OrderResponse = await r.json();
       setOrder(updated);
     } catch {
-      setError("Ошибка оплаты");
+      setError("Ошибка отправки (network)");
     } finally {
-      setPaying(false);
+      setShipping(false);
     }
   }
 
@@ -121,10 +97,17 @@ export default function OrderPage() {
 
   return (
     <div className={styles.page}>
-      <h1>Заказ #{order.id}</h1>
+      <div className={styles.top}>
+        <h1 className={styles.title}>Заказ #{order.id}</h1>
+        <button type="button" onClick={() => router.push("/seller/orders")} className={styles.backBtn}>
+          Назад
+        </button>
+      </div>
 
       <div className={styles.meta}>
         <span>Статус:</span> <b>{order.status}</b>
+        <span className={styles.dot}>·</span>
+        <span className={styles.muted}>{new Date(order.createdAt).toLocaleString()}</span>
       </div>
 
       <div className={styles.list}>
@@ -148,18 +131,11 @@ export default function OrderPage() {
         Итого: {order.totalAmount.toLocaleString()} ₽
       </div>
 
-      {order.status === "NEW" && (
-        <button onClick={pay} disabled={paying} className={styles.payBtn}>
-          {paying ? "Оплата…" : "Оплатить (mock)"}
+      {order.status === "PAID" && (
+        <button onClick={ship} disabled={shipping} className={styles.primaryBtn}>
+          {shipping ? "Отмечаем…" : "Отправил"}
         </button>
       )}
-
-      {order.status === "SHIPPED" && (
-        <button onClick={complete} className={styles.payBtn}>
-            Подтвердить получение
-        </button>
-        )}
-
     </div>
   );
 }
