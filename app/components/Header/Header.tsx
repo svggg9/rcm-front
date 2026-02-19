@@ -4,10 +4,11 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import styles from "./Header.module.css";
-import { apiFetch } from "../../lib/api";
+import { apiFetch, API_URL } from "../../lib/api"; // если API_URL не экспортится — убери и верни хардкод
 import { clearAuth } from "../../lib/auth";
 import { useClientAuth } from "../../lib/useClientAuth";
 import { useCartCount } from "../../lib/useCartCount";
+import { useUserRole } from "../../lib/useUserRole";
 
 type Category = {
   id: number;
@@ -24,9 +25,10 @@ export function Header() {
 
   const isAuth = useClientAuth();
   const cartCount = useCartCount();
+  const role = useUserRole();
 
   useEffect(() => {
-    apiFetch("http://localhost:9696/api/categories")
+    apiFetch(`${API_URL}/api/categories`) // если нет API_URL — замени на "http://localhost:9696/api/categories"
       .then((r: Response) => r.json())
       .then((data: Category[]) => {
         setCategories(data);
@@ -51,6 +53,17 @@ export function Header() {
         </Link>
 
         <div className={styles.actions}>
+          {/* Seller cabinet */}
+          {isAuth === true && role === "ROLE_SELLER" && (
+            <Link
+              href="/seller"
+              title="Кабинет продавца"
+              className={styles.iconButton}
+            >
+              <img src="/icons/seller.svg" alt="Seller" />
+            </Link>
+          )}
+
           {/* CART */}
           <Link href="/cart" title="Корзина" className={styles.iconButton}>
             <span className={styles.cart}>
@@ -61,7 +74,20 @@ export function Header() {
             </span>
           </Link>
 
-          {/* AUTH: одна кнопка */}
+          {/* PROFILE — всегда показываем */}
+          <Link
+            href={
+              isAuth === true
+                ? "/account"
+                : "/auth/login?next=/account"
+            }
+            title="Профиль"
+            className={styles.iconButton}
+          >
+            <img src="/icons/profile.svg" alt="Profile" />
+          </Link>
+
+          {/* AUTH */}
           {isAuth === null ? null : isAuth ? (
             <button
               onClick={logout}
@@ -72,16 +98,11 @@ export function Header() {
               <img src="/icons/login.svg" alt="Logout" />
             </button>
           ) : (
-            <Link
-              href="/auth/login"
-              title="Войти"
-              className={styles.iconButton}
-            >
+            <Link href="/auth/login" title="Войти" className={styles.iconButton}>
               <img src="/icons/login.svg" alt="Login" />
             </Link>
           )}
         </div>
-
       </div>
 
       {/* CATEGORIES */}
@@ -89,9 +110,7 @@ export function Header() {
         {loading && <span className={styles.loading}>Загрузка…</span>}
 
         <span
-          className={`${styles.category} ${
-            !activeCategory ? styles.active : ""
-          }`}
+          className={`${styles.category} ${!activeCategory ? styles.active : ""}`}
           onClick={() => router.push("/")}
         >
           Все

@@ -1,12 +1,16 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { setAuth, getCartId } from "../../lib/auth";
-import { apiFetch } from "../../lib/api";
+import { apiFetch, API_URL } from "../../lib/api"; // если API_URL не экспортится — убери и верни хардкод
+import styles from "./Login.module.css";
 
 export default function LoginPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+
+  const next = searchParams.get("next") || "/";
 
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
@@ -17,21 +21,12 @@ export default function LoginPage() {
     setError("");
 
     try {
-      // ✅ 1️⃣ берём guestCartId (он ВСЕГДА должен существовать)
       const cartId = getCartId();
 
-      const res = await apiFetch(
-        "http://localhost:9696/api/auth/login",
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            username,
-            password,
-            cartId, // 🔑 КЛЮЧЕВОЕ ИЗМЕНЕНИЕ
-          }),
-        }
-      );
+      const res = await apiFetch(`${API_URL}/api/auth/login`, {
+        method: "POST",
+        body: JSON.stringify({ username, password, cartId }),
+      });
 
       if (!res.ok) {
         throw new Error("Неверный логин или пароль");
@@ -39,46 +34,60 @@ export default function LoginPage() {
 
       const data: { token: string; cartId: string } = await res.json();
 
-      // ✅ 2️⃣ сохраняем auth + userCartId
       setAuth(data.token, data.cartId);
 
-      // ✅ 3️⃣ редирект
-      router.push("/");
+      // важно: replace, чтобы back не возвращал на /auth/login
+      router.replace(next);
     } catch (err) {
       setError((err as Error).message);
     }
   }
 
   return (
-    <div style={{ maxWidth: 360, margin: "80px auto" }}>
-      <h1>Вход</h1>
+    <div className={styles.page}>
+      <div className={styles.card}>
+        <h1 className={styles.title}>Вход</h1>
 
-      <form onSubmit={handleSubmit}>
-        <input
-          placeholder="Логин"
-          value={username}
-          onChange={(e) => setUsername(e.target.value)}
-          required
-        />
+        <form onSubmit={handleSubmit} className={styles.form}>
+          <label className={styles.label}>
+            Логин
+            <input
+              className={styles.input}
+              placeholder="username"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              required
+              autoComplete="username"
+            />
+          </label>
 
-        <input
-          type="password"
-          placeholder="Пароль"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          required
-        />
+          <label className={styles.label}>
+            Пароль
+            <input
+              className={styles.input}
+              type="password"
+              placeholder="••••••••"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              autoComplete="current-password"
+            />
+          </label>
 
-        {error && (
-          <div style={{ color: "red", marginTop: 8 }}>
-            {error}
+          {error && <div className={styles.error}>{error}</div>}
+
+          <button type="submit" className={styles.button}>
+            Войти
+          </button>
+
+          <div className={styles.hint}>
+            Нет аккаунта?{" "}
+            <a className={styles.link} href={`/auth/register?next=${encodeURIComponent(next)}`}>
+              Регистрация
+            </a>
           </div>
-        )}
-
-        <button type="submit" style={{ marginTop: 16 }}>
-          Войти
-        </button>
-      </form>
+        </form>
+      </div>
     </div>
   );
 }

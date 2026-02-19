@@ -1,12 +1,16 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { setAuth } from "../../lib/auth";
-import { apiFetch } from "../../lib/api";
+import { useRouter, useSearchParams } from "next/navigation";
+import { apiFetch, API_URL } from "../../lib/api";
+import { getCartId, setAuth } from "../../lib/auth";
+import styles from "./Register.module.css";
 
 export default function RegisterPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+
+  const next = searchParams.get("next") || "/";
 
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
@@ -17,54 +21,88 @@ export default function RegisterPage() {
     setError("");
 
     try {
-      const res = await apiFetch(
-        "http://localhost:9696/api/auth/register",
-        {
-          method: "POST",
-          body: JSON.stringify({ username, password }),
-        }
-      );
+      // 1) register
+      const reg = await apiFetch(`${API_URL}/api/auth/register`, {
+        method: "POST",
+        body: JSON.stringify({ username, password }),
+      });
 
-      if (!res.ok) {
-        throw new Error("Ошибка регистрации");
+      if (!reg.ok) {
+        const text = await reg.text().catch(() => "");
+        throw new Error(text || "Ошибка регистрации");
       }
 
-      router.push("/auth/login");
+      // 2) autologin (важно: передаём guest cartId, чтобы бэк сделал merge)
+      const cartId = getCartId();
+
+      const login = await apiFetch(`${API_URL}/api/auth/login`, {
+        method: "POST",
+        body: JSON.stringify({ username, password, cartId }),
+      });
+
+      if (!login.ok) {
+        const text = await login.text().catch(() => "");
+        throw new Error(text || "Регистрация успешна, но вход не выполнен");
+      }
+
+      const data: { token: string; cartId: string } = await login.json();
+
+      // 3) сохранить auth + userCartId, триггернуть события
+      setAuth(data.token, data.cartId);
+
+      // 4) go next
+      router.replace(next);
     } catch (err) {
       setError((err as Error).message);
     }
   }
 
   return (
-    <div style={{ maxWidth: 360, margin: "80px auto" }}>
-      <h1>Регистрация</h1>
+    <div className={styles.page}>
+      <div className={styles.card}>
+        <h1 className={styles.title}>Регистрация</h1>
 
-      <form onSubmit={handleSubmit}>
-        <input
-          placeholder="Логин"
-          value={username}
-          onChange={(e) => setUsername(e.target.value)}
-          required
-        />
+        <form onSubmit={handleSubmit} className={styles.form}>
+          <label className={styles.label}>
+            Логин
+            <input
+              className={styles.input}
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              required
+              autoComplete="username"
+            />
+          </label>
 
-        <input
-          type="password"
-          placeholder="Пароль"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          required
-        />
+          <label className={styles.label}>
+            Пароль
+            <input
+              className={styles.input}
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              autoComplete="new-password"
+            />
+          </label>
 
-        {error && (
-          <div style={{ color: "red", marginTop: 8 }}>
-            {error}
+          {error && <div className={styles.error}>{error}</div>}
+
+          <button type="submit" className={styles.button}>
+            Зарегистрироваться
+          </button>
+
+          <div className={styles.hint}>
+            Уже есть аккаунт?{" "}
+            <a
+              className={styles.link}
+              href={`/auth/login?next=${encodeURIComponent(next)}`}
+            >
+              Войти
+            </a>
           </div>
-        )}
-
-        <button type="submit" style={{ marginTop: 16 }}>
-          Зарегистрироваться
-        </button>
-      </form>
+        </form>
+      </div>
     </div>
   );
 }

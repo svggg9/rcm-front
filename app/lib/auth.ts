@@ -31,6 +31,34 @@ export function clearAuth() {
   emitCartChanged();
 }
 
+export function getUserRole(): string | null {
+  if (typeof window === "undefined") return null;
+
+  const token = getToken();
+  if (!token) return null;
+
+  try {
+    const payloadPart = token.split(".")[1];
+    if (!payloadPart) return null;
+
+    // base64url -> base64
+    const base64 = payloadPart.replace(/-/g, "+").replace(/_/g, "/");
+
+    const json = decodeURIComponent(
+      atob(base64)
+        .split("")
+        .map((c) => "%" + c.charCodeAt(0).toString(16).padStart(2, "0"))
+        .join("")
+    );
+
+    const payload = JSON.parse(json);
+    return typeof payload.role === "string" ? payload.role : null;
+  } catch {
+    return null;
+  }
+}
+
+
 // ---------------- CART ----------------
 
 export function getCartId(): string {

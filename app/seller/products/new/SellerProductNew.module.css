@@ -1,0 +1,135 @@
+/* app/seller/products/new/SellerProductNew.module.css */
+.page {
+  max-width: 900px;
+  margin: 32px auto;
+  padding: 0 16px;
+}
+
+.title {
+  font-size: 26px;
+  margin-bottom: 16px;
+}
+
+.subtitle {
+  font-size: 18px;
+  margin: 0 0 12px;
+}
+
+.card {
+  border: 1px solid #eee;
+  border-radius: 12px;
+  padding: 16px;
+  background: #fff;
+  margin-bottom: 16px;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px 16px;
+}
+
+.field,
+.fieldFull {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 13px;
+  color: #333;
+}
+
+.fieldFull {
+  grid-column: 1 / -1;
+}
+
+.input,
+.textarea {
+  border: 1px solid #ddd;
+  border-radius: 10px;
+  padding: 10px 12px;
+  outline: none;
+  font-size: 14px;
+}
+
+.input:focus,
+.textarea:focus {
+  border-color: #aaa;
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.primaryBtn,
+.secondaryBtn {
+  border: none;
+  border-radius: 10px;
+  padding: 10px 14px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.primaryBtn {
+  background: #111;
+  color: #fff;
+}
+
+.primaryBtn:disabled,
+.secondaryBtn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.secondaryBtn {
+  background: #f3f3f3;
+  color: #111;
+}
+
+.muted {
+  color: #777;
+  font-size: 13px;
+}
+
+.error {
+  border: 1px solid #ffd1d1;
+  background: #fff3f3;
+  color: #b00020;
+  padding: 10px 12px;
+  border-radius: 10px;
+  margin-bottom: 12px;
+}
+
+.uploadRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.preview {
+  display: flex;
+  gap: 12px;
+  margin-top: 12px;
+  align-items: center;
+}
+
+.previewImg {
+  width: 88px;
+  height: 88px;
+  object-fit: cover;
+  border-radius: 10px;
+  border: 1px solid #eee;
+}
+
+.previewMeta {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.link {
+  color: #111;
+  text-decoration: underline;
+}

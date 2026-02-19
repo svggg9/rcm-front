@@ -1,0 +1,101 @@
+/* app/seller/orders/[id]/SellerOrder.module.css */
+.page {
+  max-width: 900px;
+  margin: 32px auto;
+  padding: 0 16px;
+}
+
+.top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.title {
+  font-size: 26px;
+  margin: 0;
+}
+
+.backBtn {
+  border: 1px solid #ddd;
+  background: #fff;
+  border-radius: 10px;
+  padding: 8px 12px;
+  cursor: pointer;
+}
+
+.backBtn:hover {
+  background: #fafafa;
+}
+
+.meta {
+  margin-top: 10px;
+  color: #333;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.dot {
+  color: #999;
+}
+
+.muted {
+  color: #777;
+  font-size: 13px;
+}
+
+.list {
+  border-top: 1px solid #eee;
+  margin-top: 12px;
+  padding-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.itemMeta {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.sub {
+  color: #777;
+  font-size: 13px;
+}
+
+.lineTotal {
+  white-space: nowrap;
+}
+
+.total {
+  margin-top: 14px;
+  font-weight: 700;
+  font-size: 16px;
+}
+
+.primaryBtn {
+  margin-top: 14px;
+  border: none;
+  border-radius: 10px;
+  padding: 10px 12px;
+  cursor: pointer;
+  font-size: 14px;
+  background: #111;
+  color: #fff;
+}
+
+.primaryBtn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
