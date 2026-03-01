@@ -102,3 +102,15 @@
   justify-content: center;
 }
 
+.topBanner {
+  display: flex;
+  justify-content: center;   /* центр по горизонтали */
+  align-items: center;       /* центр по вертикали */
+  padding: 8px 24px;
+}
+
+.topBannerImg {
+  height: auto;
+  width: 1400px;               /* ВАЖНО */
+  display: block;
+}

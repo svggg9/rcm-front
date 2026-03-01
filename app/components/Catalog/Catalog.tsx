@@ -1,15 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { ProductCard } from "../ProductCard/ProductCard";
-import { SkeletonCard } from "../SkeletonCard/SkeletonCard";
 import styles from "./Catalog.module.css";
-import { apiFetch } from "../../lib/api";
+import { apiFetch, API_URL } from "../../lib/api";
+import { ProductTile } from "../ProductTile/ProductTile";
+import { SkeletonTile } from "../SkeletonTile/SkeletonTile";
 
-type Variant = {
-  price: number;
-};
+type Variant = { price: number };
 
 type Product = {
   id: number;
@@ -28,98 +26,117 @@ export function Catalog() {
   const [priceFrom, setPriceFrom] = useState("");
   const [priceTo, setPriceTo] = useState("");
 
-  // ✅ категория из URL
   const searchParams = useSearchParams();
   const selectedCategory = searchParams.get("category") ?? "";
 
   useEffect(() => {
     const start = Date.now();
 
-    apiFetch("http://localhost:9696/api/products")
-      .then((r: Response) => r.json())
+    apiFetch(`${API_URL}/api/products`)
+      .then((r) => r.json())
       .then((data: Product[]) => {
         setProducts(data);
 
         const elapsed = Date.now() - start;
-        const minDelay = 400;
-
-        setTimeout(
-          () => setLoading(false),
-          Math.max(minDelay - elapsed, 0)
-        );
-      });
+        const minDelay = 350;
+        setTimeout(() => setLoading(false), Math.max(minDelay - elapsed, 0));
+      })
+      .catch(() => setLoading(false));
   }, []);
 
-  const brands = Array.from(new Set(products.map((p) => p.brand)));
+  const brands = useMemo(
+    () => Array.from(new Set(products.map((p) => p.brand))).sort(),
+    [products]
+  );
 
-  const filteredProducts = products.filter((p) => {
-    const minPrice = Math.min(...p.variants.map((v) => v.price));
+  const filtered = useMemo(() => {
+    return products.filter((p) => {
+      const minPrice = Math.min(...p.variants.map((v) => v.price));
 
-    if (selectedCategory && p.category !== selectedCategory) return false;
-    if (selectedBrand && p.brand !== selectedBrand) return false;
-    if (priceFrom && minPrice < Number(priceFrom)) return false;
-    if (priceTo && minPrice > Number(priceTo)) return false;
+      if (selectedCategory && p.category !== selectedCategory) return false;
+      if (selectedBrand && p.brand !== selectedBrand) return false;
+      if (priceFrom && minPrice < Number(priceFrom)) return false;
+      if (priceTo && minPrice > Number(priceTo)) return false;
 
-    return true;
-  });
+      return true;
+    });
+  }, [products, selectedCategory, selectedBrand, priceFrom, priceTo]);
+
+  const hasFilters = Boolean(selectedBrand || priceFrom || priceTo);
+
+  function resetFilters() {
+    setSelectedBrand("");
+    setPriceFrom("");
+    setPriceTo("");
+  }
 
   return (
-    <div className={styles.page}>
-      <div className={styles.container}>
-        {/* FILTERS */}
-        <div className={styles.filters}>
+    <div className={styles.catalog}>
+      {/* LEFT / TOP FILTERS */}
+      <aside className={styles.filters}>
+        <label className={styles.field}>
           <select
-            className={styles.filterControl}
+            className={styles.control}
             value={selectedBrand}
             onChange={(e) => setSelectedBrand(e.target.value)}
           >
-            <option value="">Все бренды</option>
+            <option value="">Фильтр</option>
             {brands.map((b) => (
               <option key={b} value={b}>
                 {b}
               </option>
             ))}
           </select>
+        </label>
 
+        <label className={styles.field}>
+          
           <input
-            className={styles.filterControl}
+            className={styles.control}
             type="number"
-            placeholder="Цена от"
+            inputMode="numeric"
             value={priceFrom}
             onChange={(e) => setPriceFrom(e.target.value)}
+            placeholder="Цена от"
           />
+        </label>
 
+        <label className={styles.field}>
+          
           <input
-            className={styles.filterControl}
+            className={styles.control}
             type="number"
-            placeholder="Цена до"
+            inputMode="numeric"
             value={priceTo}
             onChange={(e) => setPriceTo(e.target.value)}
+            placeholder="Цена до"
           />
+        </label>
 
-          <button
-            className={styles.filterControl}
-            onClick={() => {
-              setSelectedBrand("");
-              setPriceFrom("");
-              setPriceTo("");
-            }}
-          >
-            Сбросить
-          </button>
+        <button
+          className={styles.reset}
+          onClick={resetFilters}
+          disabled={!hasFilters}
+          type="button"
+        >
+          Сбросить
+        </button>
+      </aside>
+
+      {/* RESULTS */}
+      <section className={styles.results}>
+        <div className={styles.resultsBar}>
+          <div className={styles.count}>
+            {loading ? "Загрузка…" : `${filtered.length} товаров`}
+          </div>
         </div>
 
-        {/* GRID */}
-        <div className={styles.grid}>
+        <ul className={styles.grid} aria-busy={loading}>
           {loading
-            ? Array.from({ length: 10 }).map((_, i) => (
-                <SkeletonCard key={i} />
-              ))
-            : filteredProducts.map((product) => (
-                <ProductCard key={product.id} product={product} />
-              ))}
-        </div>
-      </div>
+            ? Array.from({ length: 12 }).map((_, i) => <SkeletonTile key={i} />)
+            : filtered.map((p) => <ProductTile key={p.id} product={p} />)}
+        </ul>
+      </section>
     </div>
   );
 }

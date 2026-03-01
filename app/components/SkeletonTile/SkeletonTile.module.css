@@ -1,0 +1,21 @@
+.item {
+  list-style: none;
+}
+
+.media {
+  background: #f0f0f0;
+  aspect-ratio: 3 / 4;
+}
+
+.line {
+  height: 10px;
+  background: #f3f3f3;
+  margin-top: 10px;
+}
+
+.lineShort {
+  height: 10px;
+  background: #f3f3f3;
+  margin-top: 6px;
+  width: 60%;
+}
