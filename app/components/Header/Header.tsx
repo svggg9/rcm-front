@@ -44,6 +44,10 @@ export function Header() {
 
   return (
     <header className={styles.header}>
+      {/* TOP BANNER */}
+<div className={styles.topBanner}>
+  <img src="/icons/111.svg" alt="" className={styles.topBannerImg} />
+</div>
       {/* TOP ROW */}
       <div className={styles.topRow}>
         <div />
@@ -132,5 +136,6 @@ export function Header() {
           ))}
       </nav>
     </header>
+    
   );
 }

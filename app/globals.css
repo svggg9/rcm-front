@@ -1,34 +1,15 @@
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+/* app/globals.css */
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #ffffff;
-    --foreground: #000000;
-}
+* {
+  box-sizing: border-box;
+  padding: 0;
+  margin: 0;
 }
 
 html,
 body {
   max-width: 100vw;
   overflow-x: hidden;
-}
-
-body {
-  color: var(--foreground);
-  background: var(--background);
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  line-height: 1.4;
-}
-
-* {
-  box-sizing: border-box;
-  padding: 0;
-  margin: 0;
 }
 
 img {
@@ -38,4 +19,12 @@ img {
 a {
   color: inherit;
   text-decoration: none;
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+  color: inherit;
 }

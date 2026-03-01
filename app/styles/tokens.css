@@ -1,0 +1,30 @@
+:root {
+  --bg: #ffffff;
+  --text: #111111;
+  --muted: #6b6b6b;
+  --border: #e6e6e6;
+
+  --surface: #ffffff;
+  --surface-2: #fafafa;
+
+  --primary: #111111;
+  --primary-hover: #2a2a2a;
+
+  --danger: #b00020;
+  --danger-bg: #fff2f2;
+
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+
+  --container: 1120px; /* asos-like */
+}
+
+.appMain {
+  max-width: var(--container);
+  margin: 0 auto;
+  padding: 24px 16px;
+}
