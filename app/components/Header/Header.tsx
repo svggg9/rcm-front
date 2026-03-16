@@ -4,11 +4,11 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import styles from "./Header.module.css";
-import { apiFetch, API_URL } from "../../lib/api"; // если API_URL не экспортится — убери и верни хардкод
-import { clearAuth } from "../../lib/auth";
+import { apiFetch, API_URL } from "../../lib/api";
 import { useClientAuth } from "../../lib/useClientAuth";
 import { useCartCount } from "../../lib/useCartCount";
 import { useUserRole } from "../../lib/useUserRole";
+import { useFavorites } from "../../lib/FavoritesContext";
 
 type Category = {
   id: number;
@@ -27,8 +27,10 @@ export function Header() {
   const cartCount = useCartCount();
   const role = useUserRole();
 
+  const { count } = useFavorites();
+
   useEffect(() => {
-    apiFetch(`${API_URL}/api/categories`) // если нет API_URL — замени на "http://localhost:9696/api/categories"
+    apiFetch(`${API_URL}/api/categories`)
       .then((r: Response) => r.json())
       .then((data: Category[]) => {
         setCategories(data);
@@ -37,39 +39,27 @@ export function Header() {
       .catch(() => setLoading(false));
   }, []);
 
-  function logout() {
-    clearAuth();
-    router.push("/");
-  }
-
   return (
     <header className={styles.header}>
-      {/* TOP BANNER */}
-<div className={styles.topBanner}>
-  <img src="/icons/111.svg" alt="" className={styles.topBannerImg} />
-</div>
-      {/* TOP ROW */}
+      <div className={styles.topBanner}>
+        <img src="/icons/111.svg" alt="" className={styles.topBannerImg} />
+      </div>
+
       <div className={styles.topRow}>
         <div />
 
-        <Link href="/" className={styles.logo}>
+        {/* <Link href="/" className={styles.logo}>
           RC MARKET
-        </Link>
+        </Link> */}
 
         <div className={styles.actions}>
-          {/* Seller cabinet */}
           {isAuth === true && role === "ROLE_SELLER" && (
-            <Link
-              href="/seller"
-              title="Кабинет продавца"
-              className={styles.iconButton}
-            >
+            <Link href="/seller" className={styles.iconButton}>
               <img src="/icons/seller.svg" alt="Seller" />
             </Link>
           )}
 
-          {/* CART */}
-          <Link href="/cart" title="Корзина" className={styles.iconButton}>
+          <Link href="/cart" className={styles.iconButton}>
             <span className={styles.cart}>
               <img src="/icons/bag.svg" alt="Cart" />
               {cartCount > 0 && (
@@ -78,38 +68,22 @@ export function Header() {
             </span>
           </Link>
 
-          {/* PROFILE — всегда показываем */}
-          <Link
-            href={
-              isAuth === true
-                ? "/account"
-                : "/auth/login?next=/account"
-            }
-            title="Профиль"
-            className={styles.iconButton}
-          >
-            <img src="/icons/profile.svg" alt="Profile" />
+          <Link href="/favorites" className={styles.iconButton}>
+            <span className={styles.cart}>
+              <img src="/icons/like.svg" alt="Favorites" />
+              {count > 0 && <span className={styles.cartBadge}>{count}</span>}
+            </span>
           </Link>
 
-          {/* AUTH */}
-          {isAuth === null ? null : isAuth ? (
-            <button
-              onClick={logout}
-              title="Выйти"
-              className={styles.iconButton}
-              type="button"
-            >
-              <img src="/icons/login.svg" alt="Logout" />
-            </button>
-          ) : (
-            <Link href="/auth/login" title="Войти" className={styles.iconButton}>
-              <img src="/icons/login.svg" alt="Login" />
-            </Link>
-          )}
+          <Link
+            href={isAuth === true ? "/account" : "/auth/login?next=/account"}
+            className={styles.iconButton}
+          >
+            <img src="/icons/user.svg" alt="Profile" />
+          </Link>
         </div>
       </div>
 
-      {/* CATEGORIES */}
       <nav className={styles.categories}>
         {loading && <span className={styles.loading}>Загрузка…</span>}
 
@@ -136,6 +110,5 @@ export function Header() {
           ))}
       </nav>
     </header>
-    
   );
 }

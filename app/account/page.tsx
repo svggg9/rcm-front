@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { apiFetch } from "../lib/api";
 import { useClientAuth } from "../lib/useClientAuth";
+import { clearAuth } from "../lib/auth";
 import styles from "./Account.module.css";
 
 type Me = {
@@ -33,7 +34,7 @@ export default function AccountPage() {
 
   useEffect(() => {
     if (isAuth === null) return;
-    if (!isAuth) router.push("/auth/login?next=/account");
+    if (!isAuth) router.replace("/auth/login?next=/account");
   }, [isAuth, router]);
 
   useEffect(() => {
@@ -44,11 +45,20 @@ export default function AccountPage() {
 
     Promise.all([
       apiFetch("http://localhost:9696/api/profile").then(async (r) => {
-        if (!r.ok) throw new Error(await r.text().catch(() => "") || `Ошибка /api/me (${r.status})`);
+        if (!r.ok) {
+          throw new Error(
+            (await r.text().catch(() => "")) || `Ошибка /api/profile (${r.status})`
+          );
+        }
         return r.json() as Promise<Me>;
       }),
       apiFetch("http://localhost:9696/api/orders/my").then(async (r) => {
-        if (!r.ok) throw new Error(await r.text().catch(() => "") || `Ошибка /api/orders/my (${r.status})`);
+        if (!r.ok) {
+          throw new Error(
+            (await r.text().catch(() => "")) ||
+              `Ошибка /api/orders/my (${r.status})`
+          );
+        }
         return r.json() as Promise<Order[]>;
       }),
     ])
@@ -63,7 +73,13 @@ export default function AccountPage() {
       });
   }, [isAuth]);
 
-  if (isAuth === null || loading) return <div className={styles.page}>Загрузка…</div>;
+  function logout() {
+    clearAuth();
+    router.replace("/");
+  }
+
+  if (isAuth === null || loading)
+    return <div className={styles.page}>Загрузка…</div>;
   if (error) return <div className={styles.page}>{error}</div>;
 
   const name = me?.displayName?.trim() || me?.username || "Профиль";
@@ -88,6 +104,10 @@ export default function AccountPage() {
             Открыть все заказы
           </Link>
         </div>
+
+        <button type="button" className={styles.logout} onClick={logout}>
+          Выйти из аккаунта
+        </button>
       </div>
 
       <h2 className={styles.subtitle}>История заказов</h2>

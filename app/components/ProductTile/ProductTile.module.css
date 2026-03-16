@@ -98,3 +98,7 @@
   width: 16px;
   height: 16px;
 }
+
+.liked {
+  border-color: var(--text);
+}

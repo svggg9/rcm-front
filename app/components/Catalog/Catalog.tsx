@@ -72,7 +72,6 @@ export function Catalog() {
 
   return (
     <div className={styles.catalog}>
-      {/* LEFT / TOP FILTERS */}
       <aside className={styles.filters}>
         <label className={styles.field}>
           <select
@@ -90,7 +89,6 @@ export function Catalog() {
         </label>
 
         <label className={styles.field}>
-          
           <input
             className={styles.control}
             type="number"
@@ -102,7 +100,6 @@ export function Catalog() {
         </label>
 
         <label className={styles.field}>
-          
           <input
             className={styles.control}
             type="number"
@@ -123,7 +120,6 @@ export function Catalog() {
         </button>
       </aside>
 
-      {/* RESULTS */}
       <section className={styles.results}>
         <div className={styles.resultsBar}>
           <div className={styles.count}>
@@ -133,8 +129,27 @@ export function Catalog() {
 
         <ul className={styles.grid} aria-busy={loading}>
           {loading
-            ? Array.from({ length: 12 }).map((_, i) => <SkeletonTile key={i} />)
-            : filtered.map((p) => <ProductTile key={p.id} product={p} />)}
+            ? Array.from({ length: 12 }).map((_, i) => (
+                <SkeletonTile key={i} />
+              ))
+            : filtered.map((p) => {
+                const minPrice = Math.min(
+                  ...p.variants.map((v) => v.price)
+                );
+
+                return (
+                  <ProductTile
+                    key={p.id}
+                    product={{
+                      id: p.id,
+                      title: p.title,
+                      brand: p.brand,
+                      images: p.images,
+                      minPrice,
+                    }}
+                  />
+                );
+              })}
         </ul>
       </section>
     </div>
