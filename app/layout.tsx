@@ -5,6 +5,7 @@ import "./styles/layout.css";
 
 import { Inter } from "next/font/google";
 import { Header } from "./components/Header/Header";
+import { FavoritesProvider } from "./lib/FavoritesContext";
 
 const inter = Inter({
   subsets: ["latin", "cyrillic"],
@@ -20,13 +21,12 @@ export default function RootLayout({
   return (
     <html lang="ru" className={inter.variable}>
       <body>
-        <div className="appShell">
-          {/* ШАПКА НА ВСЕХ СТРАНИЦАХ */}
-          <Header />
-
-          {/* КОНТЕНТ СТРАНИЦ */}
-          <main className="appMain">{children}</main>
-        </div>
+        <FavoritesProvider>
+          <div className="appShell">
+            <Header />
+            <main className="appMain">{children}</main>
+          </div>
+        </FavoritesProvider>
       </body>
     </html>
   );
