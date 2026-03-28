@@ -1,4 +1,3 @@
-// app/seller/products/new/page.tsx
 "use client";
 
 import { useEffect, useState } from "react";
@@ -8,12 +7,14 @@ import { apiFetch } from "../../../lib/api";
 import { useClientAuth } from "../../../lib/useClientAuth";
 
 type Option = { id: number; name: string };
+type Audience = "MEN" | "WOMEN" | "UNISEX";
 
 type CreateProductReq = {
   title: string;
   description: string;
   categoryId: number;
   brandId: number;
+  audience: Audience;
   variants: Array<{
     size: string;
     color: string;
@@ -36,6 +37,7 @@ export default function SellerProductNewPage() {
 
   const [categoryId, setCategoryId] = useState<number | "">("");
   const [brandId, setBrandId] = useState<number | "">("");
+  const [audience, setAudience] = useState<Audience>("UNISEX");
 
   const [size, setSize] = useState("Стандарт");
   const [color, setColor] = useState("Black");
@@ -52,13 +54,11 @@ export default function SellerProductNewPage() {
   const [uploading, setUploading] = useState(false);
   const [imageUrl, setImageUrl] = useState<string | null>(null);
 
-  // guard
   useEffect(() => {
     if (isAuth === null) return;
     if (!isAuth) router.push("/auth/login?next=/seller/products/new");
   }, [isAuth, router]);
 
-  // load lists
   useEffect(() => {
     let cancelled = false;
 
@@ -117,6 +117,7 @@ export default function SellerProductNewPage() {
       description: description.trim(),
       categoryId: Number(categoryId),
       brandId: Number(brandId),
+      audience,
       variants: [
         {
           size: size.trim(),
@@ -255,6 +256,19 @@ export default function SellerProductNewPage() {
                   {b.name}
                 </option>
               ))}
+            </select>
+          </label>
+
+          <label className={styles.field}>
+            <span>Для кого</span>
+            <select
+              value={audience}
+              onChange={(e) => setAudience(e.target.value as Audience)}
+              className={styles.input}
+            >
+              <option value="MEN">Для него</option>
+              <option value="WOMEN">Для нее</option>
+              <option value="UNISEX">Для всех</option>
             </select>
           </label>
 
