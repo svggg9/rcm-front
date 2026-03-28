@@ -3,7 +3,12 @@
 import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { setAuth, getCartId } from "../../lib/auth";
-import { apiFetch, API_URL } from "../../lib/api"; // если API_URL не экспортится — убери и верни хардкод
+import { apiFetch, API_URL } from "../../lib/api";
+import {
+  getGuestFavoriteIds,
+  syncFavoritesAfterLogin,
+  clearGuestFavoriteIds,
+} from "../../lib/favorites";
 import styles from "./Login.module.css";
 
 export default function LoginPage() {
@@ -34,9 +39,17 @@ export default function LoginPage() {
 
       const data: { token: string; cartId: string } = await res.json();
 
+      const guestFavoriteIds = getGuestFavoriteIds();
+
       setAuth(data.token, data.cartId);
 
-      // важно: replace, чтобы back не возвращал на /auth/login
+      if (guestFavoriteIds.length > 0) {
+        await syncFavoritesAfterLogin(guestFavoriteIds);
+        clearGuestFavoriteIds();
+
+        window.dispatchEvent(new Event("auth-changed"));
+      }
+
       router.replace(next);
     } catch (err) {
       setError((err as Error).message);
@@ -82,7 +95,10 @@ export default function LoginPage() {
 
           <div className={styles.hint}>
             Нет аккаунта?{" "}
-            <a className={styles.link} href={`/auth/register?next=${encodeURIComponent(next)}`}>
+            <a
+              className={styles.link}
+              href={`/auth/register?next=${encodeURIComponent(next)}`}
+            >
               Регистрация
             </a>
           </div>
