@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import styles from "./Catalog.module.css";
 import { apiFetch, API_URL } from "../../lib/api";
 import { ProductTile } from "../ProductTile/ProductTile";
 import { SkeletonTile } from "../SkeletonTile/SkeletonTile";
+import { ChevronDownIcon } from "../icons/ChevronDownIcon";
 
 type Variant = { price: number };
 type Audience = "MEN" | "WOMEN" | "UNISEX";
@@ -21,12 +22,18 @@ type Product = {
   variants: Variant[];
 };
 
-type SortValue = "newest" | "price-asc" | "price-desc" | "brand-asc";
+type SortValue = "" | "newest" | "price-asc" | "price-desc";
 
 const audienceLabels: Record<string, string> = {
   men: "Для него",
   women: "Для нее",
   all: "Для всех",
+};
+
+const sortLabels: Record<Exclude<SortValue, "">, string> = {
+  newest: "Новинки",
+  "price-asc": "По возрастанию цены",
+  "price-desc": "По убыванию цены",
 };
 
 function getMinPrice(product: Product): number {
@@ -82,9 +89,12 @@ export function Catalog() {
   const [loading, setLoading] = useState(true);
 
   const [selectedBrand, setSelectedBrand] = useState(initialBrand);
-  const [priceFrom, setPriceFrom] = useState("");
-  const [priceTo, setPriceTo] = useState("");
-  const [sortBy, setSortBy] = useState<SortValue>("newest");
+  const [sortBy, setSortBy] = useState<SortValue>("");
+  const [brandsOpen, setBrandsOpen] = useState(false);
+  const [sortOpen, setSortOpen] = useState(false);
+
+  const brandsDropdownRef = useRef<HTMLDivElement | null>(null);
+  const sortDropdownRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     setSelectedBrand(initialBrand);
@@ -105,6 +115,29 @@ export function Catalog() {
       .catch(() => setLoading(false));
   }, []);
 
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      const target = event.target as Node;
+
+      if (
+        brandsDropdownRef.current &&
+        !brandsDropdownRef.current.contains(target)
+      ) {
+        setBrandsOpen(false);
+      }
+
+      if (
+        sortDropdownRef.current &&
+        !sortDropdownRef.current.contains(target)
+      ) {
+        setSortOpen(false);
+      }
+    }
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
   const brands = useMemo(
     () =>
       Array.from(
@@ -120,15 +153,13 @@ export function Catalog() {
     [products]
   );
 
+  const visibleBrands = useMemo(() => brands.slice(0, 8), [brands]);
+
   const filtered = useMemo(() => {
     const base = products.filter((p) => {
-      const minPrice = getMinPrice(p);
-
       if (!matchesAudience(p.audience, selectedAudience)) return false;
       if (selectedCategory && p.category !== selectedCategory) return false;
       if (selectedBrand && p.brand !== selectedBrand) return false;
-      if (priceFrom && minPrice < Number(priceFrom)) return false;
-      if (priceTo && minPrice > Number(priceTo)) return false;
 
       if (searchQuery) {
         const haystack = `${p.title} ${p.brand} ${p.category}`.toLowerCase();
@@ -147,38 +178,45 @@ export function Catalog() {
       case "price-desc":
         sorted.sort((a, b) => getMinPrice(b) - getMinPrice(a));
         break;
-      case "brand-asc":
-        sorted.sort((a, b) => a.brand.localeCompare(b.brand));
-        break;
       case "newest":
-      default:
         sorted.sort((a, b) => b.id - a.id);
+        break;
+      default:
         break;
     }
 
     return sorted;
-  }, [
-    products,
-    selectedAudience,
-    selectedCategory,
-    selectedBrand,
-    priceFrom,
-    priceTo,
-    searchQuery,
-    sortBy,
-  ]);
-
-  const hasFilters = Boolean(selectedBrand || priceFrom || priceTo);
+  }, [products, selectedAudience, selectedCategory, selectedBrand, searchQuery, sortBy]);
 
   const breadcrumbAudienceLabel = audienceLabels[selectedAudience];
   const pageTitle = buildCatalogTitle(selectedCategory, selectedAudience);
 
-  function resetFilters() {
-    setSelectedBrand("");
-    setPriceFrom("");
-    setPriceTo("");
-    setSortBy("newest");
+  function toggleBrand(brand: string) {
+    setSelectedBrand((prev) => (prev === brand ? "" : brand));
+    setBrandsOpen(false);
   }
+
+  function resetBrandFilter() {
+    setSelectedBrand("");
+    setBrandsOpen(false);
+  }
+
+  function toggleBrandsDropdown() {
+    setBrandsOpen((prev) => !prev);
+    setSortOpen(false);
+  }
+
+  function toggleSortDropdown() {
+    setSortOpen((prev) => !prev);
+    setBrandsOpen(false);
+  }
+
+  function selectSort(value: Exclude<SortValue, "">) {
+    setSortBy((prev) => (prev === value ? "" : value));
+    setSortOpen(false);
+  }
+
+  const sortButtonText = sortBy ? sortLabels[sortBy] : "Сортировка";
 
   return (
     <div className={styles.catalogPage}>
@@ -214,68 +252,106 @@ export function Catalog() {
       </div>
 
       <div className={styles.catalogActions}>
-        <aside className={styles.filters}>
-          <label className={styles.field}>
-            <select
-              className={styles.control}
-              value={selectedBrand}
-              onChange={(e) => setSelectedBrand(e.target.value)}
+        <div className={styles.chipsRow}>
+          <div className={styles.dropdownWrap} ref={brandsDropdownRef}>
+            <button
+              type="button"
+              className={`${styles.chip} ${styles.dropdownChip} ${
+                !selectedBrand ? styles.chipActive : ""
+              }`}
+              onClick={toggleBrandsDropdown}
             >
-              <option value="">Бренд</option>
-              {brands.map((b) => (
-                <option key={b} value={b}>
-                  {b}
-                </option>
-              ))}
-            </select>
-          </label>
+              <span>Все</span>
+            <ChevronDownIcon className={styles.chevron} />
+            </button>
 
-          <label className={styles.field}>
-            <input
-              className={styles.control}
-              type="number"
-              inputMode="numeric"
-              value={priceFrom}
-              onChange={(e) => setPriceFrom(e.target.value)}
-              placeholder="Цена от"
-            />
-          </label>
+            {brandsOpen && (
+              <div className={styles.dropdownMenu}>
+                <button
+                  type="button"
+                  className={`${styles.dropdownItem} ${
+                    !selectedBrand ? styles.dropdownItemActive : ""
+                  }`}
+                  onClick={resetBrandFilter}
+                >
+                  Все бренды
+                </button>
 
-          <label className={styles.field}>
-            <input
-              className={styles.control}
-              type="number"
-              inputMode="numeric"
-              value={priceTo}
-              onChange={(e) => setPriceTo(e.target.value)}
-              placeholder="Цена до"
-            />
-          </label>
+                {brands.map((brand) => (
+                  <button
+                    key={brand}
+                    type="button"
+                    className={`${styles.dropdownItem} ${
+                      selectedBrand === brand ? styles.dropdownItemActive : ""
+                    }`}
+                    onClick={() => toggleBrand(brand)}
+                  >
+                    {brand}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
 
+          <div className={styles.quickFilters} aria-label="Бренды">
+            {visibleBrands.map((brand) => (
+              <button
+                key={brand}
+                type="button"
+                className={`${styles.chip} ${
+                  selectedBrand === brand ? styles.chipActive : ""
+                }`}
+                onClick={() => toggleBrand(brand)}
+              >
+                {brand}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className={styles.sortWrap} ref={sortDropdownRef}>
           <button
-            className={styles.reset}
-            onClick={resetFilters}
-            disabled={!hasFilters}
             type="button"
+            className={styles.sortButton}
+            onClick={toggleSortDropdown}
           >
-            Сбросить
+            <span className={styles.sortButtonText}>{sortButtonText}</span>
+            <ChevronDownIcon className={styles.chevron} />
           </button>
-        </aside>
 
-        <div className={styles.sortWrap}>
-          <label className={styles.sortLabel}>
-            <span className={styles.sortText}>Сортировка</span>
-            <select
-              className={styles.sortControl}
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value as SortValue)}
-            >
-              <option value="newest">Сначала новые</option>
-              <option value="price-asc">Цена: по возрастанию</option>
-              <option value="price-desc">Цена: по убыванию</option>
-              <option value="brand-asc">По бренду</option>
-            </select>
-          </label>
+          {sortOpen && (
+            <div className={styles.sortMenu}>
+              <button
+                type="button"
+                className={`${styles.dropdownItem} ${
+                  sortBy === "price-desc" ? styles.dropdownItemActive : ""
+                }`}
+                onClick={() => selectSort("price-desc")}
+              >
+                По убыванию цены
+              </button>
+
+              <button
+                type="button"
+                className={`${styles.dropdownItem} ${
+                  sortBy === "price-asc" ? styles.dropdownItemActive : ""
+                }`}
+                onClick={() => selectSort("price-asc")}
+              >
+                По возрастанию цены
+              </button>
+
+              <button
+                type="button"
+                className={`${styles.dropdownItem} ${
+                  sortBy === "newest" ? styles.dropdownItemActive : ""
+                }`}
+                onClick={() => selectSort("newest")}
+              >
+                Новинки
+              </button>
+            </div>
+          )}
         </div>
       </div>
 

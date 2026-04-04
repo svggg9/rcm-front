@@ -125,102 +125,104 @@ export function Header() {
 
   return (
     <header className={styles.header}>
-      <div className={styles.topBannerBar}>
-        <div className={styles.topBannerItem}>
-          <span>
+      <div className={styles.banner}>
+        <div className={styles.inner}>
+          <div className={styles.bannerText}>
             {banners[bannerIndex].text}{" "}
             {banners[bannerIndex].link && (
-              <a href={banners[bannerIndex].link} className={styles.topBannerLink}>
+              <Link href={banners[bannerIndex].link} className={styles.bannerLink}>
                 {banners[bannerIndex].linkText}
-              </a>
+              </Link>
             )}
-          </span>
+          </div>
         </div>
       </div>
 
-      <div className={styles.topRow}>
-        <nav className={styles.audienceNav} aria-label="Разделы">
-          {audienceItems.map((item) => (
-            <button
-              key={item.key}
-              type="button"
-              className={`${styles.audienceButton} ${
-                activeAudience === item.key ? styles.audienceActive : ""
-              }`}
-              onClick={() => handleAudienceClick(item.key)}
-            >
-              {item.label}
-            </button>
-          ))}
-        </nav>
-
-        <Link href="/" className={styles.logo}>
-          RC MARKET
-        </Link>
-
-        <div className={styles.actions}>
-          {isAuth === true && role === "ROLE_SELLER" && (
-            <Link href="/seller" className={styles.iconButton}>
-              <img src="/icons/seller.svg" alt="Seller" />
-            </Link>
-          )}
-
-          <Link href="/favorites" className={styles.iconButton}>
-            <span className={styles.cart}>
-              <img src="/icons/like.svg" alt="Favorites" />
-              {count > 0 && <span className={styles.cartBadge}>{count}</span>}
-            </span>
-          </Link>
-
-          <Link href="/cart" className={styles.iconButton}>
-            <span className={styles.cart}>
-              <img src="/icons/bag.svg" alt="Cart" />
-              {cartCount > 0 && (
-                <span className={styles.cartBadge}>{cartCount}</span>
-              )}
-            </span>
-          </Link>
-
-          <Link
-            href={isAuth === true ? "/account" : "/auth/login?next=/account"}
-            className={styles.iconButton}
-          >
-            <img src="/icons/user.svg" alt="Profile" />
-          </Link>
-        </div>
-      </div>
-
-      <div className={styles.bottomRow}>
-        <nav className={styles.categories} aria-label="Категории">
-          {loading && <span className={styles.loading}>Загрузка…</span>}
-
-          {!loading &&
-            categories.map((cat) => (
+      <div className={styles.top}>
+        <div className={styles.inner}>
+          <nav className={styles.audience} aria-label="Разделы">
+            {audienceItems.map((item) => (
               <button
-                key={cat.id}
+                key={item.key}
                 type="button"
-                className={`${styles.category} ${
-                  activeCategory === cat.name ? styles.active : ""
+                className={`${styles.audienceBtn} ${
+                  activeAudience === item.key ? styles.audienceBtnActive : ""
                 }`}
-                onClick={() => handleCategoryClick(cat.name)}
+                onClick={() => handleAudienceClick(item.key)}
               >
-                {cat.name}
+                {item.label}
               </button>
             ))}
-        </nav>
+          </nav>
 
-        <form className={styles.searchForm} onSubmit={handleSearchSubmit}>
-          <input
-            className={styles.searchInput}
-            type="text"
-            placeholder="Что вы ищете?"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
-          <button type="submit" className={styles.searchButton}>
-            Поиск
-          </button>
-        </form>
+          <Link href="/" className={styles.logo}>
+            RCMARKET
+          </Link>
+
+          <div className={styles.actions}>
+            {isAuth === true && role === "ROLE_SELLER" && (
+              <Link href="/seller" className={styles.iconBtn}>
+                <img src="/icons/seller.svg" alt="Seller" />
+              </Link>
+            )}
+
+            <Link href="/favorites" className={styles.iconBtn}>
+              <span className={styles.iconWrap}>
+                <img src="/icons/like.svg" alt="Favorites" />
+                {count > 0 && <span className={styles.badge}>{count}</span>}
+              </span>
+            </Link>
+
+            <Link href="/cart" className={styles.iconBtn}>
+              <span className={styles.iconWrap}>
+                <img src="/icons/bag.svg" alt="Cart" />
+                {cartCount > 0 && <span className={styles.badge}>{cartCount}</span>}
+              </span>
+            </Link>
+
+            <Link
+              href={isAuth === true ? "/account" : "/auth/login?next=/account"}
+              className={styles.iconBtn}
+            >
+              <img src="/icons/user.svg" alt="Profile" />
+            </Link>
+          </div>
+        </div>
+      </div>
+
+      <div className={styles.bottom}>
+        <div className={styles.inner}>
+          <nav className={styles.categories} aria-label="Категории">
+            {loading && <span className={styles.loading}>Загрузка…</span>}
+
+            {!loading &&
+              categories.map((cat) => (
+                <button
+                  key={cat.id}
+                  type="button"
+                  className={`${styles.category} ${
+                    activeCategory === cat.name ? styles.categoryActive : ""
+                  }`}
+                  onClick={() => handleCategoryClick(cat.name)}
+                >
+                  {cat.name}
+                </button>
+              ))}
+          </nav>
+
+          <form className={styles.search} onSubmit={handleSearchSubmit}>
+            <input
+              className={styles.searchInput}
+              type="text"
+              placeholder="Что вы ищете?"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+            <button type="submit" className={styles.searchBtn}>
+              Поиск
+            </button>
+          </form>
+        </div>
       </div>
     </header>
   );
