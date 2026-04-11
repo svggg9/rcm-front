@@ -5,7 +5,7 @@ export const HOME_PLACEHOLDER_IMAGE =
 
 export const HOME_HERO: HeroBlock = {
   eyebrow: "Новая коллекция",
-  title: "Современный взгляд на fashion retail",
+  title: "Только российские производители",
   text: "Тщательно собранные бренды, выразительные силуэты и вещи, которые хочется носить каждый день. Начни с главных новинок сезона.",
   buttonLabel: "Начать шопинг",
   buttonHref: "/",

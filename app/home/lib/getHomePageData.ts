@@ -172,7 +172,7 @@ export async function getHomePageData(
 ): Promise<HomePageData> {
   try {
     const response = await fetch(`${API_URL}/api/products`, {
-      cache: "no-store",
+      next: { revalidate: 120 },
     });
 
     if (!response.ok) {

@@ -161,7 +161,7 @@ export function Header() {
 
           <div className={styles.actions}>
             {isAuth === true && role === "ROLE_SELLER" && (
-              <Link href="/seller" className={styles.iconBtn}>
+              <Link href="/seller?tab=orders" className={styles.iconBtn}>
                 <img src="/icons/seller.svg" alt="Seller" />
               </Link>
             )}
@@ -181,7 +181,7 @@ export function Header() {
             </Link>
 
             <Link
-              href={isAuth === true ? "/account" : "/auth/login?next=/account"}
+              href={isAuth === true ? "/account?tab=orders" : "/auth/login?next=/account"}
               className={styles.iconBtn}
             >
               <img src="/icons/user.svg" alt="Profile" />

@@ -3,7 +3,7 @@
   display: flex;
   align-items: flex-start;
   justify-content: center;
-  padding: 80px 16px;
+  padding: 80px 0 48px;
 }
 
 .card {
@@ -79,4 +79,10 @@
 
 .link {
   text-decoration: underline;
+}
+
+@media (max-width: 768px) {
+  .page {
+    padding-top: 40px;
+  }
 }

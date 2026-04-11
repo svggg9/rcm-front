@@ -1,151 +1,48 @@
-"use client";
+import { API_URL } from "../../lib/api";
+import ProductPageClient from "./ProductPageClient";
+import type { Product } from "./lib/types";
+import { getRelatedProducts } from "./lib/productPageUtils";
 
-import { use, useEffect, useState } from "react";
-import { apiFetch } from "../../lib/api";
-import { getCartId, isAuthenticated } from "../../lib/auth";
-import { useRouter } from "next/navigation";
-import { emitCartChanged } from "../../lib/cartEvents";
+async function getProduct(id: string): Promise<Product | null> {
+  const response = await fetch(`${API_URL}/api/products/${id}`, {
+    next: { revalidate: 60 },
+  });
 
-type Variant = {
-  id: number;
-  price: number;
-};
+  if (!response.ok) {
+    return null;
+  }
 
-type Product = {
-  id: number;
-  title: string;
-  description: string;
-  brand: string;
-  category: string;
-  images: string[];
-  variants: Variant[];
-};
+  return response.json();
+}
 
-export default function ProductPage({
+async function getProducts(): Promise<Product[]> {
+  const response = await fetch(`${API_URL}/api/products`, {
+    next: { revalidate: 60 },
+  });
+
+  if (!response.ok) {
+    return [];
+  }
+
+  const data: Product[] = await response.json();
+  return Array.isArray(data) ? data : [];
+}
+
+export default async function ProductPage({
   params,
 }: {
   params: Promise<{ id: string }>;
 }) {
-  // ✅ распаковываем params
-  const { id } = use(params);
+  const { id } = await params;
 
-  const [product, setProduct] = useState<Product | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [adding, setAdding] = useState(false);
-
-  const router = useRouter();
-  const cartId = getCartId();
-
-  useEffect(() => {
-    fetch(`http://localhost:9696/api/products/${id}`)
-      .then((r) => r.json())
-      .then((data: Product) => {
-        setProduct(data);
-        setLoading(false);
-      });
-  }, [id]);
-
-  if (loading) {
-    return <div style={{ padding: 24 }}>Загрузка товара...</div>;
-  }
+  const product = await getProduct(id);
 
   if (!product) {
-    return <div style={{ padding: 24 }}>Товар не найден</div>;
-  }
-  const safeProduct = product;
-
-  const prices = safeProduct.variants.map((v) => v.price);
-  const minPrice = Math.min(...prices);
-  const image = safeProduct.images[0];
-
-  async function addToCart() {
-    if (!cartId) {
-      alert("Не удалось создать корзину");
-      return;
-    }
-
-    const variantId = safeProduct.variants[0].id;
-
-    try {
-      setAdding(true);
-
-      const res = await apiFetch(
-        `http://localhost:9696/api/cart/add?cartId=${cartId}&variantId=${variantId}&qty=1`,
-        { method: "POST" }
-      );
-
-      if (!res.ok) {
-        const text = await res.text();
-        throw new Error(text || "Ошибка добавления в корзину");
-      }
-
-      emitCartChanged(); // 👈 мгновенный фидбек
-    } catch (e) {
-      alert((e as Error).message);
-    } finally {
-      setAdding(false);
-    }
+    return <div className="pageContainer">Товар не найден</div>;
   }
 
+  const products = await getProducts();
+  const related = getRelatedProducts(products, product, 12);
 
-
-  return (
-    <div style={{ padding: 24, maxWidth: 900, margin: "0 auto" }}>
-      <h1>{safeProduct.brand} {safeProduct.title}</h1>
-
-      {/* IMAGE */}
-      <div
-        style={{
-          width: 400,
-          height: 400,
-          backgroundColor: "#f3f3f3",
-          marginBottom: 16,
-          overflow: "hidden",
-        }}
-      >
-        {image && (
-          <img
-            src={image}
-            alt={safeProduct.title}
-            style={{
-              width: "100%",
-              height: "100%",
-              objectFit: "cover",
-            }}
-          />
-        )}
-      </div>
-
-      {/* PRICE */}
-      <div
-        style={{
-          fontSize: 20,
-          fontWeight: "bold",
-          marginBottom: 16,
-        }}
-      >
-        от {minPrice.toLocaleString()} ₽
-      </div>
-
-      {/* ADD TO CART */}
-      <button
-        onClick={addToCart}
-        disabled={adding}
-        style={{
-          padding: "12px 24px",
-          background: "#000",
-          color: "#fff",
-          border: "none",
-          cursor: adding ? "default" : "pointer",
-          opacity: adding ? 0.6 : 1,
-          marginBottom: 24,
-        }}
-      >
-        {adding ? "Добавляем…" : "Добавить в корзину"}
-      </button>
-
-      {/* DESCRIPTION */}
-      <p>{safeProduct.description}</p>
-    </div>
-  );
+  return <ProductPageClient product={product} related={related} />;
 }

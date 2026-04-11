@@ -1,7 +1,9 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+
 import { setAuth, getCartId } from "../../lib/auth";
 import { apiFetch, API_URL } from "../../lib/api";
 import {
@@ -9,6 +11,7 @@ import {
   syncFavoritesAfterLogin,
   clearGuestFavoriteIds,
 } from "../../lib/favorites";
+
 import styles from "./Login.module.css";
 
 export default function LoginPage() {
@@ -21,24 +24,23 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
+  async function handleSubmit(event: React.FormEvent) {
+    event.preventDefault();
     setError("");
 
     try {
       const cartId = getCartId();
 
-      const res = await apiFetch(`${API_URL}/api/auth/login`, {
+      const response = await apiFetch(`${API_URL}/api/auth/login`, {
         method: "POST",
         body: JSON.stringify({ username, password, cartId }),
       });
 
-      if (!res.ok) {
+      if (!response.ok) {
         throw new Error("Неверный логин или пароль");
       }
 
-      const data: { token: string; cartId: string } = await res.json();
-
+      const data: { token: string; cartId: string } = await response.json();
       const guestFavoriteIds = getGuestFavoriteIds();
 
       setAuth(data.token, data.cartId);
@@ -46,63 +48,64 @@ export default function LoginPage() {
       if (guestFavoriteIds.length > 0) {
         await syncFavoritesAfterLogin(guestFavoriteIds);
         clearGuestFavoriteIds();
-
         window.dispatchEvent(new Event("auth-changed"));
       }
 
       router.replace(next);
-    } catch (err) {
-      setError((err as Error).message);
+    } catch (error) {
+      setError((error as Error).message);
     }
   }
 
   return (
-    <div className={styles.page}>
-      <div className={styles.card}>
-        <h1 className={styles.title}>Вход</h1>
+    <div className="pageContainer">
+      <div className={styles.page}>
+        <div className={styles.card}>
+          <h1 className={styles.title}>Вход</h1>
 
-        <form onSubmit={handleSubmit} className={styles.form}>
-          <label className={styles.label}>
-            Логин
-            <input
-              className={styles.input}
-              placeholder="username"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              required
-              autoComplete="username"
-            />
-          </label>
+          <form onSubmit={handleSubmit} className={styles.form}>
+            <label className={styles.label}>
+              Логин
+              <input
+                className={styles.input}
+                placeholder="username"
+                value={username}
+                onChange={(event) => setUsername(event.target.value)}
+                required
+                autoComplete="username"
+              />
+            </label>
 
-          <label className={styles.label}>
-            Пароль
-            <input
-              className={styles.input}
-              type="password"
-              placeholder="••••••••"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              autoComplete="current-password"
-            />
-          </label>
+            <label className={styles.label}>
+              Пароль
+              <input
+                className={styles.input}
+                type="password"
+                placeholder="••••••••"
+                value={password}
+                onChange={(event) => setPassword(event.target.value)}
+                required
+                autoComplete="current-password"
+              />
+            </label>
 
-          {error && <div className={styles.error}>{error}</div>}
+            {error ? <div className={styles.error}>{error}</div> : null}
 
-          <button type="submit" className={styles.button}>
-            Войти
-          </button>
+            <button type="submit" className={styles.button}>
+              Войти
+            </button>
 
-          <div className={styles.hint}>
-            Нет аккаунта?{" "}
-            <a
-              className={styles.link}
-              href={`/auth/register?next=${encodeURIComponent(next)}`}
-            >
-              Регистрация
-            </a>
-          </div>
-        </form>
+            <div className={styles.hint}>
+              Нет аккаунта?{" "}
+              <Link
+                className={styles.link}
+                href={`/auth/register?next=${encodeURIComponent(next)}`}
+              >
+                Регистрация
+              </Link>
+            </div>
+          </form>
+        </div>
       </div>
     </div>
   );

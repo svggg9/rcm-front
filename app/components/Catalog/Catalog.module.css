@@ -1,12 +1,6 @@
-.catalog {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
-
 .catalogPage {
-  width: min(1440px, calc(100% - 48px));
-  margin: 24px auto 0;
+  width: 100%;
+  margin-top: 24px;
 }
 
 .catalogTop {
@@ -21,9 +15,6 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  list-style: none;
-  padding: 0;
-  margin: 0;
   flex-wrap: wrap;
 }
 
@@ -90,8 +81,12 @@
   align-items: center;
   gap: 12px;
   min-width: 0;
-  overflow-x: hidden;
-  flex-wrap: nowrap;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.quickFilters::-webkit-scrollbar {
+  display: none;
 }
 
 .chip {
@@ -104,6 +99,10 @@
   font-size: 14px;
   color: #111;
   flex-shrink: 0;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .chip:hover {
@@ -124,7 +123,6 @@
 .chevron {
   width: 16px;
   height: 16px;
-  transition: transform 0.2s ease;
 }
 
 .dropdownMenu {
@@ -152,6 +150,7 @@
   cursor: pointer;
   font-size: 14px;
   color: #111;
+  text-decoration: none;
 }
 
 .dropdownItem:last-child {
@@ -175,12 +174,11 @@
 .sortButton {
   height: 44px;
   padding: 0;
-  border: 0;
-  background: transparent;
-  cursor: pointer;
   display: inline-flex;
   align-items: center;
   gap: 8px;
+  background: transparent;
+  cursor: pointer;
   color: #111;
 }
 
@@ -201,15 +199,6 @@
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
 }
 
-.sortButton:hover {
-  border-color: #111;
-}
-
-.sortButtonOpen {
-  border-color: #111;
-}
-
-
 .results {
   display: flex;
   flex-direction: column;
@@ -220,6 +209,8 @@
   justify-content: space-between;
   align-items: center;
   margin-bottom: 12px;
+  gap: 12px;
+  flex-wrap: wrap;
 }
 
 .count {
@@ -227,39 +218,77 @@
   color: #666;
 }
 
+.perPage {
+  font-size: 13px;
+  color: #666;
+}
+
+.empty {
+  margin-top: 20px;
+  color: #666;
+}
+
 .grid {
-  list-style: none;
   display: grid;
-  grid-template-columns: repeat(1, 1fr);
+  grid-template-columns: repeat(1, minmax(0, 1fr));
   gap: 20px 12px;
-  padding: 0;
-  margin: 0;
+}
+
+.pagination {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 28px;
+}
+
+.pageLink {
+  min-width: 40px;
+  height: 40px;
+  padding: 0 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #dcdcdc;
+  background: #fff;
+  color: #111;
+  text-decoration: none;
+  font-size: 14px;
+}
+
+.pageLink:hover {
+  border-color: #111;
+}
+
+.pageLinkActive {
+  background: #111;
+  color: #fff;
+  border-color: #111;
 }
 
 @media (min-width: 600px) {
   .grid {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 24px 16px;
   }
 }
 
 @media (min-width: 900px) {
   .grid {
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 28px 20px;
   }
 }
 
 @media (min-width: 1200px) {
   .grid {
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 32px 24px;
   }
 }
 
 @media (max-width: 900px) {
   .catalogPage {
-    width: min(100%, calc(100% - 24px));
     margin-top: 16px;
   }
 
@@ -271,10 +300,6 @@
   .chipsRow {
     flex-direction: column;
     align-items: stretch;
-  }
-
-  .quickFilters {
-    overflow-x: auto;
   }
 
   .sortWrap {
