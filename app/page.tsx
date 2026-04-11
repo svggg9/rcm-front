@@ -2,7 +2,7 @@ import styles from "./HomePage.module.css";
 import { HOME_HERO } from "./home/constants";
 import { getHomePageData } from "./home/lib/getHomePageData";
 import { HeroSection } from "./home/sections/HeroSection";
-import { ProductShowcaseSection } from "./home/sections/ProductShowcaseSection";
+import { ProductRailSection } from "./home/sections/ProductRailSection";
 
 type HomePageProps = {
   searchParams?: Promise<{
@@ -33,11 +33,13 @@ export default async function HomePage({ searchParams }: HomePageProps) {
 
   return (
     <div className={styles.page}>
-      <HeroSection block={heroBlock} />
+      <div className="pageContainer">
+        <HeroSection block={heroBlock} />
 
-      <ProductShowcaseSection block={data.brandShowcase} />
-      <ProductShowcaseSection block={data.categoryShowcase} />
-      <ProductShowcaseSection block={data.latestShowcase} />
+        <ProductRailSection block={data.brandShowcase} />
+        <ProductRailSection block={data.categoryShowcase} />
+        <ProductRailSection block={data.latestShowcase} />
+      </div>
     </div>
   );
 }

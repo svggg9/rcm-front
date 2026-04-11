@@ -1,11 +1,17 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { apiFetch } from "../lib/api";
+import { useEffect, useMemo, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+
+import { apiFetch, API_URL } from "../lib/api";
 import { useClientAuth } from "../lib/useClientAuth";
 import { clearAuth } from "../lib/auth";
+
+import { AccountSidebar } from "./components/AccountSidebar";
+import { AccountProfileTab } from "./components/AccountProfileTab";
+import { AccountOrdersTab } from "./components/AccountOrdersTab";
+import { AccountOrderDetails } from "./components/AccountOrderDetails";
+
 import styles from "./Account.module.css";
 
 type Me = {
@@ -15,26 +21,96 @@ type Me = {
   role: string;
 };
 
+type OrderItemPreview = {
+  imageUrl?: string;
+};
+
 type Order = {
   id: number;
   status: "NEW" | "PAID" | "SHIPPED" | "COMPLETED" | "CANCELED";
   totalAmount: number;
   createdAt: string;
+  items?: OrderItemPreview[];
 };
+
+type OrderDetailsItem = {
+  productTitle: string;
+  size: string;
+  color: string;
+  quantity: number;
+  price: number;
+  lineTotal: number;
+};
+
+type OrderDetails = {
+  id: number;
+  status: "NEW" | "PAID" | "SHIPPED" | "COMPLETED" | "CANCELED";
+  totalAmount: number;
+  createdAt: string;
+  items: OrderDetailsItem[];
+};
+
+type AccountTab = "profile" | "orders";
+
+function getInitials(value: string): string {
+  const parts = value
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2);
+
+  if (parts.length === 0) return "П";
+
+  return parts.map((part) => part[0]?.toUpperCase() ?? "").join("");
+}
+
+function formatStatus(status: Order["status"]): string {
+  switch (status) {
+    case "NEW":
+      return "Новый";
+    case "PAID":
+      return "Оплачен";
+    case "SHIPPED":
+      return "Отправлен";
+    case "COMPLETED":
+      return "Доставлен";
+    case "CANCELED":
+      return "Отменён";
+    default:
+      return status;
+  }
+}
 
 export default function AccountPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const isAuth = useClientAuth();
 
   const [me, setMe] = useState<Me | null>(null);
   const [orders, setOrders] = useState<Order[]>([]);
+  const [selectedOrder, setSelectedOrder] = useState<OrderDetails | null>(null);
 
   const [loading, setLoading] = useState(true);
+  const [detailsLoading, setDetailsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const currentTab: AccountTab =
+    searchParams.get("tab") === "profile" ? "profile" : "orders";
+
+  const selectedOrderId = searchParams.get("orderId");
+
+  const [lastName, setLastName] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [middleName, setMiddleName] = useState("");
+  const [birthDate, setBirthDate] = useState("");
+  const [gender, setGender] = useState<"men" | "women" | "">("");
+  const [phone, setPhone] = useState("");
 
   useEffect(() => {
     if (isAuth === null) return;
-    if (!isAuth) router.replace("/auth/login?next=/account");
+    if (!isAuth) {
+      router.replace("/auth/login?next=/account?tab=orders");
+    }
   }, [isAuth, router]);
 
   useEffect(() => {
@@ -44,27 +120,41 @@ export default function AccountPage() {
     setError(null);
 
     Promise.all([
-      apiFetch("http://localhost:9696/api/profile").then(async (r) => {
-        if (!r.ok) {
+      apiFetch(`${API_URL}/api/profile`).then(async (response) => {
+        if (!response.ok) {
           throw new Error(
-            (await r.text().catch(() => "")) || `Ошибка /api/profile (${r.status})`
+            (await response.text().catch(() => "")) ||
+              `Ошибка /api/profile (${response.status})`
           );
         }
-        return r.json() as Promise<Me>;
+
+        return response.json() as Promise<Me>;
       }),
-      apiFetch("http://localhost:9696/api/orders/my").then(async (r) => {
-        if (!r.ok) {
+      apiFetch(`${API_URL}/api/orders/my`).then(async (response) => {
+        if (!response.ok) {
           throw new Error(
-            (await r.text().catch(() => "")) ||
-              `Ошибка /api/orders/my (${r.status})`
+            (await response.text().catch(() => "")) ||
+              `Ошибка /api/orders/my (${response.status})`
           );
         }
-        return r.json() as Promise<Order[]>;
+
+        return response.json() as Promise<Order[]>;
       }),
     ])
       .then(([meData, ordersData]) => {
         setMe(meData);
-        setOrders(ordersData);
+        setOrders(Array.isArray(ordersData) ? ordersData : []);
+
+        const displayName = meData.displayName?.trim() ?? "";
+        if (displayName) {
+          const parts = displayName.split(/\s+/).filter(Boolean);
+          setLastName(parts[0] ?? "");
+          setFirstName(parts[1] ?? meData.username ?? "");
+          setMiddleName(parts[2] ?? "");
+        } else {
+          setFirstName(meData.username ?? "");
+        }
+
         setLoading(false);
       })
       .catch((e: Error) => {
@@ -73,68 +163,123 @@ export default function AccountPage() {
       });
   }, [isAuth]);
 
+  useEffect(() => {
+    if (currentTab !== "orders" || !selectedOrderId) {
+      setSelectedOrder(null);
+      return;
+    }
+
+    setDetailsLoading(true);
+    setError(null);
+
+    apiFetch(`${API_URL}/api/orders/${selectedOrderId}`)
+      .then(async (response) => {
+        if (!response.ok) {
+          const text = await response.text().catch(() => "");
+          throw new Error(text || "Не удалось загрузить заказ");
+        }
+
+        return response.json() as Promise<OrderDetails>;
+      })
+      .then((data) => {
+        setSelectedOrder(data);
+        setDetailsLoading(false);
+      })
+      .catch((e: Error) => {
+        setError(e.message);
+        setDetailsLoading(false);
+      });
+  }, [currentTab, selectedOrderId]);
+
   function logout() {
     clearAuth();
     router.replace("/");
   }
 
-  if (isAuth === null || loading)
-    return <div className={styles.page}>Загрузка…</div>;
-  if (error) return <div className={styles.page}>{error}</div>;
+  function openOrder(orderId: number) {
+    router.push(`/account?tab=orders&orderId=${orderId}`);
+  }
 
-  const name = me?.displayName?.trim() || me?.username || "Профиль";
+  function closeOrderDetails() {
+    router.push("/account?tab=orders");
+  }
+
+  const fullName = useMemo(() => {
+    const parts = [lastName, firstName, middleName].filter(
+      (value) => value.trim().length > 0
+    );
+    return parts.join(" ").trim();
+  }, [lastName, firstName, middleName]);
+
+  const displayName =
+    fullName || me?.displayName?.trim() || me?.username || "Профиль";
+
+  const initials = getInitials(displayName);
+
+  if (isAuth === null || loading) {
+    return (
+      <div className="pageContainer">
+        <div className={styles.page}>Загрузка…</div>
+      </div>
+    );
+  }
+
+  if (error && !selectedOrderId) {
+    return (
+      <div className="pageContainer">
+        <div className={styles.page}>{error}</div>
+      </div>
+    );
+  }
 
   return (
-    <div className={styles.page}>
-      <div className={styles.card}>
-        <div className={styles.title}>Профиль</div>
+    <div className="pageContainer">
+      <div className={styles.page}>
+        <div className={styles.layout}>
+          <AccountSidebar
+            currentTab={currentTab}
+            ordersCount={orders.length}
+            onLogout={logout}
+          />
 
-        <div className={styles.field}>
-          <div className={styles.label}>Имя</div>
-          <div className={styles.value}>{name}</div>
+          <div className={styles.content}>
+            {currentTab === "profile" ? (
+              <AccountProfileTab
+                displayName={displayName}
+                initials={initials}
+                email={me?.username ? `${me.username}@mail.com` : "—"}
+                role={me?.role ?? "—"}
+                lastName={lastName}
+                firstName={firstName}
+                middleName={middleName}
+                birthDate={birthDate}
+                gender={gender}
+                phone={phone}
+                onLastNameChange={setLastName}
+                onFirstNameChange={setFirstName}
+                onMiddleNameChange={setMiddleName}
+                onBirthDateChange={setBirthDate}
+                onGenderChange={setGender}
+                onPhoneChange={setPhone}
+              />
+            ) : detailsLoading ? (
+              <div className={styles.sectionTitle}>Загрузка заказа…</div>
+            ) : selectedOrder ? (
+              <AccountOrderDetails
+                order={selectedOrder}
+                onBack={closeOrderDetails}
+                formatStatus={formatStatus}
+              />
+            ) : (
+              <AccountOrdersTab
+                orders={orders}
+                formatStatus={formatStatus}
+                onOpenOrder={openOrder}
+              />
+            )}
+          </div>
         </div>
-
-        <div className={styles.field}>
-          <div className={styles.label}>Роль</div>
-          <div className={styles.value}>{me?.role}</div>
-        </div>
-
-        <div className={styles.links}>
-          <Link href="/orders" className={styles.linkBtn}>
-            Открыть все заказы
-          </Link>
-        </div>
-
-        <button type="button" className={styles.logout} onClick={logout}>
-          Выйти из аккаунта
-        </button>
       </div>
-
-      <h2 className={styles.subtitle}>История заказов</h2>
-
-      {orders.length === 0 ? (
-        <div className={styles.empty}>Пока нет заказов</div>
-      ) : (
-        <div className={styles.list}>
-          {orders.slice(0, 10).map((o) => (
-            <Link key={o.id} href={`/orders/${o.id}`} className={styles.row}>
-              <div className={styles.left}>
-                <div className={styles.rowTitle}>Заказ #{o.id}</div>
-                <div className={styles.sub}>
-                  {new Date(o.createdAt).toLocaleString()}
-                </div>
-              </div>
-
-              <div className={styles.right}>
-                <div className={styles.amount}>
-                  {o.totalAmount.toLocaleString()} ₽
-                </div>
-                <div className={styles.status}>{o.status}</div>
-              </div>
-            </Link>
-          ))}
-        </div>
-      )}
     </div>
   );
 }

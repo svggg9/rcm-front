@@ -2,21 +2,42 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { apiFetch } from "../lib/api";
+
+import { API_URL } from "../lib/api";
 import { getCartId } from "../lib/auth";
 import { emitCartChanged } from "../lib/cartEvents";
 import { useClientAuth } from "../lib/useClientAuth";
+import { mapProductToCarouselProduct } from "../lib/productMappers";
+
+import { ProductCarousel } from "../components/ProductCarousel/ProductCarousel";
+
+import { CartItem } from "./lib/types";
+import { getCart, removeItem, updateQuantity } from "./lib/cartApi";
+
+import { CartItemRow } from "./components/CartItemRow";
+import { CartSummary } from "./components/CartSummary";
+import { EmptyCart } from "./components/EmptyCart";
+
 import styles from "./Cart.module.css";
 
-type CartItem = {
-  productId: number;
-  variantId: number;
-  title: string;
+type ProductVariant = {
+  id: number;
   size: string;
   color: string;
   price: number;
   quantity: number;
-  imageUrl: string;
+  sku: string;
+};
+
+type Product = {
+  id: number;
+  title: string;
+  description: string;
+  brand: string | null;
+  category: string;
+  audience?: "MEN" | "WOMEN" | "UNISEX";
+  images: string[];
+  variants: ProductVariant[];
 };
 
 export default function CartPage() {
@@ -24,53 +45,95 @@ export default function CartPage() {
   const isAuth = useClientAuth();
 
   const [items, setItems] = useState<CartItem[]>([]);
+  const [recommendations, setRecommendations] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
 
   const cartId = getCartId();
 
   useEffect(() => {
-    if (!cartId) return;
+    let active = true;
 
-    apiFetch(`http://localhost:9696/api/cart?cartId=${cartId}`)
-      .then((r: Response) => r.json())
-      .then((data: CartItem[]) => {
+    async function loadCart() {
+      if (!cartId) {
+        if (active) setLoading(false);
+        return;
+      }
+
+      try {
+        const data = await getCart(cartId);
+        if (!active) return;
         setItems(data);
-        setLoading(false);
-      });
+      } catch {
+        if (!active) return;
+        setItems([]);
+      } finally {
+        if (active) setLoading(false);
+      }
+    }
+
+    loadCart();
+
+    return () => {
+      active = false;
+    };
   }, [cartId]);
 
-  function updateQty(variantId: number, qty: number) {
-    apiFetch(
-      `http://localhost:9696/api/cart/quantity?cartId=${cartId}&variantId=${variantId}&qty=${qty}`,
-      { method: "PUT" }
-    )
-      .then((r: Response) => r.json())
-      .then((data: CartItem[]) => {
-        setItems(data);
-        emitCartChanged();
-      });
+  useEffect(() => {
+    let active = true;
+
+    async function loadRecommendations() {
+      try {
+        const res = await fetch(`${API_URL}/api/products`);
+        if (!res.ok) throw new Error("Failed to load recommendations");
+
+        const data: Product[] = await res.json();
+        if (!active) return;
+
+        const safeList = Array.isArray(data) ? data : [];
+        setRecommendations(safeList.slice(0, 12));
+      } catch {
+        if (!active) return;
+        setRecommendations([]);
+      }
+    }
+
+    loadRecommendations();
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  async function handleQty(variantId: number, qty: number) {
+    if (!cartId) return;
+
+    try {
+      const data = await updateQuantity(cartId, variantId, qty);
+      setItems(data);
+      emitCartChanged();
+    } catch (error) {
+      console.error(error);
+    }
   }
 
-  function removeItem(variantId: number) {
-    apiFetch(
-      `http://localhost:9696/api/cart/remove?cartId=${cartId}&variantId=${variantId}`,
-      { method: "DELETE" }
-    )
-      .then((r: Response) => r.json())
-      .then((data: CartItem[]) => {
-        setItems(data);
-        emitCartChanged();
-      });
+  async function handleRemove(variantId: number) {
+    if (!cartId) return;
+
+    try {
+      const data = await removeItem(cartId, variantId);
+      setItems(data);
+      emitCartChanged();
+    } catch (error) {
+      console.error(error);
+    }
   }
 
-  const total = useMemo(
-    () => items.reduce((sum, i) => sum + i.price * i.quantity, 0),
-    [items]
-  );
+  const subtotal = useMemo(() => {
+    return items.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  }, [items]);
 
   function goCheckout() {
-    if (items.length === 0) return;
-    if (isAuth === null) return;
+    if (!items.length || isAuth === null) return;
 
     if (!isAuth) {
       router.push("/auth/login?next=/checkout");
@@ -80,63 +143,52 @@ export default function CartPage() {
     router.push("/checkout");
   }
 
-  if (loading) return <div>Загрузка корзины…</div>;
+  if (loading) {
+    return <div className={styles.state}>Загрузка…</div>;
+  }
 
   return (
-    <div className={styles.page}>
-      <h1>Корзина</h1>
+    <div className="pageContainer">
+      <div className={styles.page}>
+        <div className={styles.top}>
+          <h1 className={styles.title}>КОРЗИНА</h1>
 
-      {items.length === 0 && <p>Корзина пуста</p>}
-
-      {items.map((item) => (
-        <div key={item.variantId} className={styles.row}>
-          <img
-            src={item.imageUrl}
-            width={80}
-            height={80}
-            className={styles.image}
-            alt=""
-          />
-
-          <div className={styles.meta}>
-            <div>{item.title}</div>
-            <div className={styles.sub}>
-              {item.size} / {item.color}
-            </div>
-            <div>{item.price} ₽</div>
-          </div>
-
-          <div className={styles.qty}>
-            <button
-              disabled={item.quantity <= 1}
-              onClick={() => updateQty(item.variantId, item.quantity - 1)}
-            >
-              −
-            </button>
-
-            <span className={styles.qtyValue}>{item.quantity}</span>
-
-            <button onClick={() => updateQty(item.variantId, item.quantity + 1)}>
-              +
-            </button>
-          </div>
-
-          <button className={styles.remove} onClick={() => removeItem(item.variantId)}>
-            ✕
+          <button
+            type="button"
+            className={styles.continue}
+            onClick={() => router.push("/catalog")}
+          >
+            Продолжить покупки
           </button>
         </div>
-      ))}
 
-      <h2 className={styles.total}>Итого: {total.toLocaleString()} ₽</h2>
+        {items.length === 0 ? (
+          <EmptyCart />
+        ) : (
+          <div className={styles.grid}>
+            <div className={styles.items}>
+              {items.map((item) => (
+                <CartItemRow
+                  key={item.variantId}
+                  item={item}
+                  onChangeQty={handleQty}
+                  onRemove={handleRemove}
+                />
+              ))}
+            </div>
 
-      <div className={styles.footer}>
-        <button
-          onClick={goCheckout}
-          disabled={items.length === 0 || isAuth === null}
-          className={styles.checkoutBtn}
-        >
-          Оформить заказ
-        </button>
+            <CartSummary
+              subtotal={subtotal}
+              onCheckout={goCheckout}
+              disabled={!items.length || isAuth === null}
+            />
+          </div>
+        )}
+
+        <ProductCarousel
+          title="Вам может понравиться"
+          products={recommendations.map(mapProductToCarouselProduct)}
+        />
       </div>
     </div>
   );

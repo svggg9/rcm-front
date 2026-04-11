@@ -1,7 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useRef, useState } from "react";
+import { useRouter } from "next/navigation";
+
 import styles from "./ProductTile.module.css";
 import { useFavorites } from "../../lib/FavoritesContext";
 
@@ -14,6 +16,8 @@ type Product = {
 };
 
 export function ProductTile({ product }: { product: Product }) {
+  const router = useRouter();
+
   const mainImage = product.images?.[0];
   const hoverImage = product.images?.[1];
 
@@ -22,7 +26,15 @@ export function ProductTile({ product }: { product: Product }) {
   const { favoriteIds, toggle } = useFavorites();
   const fav = favoriteIds.includes(product.id);
 
-  async function onLike(e: React.MouseEvent) {
+  const prefetchedRef = useRef(false);
+
+  function prefetchProduct() {
+    if (prefetchedRef.current) return;
+    prefetchedRef.current = true;
+    router.prefetch(`/product/${product.id}`);
+  }
+
+  async function onLike(e: React.MouseEvent<HTMLButtonElement>) {
     e.preventDefault();
     e.stopPropagation();
     await toggle(product.id);
@@ -30,7 +42,12 @@ export function ProductTile({ product }: { product: Product }) {
 
   return (
     <li className={styles.item}>
-      <Link href={`/product/${product.id}`} className={styles.link}>
+      <Link
+        href={`/product/${product.id}`}
+        className={styles.link}
+        onMouseEnter={prefetchProduct}
+        onFocus={prefetchProduct}
+      >
         <div className={styles.media}>
           {!imageLoaded && <div className={styles.skeleton} />}
 
@@ -59,7 +76,9 @@ export function ProductTile({ product }: { product: Product }) {
         <div className={styles.info}>
           <div className={styles.brand}>{product.brand}</div>
           <div className={styles.title}>{product.title}</div>
-          <div className={styles.price}>{product.minPrice.toLocaleString()} ₽</div>
+          <div className={styles.price}>
+            {product.minPrice.toLocaleString()} ₽
+          </div>
         </div>
 
         <button

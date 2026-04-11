@@ -33,8 +33,8 @@ function resolveMinPrice(product: ProductApi): number {
 
   if (Array.isArray(product.variants) && product.variants.length > 0) {
     const prices = product.variants
-      .map((v) => v?.price)
-      .filter((x): x is number => typeof x === "number");
+      .map((variant) => variant?.price)
+      .filter((price): price is number => typeof price === "number");
 
     if (prices.length > 0) {
       return Math.min(...prices);
@@ -69,16 +69,15 @@ export default function FavoritesPage() {
         const token = getToken();
 
         if (token) {
-          const r = await apiFetch(`${API_URL}/api/favorites`);
-          if (!r.ok) throw new Error("favorites load failed");
+          const response = await apiFetch(`${API_URL}/api/favorites`);
+          if (!response.ok) {
+            throw new Error("favorites load failed");
+          }
 
-          const data: ProductApi[] = await r.json();
-
+          const data: ProductApi[] = await response.json();
           if (!alive) return;
 
-          setProducts(
-            Array.isArray(data) ? data.map(toTileProduct) : []
-          );
+          setProducts(Array.isArray(data) ? data.map(toTileProduct) : []);
           return;
         }
 
@@ -90,17 +89,18 @@ export default function FavoritesPage() {
           return;
         }
 
-        const r = await apiFetch(`${API_URL}/api/products`);
-        if (!r.ok) throw new Error("products load failed");
+        const response = await apiFetch(`${API_URL}/api/products`);
+        if (!response.ok) {
+          throw new Error("products load failed");
+        }
 
-        const data: ProductApi[] = await r.json();
-
+        const data: ProductApi[] = await response.json();
         if (!alive) return;
 
         const idSet = new Set(guestIds);
 
         const filtered = (Array.isArray(data) ? data : [])
-          .filter((p) => idSet.has(p.id))
+          .filter((product) => idSet.has(product.id))
           .sort((a, b) => guestIds.indexOf(a.id) - guestIds.indexOf(b.id))
           .map(toTileProduct);
 
@@ -116,33 +116,35 @@ export default function FavoritesPage() {
 
     load();
 
-    const handler = () => {
+    function handleAuthChanged() {
       load();
-    };
+    }
 
-    window.addEventListener("auth-changed", handler);
+    window.addEventListener("auth-changed", handleAuthChanged);
 
     return () => {
       alive = false;
-      window.removeEventListener("auth-changed", handler);
+      window.removeEventListener("auth-changed", handleAuthChanged);
     };
   }, []);
 
   return (
-    <div className={styles.page}>
-      <h1 className={styles.pageTitle}>Избранное</h1>
+    <div className="pageContainer">
+      <div className={styles.page}>
+        <h1 className={styles.pageTitle}>Избранное</h1>
 
-      {loading ? (
-        <div className={styles.muted}>Загрузка…</div>
-      ) : products.length === 0 ? (
-        <div className={styles.muted}>Пока пусто</div>
-      ) : (
-        <ul className={styles.grid}>
-          {products.map((p) => (
-            <ProductTile key={p.id} product={p} />
-          ))}
-        </ul>
-      )}
+        {loading ? (
+          <div className={styles.muted}>Загрузка…</div>
+        ) : products.length === 0 ? (
+          <div className={styles.muted}>Пока пусто</div>
+        ) : (
+          <ul className={styles.grid}>
+            {products.map((product) => (
+              <ProductTile key={product.id} product={product} />
+            ))}
+          </ul>
+        )}
+      </div>
     </div>
   );
 }

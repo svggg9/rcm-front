@@ -1,0 +1,121 @@
+.section {
+  margin-top: 56px;
+  width: 100%;
+}
+
+.header {
+  margin-bottom: 18px;
+}
+
+.title {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+}
+
+.carousel {
+  position: relative;
+  width: 100%;
+}
+
+.scroller {
+  display: flex;
+  gap: 16px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scroll-snap-type: x mandatory;
+  scroll-behavior: smooth;
+  padding: 0 56px 6px;
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.scroller::-webkit-scrollbar {
+  display: none;
+}
+
+.item {
+  flex: 0 0 248px;
+  min-width: 248px;
+  scroll-snap-align: start;
+}
+
+.arrow {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 3;
+  width: 44px;
+  height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #d9d9d9;
+  background: #fff;
+  color: #111;
+  cursor: pointer;
+  transition:
+    background-color 0.18s ease,
+    border-color 0.18s ease,
+    opacity 0.18s ease,
+    transform 0.18s ease;
+}
+
+.arrow:hover:not(:disabled) {
+  background: #f6f6f6;
+  border-color: #bfbfbf;
+}
+
+.arrow:active:not(:disabled) {
+  transform: translateY(-50%) scale(0.98);
+}
+
+.arrow:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.arrowLeft {
+  left: 0;
+}
+
+.arrowRight {
+  right: 0;
+}
+
+@media (max-width: 1024px) {
+  .scroller {
+    padding-left: 44px;
+    padding-right: 44px;
+  }
+
+  .item {
+    flex-basis: 220px;
+    min-width: 220px;
+  }
+}
+
+@media (max-width: 768px) {
+  .section {
+    margin-top: 40px;
+  }
+
+  .title {
+    font-size: 20px;
+  }
+
+  .scroller {
+    padding-left: 0;
+    padding-right: 0;
+  }
+
+  .item {
+    flex-basis: 188px;
+    min-width: 188px;
+  }
+
+  .arrow {
+    display: none;
+  }
+}
