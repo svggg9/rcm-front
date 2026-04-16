@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
-import { setAuth, getCartId } from "../../lib/auth";
+import { setAuth, ensureCartId } from "../../lib/auth";
 import { apiFetch, API_URL } from "../../lib/api";
 import {
   getGuestFavoriteIds,
@@ -29,7 +29,7 @@ export default function LoginPage() {
     setError("");
 
     try {
-      const cartId = getCartId();
+      const cartId = await ensureCartId();
 
       const response = await apiFetch(`${API_URL}/api/auth/login`, {
         method: "POST",

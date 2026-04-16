@@ -1,10 +1,11 @@
 import { emitAuthChanged } from "./authEvents";
 import { emitCartChanged } from "./cartEvents";
 
-
 const TOKEN_KEY = "auth_token";
 const GUEST_CART_KEY = "guest_cart_id";
 const USER_CART_KEY = "user_cart_id";
+const GUEST_FAVORITES_KEY = "guest_favorite_ids";
+const API_URL = "http://localhost:9696";
 
 // ---------------- AUTH ----------------
 
@@ -18,15 +19,28 @@ export function isAuthenticated(): boolean {
 }
 
 export function setAuth(token: string, userCartId: string) {
+  if (typeof window === "undefined") return;
+
   localStorage.setItem(TOKEN_KEY, token);
   localStorage.setItem(USER_CART_KEY, userCartId);
+
+  // после логина guest cart больше не нужен
+  localStorage.removeItem(GUEST_CART_KEY);
+
   emitAuthChanged();
   emitCartChanged();
 }
 
 export function clearAuth() {
+  if (typeof window === "undefined") return;
+
   localStorage.removeItem(TOKEN_KEY);
   localStorage.removeItem(USER_CART_KEY);
+
+  // по твоему требованию при logout чистим и гостевое состояние
+  localStorage.removeItem(GUEST_CART_KEY);
+  localStorage.removeItem(GUEST_FAVORITES_KEY);
+
   emitAuthChanged();
   emitCartChanged();
 }
@@ -41,7 +55,6 @@ export function getUserRole(): string | null {
     const payloadPart = token.split(".")[1];
     if (!payloadPart) return null;
 
-    // base64url -> base64
     const base64 = payloadPart.replace(/-/g, "+").replace(/_/g, "/");
 
     const json = decodeURIComponent(
@@ -58,25 +71,44 @@ export function getUserRole(): string | null {
   }
 }
 
-
 // ---------------- CART ----------------
 
 export function getCartId(): string {
   if (typeof window === "undefined") return "";
 
-  // 1️⃣ если пользователь залогинен → используем user cart
   if (isAuthenticated()) {
-    const userCartId = localStorage.getItem(USER_CART_KEY);
-    if (userCartId) return userCartId;
+    return localStorage.getItem(USER_CART_KEY) ?? "";
   }
 
-  // 2️⃣ иначе → guest cart
-  let guestCartId = localStorage.getItem(GUEST_CART_KEY);
+  return localStorage.getItem(GUEST_CART_KEY) ?? "";
+}
 
-  if (!guestCartId) {
-    guestCartId = "guest_" + crypto.randomUUID();
-    localStorage.setItem(GUEST_CART_KEY, guestCartId);
+export async function ensureCartId(): Promise<string> {
+  if (typeof window === "undefined") return "";
+
+  if (isAuthenticated()) {
+    return localStorage.getItem(USER_CART_KEY) ?? "";
   }
 
-  return guestCartId;
+  const existingGuestCartId = localStorage.getItem(GUEST_CART_KEY);
+  if (existingGuestCartId) return existingGuestCartId;
+
+  const response = await fetch(`${API_URL}/api/cart/new-id`);
+
+  if (!response.ok) {
+    throw new Error("Не удалось получить guest cart id");
+  }
+
+  const data = await response.json();
+  const newCartId =
+    typeof data?.cartId === "string" ? data.cartId.trim() : "";
+
+  if (!newCartId) {
+    throw new Error("Backend вернул пустой cart id");
+  }
+
+  localStorage.setItem(GUEST_CART_KEY, newCartId);
+  emitCartChanged();
+
+  return newCartId;
 }

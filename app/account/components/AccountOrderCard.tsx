@@ -2,9 +2,7 @@
 
 import styles from "../Account.module.css";
 
-type OrderItemPreview = {
-  imageUrl?: string;
-};
+import type { OrderItemPreview } from "../types";
 
 type Props = {
   id: number;

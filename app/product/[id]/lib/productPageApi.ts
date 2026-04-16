@@ -3,20 +3,22 @@ import type { Product } from "./types";
 import { getRelatedProducts } from "./productPageUtils";
 
 export async function fetchProduct(productId: string): Promise<Product> {
-  const response = await fetch(`${API_URL}/api/products/${productId}`);
+  const response = await apiFetch(`${API_URL}/api/products/${productId}`);
 
   if (!response.ok) {
-    throw new Error("product failed");
+    const text = await response.text().catch(() => "");
+    throw new Error(text || "Не удалось загрузить товар");
   }
 
   return response.json();
 }
 
 export async function fetchProducts(): Promise<Product[]> {
-  const response = await fetch(`${API_URL}/api/products`);
+  const response = await apiFetch(`${API_URL}/api/products`);
 
   if (!response.ok) {
-    throw new Error("products failed");
+    const text = await response.text().catch(() => "");
+    throw new Error(text || "Не удалось загрузить товары");
   }
 
   const data: Product[] = await response.json();
@@ -44,7 +46,9 @@ export async function addVariantToCart(params: {
   const qty = params.qty ?? 1;
 
   const response = await apiFetch(
-    `${API_URL}/api/cart/add?cartId=${params.cartId}&variantId=${params.variantId}&qty=${qty}`,
+    `${API_URL}/api/cart/add?cartId=${encodeURIComponent(
+      params.cartId
+    )}&variantId=${params.variantId}&qty=${qty}`,
     { method: "POST" }
   );
 

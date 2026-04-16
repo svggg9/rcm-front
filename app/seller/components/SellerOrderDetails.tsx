@@ -2,46 +2,35 @@
 
 import styles from "../Seller.module.css";
 
-type OrderItem = {
-  productTitle: string;
-  size: string;
-  color: string;
-  quantity: number;
-  price: number;
-  lineTotal: number;
-};
-
-type Order = {
-  id: number;
-  status: "NEW" | "PAID" | "SHIPPED" | "COMPLETED" | "CANCELED";
-  totalAmount: number;
-  createdAt: string;
-  items: OrderItem[];
-};
+import type { SellerOrder } from "../types";
 
 type Props = {
-  order: Order;
+  order: SellerOrder;
   shipping: boolean;
+  canShip: boolean;
   onBack: () => void;
   onShip: () => void;
-  formatStatus: (status: Order["status"]) => string;
+  formatOrderStatus: (status: SellerOrder["status"]) => string;
+  formatPaymentStatus: (status: SellerOrder["paymentStatus"]) => string;
+  formatDeliveryStatus: (status: SellerOrder["deliveryStatus"]) => string;
+  buildSellerStatusLabel: (order: SellerOrder) => string;
 };
 
 export function SellerOrderDetails({
   order,
   shipping,
+  canShip,
   onBack,
   onShip,
-  formatStatus,
+  formatOrderStatus,
+  formatPaymentStatus,
+  formatDeliveryStatus,
+  buildSellerStatusLabel,
 }: Props) {
   return (
     <>
       <div className={styles.detailsHeader}>
-        <button
-          type="button"
-          className={styles.backBtn}
-          onClick={onBack}
-        >
+        <button type="button" className={styles.backBtn} onClick={onBack}>
           Назад
         </button>
 
@@ -49,10 +38,10 @@ export function SellerOrderDetails({
       </div>
 
       <div className={styles.detailsMeta}>
-        <span className={styles.statusBadge}>{formatStatus(order.status)}</span>
+        <span className={styles.statusBadge}>{buildSellerStatusLabel(order)}</span>
         <span className={styles.dot}>·</span>
         <span className={styles.muted}>
-          {new Date(order.createdAt).toLocaleString()}
+          {new Date(order.createdAt).toLocaleString("ru-RU")}
         </span>
       </div>
 
@@ -62,29 +51,29 @@ export function SellerOrderDetails({
 
           <div className={styles.detailsItems}>
             {order.items.map((item, index) => (
-              <div key={index} className={styles.detailsItemRow}>
+              <div key={`${item.sku}-${index}`} className={styles.detailsItemRow}>
                 <div className={styles.detailsItemImageWrap}>
-                  <div className={styles.detailsItemImagePlaceholder} />
+                  {item.imageUrl ? (
+                    <img
+                      src={item.imageUrl}
+                      alt={item.productTitle}
+                      className={styles.detailsItemImage}
+                    />
+                  ) : (
+                    <div className={styles.detailsItemImagePlaceholder} />
+                  )}
                 </div>
 
                 <div className={styles.detailsItemMain}>
                   <div className={styles.detailsItemTitle}>{item.productTitle}</div>
 
-                  <div className={styles.detailsItemMeta}>
-                    Размер: {item.size}
-                  </div>
-
-                  <div className={styles.detailsItemMeta}>
-                    Цвет: {item.color}
-                  </div>
-
-                  <div className={styles.detailsItemMeta}>
-                    Кол-во: {item.quantity}
-                  </div>
-
+                  <div className={styles.detailsItemMeta}>Размер: {item.size}</div>
+                  <div className={styles.detailsItemMeta}>Цвет: {item.color}</div>
+                  <div className={styles.detailsItemMeta}>Кол-во: {item.quantity}</div>
                   <div className={styles.detailsItemMeta}>
                     Цена: {item.price.toLocaleString()} ₽
                   </div>
+                  <div className={styles.detailsItemMeta}>SKU: {item.sku}</div>
                 </div>
 
                 <div className={styles.detailsItemTotal}>
@@ -106,14 +95,35 @@ export function SellerOrderDetails({
               </div>
 
               <div className={styles.infoRow}>
-                <span className={styles.infoLabel}>Статус</span>
-                <span className={styles.infoValue}>{formatStatus(order.status)}</span>
+                <span className={styles.infoLabel}>Группа</span>
+                <span className={styles.infoValue}>{order.orderGroupId}</span>
+              </div>
+
+              <div className={styles.infoRow}>
+                <span className={styles.infoLabel}>Статус заказа</span>
+                <span className={styles.infoValue}>
+                  {formatOrderStatus(order.status)}
+                </span>
+              </div>
+
+              <div className={styles.infoRow}>
+                <span className={styles.infoLabel}>Статус оплаты</span>
+                <span className={styles.infoValue}>
+                  {formatPaymentStatus(order.paymentStatus)}
+                </span>
+              </div>
+
+              <div className={styles.infoRow}>
+                <span className={styles.infoLabel}>Статус доставки</span>
+                <span className={styles.infoValue}>
+                  {formatDeliveryStatus(order.deliveryStatus)}
+                </span>
               </div>
 
               <div className={styles.infoRow}>
                 <span className={styles.infoLabel}>Создан</span>
                 <span className={styles.infoValue}>
-                  {new Date(order.createdAt).toLocaleString()}
+                  {new Date(order.createdAt).toLocaleString("ru-RU")}
                 </span>
               </div>
 
@@ -131,18 +141,21 @@ export function SellerOrderDetails({
 
             <div className={styles.infoGrid}>
               <div className={styles.infoRowColumn}>
-                <span className={styles.infoLabel}>Адрес / ПВЗ</span>
-                <span className={styles.infoValue}>
-                  Пока не подключено к backend
-                </span>
+                <span className={styles.infoLabel}>Способ доставки</span>
+                <span className={styles.infoValue}>{order.deliveryMethod}</span>
               </div>
 
               <div className={styles.infoRowColumn}>
-                <span className={styles.infoLabel}>Комментарий</span>
-                <span className={styles.infoValue}>
-                  Поля доставки добавим после расширения API заказа
-                </span>
+                <span className={styles.infoLabel}>Адрес / ПВЗ</span>
+                <span className={styles.infoValue}>{order.deliveryAddress}</span>
               </div>
+
+              {order.trackingNumber ? (
+                <div className={styles.infoRowColumn}>
+                  <span className={styles.infoLabel}>Трек-номер</span>
+                  <span className={styles.infoValue}>{order.trackingNumber}</span>
+                </div>
+              ) : null}
             </div>
           </section>
 
@@ -152,12 +165,12 @@ export function SellerOrderDetails({
             <div className={styles.infoGrid}>
               <div className={styles.infoRowColumn}>
                 <span className={styles.infoLabel}>Имя</span>
-                <span className={styles.infoValue}>Пока не подключено</span>
+                <span className={styles.infoValue}>{order.recipientName}</span>
               </div>
 
               <div className={styles.infoRowColumn}>
                 <span className={styles.infoLabel}>Телефон</span>
-                <span className={styles.infoValue}>Пока не подключено</span>
+                <span className={styles.infoValue}>{order.recipientPhone}</span>
               </div>
             </div>
           </section>
@@ -166,7 +179,7 @@ export function SellerOrderDetails({
             <h2 className={styles.detailsSectionTitle}>Действия продавца</h2>
 
             <div className={styles.detailsActions}>
-              {order.status === "PAID" ? (
+              {canShip ? (
                 <button
                   type="button"
                   onClick={onShip}
@@ -177,7 +190,7 @@ export function SellerOrderDetails({
                 </button>
               ) : (
                 <div className={styles.muted}>
-                  Для этого статуса действий пока нет
+                  Для текущего статуса отправка недоступна
                 </div>
               )}
             </div>

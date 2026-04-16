@@ -3,27 +3,17 @@
 import { AccountOrderCard } from "./AccountOrderCard";
 import styles from "../Account.module.css";
 
-type OrderItemPreview = {
-  imageUrl?: string;
-};
-
-type Order = {
-  id: number;
-  status: "NEW" | "PAID" | "SHIPPED" | "COMPLETED" | "CANCELED";
-  totalAmount: number;
-  createdAt: string;
-  items?: OrderItemPreview[];
-};
+import type { Order } from "../types";
 
 type Props = {
   orders: Order[];
-  formatStatus: (status: Order["status"]) => string;
+  buildOrderStatusLabel: (order: Order) => string;
   onOpenOrder: (orderId: number) => void;
 };
 
 export function AccountOrdersTab({
   orders,
-  formatStatus,
+  buildOrderStatusLabel,
   onOpenOrder,
 }: Props) {
   return (
@@ -38,7 +28,7 @@ export function AccountOrdersTab({
             <AccountOrderCard
               key={order.id}
               id={order.id}
-              statusLabel={formatStatus(order.status)}
+              statusLabel={buildOrderStatusLabel(order)}
               dateLabel={new Date(order.createdAt).toLocaleDateString("ru-RU", {
                 day: "numeric",
                 month: "long",

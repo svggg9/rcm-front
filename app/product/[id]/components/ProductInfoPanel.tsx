@@ -2,25 +2,7 @@
 
 import styles from "../ProductPage.module.css";
 
-type Variant = {
-  id: number;
-  size: string;
-  color: string;
-  price: number;
-  quantity: number;
-  sku: string;
-};
-
-type Product = {
-  id: number;
-  title: string;
-  description: string;
-  brand: string;
-  category: string;
-  audience?: "MEN" | "WOMEN" | "UNISEX";
-  images: string[];
-  variants: Variant[];
-};
+import type { Product, Variant } from "../lib/types";
 
 type Props = {
   product: Product;
@@ -79,10 +61,10 @@ export function ProductInfoPanel({
             <option
               key={variant.id}
               value={variant.id}
-              disabled={variant.quantity <= 0}
+              disabled={variant.availableQuantity <= 0}
             >
               {variant.size} — {variant.price.toLocaleString()} ₽
-              {variant.quantity <= 0 ? " (нет в наличии)" : ""}
+              {variant.availableQuantity <= 0 ? " (нет в наличии)" : ""}
             </option>
           ))}
         </select>
@@ -94,7 +76,11 @@ export function ProductInfoPanel({
             type="button"
             className={styles.addBtn}
             onClick={onAddToCart}
-            disabled={adding || !selectedVariant || selectedVariant.quantity <= 0}
+            disabled={
+              adding ||
+              !selectedVariant ||
+              selectedVariant.availableQuantity <= 0
+            }
           >
             {adding ? "Добавляем…" : "Добавить в корзину"}
           </button>
@@ -118,7 +104,7 @@ export function ProductInfoPanel({
 
       <div className={styles.delivery}>
         <div className={styles.deliveryTitle}>Примерная дата доставки:</div>
-        <div className={styles.deliveryText}>9 апр. - 13 апр.</div>
+        <div className={styles.deliveryText}>Рассчитывается при оформлении</div>
       </div>
     </aside>
   );

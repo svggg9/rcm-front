@@ -1,9 +1,16 @@
 import { API_URL, apiFetch } from "../../lib/api";
-import { CartItem } from "./types";
+import type { CartItem } from "./types";
 
 export async function getCart(cartId: string): Promise<CartItem[]> {
-  const res = await apiFetch(`${API_URL}/api/cart?cartId=${cartId}`);
-  if (!res.ok) throw new Error("Failed to load cart");
+  const res = await apiFetch(
+    `${API_URL}/api/cart?cartId=${encodeURIComponent(cartId)}`
+  );
+
+  if (!res.ok) {
+    const text = await res.text().catch(() => "");
+    throw new Error(text || "Не удалось загрузить корзину");
+  }
+
   return res.json();
 }
 
@@ -13,11 +20,17 @@ export async function updateQuantity(
   qty: number
 ): Promise<CartItem[]> {
   const res = await apiFetch(
-    `${API_URL}/api/cart/quantity?cartId=${cartId}&variantId=${variantId}&qty=${qty}`,
+    `${API_URL}/api/cart/quantity?cartId=${encodeURIComponent(
+      cartId
+    )}&variantId=${variantId}&qty=${qty}`,
     { method: "PUT" }
   );
 
-  if (!res.ok) throw new Error("Failed to update quantity");
+  if (!res.ok) {
+    const text = await res.text().catch(() => "");
+    throw new Error(text || "Не удалось изменить количество");
+  }
+
   return res.json();
 }
 
@@ -26,10 +39,16 @@ export async function removeItem(
   variantId: number
 ): Promise<CartItem[]> {
   const res = await apiFetch(
-    `${API_URL}/api/cart/remove?cartId=${cartId}&variantId=${variantId}`,
+    `${API_URL}/api/cart/remove?cartId=${encodeURIComponent(
+      cartId
+    )}&variantId=${variantId}`,
     { method: "DELETE" }
   );
 
-  if (!res.ok) throw new Error("Failed to remove item");
+  if (!res.ok) {
+    const text = await res.text().catch(() => "");
+    throw new Error(text || "Не удалось удалить товар");
+  }
+
   return res.json();
 }
