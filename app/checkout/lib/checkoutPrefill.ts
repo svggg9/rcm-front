@@ -1,3 +1,5 @@
+import type { DeliveryMethod } from "../types";
+
 export type Me = {
   id: number;
   username: string;
@@ -14,10 +16,22 @@ export type CheckoutPrefill = {
   email: string;
   fullName: string;
   phone: string;
-  deliveryMethod: "PICKUP" | "COURIER";
+  deliveryMethod: DeliveryMethod;
   deliveryAddress: string;
   comment: string;
 };
+
+function normalizeDeliveryMethod(value: string | null | undefined): DeliveryMethod {
+  if (value === "COURIER") {
+    return "COURIER";
+  }
+
+  if (value === "PICKUP_POINT" || value === "PICKUP") {
+    return "PICKUP_POINT";
+  }
+
+  return "PICKUP_POINT";
+}
 
 export function buildCheckoutPrefill(params: {
   me?: Me | null;
@@ -27,8 +41,7 @@ export function buildCheckoutPrefill(params: {
   const existing = params.existing ?? {};
 
   const resolvedDeliveryMethod =
-    existing.deliveryMethod ||
-    (me?.defaultDeliveryMethod === "COURIER" ? "COURIER" : "PICKUP");
+    existing.deliveryMethod || normalizeDeliveryMethod(me?.defaultDeliveryMethod);
 
   return {
     email:
@@ -43,20 +56,15 @@ export function buildCheckoutPrefill(params: {
       me?.username?.trim() ||
       "",
 
-    phone:
-      (existing.phone ?? "").trim() ||
-      me?.phone?.trim() ||
-      "",
+    phone: (existing.phone ?? "").trim() || me?.phone?.trim() || "",
 
-    deliveryMethod:
-      resolvedDeliveryMethod === "COURIER" ? "COURIER" : "PICKUP",
+    deliveryMethod: normalizeDeliveryMethod(resolvedDeliveryMethod),
 
     deliveryAddress:
       (existing.deliveryAddress ?? "").trim() ||
       me?.defaultDeliveryAddress?.trim() ||
       "",
 
-    comment:
-      (existing.comment ?? "").trim() || "",
+    comment: (existing.comment ?? "").trim() || "",
   };
 }

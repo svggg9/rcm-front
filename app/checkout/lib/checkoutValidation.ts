@@ -1,3 +1,5 @@
+import type { DeliveryMethod, DeliveryOffer, PickupPoint } from "../types";
+
 export type CheckoutContactValues = {
   email: string;
   fullName: string;
@@ -5,8 +7,9 @@ export type CheckoutContactValues = {
 };
 
 export type CheckoutDeliveryValues = {
-  deliveryMethod: "COURIER" | "PICKUP";
-  selectedAddressId: string;
+  deliveryMethod: DeliveryMethod;
+  selectedPickupPoint: PickupPoint | null;
+  selectedOffer: DeliveryOffer | null;
   deliveryAddress: string;
 };
 
@@ -31,9 +34,13 @@ export function validateContactDetails(
 export function validateDeliveryDetails(
   values: CheckoutDeliveryValues
 ): string | null {
-  if (values.deliveryMethod === "PICKUP") {
-    if (!values.selectedAddressId.trim()) {
+  if (values.deliveryMethod === "PICKUP_POINT") {
+    if (!values.selectedPickupPoint?.id) {
       return "Выберите пункт выдачи";
+    }
+
+    if (!values.selectedOffer?.offerId) {
+      return "Выберите вариант доставки";
     }
 
     return null;

@@ -1,12 +1,23 @@
 "use client";
 
-import type { DeliveryMethod, DeliveryOption } from "../types";
+import type {
+  DeliveryMethod,
+  DeliveryOffer,
+  PickupPoint,
+} from "../types";
 import styles from "../Checkout.module.css";
 
 type Props = {
-  options: DeliveryOption[];
   deliveryMethod: DeliveryMethod;
-  selectedAddressId: string;
+  pickupSearchQuery: string;
+  pickupPoints: PickupPoint[];
+  selectedPickupPoint: PickupPoint | null;
+  deliveryOffers: DeliveryOffer[];
+  selectedOffer: DeliveryOffer | null;
+  pickupSearchLoading: boolean;
+  offersLoading: boolean;
+  pickupSearchError: string | null;
+  offersError: string | null;
   deliveryAddress: string;
   comment: string;
   confirmed: boolean;
@@ -15,15 +26,54 @@ type Props = {
   onEdit: () => void;
   onConfirm: () => void;
   onDeliveryMethodChange: (value: DeliveryMethod) => void;
-  onAddressChange: (value: string) => void;
+  onPickupSearchQueryChange: (value: string) => void;
+  onSearchPickupPoints: () => void;
+  onPickupPointSelect: (value: PickupPoint) => void;
+  onOfferSelect: (value: DeliveryOffer) => void;
   onDeliveryAddressChange: (value: string) => void;
   onCommentChange: (value: string) => void;
 };
 
+function formatMoney(amount?: number | null, currency?: string | null): string {
+  if (typeof amount !== "number") {
+    return "—";
+  }
+
+  const value = amount.toLocaleString("ru-RU", {
+    minimumFractionDigits: amount % 1 === 0 ? 0 : 2,
+    maximumFractionDigits: 2,
+  });
+
+  return `${value} ${currency || "RUB"}`;
+}
+
+function formatDateTime(value?: string | null): string {
+  if (!value) return "—";
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return value;
+  }
+
+  return date.toLocaleString("ru-RU", {
+    day: "2-digit",
+    month: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
 export function CheckoutDeliverySection({
-  options,
   deliveryMethod,
-  selectedAddressId,
+  pickupSearchQuery,
+  pickupPoints,
+  selectedPickupPoint,
+  deliveryOffers,
+  selectedOffer,
+  pickupSearchLoading,
+  offersLoading,
+  pickupSearchError,
+  offersError,
   deliveryAddress,
   comment,
   confirmed,
@@ -32,22 +82,30 @@ export function CheckoutDeliverySection({
   onEdit,
   onConfirm,
   onDeliveryMethodChange,
-  onAddressChange,
+  onPickupSearchQueryChange,
+  onSearchPickupPoints,
+  onPickupPointSelect,
+  onOfferSelect,
   onDeliveryAddressChange,
   onCommentChange,
 }: Props) {
-  const selectedOption =
-    options.find((option) => option.id === selectedAddressId) ?? null;
-
   const summaryAddress =
-    deliveryMethod === "PICKUP"
-      ? selectedOption?.label ?? "Пункт не выбран"
+    deliveryMethod === "PICKUP_POINT"
+      ? selectedPickupPoint?.fullAddress ?? "Пункт выдачи не выбран"
       : deliveryAddress || "Адрес не указан";
 
   const summaryHint =
-    deliveryMethod === "PICKUP"
-      ? selectedOption?.hint
+    deliveryMethod === "PICKUP_POINT"
+      ? selectedPickupPoint?.name || "Самовывоз из ПВЗ"
       : "Курьерская доставка";
+
+  const selectedOfferPrice =
+    selectedOffer?.pricingTotalAmount != null
+      ? formatMoney(
+          selectedOffer.pricingTotalAmount,
+          selectedOffer.pricingTotalCurrency
+        )
+      : null;
 
   return (
     <section
@@ -73,11 +131,16 @@ export function CheckoutDeliverySection({
       {!expanded && confirmed ? (
         <div className={styles.sectionSummary}>
           <div>
-            {deliveryMethod === "PICKUP" ? "Пункт выдачи" : "Курьер"}
+            {deliveryMethod === "PICKUP_POINT" ? "Пункт выдачи" : "Курьер"}
           </div>
           <div className={styles.sectionSummaryMuted}>{summaryAddress}</div>
           {summaryHint ? (
             <div className={styles.sectionSummaryMuted}>{summaryHint}</div>
+          ) : null}
+          {selectedOfferPrice ? (
+            <div className={styles.sectionSummaryMuted}>
+              Доставка: {selectedOfferPrice}
+            </div>
           ) : null}
           {comment.trim() ? (
             <div className={styles.sectionSummaryMuted}>
@@ -91,14 +154,16 @@ export function CheckoutDeliverySection({
             <button
               type="button"
               className={`${styles.paymentOption} ${
-                deliveryMethod === "PICKUP" ? styles.paymentOptionActive : ""
+                deliveryMethod === "PICKUP_POINT"
+                  ? styles.paymentOptionActive
+                  : ""
               }`}
-              onClick={() => onDeliveryMethodChange("PICKUP")}
+              onClick={() => onDeliveryMethodChange("PICKUP_POINT")}
               disabled={!enabled}
             >
               <div className={styles.paymentTitle}>Пункт выдачи</div>
               <div className={styles.paymentText}>
-                Самовывоз из тестового ПВЗ
+                Выбор ПВЗ и варианта доставки
               </div>
             </button>
 
@@ -112,30 +177,134 @@ export function CheckoutDeliverySection({
             >
               <div className={styles.paymentTitle}>Курьер</div>
               <div className={styles.paymentText}>
-                Доставка по указанному адресу
+                Пока без интеграции, адрес вводится вручную
               </div>
             </button>
           </div>
 
-          {deliveryMethod === "PICKUP" ? (
-            <label className={styles.field}>
-              <span className={styles.label}>Пункт выдачи</span>
+          {deliveryMethod === "PICKUP_POINT" ? (
+            <>
+              <label className={styles.field}>
+                <span className={styles.label}>Поиск ПВЗ</span>
+                <div className={styles.promoRow}>
+                  <input
+                    className={styles.input}
+                    value={pickupSearchQuery}
+                    onChange={(event) =>
+                      onPickupSearchQueryChange(event.target.value)
+                    }
+                    placeholder="Москва, Ленинградский проспект"
+                    disabled={!enabled || pickupSearchLoading}
+                  />
+                  <button
+                    type="button"
+                    className={styles.promoBtn}
+                    onClick={onSearchPickupPoints}
+                    disabled={
+                      !enabled ||
+                      pickupSearchLoading ||
+                      !pickupSearchQuery.trim()
+                    }
+                  >
+                    {pickupSearchLoading ? "Ищем…" : "Найти ПВЗ"}
+                  </button>
+                </div>
+              </label>
 
-              <select
-                className={styles.input}
-                value={selectedAddressId}
-                onChange={(event) => onAddressChange(event.target.value)}
-                disabled={!enabled}
-              >
-                <option value="">Выберите пункт выдачи</option>
+              {pickupSearchError ? (
+                <div className={styles.error}>{pickupSearchError}</div>
+              ) : null}
 
-                {options.map((option) => (
-                  <option key={option.id} value={option.id}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-            </label>
+              {pickupPoints.length > 0 ? (
+                <div className={styles.summaryItems}>
+                  {pickupPoints.map((point) => {
+                    const isSelected = selectedPickupPoint?.id === point.id;
+
+                    return (
+                      <button
+                        key={point.id}
+                        type="button"
+                        className={`${styles.paymentOption} ${
+                          isSelected ? styles.paymentOptionActive : ""
+                        }`}
+                        onClick={() => onPickupPointSelect(point)}
+                        disabled={!enabled || offersLoading}
+                        style={{ textAlign: "left" }}
+                      >
+                        <div className={styles.paymentTitle}>
+                          {point.name || "ПВЗ"}
+                        </div>
+                        <div className={styles.paymentText}>
+                          {point.fullAddress}
+                        </div>
+                        {point.instruction ? (
+                          <div className={styles.paymentText}>
+                            {point.instruction}
+                          </div>
+                        ) : null}
+                      </button>
+                    );
+                  })}
+                </div>
+              ) : null}
+
+              {selectedPickupPoint ? (
+                <div className={styles.deliveryHint}>
+                  Выбран ПВЗ: {selectedPickupPoint.fullAddress}
+                </div>
+              ) : null}
+
+              {offersLoading ? (
+                <div className={styles.deliveryHint}>
+                  Загружаем варианты доставки…
+                </div>
+              ) : null}
+
+              {offersError ? (
+                <div className={styles.error}>{offersError}</div>
+              ) : null}
+
+              {deliveryOffers.length > 0 ? (
+                <div className={styles.summaryItems}>
+                  {deliveryOffers.map((offer) => {
+                    const isSelected = selectedOffer?.offerId === offer.offerId;
+
+                    return (
+                      <button
+                        key={offer.offerId}
+                        type="button"
+                        className={`${styles.paymentOption} ${
+                          isSelected ? styles.paymentOptionActive : ""
+                        }`}
+                        onClick={() => onOfferSelect(offer)}
+                        disabled={!enabled}
+                        style={{ textAlign: "left" }}
+                      >
+                        <div className={styles.paymentTitle}>
+                          {formatMoney(
+                            offer.pricingTotalAmount,
+                            offer.pricingTotalCurrency
+                          )}
+                        </div>
+                        <div className={styles.paymentText}>
+                          Доставка: {formatDateTime(offer.deliveryFrom)} —{" "}
+                          {formatDateTime(offer.deliveryTo)}
+                        </div>
+                        <div className={styles.paymentText}>
+                          Забор: {formatDateTime(offer.pickupFrom)} —{" "}
+                          {formatDateTime(offer.pickupTo)}
+                        </div>
+                        {offer.expiresAt ? (
+                          <div className={styles.paymentText}>
+                            Действует до: {formatDateTime(offer.expiresAt)}
+                          </div>
+                        ) : null}
+                      </button>
+                    );
+                  })}
+                </div>
+              ) : null}
+            </>
           ) : (
             <label className={styles.field}>
               <span className={styles.label}>Адрес доставки</span>
@@ -161,8 +330,8 @@ export function CheckoutDeliverySection({
           </label>
 
           <div className={styles.deliveryHint}>
-            Пока это тестовый сценарий. Позже сюда подключим интеграцию с
-            сервисом доставки.
+            Сейчас основной сценарий — доставка в ПВЗ. Курьерский вариант можно
+            оставить как fallback.
           </div>
 
           <button

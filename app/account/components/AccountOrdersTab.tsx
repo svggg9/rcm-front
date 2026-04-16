@@ -33,8 +33,11 @@ export function AccountOrdersTab({
                 day: "numeric",
                 month: "long",
               })}
-              amountLabel={`${order.totalAmount.toLocaleString()} ₽`}
+              amountLabel={`${order.totalAmount.toLocaleString("ru-RU")} ₽`}
               items={Array.isArray(order.items) ? order.items : []}
+              deliveryMethod={order.delivery?.method ?? order.deliveryMethod}
+              deliveryShipmentStatus={order.delivery?.shipmentStatus ?? null}
+              deliveryPriceAmount={order.delivery?.priceAmount ?? order.deliveryAmount}
               onClick={() => onOpenOrder(order.id)}
             />
           ))}

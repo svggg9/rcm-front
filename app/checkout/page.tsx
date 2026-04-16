@@ -13,16 +13,6 @@ import { CheckoutDeliverySection } from "./components/CheckoutDeliverySection";
 import { CheckoutPaymentSection } from "./components/CheckoutPaymentSection";
 import { CheckoutSummary } from "./components/CheckoutSummary";
 
-import type {
-  CartItem,
-  CheckoutRequest,
-  CheckoutStep,
-  DeliveryMethod,
-  DeliveryOption,
-  OrderResponse,
-  PaymentInitResponse,
-  PaymentMethod,
-} from "./types";
 import {
   validateContactDetails,
   validateDeliveryDetails,
@@ -36,26 +26,24 @@ import {
   buildCheckoutPrefill,
   type Me,
 } from "./lib/checkoutPrefill";
+import {
+  getDeliveryOffers,
+  searchPickupPoints,
+} from "./lib/deliveryApi";
+
+import type {
+  CartItem,
+  CheckoutRequest,
+  CheckoutStep,
+  DeliveryMethod,
+  DeliveryOffer,
+  OrderResponse,
+  PaymentInitResponse,
+  PaymentMethod,
+  PickupPoint,
+} from "./types";
 
 import styles from "./Checkout.module.css";
-
-const DELIVERY_OPTIONS: DeliveryOption[] = [
-  {
-    id: "pvz_1",
-    label: "Москва, ПВЗ на Тверской, 12",
-    hint: "Ежедневно 10:00–22:00",
-  },
-  {
-    id: "pvz_2",
-    label: "Москва, ПВЗ на Арбате, 5",
-    hint: "Ежедневно 09:00–21:00",
-  },
-  {
-    id: "pvz_3",
-    label: "Санкт-Петербург, ПВЗ Невский, 48",
-    hint: "Ежедневно 10:00–21:00",
-  },
-];
 
 export default function CheckoutPage() {
   const router = useRouter();
@@ -80,12 +68,28 @@ export default function CheckoutPage() {
   const [phone, setPhone] = useState("");
 
   const [deliveryMethod, setDeliveryMethod] =
-    useState<DeliveryMethod>("PICKUP");
-  const [selectedAddressId, setSelectedAddressId] = useState("");
+    useState<DeliveryMethod>("PICKUP_POINT");
+
+  const [pickupSearchQuery, setPickupSearchQuery] = useState("");
+  const [pickupPoints, setPickupPoints] = useState<PickupPoint[]>([]);
+  const [selectedPickupPoint, setSelectedPickupPoint] =
+    useState<PickupPoint | null>(null);
+
+  const [deliveryOffers, setDeliveryOffers] = useState<DeliveryOffer[]>([]);
+  const [selectedOffer, setSelectedOffer] =
+    useState<DeliveryOffer | null>(null);
+
   const [deliveryAddress, setDeliveryAddress] = useState("");
   const [comment, setComment] = useState("");
 
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("SBP");
+
+  const [pickupSearchLoading, setPickupSearchLoading] = useState(false);
+  const [offersLoading, setOffersLoading] = useState(false);
+  const [pickupSearchError, setPickupSearchError] = useState<string | null>(
+    null
+  );
+  const [offersError, setOffersError] = useState<string | null>(null);
 
   useEffect(() => {
     if (isAuth === null) return;
@@ -102,7 +106,9 @@ export default function CheckoutPage() {
     setFullName(draft.fullName);
     setPhone(draft.phone);
     setDeliveryMethod(draft.deliveryMethod);
-    setSelectedAddressId(draft.selectedAddressId);
+    setPickupSearchQuery(draft.pickupSearchQuery);
+    setSelectedPickupPoint(draft.selectedPickupPoint);
+    setSelectedOffer(draft.selectedOffer);
     setDeliveryAddress(draft.deliveryAddress);
     setComment(draft.comment);
     setPaymentMethod(draft.paymentMethod);
@@ -114,7 +120,9 @@ export default function CheckoutPage() {
       fullName,
       phone,
       deliveryMethod,
-      selectedAddressId,
+      pickupSearchQuery,
+      selectedPickupPoint,
+      selectedOffer,
       deliveryAddress,
       comment,
       paymentMethod,
@@ -124,7 +132,9 @@ export default function CheckoutPage() {
     fullName,
     phone,
     deliveryMethod,
-    selectedAddressId,
+    pickupSearchQuery,
+    selectedPickupPoint,
+    selectedOffer,
     deliveryAddress,
     comment,
     paymentMethod,
@@ -192,9 +202,9 @@ export default function CheckoutPage() {
           setComment(prefill.comment);
         }
 
-        if (!deliveryAddress.trim() && !selectedAddressId) {
-          setDeliveryMethod(prefill.deliveryMethod);
-        }
+        setDeliveryMethod((current) =>
+          current ? current : prefill.deliveryMethod
+        );
 
         if (!cartResponse.ok) {
           const text = await cartResponse.text().catch(() => "");
@@ -222,27 +232,76 @@ export default function CheckoutPage() {
   }, [isAuth]);
 
   useEffect(() => {
-    if (deliveryMethod === "PICKUP") {
-      const selectedOption =
-        DELIVERY_OPTIONS.find((option) => option.id === selectedAddressId) ?? null;
-
-      if (selectedOption) {
-        setDeliveryAddress(selectedOption.label);
-      }
-      return;
+    if (deliveryMethod !== "PICKUP_POINT") {
+      setPickupPoints([]);
+      setSelectedPickupPoint(null);
+      setDeliveryOffers([]);
+      setSelectedOffer(null);
+      setPickupSearchError(null);
+      setOffersError(null);
     }
-
-    if (selectedAddressId) {
-      setSelectedAddressId("");
-    }
-  }, [deliveryMethod, selectedAddressId]);
+  }, [deliveryMethod]);
 
   const subtotal = useMemo(() => {
     return items.reduce((sum, item) => sum + item.price * item.quantity, 0);
   }, [items]);
 
-  const deliveryPrice = 0;
+  const deliveryPrice = selectedOffer?.pricingTotalAmount ?? 0;
   const total = subtotal + deliveryPrice;
+
+  async function handleSearchPickupPoints() {
+    if (!pickupSearchQuery.trim()) return;
+
+    try {
+      setPickupSearchLoading(true);
+      setPickupSearchError(null);
+      setOffersError(null);
+      setPickupPoints([]);
+      setSelectedPickupPoint(null);
+      setDeliveryOffers([]);
+      setSelectedOffer(null);
+
+      const result = await searchPickupPoints({
+        location: pickupSearchQuery.trim(),
+      });
+
+      setPickupPoints(result.points || []);
+    } catch (e) {
+      setPickupSearchError(
+        e instanceof Error ? e.message : "Ошибка поиска ПВЗ"
+      );
+    } finally {
+      setPickupSearchLoading(false);
+    }
+  }
+
+  async function handlePickupPointSelect(point: PickupPoint) {
+    setSelectedPickupPoint(point);
+    setSelectedOffer(null);
+    setDeliveryOffers([]);
+    setOffersError(null);
+
+    try {
+      setOffersLoading(true);
+
+      const result = await getDeliveryOffers({
+        pickupPointId: point.id,
+        recipientName: fullName.trim(),
+        recipientPhone: phone.trim(),
+        recipientEmail: email.trim() || undefined,
+        comment: comment.trim() || undefined,
+      });
+
+      setDeliveryOffers(result.offers || []);
+      setDeliveryAddress(point.fullAddress || "");
+    } catch (e) {
+      setOffersError(
+        e instanceof Error ? e.message : "Ошибка получения вариантов доставки"
+      );
+    } finally {
+      setOffersLoading(false);
+    }
+  }
 
   function handleConfirmContact() {
     setError(null);
@@ -267,7 +326,8 @@ export default function CheckoutPage() {
 
     const validationError = validateDeliveryDetails({
       deliveryMethod,
-      selectedAddressId,
+      selectedPickupPoint,
+      selectedOffer,
       deliveryAddress,
     });
 
@@ -314,7 +374,6 @@ export default function CheckoutPage() {
     if (!cartId || items.length === 0) return;
 
     const token = getToken();
-
     if (!token) {
       router.push("/auth/login?next=/checkout");
       return;
@@ -334,18 +393,35 @@ export default function CheckoutPage() {
         cartId,
         recipientName: fullName.trim(),
         recipientPhone: phone.trim(),
-        deliveryAddress: deliveryAddress.trim(),
+        recipientEmail: email.trim() || undefined,
+        deliveryAddress:
+          deliveryMethod === "PICKUP_POINT"
+            ? selectedPickupPoint?.fullAddress || deliveryAddress.trim()
+            : deliveryAddress.trim(),
         deliveryMethod,
+        pickupPointId:
+          deliveryMethod === "PICKUP_POINT"
+            ? selectedPickupPoint?.id || undefined
+            : undefined,
+        deliveryOfferId:
+          deliveryMethod === "PICKUP_POINT"
+            ? selectedOffer?.offerId || undefined
+            : undefined,
+        deliveryPriceAmount:
+          deliveryMethod === "PICKUP_POINT"
+            ? selectedOffer?.pricingTotalAmount ?? undefined
+            : undefined,
+        deliveryCurrency:
+          deliveryMethod === "PICKUP_POINT"
+            ? selectedOffer?.pricingTotalCurrency ?? "RUB"
+            : undefined,
         comment: comment.trim() || undefined,
       };
 
-      const checkoutResponse = await apiFetch(
-        `${API_URL}/api/orders/checkout?cartId=${encodeURIComponent(cartId)}`,
-        {
-          method: "POST",
-          body: JSON.stringify(payload),
-        }
-      );
+      const checkoutResponse = await apiFetch(`${API_URL}/api/orders/checkout`, {
+        method: "POST",
+        body: JSON.stringify(payload),
+      });
 
       if (!checkoutResponse.ok) {
         const text = await checkoutResponse.text().catch(() => "");
@@ -361,9 +437,22 @@ export default function CheckoutPage() {
       }
 
       const orderGroupId = orders[0]?.orderGroupId;
-
       if (!orderGroupId) {
         throw new Error("Не найден orderGroupId для оплаты");
+      }
+
+      if (deliveryMethod === "PICKUP_POINT") {
+        if (!selectedPickupPoint) {
+          throw new Error("Не выбран пункт выдачи");
+        }
+
+        if (!selectedOffer) {
+          throw new Error("Не выбран вариант доставки");
+        }
+
+        if (typeof selectedOffer.pricingTotalAmount !== "number") {
+          throw new Error("Не определена стоимость доставки");
+        }
       }
 
       const payResponse = await apiFetch(
@@ -390,9 +479,7 @@ export default function CheckoutPage() {
       emitCartChanged();
       window.location.href = payment.confirmationUrl;
     } catch (e) {
-      setError(
-        e instanceof Error ? e.message : "Ошибка оформления заказа"
-      );
+      setError(e instanceof Error ? e.message : "Ошибка оформления заказа");
     } finally {
       submitLockRef.current = false;
       setSubmitting(false);
@@ -441,9 +528,16 @@ export default function CheckoutPage() {
               />
 
               <CheckoutDeliverySection
-                options={DELIVERY_OPTIONS}
                 deliveryMethod={deliveryMethod}
-                selectedAddressId={selectedAddressId}
+                pickupSearchQuery={pickupSearchQuery}
+                pickupPoints={pickupPoints}
+                selectedPickupPoint={selectedPickupPoint}
+                deliveryOffers={deliveryOffers}
+                selectedOffer={selectedOffer}
+                pickupSearchLoading={pickupSearchLoading}
+                offersLoading={offersLoading}
+                pickupSearchError={pickupSearchError}
+                offersError={offersError}
                 deliveryAddress={deliveryAddress}
                 comment={comment}
                 confirmed={deliveryConfirmed}
@@ -452,7 +546,10 @@ export default function CheckoutPage() {
                 onEdit={editDelivery}
                 onConfirm={handleConfirmDelivery}
                 onDeliveryMethodChange={setDeliveryMethod}
-                onAddressChange={setSelectedAddressId}
+                onPickupSearchQueryChange={setPickupSearchQuery}
+                onSearchPickupPoints={handleSearchPickupPoints}
+                onPickupPointSelect={handlePickupPointSelect}
+                onOfferSelect={setSelectedOffer}
                 onDeliveryAddressChange={setDeliveryAddress}
                 onCommentChange={setComment}
               />
@@ -475,6 +572,9 @@ export default function CheckoutPage() {
               subtotal={subtotal}
               deliveryPrice={deliveryPrice}
               total={total}
+              deliveryMethod={deliveryMethod}
+              selectedPickupPoint={selectedPickupPoint}
+              selectedOffer={selectedOffer}
               submitting={submitting}
               checkoutReady={
                 contactConfirmed && deliveryConfirmed && paymentConfirmed

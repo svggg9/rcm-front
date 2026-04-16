@@ -1,36 +1,24 @@
-export type Me = {
-  id: number;
-  username: string;
-  email: string | null;
-  displayName: string | null;
-  role: string;
-  sellerApproved: boolean;
-  phone: string | null;
-  defaultDeliveryAddress: string | null;
-  defaultDeliveryMethod: string | null;
-};
+export type OrderStatus =
+  | "NEW"
+  | "CONFIRMED"
+  | "PROCESSING"
+  | "SHIPPED"
+  | "COMPLETED"
+  | "CANCELED";
 
-export type PageResponse<T> = {
-  content: T[];
-  totalPages: number;
-  totalElements: number;
-  size: number;
-  number: number;
-};
-
-export type OrderStatus = "NEW" | "CONFIRMED" | "CANCELED" | "COMPLETED";
-
-export type PaymentStatus = "PENDING" | "PAID" | "FAILED" | "CANCELED";
+export type PaymentStatus =
+  | "PENDING"
+  | "PAID"
+  | "FAILED"
+  | "REFUNDED"
+  | "PARTIALLY_REFUNDED";
 
 export type DeliveryStatus =
   | "PENDING"
   | "READY_FOR_SHIPMENT"
   | "IN_TRANSIT"
-  | "DELIVERED";
-
-export type OrderItemPreview = {
-  imageUrl?: string | null;
-};
+  | "DELIVERED"
+  | "CANCELLED";
 
 export type OrderItem = {
   productId: number;
@@ -44,6 +32,20 @@ export type OrderItem = {
   quantity: number;
   price: number;
   lineTotal: number;
+};
+
+export type OrderItemPreview = {
+  imageUrl: string | null;
+};
+
+export type OrderDelivery = {
+  provider: string | null;
+  method: string | null;
+  requestId: string | null;
+  shipmentStatus: string | null;
+  trackingUrl: string | null;
+  priceAmount: number | null;
+  currency: string | null;
 };
 
 export type Order = {
@@ -64,4 +66,5 @@ export type Order = {
   trackingNumber: string | null;
   createdAt: string;
   items: OrderItem[];
+  delivery?: OrderDelivery | null;
 };

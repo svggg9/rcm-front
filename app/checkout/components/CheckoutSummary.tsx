@@ -1,34 +1,67 @@
 "use client";
 
 import styles from "../Checkout.module.css";
-import type { CartItem } from "../types";
+import type {
+  CartItem,
+  DeliveryMethod,
+  DeliveryOffer,
+  PickupPoint,
+} from "../types";
 
 type Props = {
   items: CartItem[];
   subtotal: number;
   deliveryPrice: number;
   total: number;
+  deliveryMethod: DeliveryMethod;
+  selectedPickupPoint: PickupPoint | null;
+  selectedOffer: DeliveryOffer | null;
   submitting: boolean;
   checkoutReady: boolean;
   onSubmit: () => void;
 };
+
+function formatMoney(value: number): string {
+  return `${value.toLocaleString("ru-RU")} ₽`;
+}
+
+function formatDateTime(value?: string | null): string {
+  if (!value) return "—";
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return value;
+  }
+
+  return date.toLocaleString("ru-RU", {
+    day: "2-digit",
+    month: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
 
 export function CheckoutSummary({
   items,
   subtotal,
   deliveryPrice,
   total,
+  deliveryMethod,
+  selectedPickupPoint,
+  selectedOffer,
   submitting,
   checkoutReady,
   onSubmit,
 }: Props) {
+  const isPickupPoint = deliveryMethod === "PICKUP_POINT";
+
   return (
     <aside className={styles.summary}>
       <div className={styles.summaryTop}>
         <div className={styles.summaryTotalLine}>
           <span className={styles.summaryTotalLabel}>Итого</span>
           <span className={styles.summaryTotalValue}>
-            {total.toLocaleString()} ₽
+            {formatMoney(total)}
           </span>
         </div>
 
@@ -69,7 +102,7 @@ export function CheckoutSummary({
               </div>
 
               <div className={styles.summaryItemPrice}>
-                {(item.price * item.quantity).toLocaleString()} ₽
+                {formatMoney(item.price * item.quantity)}
               </div>
             </div>
           ))}
@@ -78,22 +111,98 @@ export function CheckoutSummary({
         <div className={styles.summaryLines}>
           <div className={styles.summaryRow}>
             <span>Товары</span>
-            <span>{subtotal.toLocaleString()} ₽</span>
+            <span>{formatMoney(subtotal)}</span>
           </div>
 
           <div className={styles.summaryRow}>
             <span>Доставка</span>
             <span>
-              {deliveryPrice === 0 ? "Бесплатно" : `${deliveryPrice.toLocaleString()} ₽`}
+              {deliveryPrice === 0 ? "Бесплатно" : formatMoney(deliveryPrice)}
             </span>
           </div>
         </div>
+
+        {(isPickupPoint && selectedPickupPoint) || selectedOffer ? (
+          <div className={styles.summaryDivider} />
+        ) : null}
+
+        {isPickupPoint && selectedPickupPoint ? (
+          <div className={styles.summaryLines}>
+            <div className={styles.summaryRow}>
+              <span>Способ доставки</span>
+              <span>ПВЗ</span>
+            </div>
+
+            <div className={styles.summaryRow}>
+              <span>Пункт выдачи</span>
+              <span style={{ textAlign: "right", maxWidth: "220px" }}>
+                {selectedPickupPoint.name || "ПВЗ"}
+              </span>
+            </div>
+
+            <div className={styles.summaryRow}>
+              <span>Адрес</span>
+              <span style={{ textAlign: "right", maxWidth: "220px" }}>
+                {selectedPickupPoint.fullAddress}
+              </span>
+            </div>
+
+            {selectedPickupPoint.instruction ? (
+              <div className={styles.summaryRow}>
+                <span>Как найти</span>
+                <span style={{ textAlign: "right", maxWidth: "220px" }}>
+                  {selectedPickupPoint.instruction}
+                </span>
+              </div>
+            ) : null}
+          </div>
+        ) : null}
+
+        {selectedOffer ? (
+          <div className={styles.summaryLines}>
+            <div className={styles.summaryRow}>
+              <span>Оффер</span>
+              <span style={{ textAlign: "right", maxWidth: "220px" }}>
+                {selectedOffer.offerId}
+              </span>
+            </div>
+
+            {selectedOffer.deliveryFrom || selectedOffer.deliveryTo ? (
+              <div className={styles.summaryRow}>
+                <span>Доставка</span>
+                <span style={{ textAlign: "right", maxWidth: "220px" }}>
+                  {formatDateTime(selectedOffer.deliveryFrom)} —{" "}
+                  {formatDateTime(selectedOffer.deliveryTo)}
+                </span>
+              </div>
+            ) : null}
+
+            {selectedOffer.pickupFrom || selectedOffer.pickupTo ? (
+              <div className={styles.summaryRow}>
+                <span>Забор</span>
+                <span style={{ textAlign: "right", maxWidth: "220px" }}>
+                  {formatDateTime(selectedOffer.pickupFrom)} —{" "}
+                  {formatDateTime(selectedOffer.pickupTo)}
+                </span>
+              </div>
+            ) : null}
+
+            {selectedOffer.expiresAt ? (
+              <div className={styles.summaryRow}>
+                <span>Действует до</span>
+                <span style={{ textAlign: "right", maxWidth: "220px" }}>
+                  {formatDateTime(selectedOffer.expiresAt)}
+                </span>
+              </div>
+            ) : null}
+          </div>
+        ) : null}
 
         <div className={styles.summaryBottom}>
           <div className={styles.summaryBottomRow}>
             <span className={styles.summaryBottomLabel}>Итого</span>
             <div className={styles.summaryBottomPrice}>
-              <div>{total.toLocaleString()} ₽</div>
+              <div>{formatMoney(total)}</div>
               <div className={styles.summaryBottomNote}>Пошлины включены</div>
             </div>
           </div>
