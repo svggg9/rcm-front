@@ -3,7 +3,7 @@ export type Variant = {
   size: string;
   color: string;
   price: number;
-  quantity: number;
+  availableQuantity: number;
   sku: string;
 };
 
@@ -14,6 +14,7 @@ export type Product = {
   brand: string;
   category: string;
   audience?: "MEN" | "WOMEN" | "UNISEX";
+  status?: "DRAFT" | "ACTIVE" | "ARCHIVED" | "BLOCKED";
   images: string[];
   variants: Variant[];
 };

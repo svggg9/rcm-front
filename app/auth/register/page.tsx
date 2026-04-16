@@ -5,7 +5,12 @@ import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
 import { apiFetch, API_URL } from "../../lib/api";
-import { getCartId, setAuth } from "../../lib/auth";
+import { ensureCartId, setAuth } from "../../lib/auth";
+import {
+  getGuestFavoriteIds,
+  syncFavoritesAfterLogin,
+  clearGuestFavoriteIds,
+} from "../../lib/favorites";
 
 import styles from "./Register.module.css";
 
@@ -34,7 +39,7 @@ export default function RegisterPage() {
         throw new Error(text || "Ошибка регистрации");
       }
 
-      const cartId = getCartId();
+      const cartId = await ensureCartId();
 
       const loginResponse = await apiFetch(`${API_URL}/api/auth/login`, {
         method: "POST",
@@ -47,8 +52,16 @@ export default function RegisterPage() {
       }
 
       const data: { token: string; cartId: string } = await loginResponse.json();
+      const guestFavoriteIds = getGuestFavoriteIds();
 
       setAuth(data.token, data.cartId);
+
+      if (guestFavoriteIds.length > 0) {
+        await syncFavoritesAfterLogin(guestFavoriteIds);
+        clearGuestFavoriteIds();
+        window.dispatchEvent(new Event("auth-changed"));
+      }
+
       router.replace(next);
     } catch (error) {
       setError((error as Error).message);

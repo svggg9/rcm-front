@@ -9,7 +9,7 @@ type Props = {
   deliveryPrice: number;
   total: number;
   submitting: boolean;
-  contactConfirmed: boolean;
+  checkoutReady: boolean;
   onSubmit: () => void;
 };
 
@@ -19,7 +19,7 @@ export function CheckoutSummary({
   deliveryPrice,
   total,
   submitting,
-  contactConfirmed,
+  checkoutReady,
   onSubmit,
 }: Props) {
   return (
@@ -35,7 +35,7 @@ export function CheckoutSummary({
         <button
           type="button"
           onClick={onSubmit}
-          disabled={submitting || !contactConfirmed}
+          disabled={submitting || !checkoutReady}
           className={styles.placeOrderBtn}
         >
           {submitting ? "Оформляем…" : "Оформить заказ"}
@@ -56,7 +56,7 @@ export function CheckoutSummary({
           {items.map((item) => (
             <div key={item.variantId} className={styles.summaryItem}>
               <img
-                src={item.imageUrl}
+                src={item.imageUrl || "/placeholder-product.png"}
                 alt={item.title}
                 className={styles.summaryImage}
               />

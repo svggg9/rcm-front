@@ -4,7 +4,15 @@ export type CheckoutContactValues = {
   phone: string;
 };
 
-export function validateContactDetails(values: CheckoutContactValues): string | null {
+export type CheckoutDeliveryValues = {
+  deliveryMethod: "COURIER" | "PICKUP";
+  selectedAddressId: string;
+  deliveryAddress: string;
+};
+
+export function validateContactDetails(
+  values: CheckoutContactValues
+): string | null {
   if (!values.email.trim()) {
     return "Введите email";
   }
@@ -20,9 +28,19 @@ export function validateContactDetails(values: CheckoutContactValues): string | 
   return null;
 }
 
-export function validateDeliveryDetails(addressId: string): string | null {
-  if (!addressId.trim()) {
-    return "Выберите пункт выдачи";
+export function validateDeliveryDetails(
+  values: CheckoutDeliveryValues
+): string | null {
+  if (values.deliveryMethod === "PICKUP") {
+    if (!values.selectedAddressId.trim()) {
+      return "Выберите пункт выдачи";
+    }
+
+    return null;
+  }
+
+  if (!values.deliveryAddress.trim()) {
+    return "Введите адрес доставки";
   }
 
   return null;

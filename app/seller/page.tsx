@@ -11,57 +11,26 @@ import { SellerOrdersTab } from "./components/SellerOrdersTab";
 import { SellerOrderDetails } from "./components/SellerOrderDetails";
 import { SellerProductCreateTab } from "./components/SellerProductCreateTab";
 
+import type {
+  Audience,
+  CreateProductReq,
+  Option,
+  PageResponse,
+  SellerDeliveryStatus,
+  SellerOrder,
+  SellerOrderStatus,
+  SellerPaymentStatus,
+  SellerTab,
+} from "./types";
+
 import styles from "./Seller.module.css";
 
-type SellerTab = "orders" | "products";
-
-type Option = {
-  id: number;
-  name: string;
-};
-
-type Audience = "MEN" | "WOMEN" | "UNISEX";
-
-type CreateProductReq = {
-  title: string;
-  description: string;
-  categoryId: number;
-  brandId: number;
-  audience: Audience;
-  variants: Array<{
-    size: string;
-    color: string;
-    price: number;
-    quantity: number;
-    sku: string;
-  }>;
-};
-
-type OrderItem = {
-  productTitle: string;
-  size: string;
-  color: string;
-  quantity: number;
-  price: number;
-  lineTotal: number;
-};
-
-type Order = {
-  id: number;
-  status: "NEW" | "PAID" | "SHIPPED" | "COMPLETED" | "CANCELED";
-  totalAmount: number;
-  createdAt: string;
-  items: OrderItem[];
-};
-
-function formatStatus(status: Order["status"]): string {
+function formatOrderStatus(status: SellerOrderStatus): string {
   switch (status) {
     case "NEW":
       return "Новый";
-    case "PAID":
-      return "Оплачен";
-    case "SHIPPED":
-      return "Отправлен";
+    case "CONFIRMED":
+      return "Подтверждён";
     case "COMPLETED":
       return "Завершён";
     case "CANCELED":
@@ -69,6 +38,68 @@ function formatStatus(status: Order["status"]): string {
     default:
       return status;
   }
+}
+
+function formatPaymentStatus(status: SellerPaymentStatus): string {
+  switch (status) {
+    case "PENDING":
+      return "Ожидает оплаты";
+    case "PAID":
+      return "Оплачен";
+    case "FAILED":
+      return "Ошибка оплаты";
+    case "CANCELED":
+      return "Оплата отменена";
+    default:
+      return status;
+  }
+}
+
+function formatDeliveryStatus(status: SellerDeliveryStatus): string {
+  switch (status) {
+    case "PENDING":
+      return "Ожидает обработки";
+    case "READY_FOR_SHIPMENT":
+      return "Готов к отправке";
+    case "IN_TRANSIT":
+      return "В пути";
+    case "DELIVERED":
+      return "Доставлен";
+    default:
+      return status;
+  }
+}
+
+function buildSellerStatusLabel(order: SellerOrder): string {
+  if (order.paymentStatus === "PENDING") {
+    return "Ожидает оплаты";
+  }
+
+  if (order.paymentStatus === "FAILED") {
+    return "Ошибка оплаты";
+  }
+
+  if (order.deliveryStatus === "READY_FOR_SHIPMENT") {
+    return "Готов к отправке";
+  }
+
+  if (order.deliveryStatus === "IN_TRANSIT") {
+    return "В пути";
+  }
+
+  if (order.deliveryStatus === "DELIVERED") {
+    return "Доставлен";
+  }
+
+  return formatOrderStatus(order.status);
+}
+
+function canShipOrder(order: SellerOrder): boolean {
+  return (
+    order.paymentStatus === "PAID" &&
+    (order.deliveryStatus === "PENDING" ||
+      order.deliveryStatus === "READY_FOR_SHIPMENT")
+  );
 }
 
 export default function SellerPage() {
@@ -80,8 +111,8 @@ export default function SellerPage() {
     searchParams.get("tab") === "products" ? "products" : "orders";
   const selectedOrderId = searchParams.get("orderId");
 
-  const [orders, setOrders] = useState<Order[]>([]);
-  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const [orders, setOrders] = useState<SellerOrder[]>([]);
+  const [selectedOrder, setSelectedOrder] = useState<SellerOrder | null>(null);
 
   const [categories, setCategories] = useState<Option[]>([]);
   const [brands, setBrands] = useState<Option[]>([]);
@@ -131,15 +162,15 @@ export default function SellerPage() {
     setError(null);
 
     try {
-      const response = await apiFetch(`${API_URL}/api/orders/seller`);
+      const response = await apiFetch(`${API_URL}/api/seller/orders?page=0&size=20`);
 
       if (!response.ok) {
         const text = await response.text().catch(() => "");
         throw new Error(text || `Ошибка загрузки (${response.status})`);
       }
 
-      const data: Order[] = await response.json();
-      setOrders(Array.isArray(data) ? data : []);
+      const data: PageResponse<SellerOrder> = await response.json();
+      setOrders(Array.isArray(data.content) ? data.content : []);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Не удалось загрузить заказы");
     } finally {
@@ -162,14 +193,14 @@ export default function SellerPage() {
     setDetailsLoading(true);
     setError(null);
 
-    apiFetch(`${API_URL}/api/orders/${selectedOrderId}/seller`)
+    apiFetch(`${API_URL}/api/seller/orders/${selectedOrderId}`)
       .then(async (response) => {
         if (!response.ok) {
           const text = await response.text().catch(() => "");
           throw new Error(text || `Ошибка загрузки (${response.status})`);
         }
 
-        return response.json() as Promise<Order>;
+        return response.json() as Promise<SellerOrder>;
       })
       .then((data) => {
         setSelectedOrder(data);
@@ -245,7 +276,7 @@ export default function SellerPage() {
     setError(null);
 
     try {
-      const response = await apiFetch(`${API_URL}/api/orders/${orderId}/ship`, {
+      const response = await apiFetch(`${API_URL}/api/seller/orders/${orderId}/ship`, {
         method: "POST",
       });
 
@@ -255,16 +286,14 @@ export default function SellerPage() {
       }
 
       if (selectedOrder?.id === orderId) {
-        const updated: Order = await response.json();
+        const updated: SellerOrder = await response.json();
         setSelectedOrder(updated);
         await loadOrders({ silent: true });
       } else {
         await loadOrders({ silent: true });
       }
     } catch (e) {
-      setError(
-        e instanceof Error ? e.message : "Не удалось отметить отправку"
-      );
+      setError(e instanceof Error ? e.message : "Не удалось отметить отправку");
     } finally {
       setShippingId(null);
     }
@@ -377,10 +406,7 @@ export default function SellerPage() {
     <div className="pageContainer">
       <div className={styles.page}>
         <div className={styles.layout}>
-          <SellerSidebar
-            currentTab={currentTab}
-            ordersCount={orders.length}
-          />
+          <SellerSidebar currentTab={currentTab} ordersCount={orders.length} />
 
           <div className={styles.content}>
             {error ? <div className={styles.error}>{error}</div> : null}
@@ -425,16 +451,21 @@ export default function SellerPage() {
               <SellerOrderDetails
                 order={selectedOrder}
                 shipping={shippingId === selectedOrder.id}
+                canShip={canShipOrder(selectedOrder)}
                 onBack={closeOrderDetails}
                 onShip={() => void ship(selectedOrder.id)}
-                formatStatus={formatStatus}
+                formatOrderStatus={formatOrderStatus}
+                formatPaymentStatus={formatPaymentStatus}
+                formatDeliveryStatus={formatDeliveryStatus}
+                buildSellerStatusLabel={buildSellerStatusLabel}
               />
             ) : (
               <SellerOrdersTab
                 orders={orders}
                 refreshing={refreshing}
                 shippingId={shippingId}
-                formatStatus={formatStatus}
+                buildSellerStatusLabel={buildSellerStatusLabel}
+                canShipOrder={canShipOrder}
                 onRefresh={() => void loadOrders({ silent: true })}
                 onShip={(orderId) => void ship(orderId)}
                 onOpenOrder={openOrder}

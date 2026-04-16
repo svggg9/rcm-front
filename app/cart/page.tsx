@@ -3,15 +3,15 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 
-import { API_URL } from "../lib/api";
-import { getCartId } from "../lib/auth";
+import { API_URL, apiFetch } from "../lib/api";
+import { ensureCartId } from "../lib/auth";
 import { emitCartChanged } from "../lib/cartEvents";
 import { useClientAuth } from "../lib/useClientAuth";
 import { mapProductToCarouselProduct } from "../lib/productMappers";
 
 import { ProductCarousel } from "../components/ProductCarousel/ProductCarousel";
 
-import { CartItem } from "./lib/types";
+import type { CartItem } from "./lib/types";
 import { getCart, removeItem, updateQuantity } from "./lib/cartApi";
 
 import { CartItemRow } from "./components/CartItemRow";
@@ -25,7 +25,7 @@ type ProductVariant = {
   size: string;
   color: string;
   price: number;
-  quantity: number;
+  availableQuantity: number;
   sku: string;
 };
 
@@ -47,8 +47,29 @@ export default function CartPage() {
   const [items, setItems] = useState<CartItem[]>([]);
   const [recommendations, setRecommendations] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
+  const [cartId, setCartId] = useState("");
 
-  const cartId = getCartId();
+  useEffect(() => {
+    let active = true;
+
+    async function initCart() {
+      try {
+        const resolvedCartId = await ensureCartId();
+        if (!active) return;
+        setCartId(resolvedCartId);
+      } catch {
+        if (!active) return;
+        setCartId("");
+        setLoading(false);
+      }
+    }
+
+    void initCart();
+
+    return () => {
+      active = false;
+    };
+  }, []);
 
   useEffect(() => {
     let active = true;
@@ -62,7 +83,7 @@ export default function CartPage() {
       try {
         const data = await getCart(cartId);
         if (!active) return;
-        setItems(data);
+        setItems(Array.isArray(data) ? data : []);
       } catch {
         if (!active) return;
         setItems([]);
@@ -71,7 +92,7 @@ export default function CartPage() {
       }
     }
 
-    loadCart();
+    void loadCart();
 
     return () => {
       active = false;
@@ -83,7 +104,7 @@ export default function CartPage() {
 
     async function loadRecommendations() {
       try {
-        const res = await fetch(`${API_URL}/api/products`);
+        const res = await apiFetch(`${API_URL}/api/products`);
         if (!res.ok) throw new Error("Failed to load recommendations");
 
         const data: Product[] = await res.json();
@@ -97,7 +118,7 @@ export default function CartPage() {
       }
     }
 
-    loadRecommendations();
+    void loadRecommendations();
 
     return () => {
       active = false;

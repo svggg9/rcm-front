@@ -2,26 +2,12 @@
 
 import styles from "../Seller.module.css";
 
-type OrderItem = {
-  productTitle: string;
-  size: string;
-  color: string;
-  quantity: number;
-  price: number;
-  lineTotal: number;
-};
-
-type Order = {
-  id: number;
-  status: "NEW" | "PAID" | "SHIPPED" | "COMPLETED" | "CANCELED";
-  totalAmount: number;
-  createdAt: string;
-  items: OrderItem[];
-};
+import type { SellerOrder } from "../types";
 
 type Props = {
-  order: Order;
+  order: SellerOrder;
   shipping: boolean;
+  canShip: boolean;
   statusLabel: string;
   onShip: (orderId: number) => void;
   onOpen: (orderId: number) => void;
@@ -30,6 +16,7 @@ type Props = {
 export function SellerOrderCard({
   order,
   shipping,
+  canShip,
   statusLabel,
   onShip,
   onOpen,
@@ -40,7 +27,7 @@ export function SellerOrderCard({
         <div>
           <div className={styles.cardTitle}>Заказ #{order.id}</div>
           <div className={styles.muted}>
-            {new Date(order.createdAt).toLocaleString()} · {statusLabel}
+            {new Date(order.createdAt).toLocaleString("ru-RU")} · {statusLabel}
           </div>
         </div>
 
@@ -49,11 +36,12 @@ export function SellerOrderCard({
 
       <div className={styles.items}>
         {order.items.map((item, index) => (
-          <div key={index} className={styles.itemRow}>
+          <div key={`${item.sku}-${index}`} className={styles.itemRow}>
             <div className={styles.itemMeta}>
               <div>{item.productTitle}</div>
               <div className={styles.muted}>
-                {item.size} / {item.color} — {item.quantity} × {item.price} ₽
+                {item.size} / {item.color} — {item.quantity} ×{" "}
+                {item.price.toLocaleString()} ₽
               </div>
             </div>
 
@@ -68,7 +56,7 @@ export function SellerOrderCard({
         <button
           type="button"
           onClick={() => onShip(order.id)}
-          disabled={shipping}
+          disabled={shipping || !canShip}
           className={styles.primaryBtn}
         >
           {shipping ? "Отмечаем…" : "Отправил"}

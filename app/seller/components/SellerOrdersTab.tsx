@@ -3,28 +3,14 @@
 import { SellerOrderCard } from "./SellerOrderCard";
 import styles from "../Seller.module.css";
 
-type OrderItem = {
-  productTitle: string;
-  size: string;
-  color: string;
-  quantity: number;
-  price: number;
-  lineTotal: number;
-};
-
-type Order = {
-  id: number;
-  status: "NEW" | "PAID" | "SHIPPED" | "COMPLETED" | "CANCELED";
-  totalAmount: number;
-  createdAt: string;
-  items: OrderItem[];
-};
+import type { SellerOrder } from "../types";
 
 type Props = {
-  orders: Order[];
+  orders: SellerOrder[];
   refreshing: boolean;
   shippingId: number | null;
-  formatStatus: (status: Order["status"]) => string;
+  buildSellerStatusLabel: (order: SellerOrder) => string;
+  canShipOrder: (order: SellerOrder) => boolean;
   onRefresh: () => void;
   onShip: (orderId: number) => void;
   onOpenOrder: (orderId: number) => void;
@@ -34,7 +20,8 @@ export function SellerOrdersTab({
   orders,
   refreshing,
   shippingId,
-  formatStatus,
+  buildSellerStatusLabel,
+  canShipOrder,
   onRefresh,
   onShip,
   onOpenOrder,
@@ -55,7 +42,7 @@ export function SellerOrdersTab({
       </div>
 
       {orders.length === 0 ? (
-        <div className={styles.empty}>Нет заказов в статусе PAID</div>
+        <div className={styles.empty}>Пока нет заказов</div>
       ) : (
         <div className={styles.list}>
           {orders.map((order) => (
@@ -63,7 +50,8 @@ export function SellerOrdersTab({
               key={order.id}
               order={order}
               shipping={shippingId === order.id}
-              statusLabel={formatStatus(order.status)}
+              canShip={canShipOrder(order)}
+              statusLabel={buildSellerStatusLabel(order)}
               onShip={onShip}
               onOpen={onOpenOrder}
             />

@@ -3,7 +3,7 @@ import type { Product } from "./types";
 export function getMinPrice(product: Product): number {
   const prices = product.variants
     .map((variant) => variant.price)
-    .filter((price) => typeof price === "number");
+    .filter((price): price is number => typeof price === "number");
 
   return prices.length ? Math.min(...prices) : 0;
 }

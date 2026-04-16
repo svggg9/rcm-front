@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 
 import styles from "./ProductPage.module.css";
-import { getCartId } from "../../lib/auth";
+import { ensureCartId } from "../../lib/auth";
 import { emitCartChanged } from "../../lib/cartEvents";
 import { useFavorites } from "../../lib/FavoritesContext";
 import { ProductCarousel } from "../../components/ProductCarousel/ProductCarousel";
@@ -23,17 +23,14 @@ type Props = {
   related: Product[];
 };
 
-export default function ProductPageClient({
-  product,
-  related,
-}: Props) {
+export default function ProductPageClient({ product, related }: Props) {
   const [adding, setAdding] = useState(false);
 
   const [openFit, setOpenFit] = useState(false);
   const [openShipping, setOpenShipping] = useState(false);
 
   const [selectedVariantId, setSelectedVariantId] = useState<number | null>(
-    product.variants.find((variant) => variant.quantity > 0)?.id ??
+    product.variants.find((variant) => variant.availableQuantity > 0)?.id ??
       product.variants[0]?.id ??
       null
   );
@@ -41,7 +38,6 @@ export default function ProductPageClient({
   const [viewerOpen, setViewerOpen] = useState(false);
   const [viewerIndex, setViewerIndex] = useState(0);
 
-  const cartId = getCartId();
   const { favoriteIds, toggle } = useFavorites();
   const isFav = favoriteIds.includes(product.id);
 
@@ -81,8 +77,7 @@ export default function ProductPageClient({
     );
   }, [product.variants, selectedVariantId]);
 
-  const currentPrice =
-    selectedVariant?.price ?? getMinPrice(product);
+  const currentPrice = selectedVariant?.price ?? getMinPrice(product);
 
   const sizesText = useMemo(() => getSizesText(product), [product]);
 
@@ -92,17 +87,24 @@ export default function ProductPageClient({
       : 0;
 
   async function handleAddToCart() {
-    if (!cartId) {
-      alert("Не удалось создать корзину");
-      return;
-    }
-
-    if (!selectedVariant) {
-      alert("Нет доступных вариантов");
-      return;
-    }
-
     try {
+      const cartId = await ensureCartId();
+
+      if (!cartId) {
+        alert("Не удалось создать корзину");
+        return;
+      }
+
+      if (!selectedVariant) {
+        alert("Нет доступных вариантов");
+        return;
+      }
+
+      if (selectedVariant.availableQuantity <= 0) {
+        alert("Этот вариант отсутствует в наличии");
+        return;
+      }
+
       setAdding(true);
 
       await addVariantToCart({

@@ -2,25 +2,7 @@
 
 import styles from "../ProductPage.module.css";
 
-type Variant = {
-  id: number;
-  size: string;
-  color: string;
-  price: number;
-  quantity: number;
-  sku: string;
-};
-
-type Product = {
-  id: number;
-  title: string;
-  description: string;
-  brand: string;
-  category: string;
-  audience?: "MEN" | "WOMEN" | "UNISEX";
-  images: string[];
-  variants: Variant[];
-};
+import type { Product, Variant } from "../lib/types";
 
 type Props = {
   product: Product;
@@ -65,6 +47,14 @@ export function ProductDetailsAccordion({
                 <li>Категория: {product.category}</li>
                 <li>Артикул: {product.id}</li>
                 {selectedVariant?.sku ? <li>SKU: {selectedVariant.sku}</li> : null}
+                {selectedVariant ? (
+                  <li>
+                    Наличие:{" "}
+                    {selectedVariant.availableQuantity > 0
+                      ? `${selectedVariant.availableQuantity} шт.`
+                      : "нет в наличии"}
+                  </li>
+                ) : null}
               </ul>
             </div>
           </div>

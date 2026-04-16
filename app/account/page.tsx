@@ -14,41 +14,14 @@ import { AccountOrderDetails } from "./components/AccountOrderDetails";
 
 import styles from "./Account.module.css";
 
-type Me = {
-  id: number;
-  username: string;
-  displayName: string | null;
-  role: string;
-};
-
-type OrderItemPreview = {
-  imageUrl?: string;
-};
-
-type Order = {
-  id: number;
-  status: "NEW" | "PAID" | "SHIPPED" | "COMPLETED" | "CANCELED";
-  totalAmount: number;
-  createdAt: string;
-  items?: OrderItemPreview[];
-};
-
-type OrderDetailsItem = {
-  productTitle: string;
-  size: string;
-  color: string;
-  quantity: number;
-  price: number;
-  lineTotal: number;
-};
-
-type OrderDetails = {
-  id: number;
-  status: "NEW" | "PAID" | "SHIPPED" | "COMPLETED" | "CANCELED";
-  totalAmount: number;
-  createdAt: string;
-  items: OrderDetailsItem[];
-};
+import type {
+  Me,
+  Order,
+  OrderStatus,
+  PaymentStatus,
+  DeliveryStatus,
+  PageResponse,
+} from "./types";
 
 type AccountTab = "profile" | "orders";
 
@@ -64,21 +37,73 @@ function getInitials(value: string): string {
   return parts.map((part) => part[0]?.toUpperCase() ?? "").join("");
 }
 
-function formatStatus(status: Order["status"]): string {
+function formatOrderStatus(status: OrderStatus): string {
   switch (status) {
     case "NEW":
       return "Новый";
-    case "PAID":
-      return "Оплачен";
-    case "SHIPPED":
-      return "Отправлен";
+    case "CONFIRMED":
+      return "Подтверждён";
     case "COMPLETED":
-      return "Доставлен";
+      return "Завершён";
     case "CANCELED":
       return "Отменён";
     default:
       return status;
   }
+}
+
+function formatPaymentStatus(status: PaymentStatus): string {
+  switch (status) {
+    case "PENDING":
+      return "Ожидает оплаты";
+    case "PAID":
+      return "Оплачен";
+    case "FAILED":
+      return "Ошибка оплаты";
+    case "CANCELED":
+      return "Оплата отменена";
+    default:
+      return status;
+  }
+}
+
+function formatDeliveryStatus(status: DeliveryStatus): string {
+  switch (status) {
+    case "PENDING":
+      return "Ожидает обработки";
+    case "READY_FOR_SHIPMENT":
+      return "Готов к отправке";
+    case "IN_TRANSIT":
+      return "В пути";
+    case "DELIVERED":
+      return "Доставлен";
+    default:
+      return status;
+  }
+}
+
+function buildOrderStatusLabel(order: Order): string {
+  if (order.paymentStatus === "PENDING") {
+    return "Ожидает оплаты";
+  }
+
+  if (order.paymentStatus === "FAILED") {
+    return "Ошибка оплаты";
+  }
+
+  if (order.deliveryStatus === "IN_TRANSIT") {
+    return "В пути";
+  }
+
+  if (order.deliveryStatus === "DELIVERED") {
+    return "Доставлен";
+  }
+
+  if (order.deliveryStatus === "READY_FOR_SHIPMENT") {
+    return "Готов к отправке";
+  }
+
+  return formatOrderStatus(order.status);
 }
 
 export default function AccountPage() {
@@ -88,7 +113,7 @@ export default function AccountPage() {
 
   const [me, setMe] = useState<Me | null>(null);
   const [orders, setOrders] = useState<Order[]>([]);
-  const [selectedOrder, setSelectedOrder] = useState<OrderDetails | null>(null);
+  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
 
   const [loading, setLoading] = useState(true);
   const [detailsLoading, setDetailsLoading] = useState(false);
@@ -130,31 +155,36 @@ export default function AccountPage() {
 
         return response.json() as Promise<Me>;
       }),
-      apiFetch(`${API_URL}/api/orders/my`).then(async (response) => {
-        if (!response.ok) {
-          throw new Error(
-            (await response.text().catch(() => "")) ||
-              `Ошибка /api/orders/my (${response.status})`
-          );
-        }
+      apiFetch(`${API_URL}/api/orders/my?page=0&size=20`).then(
+        async (response) => {
+          if (!response.ok) {
+            throw new Error(
+              (await response.text().catch(() => "")) ||
+                `Ошибка /api/orders/my (${response.status})`
+            );
+          }
 
-        return response.json() as Promise<Order[]>;
-      }),
+          return response.json() as Promise<PageResponse<Order>>;
+        }
+      ),
     ])
-      .then(([meData, ordersData]) => {
+      .then(([meData, ordersPage]) => {
         setMe(meData);
-        setOrders(Array.isArray(ordersData) ? ordersData : []);
+        setOrders(Array.isArray(ordersPage.content) ? ordersPage.content : []);
 
         const displayName = meData.displayName?.trim() ?? "";
         if (displayName) {
           const parts = displayName.split(/\s+/).filter(Boolean);
           setLastName(parts[0] ?? "");
-          setFirstName(parts[1] ?? meData.username ?? "");
+          setFirstName(parts[1] ?? "");
           setMiddleName(parts[2] ?? "");
         } else {
+          setLastName("");
           setFirstName(meData.username ?? "");
+          setMiddleName("");
         }
 
+        setPhone(meData.phone ?? "");
         setLoading(false);
       })
       .catch((e: Error) => {
@@ -179,7 +209,7 @@ export default function AccountPage() {
           throw new Error(text || "Не удалось загрузить заказ");
         }
 
-        return response.json() as Promise<OrderDetails>;
+        return response.json() as Promise<Order>;
       })
       .then((data) => {
         setSelectedOrder(data);
@@ -247,7 +277,7 @@ export default function AccountPage() {
               <AccountProfileTab
                 displayName={displayName}
                 initials={initials}
-                email={me?.username ? `${me.username}@mail.com` : "—"}
+                email={me?.email?.trim() || me?.username || "—"}
                 role={me?.role ?? "—"}
                 lastName={lastName}
                 firstName={firstName}
@@ -268,12 +298,15 @@ export default function AccountPage() {
               <AccountOrderDetails
                 order={selectedOrder}
                 onBack={closeOrderDetails}
-                formatStatus={formatStatus}
+                formatOrderStatus={formatOrderStatus}
+                formatPaymentStatus={formatPaymentStatus}
+                formatDeliveryStatus={formatDeliveryStatus}
+                buildOrderStatusLabel={buildOrderStatusLabel}
               />
             ) : (
               <AccountOrdersTab
                 orders={orders}
-                formatStatus={formatStatus}
+                buildOrderStatusLabel={buildOrderStatusLabel}
                 onOpenOrder={openOrder}
               />
             )}
