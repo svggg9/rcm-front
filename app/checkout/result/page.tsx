@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
 import { API_URL, apiFetch } from "../../lib/api";
@@ -33,7 +33,7 @@ type OrderResponse = {
   createdAt: string;
 };
 
-export default function CheckoutResultPage() {
+function CheckoutResultContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -272,6 +272,20 @@ export default function CheckoutResultPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function CheckoutResultPage() {
+  return (
+    <Suspense
+      fallback={
+        <div style={styles.page}>
+          <div style={styles.card}>Загружаем результат оплаты…</div>
+        </div>
+      }
+    >
+      <CheckoutResultContent />
+    </Suspense>
   );
 }
 

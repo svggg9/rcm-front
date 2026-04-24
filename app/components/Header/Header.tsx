@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import styles from "./Header.module.css";
 import { apiFetch, API_URL } from "../../lib/api";
@@ -32,7 +32,7 @@ const audienceItems = [
   { key: "women", label: "Для нее" },
 ];
 
-export function Header() {
+function HeaderContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -225,5 +225,13 @@ export function Header() {
         </div>
       </div>
     </header>
+  );
+}
+
+export function Header() {
+  return (
+    <Suspense fallback={null}>
+      <HeaderContent />
+    </Suspense>
   );
 }

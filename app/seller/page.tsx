@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
 import { apiFetch, API_URL } from "../lib/api";
@@ -102,7 +102,7 @@ function canShipOrder(order: SellerOrder): boolean {
   );
 }
 
-export default function SellerPage() {
+function SellerPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const isAuth = useClientAuth();
@@ -475,5 +475,13 @@ export default function SellerPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function SellerPage() {
+  return (
+    <Suspense fallback={null}>
+      <SellerPageContent />
+    </Suspense>
   );
 }
