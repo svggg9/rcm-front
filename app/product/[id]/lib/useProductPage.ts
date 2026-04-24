@@ -49,7 +49,6 @@ export function useProductPage(productId: string) {
         setRelated(data.related);
 
         const firstAvailableVariant =
-          data.product.variants.find((v) => v.quantity > 0) ??
           data.product.variants[0] ??
           null;
 
