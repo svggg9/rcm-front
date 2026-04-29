@@ -5,21 +5,13 @@ const nextConfig = {
       {
         protocol: "https",
         hostname: "storage.yandexcloud.net",
-        port: "",
-        pathname: "/**",
-      },
-      {
-        protocol: "https",
-        hostname: "*.storage.yandexcloud.net",
-        port: "",
         pathname: "/**",
       },
       {
         protocol: "https",
         hostname: "s3.yandexcloud.net",
-        port: "",
         pathname: "/**",
-      }
+      },
     ],
   },
 };

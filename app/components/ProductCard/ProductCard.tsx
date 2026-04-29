@@ -1,6 +1,8 @@
+"use client";
+
+import Image from "next/image";
 import Link from "next/link";
 import styles from "./ProductCard.module.css";
-import { useState } from "react";
 
 type Variant = {
   price: number;
@@ -21,53 +23,40 @@ export function ProductCard({ product }: { product: Product }) {
   const prices = product.variants.map((v) => v.price);
   const minPrice = prices.length ? Math.min(...prices) : 0;
 
-  const [imageLoaded, setImageLoaded] = useState(false);
-
   return (
-    <Link
-      href={`/product/${product.id}`}
-      className="block"
-    >
-      <div className={styles.productCard}> 
-
-
-        {/* IMAGE */}
+    <Link href={`/product/${product.id}`} className="block">
+      <div className={styles.productCard}>
         <div className={styles.imageWrapper}>
-
-                    {!imageLoaded && (
-            <div className={styles.imageLoader} />
-        )} 
-
-          {mainImage && (
-            <img
+          {mainImage ? (
+            <Image
               src={mainImage}
               alt={product.title}
-              loading="lazy"
+              fill
+              sizes="(max-width: 768px) 50vw, (max-width: 1200px) 25vw, 300px"
               className={styles.imageMain}
-              onLoad={() => setImageLoaded(true)}
             />
+          ) : (
+            <div className="image-placeholder">Нет изображения</div>
           )}
 
-          {hoverImage && (
-            <img
+          {hoverImage ? (
+            <Image
               src={hoverImage}
-              alt={product.title}
-              loading="eager"
+              alt=""
+              fill
+              sizes="(max-width: 768px) 50vw, (max-width: 1200px) 25vw, 300px"
               className={styles.imageHover}
             />
-          )}
-
-          {!mainImage && (
-            <div className="image-placeholder">
-              Нет изображения
-            </div>
-          )}
+          ) : null}
         </div>
 
-        {/* TEXT */}
         <div className={styles.cardText}>
-          <div className={styles.cardTitle}>{product.brand} {product.title}</div>
-          <div className={styles.cardPrice}>{minPrice} ₽</div>
+          <div className={styles.cardTitle}>
+            {product.brand} {product.title}
+          </div>
+          <div className={styles.cardPrice}>
+            {minPrice.toLocaleString("ru-RU")} ₽
+          </div>
         </div>
       </div>
     </Link>

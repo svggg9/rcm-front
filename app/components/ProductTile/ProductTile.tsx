@@ -1,7 +1,8 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
-import { useRef, useState } from "react";
+import { useRef } from "react";
 import { useRouter } from "next/navigation";
 
 import styles from "./ProductTile.module.css";
@@ -20,8 +21,6 @@ export function ProductTile({ product }: { product: Product }) {
 
   const mainImage = product.images?.[0];
   const hoverImage = product.images?.[1];
-
-  const [imageLoaded, setImageLoaded] = useState(false);
 
   const { favoriteIds, toggle } = useFavorites();
   const fav = favoriteIds.includes(product.id);
@@ -49,35 +48,34 @@ export function ProductTile({ product }: { product: Product }) {
         onFocus={prefetchProduct}
       >
         <div className={styles.media}>
-          {!imageLoaded && <div className={styles.skeleton} />}
-
           {mainImage ? (
-            <img
+            <Image
               src={mainImage}
               alt={product.title}
+              fill
+              sizes="(max-width: 768px) 50vw, (max-width: 1200px) 25vw, 280px"
               className={styles.imgMain}
-              loading="lazy"
-              onLoad={() => setImageLoaded(true)}
             />
           ) : (
             <div className={styles.noImage}>Нет изображения</div>
           )}
 
-          {hoverImage && (
-            <img
+          {hoverImage ? (
+            <Image
               src={hoverImage}
-              alt={product.title}
+              alt=""
+              fill
+              sizes="(max-width: 768px) 50vw, (max-width: 1200px) 25vw, 280px"
               className={styles.imgHover}
-              loading="lazy"
             />
-          )}
+          ) : null}
         </div>
 
         <div className={styles.info}>
           <div className={styles.brand}>{product.brand}</div>
           <div className={styles.title}>{product.title}</div>
           <div className={styles.price}>
-            {product.minPrice.toLocaleString()} ₽
+            {product.minPrice.toLocaleString("ru-RU")} ₽
           </div>
         </div>
 
@@ -88,9 +86,11 @@ export function ProductTile({ product }: { product: Product }) {
           aria-label={fav ? "Убрать из избранного" : "Сохранить"}
           title={fav ? "Убрать" : "Сохранить"}
         >
-          <img
+          <Image
             src={fav ? "/icons/like-filled.svg" : "/icons/like.svg"}
             alt=""
+            width={20}
+            height={20}
             aria-hidden="true"
           />
         </button>

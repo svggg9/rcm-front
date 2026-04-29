@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { CartItem } from "../lib/types";
 import styles from "../Cart.module.css";
 
@@ -13,9 +14,11 @@ export function CartItemRow({ item, onChangeQty, onRemove }: Props) {
   return (
     <div className={styles.item}>
       <div className={styles.imageWrap}>
-        <img
+        <Image
           src={item.imageUrl ?? "/placeholder.png"}
           alt={item.title}
+          fill
+          sizes="80px"
           className={styles.image}
         />
       </div>
@@ -29,50 +32,56 @@ export function CartItemRow({ item, onChangeQty, onRemove }: Props) {
         </div>
       </div>
 
-    <div className={styles.side}>
-    <div className={styles.price}>
-        {item.price.toLocaleString()} ₽
-    </div>
-
-    <div className={styles.controls}>
-        <div className={styles.qty}>
-        <button
-            type="button"
-            disabled={item.quantity <= 1}
-            onClick={() => onChangeQty(item.variantId, item.quantity - 1)}
-        >
-            −
-        </button>
-
-        <span>{item.quantity}</span>
-
-        <button
-            type="button"
-            onClick={() => onChangeQty(item.variantId, item.quantity + 1)}
-        >
-            +
-        </button>
+      <div className={styles.side}>
+        <div className={styles.price}>
+          {item.price.toLocaleString()} ₽
         </div>
-    </div>
 
-    <div className={styles.actions}>
-        <button className={styles.iconBtn} aria-label="В избранное">
-            <img
-                src="/icons/like.svg"
-                alt=""
-                className={styles.icon}
+        <div className={styles.controls}>
+          <div className={styles.qty}>
+            <button
+              type="button"
+              disabled={item.quantity <= 1}
+              onClick={() =>
+                onChangeQty(item.variantId, item.quantity - 1)
+              }
+            >
+              −
+            </button>
+
+            <span>{item.quantity}</span>
+
+            <button
+              type="button"
+              onClick={() =>
+                onChangeQty(item.variantId, item.quantity + 1)
+              }
+            >
+              +
+            </button>
+          </div>
+        </div>
+
+        <div className={styles.actions}>
+          <button className={styles.iconBtn} aria-label="В избранное">
+            <Image
+              src="/icons/like.svg"
+              alt=""
+              width={20}
+              height={20}
+              className={styles.icon}
             />
-        </button>
+          </button>
 
-        <button
-        className={styles.iconBtn}
-        onClick={() => onRemove(item.variantId)}
-        aria-label="Удалить"
-        >
-        ✕
-        </button>
-    </div>
-    </div>
+          <button
+            className={styles.iconBtn}
+            onClick={() => onRemove(item.variantId)}
+            aria-label="Удалить"
+          >
+            ✕
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

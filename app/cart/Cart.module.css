@@ -46,8 +46,10 @@
 }
 
 .imageWrap {
-  width: 120px;
-  height: 140px;
+  width: 80px;
+  height: 100px;
+  position: relative;
+  overflow: hidden;
 }
 
 .image {

@@ -32,6 +32,7 @@
   aspect-ratio: 3 / 4;
   background: #f7f7f7;
   overflow: hidden;
+  position: relative;
 }
 
 .galleryBottom {
@@ -59,6 +60,7 @@
   aspect-ratio: 3 / 4;
   background: #f7f7f7;
   overflow: hidden;
+  position: relative;
 }
 
 .galleryButton {

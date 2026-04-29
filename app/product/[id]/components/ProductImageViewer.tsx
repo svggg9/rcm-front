@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import styles from "../ProductPage.module.css";
 
 type Props = {
@@ -51,11 +52,15 @@ export function ProductImageViewer({
         className={styles.viewerBody}
         onClick={(event) => event.stopPropagation()}
       >
-        <img
-          src={images[currentIndex]}
-          alt={`${title} ${currentIndex + 1}`}
-          className={styles.viewerImage}
-        />
+        <div className={styles.viewerImageWrap}>
+          <Image
+            src={images[currentIndex]}
+            alt={`${title} ${currentIndex + 1}`}
+            fill
+            sizes="100vw"
+            className={styles.viewerImage}
+          />
+        </div>
 
         <div className={styles.viewerFooter}>
           <div className={styles.viewerCounter}>
