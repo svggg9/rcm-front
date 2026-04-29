@@ -1,11 +1,11 @@
 import { emitAuthChanged } from "./authEvents";
 import { emitCartChanged } from "./cartEvents";
+import { API_URL } from "./api";
 
 const TOKEN_KEY = "auth_token";
 const GUEST_CART_KEY = "guest_cart_id";
 const USER_CART_KEY = "user_cart_id";
 const GUEST_FAVORITES_KEY = "guest_favorite_ids";
-const API_URL = "http://localhost:9696";
 
 // ---------------- AUTH ----------------
 
