@@ -2,8 +2,27 @@
   position: sticky;
   top: 0;
   z-index: 100;
-  background: #fff;
-  border-bottom: 1px solid #e9e9e9;
+
+  background-image:
+    linear-gradient(rgba(255,255,255,0.55), rgba(255,255,255,0.55)),
+    url("/8309ccdeec4a167dc09dc908fc1f1dbc.jpg");
+
+  background-size: 120%;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+.logo {
+  justify-self: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.logoImg {
+  height: 38px;
+  width: auto;
+  display: block;
 }
 
 .inner {
@@ -12,11 +31,12 @@
 }
 
 .banner {
-  background: #111;
+  background: rgba(17, 17, 17, 0.92);
   color: #fff;
   min-height: 36px;
   display: flex;
   align-items: center;
+  display: none;
 }
 
 .banner .inner {
@@ -43,7 +63,9 @@
 }
 
 .top {
-  border-bottom: 1px solid #f1f1f1;
+  border-bottom: 1px solid rgba(241, 241, 241, 0.7);
+  background: rgba(255, 255, 255, 0.72);
+  backdrop-filter: blur(8px);
 }
 
 .top .inner {
@@ -144,7 +166,9 @@
 }
 
 .bottom {
-  border-top: 1px solid #f3f3f3;
+  border-top: 1px solid rgba(243, 243, 243, 0.7);
+  background: rgba(255, 255, 255, 0.72);
+  backdrop-filter: blur(8px);
 }
 
 .bottom .inner {

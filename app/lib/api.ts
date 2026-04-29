@@ -1,6 +1,7 @@
 import { getToken } from "./auth";
 
-export const API_URL = "http://localhost:9696";
+export const API_URL =
+  process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:9696";
 
 export async function apiFetch(url: string, options: RequestInit = {}) {
   const token = getToken();
@@ -20,5 +21,6 @@ export async function apiFetch(url: string, options: RequestInit = {}) {
   return fetch(url, {
     ...options,
     headers,
+    credentials: "include", // важно для будущих cookie/refresh
   });
 }

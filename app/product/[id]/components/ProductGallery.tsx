@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import styles from "../ProductPage.module.css";
 
 type Props = {
@@ -23,13 +24,17 @@ export function ProductGallery({ title, images, onOpenImage }: Props) {
             className={`${styles.galleryLarge} ${styles.galleryButton}`}
             onClick={() => onOpenImage(index)}
           >
-            <img
+            <Image
               src={src}
               alt={`${title} ${index + 1}`}
+              fill
+              sizes="(max-width: 768px) 100vw, 50vw"
               className={styles.galleryImg}
+              priority={index === 0}
             />
+
             <span className={styles.zoomBadge} aria-hidden="true">
-              <img src="/icons/search.svg" alt="" />
+              <Image src="/icons/search.svg" alt="" width={16} height={16} />
             </span>
           </button>
         ))}
@@ -54,13 +59,16 @@ export function ProductGallery({ title, images, onOpenImage }: Props) {
               className={`${styles.gallerySmall} ${styles.galleryButton}`}
               onClick={() => onOpenImage(index + 2)}
             >
-              <img
+              <Image
                 src={src}
                 alt={`${title} ${index + 3}`}
+                fill
+                sizes="(max-width: 768px) 50vw, 25vw"
                 className={styles.galleryImg}
               />
+
               <span className={styles.zoomBadge} aria-hidden="true">
-                <img src="/icons/search.svg" alt="" />
+                <Image src="/icons/search.svg" alt="" width={16} height={16} />
               </span>
             </button>
           ))}

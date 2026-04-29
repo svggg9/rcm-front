@@ -1,14 +1,16 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+
 import styles from "./Header.module.css";
 import { apiFetch, API_URL } from "../../lib/api";
-import { useClientAuth } from "../../lib/useClientAuth";
 import { useCartCount } from "../../lib/useCartCount";
-import { useUserRole } from "../../lib/useUserRole";
+import { useClientAuth } from "../../lib/useClientAuth";
 import { useFavorites } from "../../lib/FavoritesContext";
+import { useUserRole } from "../../lib/useUserRole";
 
 type Category = {
   id: number;
@@ -32,6 +34,10 @@ const audienceItems = [
   { key: "women", label: "Для нее" },
 ];
 
+function isSellerRole(role: string | null) {
+  return role === "SELLER" || role === "ROLE_SELLER";
+}
+
 function HeaderContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -41,35 +47,61 @@ function HeaderContent() {
   const activeSearch = searchParams.get("q") || "";
 
   const [categories, setCategories] = useState<Category[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loadingCategories, setLoadingCategories] = useState(true);
   const [search, setSearch] = useState(activeSearch);
   const [bannerIndex, setBannerIndex] = useState(0);
 
   const isAuth = useClientAuth();
   const cartCount = useCartCount();
   const role = useUserRole();
-  const { count } = useFavorites();
+  const { count: favoritesCount } = useFavorites();
 
   useEffect(() => {
     setSearch(activeSearch);
   }, [activeSearch]);
 
   useEffect(() => {
-    apiFetch(`${API_URL}/api/categories`)
-      .then((r: Response) => r.json())
-      .then((data: Category[]) => {
-        setCategories(Array.isArray(data) ? data : []);
-        setLoading(false);
-      })
-      .catch(() => setLoading(false));
+    let cancelled = false;
+
+    async function loadCategories() {
+      setLoadingCategories(true);
+
+      try {
+        const response = await apiFetch(`${API_URL}/api/categories`);
+
+        if (!response.ok) {
+          throw new Error("Failed to load categories");
+        }
+
+        const data: unknown = await response.json();
+
+        if (!cancelled) {
+          setCategories(Array.isArray(data) ? (data as Category[]) : []);
+        }
+      } catch {
+        if (!cancelled) {
+          setCategories([]);
+        }
+      } finally {
+        if (!cancelled) {
+          setLoadingCategories(false);
+        }
+      }
+    }
+
+    void loadCategories();
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   useEffect(() => {
-    const id = setInterval(() => {
-      setBannerIndex((i) => (i + 1) % banners.length);
+    const id = window.setInterval(() => {
+      setBannerIndex((current) => (current + 1) % banners.length);
     }, 4000);
 
-    return () => clearInterval(id);
+    return () => window.clearInterval(id);
   }, []);
 
   function buildCatalogUrl(params: {
@@ -94,25 +126,16 @@ function HeaderContent() {
   }
 
   function handleAudienceClick(audience: string) {
-    router.push(
-      buildCatalogUrl({
-        audience,
-      })
-    );
+    router.push(buildCatalogUrl({ audience }));
   }
 
-  function handleCategoryClick(category?: string) {
+  function handleCategoryClick(category: string) {
     const isSame = activeCategory === category;
-
-    router.push(
-      buildCatalogUrl({
-        category: isSame ? null : category || null,
-      })
-    );
+    router.push(buildCatalogUrl({ category: isSame ? null : category }));
   }
 
-  function handleSearchSubmit(e: React.FormEvent) {
-    e.preventDefault();
+  function handleSearchSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
 
     const trimmed = search.trim();
 
@@ -123,17 +146,19 @@ function HeaderContent() {
     );
   }
 
+  const activeBanner = banners[bannerIndex];
+
   return (
     <header className={styles.header}>
       <div className={styles.banner}>
         <div className={styles.inner}>
           <div className={styles.bannerText}>
-            {banners[bannerIndex].text}{" "}
-            {banners[bannerIndex].link && (
-              <Link href={banners[bannerIndex].link} className={styles.bannerLink}>
-                {banners[bannerIndex].linkText}
+            {activeBanner.text}{" "}
+            {activeBanner.link ? (
+              <Link href={activeBanner.link} className={styles.bannerLink}>
+                {activeBanner.linkText}
               </Link>
-            )}
+            ) : null}
           </div>
         </div>
       </div>
@@ -155,36 +180,69 @@ function HeaderContent() {
             ))}
           </nav>
 
-          <Link href="/" className={styles.logo}>
-            RCMARKET
+          <Link href="/" className={styles.logo} aria-label="РЦМ">
+            <Image
+              src="/icons/logo-rcm.webp"
+              alt="РЦМ"
+              width={132}
+              height={44}
+              className={styles.logoImg}
+              priority
+            />
           </Link>
 
           <div className={styles.actions}>
-            {isAuth === true && role === "ROLE_SELLER" && (
+            {isAuth === true && isSellerRole(role) ? (
               <Link href="/seller?tab=orders" className={styles.iconBtn}>
-                <img src="/icons/seller.svg" alt="Seller" />
+                <Image
+                  src="/icons/seller.svg"
+                  alt="Seller"
+                  width={22}
+                  height={22}
+                />
               </Link>
-            )}
+            ) : null}
 
             <Link href="/favorites" className={styles.iconBtn}>
               <span className={styles.iconWrap}>
-                <img src="/icons/like.svg" alt="Favorites" />
-                {count > 0 && <span className={styles.badge}>{count}</span>}
+                <Image
+                  src="/icons/like.svg"
+                  alt="Favorites"
+                  width={22}
+                  height={22}
+                />
+                {favoritesCount > 0 ? (
+                  <span className={styles.badge}>{favoritesCount}</span>
+                ) : null}
               </span>
             </Link>
 
             <Link href="/cart" className={styles.iconBtn}>
               <span className={styles.iconWrap}>
-                <img src="/icons/bag.svg" alt="Cart" />
-                {cartCount > 0 && <span className={styles.badge}>{cartCount}</span>}
+                <Image
+                  src="/icons/bag.svg"
+                  alt="Cart"
+                  width={22}
+                  height={22}
+                />
+                {cartCount > 0 ? (
+                  <span className={styles.badge}>{cartCount}</span>
+                ) : null}
               </span>
             </Link>
 
             <Link
-              href={isAuth === true ? "/account?tab=orders" : "/auth/login?next=/account"}
+              href={
+                isAuth === true ? "/account?tab=orders" : "/auth/login?next=/account"
+              }
               className={styles.iconBtn}
             >
-              <img src="/icons/user.svg" alt="Profile" />
+              <Image
+                src="/icons/user.svg"
+                alt="Profile"
+                width={22}
+                height={22}
+              />
             </Link>
           </div>
         </div>
@@ -193,21 +251,26 @@ function HeaderContent() {
       <div className={styles.bottom}>
         <div className={styles.inner}>
           <nav className={styles.categories} aria-label="Категории">
-            {loading && <span className={styles.loading}>Загрузка…</span>}
+            {loadingCategories ? (
+              <span className={styles.loading}>Загрузка…</span>
+            ) : null}
 
-            {!loading &&
-              categories.map((cat) => (
-                <button
-                  key={cat.id}
-                  type="button"
-                  className={`${styles.category} ${
-                    activeCategory === cat.name ? styles.categoryActive : ""
-                  }`}
-                  onClick={() => handleCategoryClick(cat.name)}
-                >
-                  {cat.name}
-                </button>
-              ))}
+            {!loadingCategories
+              ? categories.map((category) => (
+                  <button
+                    key={category.id}
+                    type="button"
+                    className={`${styles.category} ${
+                      activeCategory === category.name
+                        ? styles.categoryActive
+                        : ""
+                    }`}
+                    onClick={() => handleCategoryClick(category.name)}
+                  >
+                    {category.name}
+                  </button>
+                ))
+              : null}
           </nav>
 
           <form className={styles.search} onSubmit={handleSearchSubmit}>
@@ -216,7 +279,7 @@ function HeaderContent() {
               type="text"
               placeholder="Что вы ищете?"
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              onChange={(event) => setSearch(event.target.value)}
             />
             <button type="submit" className={styles.searchBtn}>
               Поиск

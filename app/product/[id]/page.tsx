@@ -35,13 +35,15 @@ export default async function ProductPage({
 }) {
   const { id } = await params;
 
-  const product = await getProduct(id);
+  const [product, products] = await Promise.all([
+    getProduct(id),
+    getProducts(),
+  ]);
 
   if (!product) {
     return <div className="pageContainer">Товар не найден</div>;
   }
 
-  const products = await getProducts();
   const related = getRelatedProducts(products, product, 12);
 
   return <ProductPageClient product={product} related={related} />;
