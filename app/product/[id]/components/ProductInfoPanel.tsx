@@ -15,6 +15,8 @@ type Props = {
   isFav: boolean;
   onAddToCart: () => void;
   onToggleFavorite: () => void;
+  isSellerView: boolean;
+  onEditProduct: () => void;
 };
 
 export function ProductInfoPanel({
@@ -28,6 +30,8 @@ export function ProductInfoPanel({
   isFav,
   onAddToCart,
   onToggleFavorite,
+  isSellerView,
+  onEditProduct,
 }: Props) {
   return (
     <aside className={styles.info}>
@@ -61,10 +65,14 @@ export function ProductInfoPanel({
             <option
               key={variant.id}
               value={variant.id}
-              disabled={variant.availableQuantity <= 0}
+              disabled={
+                variant.availableQuantity !== null && variant.availableQuantity <= 0
+              }
             >
               {variant.size} — {variant.price.toLocaleString()} ₽
-              {variant.availableQuantity <= 0 ? " (нет в наличии)" : ""}
+              {variant.availableQuantity !== null && variant.availableQuantity <= 0
+                ? " (нет в наличии)"
+                : ""}
             </option>
           ))}
         </select>
@@ -72,33 +80,46 @@ export function ProductInfoPanel({
         <div className={styles.variantText}>{sizesText}</div>
 
         <div className={styles.actions}>
-          <button
-            type="button"
-            className={styles.addBtn}
-            onClick={onAddToCart}
-            disabled={
-              adding ||
-              !selectedVariant ||
-              selectedVariant.availableQuantity <= 0
-            }
-          >
-            {adding ? "Добавляем…" : "Добавить в корзину"}
-          </button>
+          {isSellerView ? (
+            <button
+              type="button"
+              className={styles.addBtn}
+              onClick={onEditProduct}
+            >
+              Редактировать
+            </button>
+          ) : (
+            <button
+              type="button"
+              className={styles.addBtn}
+              onClick={onAddToCart}
+              disabled={
+                adding ||
+                !selectedVariant ||
+                (selectedVariant.availableQuantity !== null &&
+                  selectedVariant.availableQuantity <= 0)
+              }
+            >
+              {adding ? "Добавляем…" : "Добавить в корзину"}
+            </button>
+          )}
 
-          <button
-            type="button"
-            className={`${styles.favoriteBtn} ${
-              isFav ? styles.favoriteBtnActive : ""
-            }`}
-            onClick={onToggleFavorite}
-          >
-            <span>{isFav ? "В избранном" : "В избранное"}</span>
-            <img
-              src={isFav ? "/icons/like-filled.svg" : "/icons/like.svg"}
-              alt=""
-              aria-hidden="true"
-            />
-          </button>
+          {!isSellerView ? (
+            <button
+              type="button"
+              className={`${styles.favoriteBtn} ${
+                isFav ? styles.favoriteBtnActive : ""
+              }`}
+              onClick={onToggleFavorite}
+            >
+              <span>{isFav ? "В избранном" : "В избранное"}</span>
+              <img
+                src={isFav ? "/icons/like-filled.svg" : "/icons/like.svg"}
+                alt=""
+                aria-hidden="true"
+              />
+            </button>
+          ) : null}
         </div>
       </div>
 

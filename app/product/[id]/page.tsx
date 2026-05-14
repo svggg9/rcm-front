@@ -3,9 +3,11 @@ import ProductPageClient from "./ProductPageClient";
 import type { Product } from "./lib/types";
 import { getRelatedProducts } from "./lib/productPageUtils";
 
+export const dynamic = "force-dynamic";
+
 async function getProduct(id: string): Promise<Product | null> {
   const response = await fetch(`${API_URL}/api/products/${id}`, {
-    next: { revalidate: 60 },
+    cache: "no-store",
   });
 
   if (!response.ok) {
@@ -17,7 +19,7 @@ async function getProduct(id: string): Promise<Product | null> {
 
 async function getProducts(): Promise<Product[]> {
   const response = await fetch(`${API_URL}/api/products`, {
-    next: { revalidate: 60 },
+    cache: "no-store",
   });
 
   if (!response.ok) {

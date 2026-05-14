@@ -10,6 +10,7 @@ import { SellerSidebar } from "./components/SellerSidebar";
 import { SellerOrdersTab } from "./components/SellerOrdersTab";
 import { SellerOrderDetails } from "./components/SellerOrderDetails";
 import { SellerProductCreateTab } from "./components/SellerProductCreateTab";
+import { SellerProductsTab } from "./components/SellerProductsTab";
 
 import type {
   Audience,
@@ -22,6 +23,28 @@ import type {
   SellerPaymentStatus,
   SellerTab,
 } from "./types";
+
+type SellerProductVariant = {
+  id: number;
+  size: string;
+  color: string;
+  price: number;
+  availableQuantity: number | null;
+  sku: string;
+  stockTrackingEnabled?: boolean;
+};
+
+type SellerProduct = {
+  id: number;
+  title: string;
+  description: string;
+  brand: string | null;
+  category: string | null;
+  audience?: "MEN" | "WOMEN" | "UNISEX";
+  status?: "DRAFT" | "MODERATION" | "ACTIVE" | "ARCHIVED" | "BLOCKED";
+  variants: SellerProductVariant[];
+  images: string[];
+};
 
 import styles from "./Seller.module.css";
 
@@ -109,9 +132,13 @@ function SellerPageContent() {
 
   const currentTab: SellerTab =
     searchParams.get("tab") === "products" ? "products" : "orders";
+  const productsMode = searchParams.get("mode") === "create" ? "create" : "list";
   const selectedOrderId = searchParams.get("orderId");
 
   const [orders, setOrders] = useState<SellerOrder[]>([]);
+  const [products, setProducts] = useState<SellerProduct[]>([]);
+  const [productsLoading, setProductsLoading] = useState(false);
+  const [productsRefreshing, setProductsRefreshing] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<SellerOrder | null>(null);
 
   const [categories, setCategories] = useState<Option[]>([]);
@@ -135,6 +162,7 @@ function SellerPageContent() {
   const [color, setColor] = useState("Black");
   const [price, setPrice] = useState<number>(0);
   const [quantity, setQuantity] = useState<number>(1);
+  const [stockTrackingEnabled, setStockTrackingEnabled] = useState(true);
   const [sku, setSku] = useState("");
 
   const [submitting, setSubmitting] = useState(false);
@@ -149,6 +177,35 @@ function SellerPageContent() {
       router.push("/auth/login?next=/seller?tab=orders");
     }
   }, [isAuth, router]);
+
+  async function loadProducts(options?: { silent?: boolean }) {
+  const silent = options?.silent ?? false;
+
+  if (silent) {
+    setProductsRefreshing(true);
+  } else {
+    setProductsLoading(true);
+  }
+
+  setError(null);
+
+  try {
+    const response = await apiFetch(`${API_URL}/api/seller/products?page=0&size=50`);
+
+    if (!response.ok) {
+      const text = await response.text().catch(() => "");
+      throw new Error(text || `Ошибка загрузки товаров (${response.status})`);
+    }
+
+    const data: PageResponse<SellerProduct> = await response.json();
+    setProducts(Array.isArray(data.content) ? data.content : []);
+  } catch (e) {
+    setError(e instanceof Error ? e.message : "Не удалось загрузить товары");
+  } finally {
+    setProductsLoading(false);
+    setProductsRefreshing(false);
+  }
+}
 
   async function loadOrders(options?: { silent?: boolean }) {
     const silent = options?.silent ?? false;
@@ -183,6 +240,14 @@ function SellerPageContent() {
     if (isAuth !== true) return;
     void loadOrders();
   }, [isAuth]);
+
+  useEffect(() => {
+  if (isAuth !== true) return;
+  if (currentTab !== "products") return;
+  if (productsMode !== "list") return;
+
+  void loadProducts();
+  }, [isAuth, currentTab, productsMode]);
 
   useEffect(() => {
     if (currentTab !== "orders" || !selectedOrderId) {
@@ -310,7 +375,10 @@ function SellerPageContent() {
     if (brandId === "") return setError("Выберите бренд");
     if (!sku.trim()) return setError("Введите SKU");
     if (price <= 0) return setError("Цена должна быть > 0");
-    if (quantity <= 0) return setError("Кол-во должно быть > 0");
+
+    if (stockTrackingEnabled && quantity <= 0) {
+      return setError("Кол-во должно быть > 0");
+    }
 
     const payload: CreateProductReq = {
       title: title.trim(),
@@ -323,8 +391,9 @@ function SellerPageContent() {
           size: size.trim(),
           color: color.trim(),
           price: Number(price),
-          quantity: Number(quantity),
+          quantity: stockTrackingEnabled ? Number(quantity) : null,
           sku: sku.trim(),
+          stockTrackingEnabled,
         },
       ],
     };
@@ -412,39 +481,50 @@ function SellerPageContent() {
             {error ? <div className={styles.error}>{error}</div> : null}
 
             {currentTab === "products" ? (
-              <SellerProductCreateTab
-                categories={categories}
-                brands={brands}
-                loadingLists={loadingLists}
-                title={title}
-                description={description}
-                categoryId={categoryId}
-                brandId={brandId}
-                audience={audience}
-                size={size}
-                color={color}
-                price={price}
-                quantity={quantity}
-                sku={sku}
-                submitting={submitting}
-                createdProductId={createdProductId}
-                file={file}
-                uploading={uploading}
-                imageUrl={imageUrl}
-                onTitleChange={setTitle}
-                onDescriptionChange={setDescription}
-                onCategoryIdChange={setCategoryId}
-                onBrandIdChange={setBrandId}
-                onAudienceChange={setAudience}
-                onSizeChange={setSize}
-                onColorChange={setColor}
-                onPriceChange={setPrice}
-                onQuantityChange={setQuantity}
-                onSkuChange={setSku}
-                onFileChange={setFile}
-                onCreateProduct={createProduct}
-                onUploadImage={uploadImage}
-              />
+              productsMode === "create" ? (
+                <SellerProductCreateTab
+                  categories={categories}
+                  brands={brands}
+                  loadingLists={loadingLists}
+                  title={title}
+                  description={description}
+                  categoryId={categoryId}
+                  brandId={brandId}
+                  audience={audience}
+                  size={size}
+                  color={color}
+                  price={price}
+                  quantity={quantity}
+                  stockTrackingEnabled={stockTrackingEnabled}
+                  sku={sku}
+                  submitting={submitting}
+                  createdProductId={createdProductId}
+                  file={file}
+                  uploading={uploading}
+                  imageUrl={imageUrl}
+                  onTitleChange={setTitle}
+                  onDescriptionChange={setDescription}
+                  onCategoryIdChange={setCategoryId}
+                  onBrandIdChange={setBrandId}
+                  onAudienceChange={setAudience}
+                  onSizeChange={setSize}
+                  onColorChange={setColor}
+                  onPriceChange={setPrice}
+                  onQuantityChange={setQuantity}
+                  onStockTrackingEnabledChange={setStockTrackingEnabled}
+                  onSkuChange={setSku}
+                  onFileChange={setFile}
+                  onCreateProduct={createProduct}
+                  onUploadImage={uploadImage}
+                />
+              ) : (
+                <SellerProductsTab
+                  products={products}
+                  loading={productsLoading}
+                  refreshing={productsRefreshing}
+                  onRefresh={() => void loadProducts({ silent: true })}
+                />
+              )
             ) : detailsLoading ? (
               <div className={styles.sectionTitle}>Загрузка заказа…</div>
             ) : selectedOrder ? (
