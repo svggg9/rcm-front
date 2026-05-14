@@ -28,6 +28,8 @@ type Props = {
   file: File | null;
   uploading: boolean;
   imageUrl: string | null;
+  stockTrackingEnabled: boolean;
+  onStockTrackingEnabledChange: (value: boolean) => void;
   onTitleChange: (value: string) => void;
   onDescriptionChange: (value: string) => void;
   onCategoryIdChange: (value: number | "") => void;
@@ -62,6 +64,8 @@ export function SellerProductCreateTab({
   file,
   uploading,
   imageUrl,
+  stockTrackingEnabled,
+  onStockTrackingEnabledChange,
   onTitleChange,
   onDescriptionChange,
   onCategoryIdChange,
@@ -252,17 +256,43 @@ export function SellerProductCreateTab({
                 />
               </label>
 
-              <label className={styles.field}>
-                <span>Количество</span>
-                <input
-                  type="number"
-                  value={quantity}
-                  onChange={(event) => onQuantityChange(Number(event.target.value))}
-                  className={styles.createInput}
-                  min={0}
-                  placeholder="0"
-                />
+              <label className={styles.fieldFull}>
+                <span>Учет остатков</span>
+
+                <label className={styles.checkboxRow}>
+                  <input
+                    type="checkbox"
+                    checked={stockTrackingEnabled}
+                    onChange={(event) => onStockTrackingEnabledChange(event.target.checked)}
+                  />
+                  <span>Учитывать количество товара</span>
+                </label>
+
+                <div className={styles.fieldHint}>
+                  {stockTrackingEnabled
+                    ? "Покупатели смогут заказать только доступное количество."
+                    : "Товар можно будет покупать без ограничения по остатку."}
+                </div>
               </label>
+
+              {stockTrackingEnabled ? (
+                <label className={styles.field}>
+                  <span>Количество</span>
+                  <input
+                    type="number"
+                    value={quantity}
+                    onChange={(event) => onQuantityChange(Number(event.target.value))}
+                    className={styles.createInput}
+                    min={0}
+                    placeholder="0"
+                  />
+                </label>
+              ) : (
+                <div className={styles.field}>
+                  <span>Количество</span>
+                  <div className={styles.unlimitedBox}>∞ Без учета остатков</div>
+                </div>
+              )}
 
               <label className={styles.fieldFull}>
                 <span>SKU</span>

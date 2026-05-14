@@ -1,11 +1,13 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 
 import styles from "./ProductPage.module.css";
 import { ensureCartId } from "../../lib/auth";
 import { emitCartChanged } from "../../lib/cartEvents";
 import { useFavorites } from "../../lib/FavoritesContext";
+import { useUserRole } from "../../lib/useUserRole";
 import { ProductCarousel } from "../../components/ProductCarousel/ProductCarousel";
 import { mapProductToCarouselProduct } from "../../lib/productMappers";
 
@@ -24,13 +26,20 @@ type Props = {
 };
 
 export default function ProductPageClient({ product, related }: Props) {
-  const [adding, setAdding] = useState(false);
+  const router = useRouter();
+  const role = useUserRole();
 
+  const isSellerView = role === "SELLER" || role === "ADMIN";
+
+  const [adding, setAdding] = useState(false);
   const [openFit, setOpenFit] = useState(false);
   const [openShipping, setOpenShipping] = useState(false);
 
   const [selectedVariantId, setSelectedVariantId] = useState<number | null>(
-    product.variants.find((variant) => variant.availableQuantity > 0)?.id ??
+    product.variants.find(
+      (variant) =>
+        variant.availableQuantity === null || variant.availableQuantity > 0
+    )?.id ??
       product.variants[0]?.id ??
       null
   );
@@ -78,7 +87,6 @@ export default function ProductPageClient({ product, related }: Props) {
   }, [product.variants, selectedVariantId]);
 
   const currentPrice = selectedVariant?.price ?? getMinPrice(product);
-
   const sizesText = useMemo(() => getSizesText(product), [product]);
 
   const viewerProgress =
@@ -100,7 +108,10 @@ export default function ProductPageClient({ product, related }: Props) {
         return;
       }
 
-      if (selectedVariant.availableQuantity <= 0) {
+      if (
+        selectedVariant.availableQuantity !== null &&
+        selectedVariant.availableQuantity <= 0
+      ) {
         alert("Этот вариант отсутствует в наличии");
         return;
       }
@@ -168,8 +179,12 @@ export default function ProductPageClient({ product, related }: Props) {
               sizesText={sizesText}
               adding={adding}
               isFav={isFav}
+              isSellerView={isSellerView}
               onAddToCart={handleAddToCart}
               onToggleFavorite={handleToggleFavorite}
+              onEditProduct={() =>
+                router.push(`/seller?tab=products&mode=edit&productId=${product.id}`)
+              }
             />
           </div>
 

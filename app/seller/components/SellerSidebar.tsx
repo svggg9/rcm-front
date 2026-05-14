@@ -28,7 +28,7 @@ export function SellerSidebar({ currentTab, ordersCount }: Props) {
             currentTab === "products" ? styles.menuItemActive : ""
           }`}
         >
-          Добавить товар
+          Товары
         </Link>
       </nav>
     </aside>

@@ -3,8 +3,9 @@ export type Variant = {
   size: string;
   color: string;
   price: number;
-  availableQuantity: number;
+  availableQuantity: number | null;
   sku: string;
+  stockTrackingEnabled?: boolean;
 };
 
 export type Product = {

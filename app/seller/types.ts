@@ -17,8 +17,9 @@ export type CreateProductReq = {
     size: string;
     color: string;
     price: number;
-    quantity: number;
+    quantity: number | null;
     sku: string;
+    stockTrackingEnabled: boolean;
   }>;
 };
 
