@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+
 import styles from "../Seller.module.css";
 
 type Option = {
@@ -89,8 +91,8 @@ export function SellerProductCreateTab({
           <div className={styles.kicker}>Кабинет продавца</div>
           <h1 className={styles.createTitle}>Добавление товара</h1>
           <p className={styles.createHint}>
-            Заполни карточку товара, создай товар, затем добавь фото. После этого товар можно
-            отправить на модерацию или опубликовать.
+            Заполни базовые данные и создай черновик. После создания лучше перейти
+            в полноценную страницу редактирования, чтобы добавить фото, варианты и габариты.
           </p>
         </div>
 
@@ -101,51 +103,33 @@ export function SellerProductCreateTab({
               {productCreated ? "Товар создан" : "Черновик товара"}
             </div>
             <div className={styles.statusSub}>
-              {productCreated
-                ? `ID товара: ${createdProductId}`
-                : "Фото станет доступно после создания"}
+              {productCreated ? `ID товара: ${createdProductId}` : "Создай товар, чтобы открыть редактор"}
             </div>
           </div>
         </div>
       </div>
 
       <div className={styles.createLayout}>
-        <aside className={styles.createSidebar}>
-          <div className={styles.sideCard}>
-            <div className={styles.sideTitle}>Этапы</div>
-
-            <Step title="Основная информация" text="Название, описание, категория" number={1} done />
-            <Step title="Характеристики" text="Аудитория, размер, цвет" number={2} done />
-            <Step title="Цена и остатки" text="Цена, количество, SKU" number={3} done />
-            <Step
-              title="Фото товара"
-              text={productCreated ? "Можно загрузить изображение" : "Сначала создай товар"}
-              number={4}
-              done={productCreated}
-            />
-          </div>
-        </aside>
-
         <main className={styles.createContent}>
           <section className={styles.createCard}>
             <CardHeader
               title="Основная информация"
-              hint="То, что покупатель увидит в каталоге и карточке товара."
+              hint="Название, категория, бренд и описание товара."
             />
 
             <div className={styles.formGrid}>
               <label className={styles.fieldFull}>
-                <span>Название товара</span>
+                <span className={styles.required}>Название товара</span>
                 <input
                   value={title}
                   onChange={(event) => onTitleChange(event.target.value)}
                   className={styles.createInput}
-                  placeholder="Например: Карбоновый шоссейный велосипед RCM Sport"
+                  placeholder="Например: кроссовки GEL-1130 White/Pure Silver"
                 />
               </label>
 
               <label className={styles.field}>
-                <span>Категория</span>
+                <span className={styles.required}>Категория</span>
                 <select
                   disabled={loadingLists}
                   value={categoryId}
@@ -164,7 +148,7 @@ export function SellerProductCreateTab({
               </label>
 
               <label className={styles.field}>
-                <span>Бренд</span>
+                <span className={styles.required}>Бренд</span>
                 <select
                   disabled={loadingLists}
                   value={brandId}
@@ -182,26 +166,6 @@ export function SellerProductCreateTab({
                 </select>
               </label>
 
-              <label className={styles.fieldFull}>
-                <span>Описание</span>
-                <textarea
-                  value={description}
-                  onChange={(event) => onDescriptionChange(event.target.value)}
-                  className={styles.createTextarea}
-                  rows={6}
-                  placeholder="Опиши материал, назначение, комплектацию, особенности товара и преимущества для покупателя."
-                />
-              </label>
-            </div>
-          </section>
-
-          <section className={styles.createCard}>
-            <CardHeader
-              title="Характеристики"
-              hint="Минимальный набор параметров для первой версии карточки."
-            />
-
-            <div className={styles.formGrid}>
               <label className={styles.field}>
                 <span>Для кого</span>
                 <select
@@ -215,23 +179,14 @@ export function SellerProductCreateTab({
                 </select>
               </label>
 
-              <label className={styles.field}>
-                <span>Размер</span>
-                <input
-                  value={size}
-                  onChange={(event) => onSizeChange(event.target.value)}
-                  className={styles.createInput}
-                  placeholder="Например: M, L, 42, 700C"
-                />
-              </label>
-
-              <label className={styles.field}>
-                <span>Цвет</span>
-                <input
-                  value={color}
-                  onChange={(event) => onColorChange(event.target.value)}
-                  className={styles.createInput}
-                  placeholder="Например: чёрный"
+              <label className={styles.fieldFull}>
+                <span className={styles.required}>Описание</span>
+                <textarea
+                  value={description}
+                  onChange={(event) => onDescriptionChange(event.target.value)}
+                  className={styles.createTextarea}
+                  rows={7}
+                  placeholder="Опиши материал, назначение, комплектацию, особенности товара и преимущества для покупателя."
                 />
               </label>
             </div>
@@ -239,13 +194,33 @@ export function SellerProductCreateTab({
 
           <section className={styles.createCard}>
             <CardHeader
-              title="Цена и остатки"
-              hint="Эти данные нужны для создания первого варианта товара."
+              title="Первый вариант"
+              hint="Минимальные данные для создания первой товарной позиции."
             />
 
             <div className={styles.formGrid}>
               <label className={styles.field}>
-                <span>Цена, ₽</span>
+                <span className={styles.required}>Размер</span>
+                <input
+                  value={size}
+                  onChange={(event) => onSizeChange(event.target.value)}
+                  className={styles.createInput}
+                  placeholder="Например: M, 42, 700C"
+                />
+              </label>
+
+              <label className={styles.field}>
+                <span className={styles.required}>Цвет</span>
+                <input
+                  value={color}
+                  onChange={(event) => onColorChange(event.target.value)}
+                  className={styles.createInput}
+                  placeholder="Например: белый"
+                />
+              </label>
+
+              <label className={styles.field}>
+                <span className={styles.required}>Цена, ₽</span>
                 <input
                   type="number"
                   value={price}
@@ -295,12 +270,12 @@ export function SellerProductCreateTab({
               )}
 
               <label className={styles.fieldFull}>
-                <span>SKU</span>
+                <span className={styles.required}>SKU</span>
                 <input
                   value={sku}
                   onChange={(event) => onSkuChange(event.target.value)}
                   className={styles.createInput}
-                  placeholder="Например: RCM-BIKE-700C-BLK-M"
+                  placeholder="Например: ASICS-GEL1130-WHT-42"
                 />
               </label>
             </div>
@@ -309,24 +284,29 @@ export function SellerProductCreateTab({
               <button
                 type="button"
                 onClick={onCreateProduct}
-                disabled={submitting}
+                disabled={submitting || productCreated}
                 className={styles.createPrimaryBtn}
               >
-                {submitting ? "Создаём товар…" : productCreated ? "Обновить данные" : "Создать товар"}
+                {submitting ? "Создаём товар…" : productCreated ? "Товар создан" : "Создать товар"}
               </button>
 
-              <span className={productCreated ? styles.successText : styles.mutedText}>
-                {productCreated
-                  ? "Товар создан. Можно загрузить фото."
-                  : "После создания появится ID товара."}
-              </span>
+              {productCreated ? (
+                <Link
+                  href={`/seller/products/${createdProductId}/edit`}
+                  className={styles.createSecondaryBtn}
+                >
+                  Перейти к редактированию
+                </Link>
+              ) : (
+                <span className={styles.mutedText}>После создания появится страница редактирования.</span>
+              )}
             </div>
           </section>
 
           <section className={styles.createCard}>
             <CardHeader
               title="Фото товара"
-              hint="Главное фото будет отображаться в каталоге и карточке товара."
+              hint="Для массовой загрузки и сортировки фото перейди в редактор товара."
             />
 
             {!productCreated ? (
@@ -334,7 +314,7 @@ export function SellerProductCreateTab({
                 <div className={styles.lockedIcon}>Фото</div>
                 <div>
                   <b>Сначала создай товар</b>
-                  <p>Загрузка изображения доступна только после появления ID товара.</p>
+                  <p>Загрузка изображений доступна после появления ID товара.</p>
                 </div>
               </div>
             ) : (
@@ -383,6 +363,36 @@ export function SellerProductCreateTab({
             )}
           </section>
         </main>
+
+        <aside className={styles.createSidebar}>
+          <div className={styles.sideCard}>
+            <div className={styles.sideTitle}>Этапы</div>
+
+            <Step title="Основная информация" text="Название, описание, категория" number={1} done />
+            <Step title="Первый вариант" text="Размер, цвет, цена и SKU" number={2} done />
+            <Step
+              title="Редактор товара"
+              text={productCreated ? "Можно открыть полную карточку" : "Доступен после создания"}
+              number={3}
+              done={productCreated}
+            />
+            <Step
+              title="Фото и габариты"
+              text="Массовая загрузка, сортировка, доставка"
+              number={4}
+              done={productCreated}
+            />
+
+            {productCreated ? (
+              <Link
+                href={`/seller/products/${createdProductId}/edit`}
+                className={styles.openProductLink}
+              >
+                Открыть редактор
+              </Link>
+            ) : null}
+          </div>
+        </aside>
       </div>
     </div>
   );

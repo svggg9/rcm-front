@@ -195,35 +195,17 @@
             </div>
 
             {canPay ? (
-              <div style={{ marginTop: "16px" }}>
+              <div className={styles.orderPaymentAction}>
                 <button
                   type="button"
                   onClick={() => void handlePay()}
                   disabled={paying}
-                  className={styles.orderPayButton ?? ""}
-                  style={{
-                    border: "none",
-                    background: "#111",
-                    color: "#fff",
-                    padding: "12px 16px",
-                    cursor: paying ? "default" : "pointer",
-                    opacity: paying ? 0.65 : 1,
-                  }}
+                  className={styles.orderPayButton}
                 >
                   {paying ? "Переходим к оплате…" : "Оплатить"}
                 </button>
 
-                {payError ? (
-                  <div
-                    style={{
-                      marginTop: "12px",
-                      color: "#b00020",
-                      fontSize: "14px",
-                    }}
-                  >
-                    {payError}
-                  </div>
-                ) : null}
+                {payError ? <div className={styles.orderPayError}>{payError}</div> : null}
               </div>
             ) : null}
           </section>

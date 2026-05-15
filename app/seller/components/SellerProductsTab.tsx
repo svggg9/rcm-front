@@ -1,9 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import styles from "../Seller.module.css";
 import { useMemo, useState } from "react";
+
 import { apiFetch, API_URL } from "../../lib/api";
+import styles from "../Seller.module.css";
 
 type SellerProductVariant = {
   id: number;
@@ -34,37 +35,39 @@ type Props = {
   onRefresh: () => void;
 };
 
+type ProductFilter = "ALL" | "ACTIVE" | "DRAFT" | "UNLIMITED";
+
 export function SellerProductsTab({
   products,
   loading,
   refreshing,
   onRefresh,
 }: Props) {
-  const [filter, setFilter] = useState<"ALL" | "ACTIVE" | "DRAFT" | "UNLIMITED">("ALL");
+  const [filter, setFilter] = useState<ProductFilter>("ALL");
+
+  const activeCount = products.filter((product) => product.status === "ACTIVE").length;
+  const draftCount = products.filter((product) => product.status === "DRAFT").length;
+  const unlimitedCount = products.filter((product) =>
+    product.variants.some((variant) => variant.stockTrackingEnabled === false)
+  ).length;
 
   const filteredProducts = useMemo(() => {
     if (filter === "ACTIVE") {
-      return products.filter((p) => p.status === "ACTIVE");
+      return products.filter((product) => product.status === "ACTIVE");
     }
 
     if (filter === "DRAFT") {
-      return products.filter((p) => p.status === "DRAFT");
+      return products.filter((product) => product.status === "DRAFT");
     }
 
     if (filter === "UNLIMITED") {
-      return products.filter((p) =>
-        p.variants.some((v) => v.stockTrackingEnabled === false)
+      return products.filter((product) =>
+        product.variants.some((variant) => variant.stockTrackingEnabled === false)
       );
     }
 
     return products;
   }, [filter, products]);
-
-  const activeCount = products.filter((p) => p.status === "ACTIVE").length;
-  const draftCount = products.filter((p) => p.status === "DRAFT").length;
-  const unlimitedCount = products.filter((p) =>
-    p.variants.some((v) => v.stockTrackingEnabled === false)
-  ).length;
 
   return (
     <div className={styles.productsPage}>
@@ -118,6 +121,7 @@ export function SellerProductsTab({
           <div className={styles.productsEmptyIcon}>+</div>
           <h2>Товаров пока нет</h2>
           <p>Создай первую карточку товара, добавь фото и отправь её на публикацию.</p>
+
           <Link
             href="/seller?tab=products&mode=create"
             className={styles.createProductLink}
@@ -207,93 +211,89 @@ function ProductRow({ product }: { product: SellerProduct }) {
         </div>
       </div>
 
-<div className={styles.productRightSide}>
-  <div className={styles.productInlineFields}>
-    <InlineEditableNumber
-      label="Цена, ₽"
-      value={price}
-      onChange={setPrice}
-      onCommit={async (value) => {
-        if (!firstVariant?.id) return;
+      <div className={styles.productRightSide}>
+        <div className={styles.productInlineFields}>
+          <InlineEditableNumber
+            label="Цена, ₽"
+            value={price}
+            onChange={setPrice}
+            onCommit={(value) => {
+              if (!firstVariant?.id) return;
 
-        try {
-        await apiFetch(
-          `${API_URL}/api/seller/products/${product.id}/variants/bulk`,
-          {
-            method: "PATCH",
-            body: JSON.stringify({ price: value }),
-          }
-        );
-        } catch (e) {
-          console.error(e);
-        }
-      }}
-    />
+              void apiFetch(`${API_URL}/api/seller/products/${product.id}/variants/bulk`, {
+                method: "PATCH",
+                body: JSON.stringify({ price: value }),
+              }).catch(console.error);
+            }}
+          />
 
-    {hasUnlimitedStock ? (
-      <div className={styles.inlineFieldWrap}>
-        <div className={styles.inlineFieldLabel}>Количество, ед.</div>
+          {hasUnlimitedStock ? (
+            <div className={styles.inlineFieldWrap}>
+              <div className={styles.inlineFieldLabel}>Количество, ед.</div>
 
-        <div className={styles.inlineReadonlyField}>
-          <b>∞</b>
+              <div className={styles.inlineReadonlyField}>
+                <b>∞</b>
+              </div>
+            </div>
+          ) : (
+            <InlineEditableNumber
+              label="Количество, ед."
+              value={quantity}
+              onChange={setQuantity}
+              onCommit={(value) => {
+                if (!firstVariant?.id) return;
+
+                void apiFetch(
+                  `${API_URL}/api/seller/products/${product.id}/variants/bulk`,
+                  {
+                    method: "PATCH",
+                    body: JSON.stringify({ stockQuantity: value }),
+                  }
+                ).catch(console.error);
+              }}
+            />
+          )}
+        </div>
+
+        <div className={styles.productActions}>
+          <Link
+            href={`/product/${product.id}`}
+            target="_blank"
+            className={styles.openProductLink}
+          >
+            Открыть
+          </Link>
+
+          <div className={styles.productMenuWrap}>
+            <button
+              type="button"
+              className={styles.productMenuBtn}
+              onClick={() => setMenuOpen((value) => !value)}
+              aria-label="Действия с товаром"
+            >
+              ⋯
+            </button>
+
+            {menuOpen ? (
+              <div className={styles.productMenu}>
+                <Link
+                  href={`/seller/products/${product.id}/edit`}
+                  className={styles.openProductLink}
+                >
+                  Редактировать
+                </Link>
+
+                <button type="button">Скопировать</button>
+                <button type="button">Перенести в архив</button>
+
+                <button type="button" className={styles.productMenuDanger}>
+                  Удалить
+                </button>
+              </div>
+            ) : null}
+          </div>
         </div>
       </div>
-    ) : (
-      <InlineEditableNumber
-        label="Количество, ед."
-        value={quantity}
-          onChange={setQuantity}
-          onCommit={async (value) => {
-            if (!firstVariant?.id) return;
-
-            try {
-            await apiFetch(
-              `${API_URL}/api/seller/products/${product.id}/variants/bulk`,
-              {
-                method: "PATCH",
-                body: JSON.stringify({ stockQuantity: value }),
-              }
-            );
-            } catch (e) {
-              console.error(e);
-            }
-          }}
-      />
-    )}
-  </div>
-
-      <div className={styles.productActions}>
-        <Link
-          href={`/product/${product.id}`}
-          target="_blank"
-          className={styles.openProductLink}
-        >
-          Открыть
-        </Link>
-
-        <div className={styles.productMenuWrap}>
-      <button
-        type="button"
-        className={styles.productMenuBtn}
-        onClick={() => setMenuOpen((value) => !value)}
-        aria-label="Действия с товаром"
-      >
-        ⋯
-      </button>
-
-      {menuOpen ? (
-        <div className={styles.productMenu}>
-          <button type="button">Редактировать</button>
-          <button type="button">Скопировать</button>
-          <button type="button">Перенести в архив</button>
-          <button type="button" className={styles.productMenuDanger}>
-            Удалить
-          </button>
-        </div>
-      ) : null}
-    </div>
-  </div>
-</div>
     </article>
   );
 }
@@ -363,15 +363,6 @@ function InlineEditableNumber({
           <b>{Number(value).toLocaleString()}</b>
         </button>
       )}
-    </div>
-  );
-}
-
-function StatCard({ label, value }: { label: string; value: number }) {
-  return (
-    <div className={styles.productsStatCard}>
-      <div>{value}</div>
-      <span>{label}</span>
     </div>
   );
 }

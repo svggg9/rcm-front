@@ -7,88 +7,66 @@
   width: 100%;
   aspect-ratio: 4 / 5;
   overflow: hidden;
+  background: var(--soft);
 }
-
-.imageWrapper::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: #f5f5f5;
-  z-index: 0;
-}
-
-/* ---------- LOADER ---------- */
 
 .imageLoader {
   position: absolute;
   inset: 0;
-  background: #eee;
+  background: var(--soft);
   animation: pulse 1.2s ease-in-out infinite;
   z-index: 0;
 }
 
 @keyframes pulse {
-  0% { opacity: 0.6; }
+  0% { opacity: 0.55; }
   50% { opacity: 1; }
-  100% { opacity: 0.6; }
+  100% { opacity: 0.55; }
 }
 
-/* ---------- IMAGES ---------- */
-
-.imageMain {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  object-position: center;
-  z-index: 1;
-  padding: 12px;
-  display: block;
-}
-
+.imageMain,
 .imageHover {
   position: absolute;
   inset: 0;
+  z-index: 1;
+
+  display: block;
+
   width: 100%;
   height: 100%;
+  padding: 12px;
+
   object-fit: cover;
   object-position: center;
-  z-index: 1;
-  padding: 12px;
-  display: none;
 }
 
-/* ---------- HOVER (ASOS STYLE) ---------- */
-
-.productCard:hover .imageMain {
-  display: none;
+.imageHover {
+  opacity: 0;
+  transition: opacity var(--transition);
 }
 
 .productCard:hover .imageHover {
-  display: block;
+  opacity: 1;
 }
 
-/* ---------- TEXT ---------- */
-
 .cardText {
-  padding-top: 8px;
+  padding-top: 10px;
 }
 
 .cardTitle {
-  font-size: 14px;
-  color: #212121;
-  margin-bottom: 4px;
-  font-family: futura-pt, sans-serif;
+  color: var(--black);
+
+  font-size: var(--font-sm);
   font-weight: 400;
-  letter-spacing: 0.6px;
-  line-height: 22px;
+  line-height: 1.45;
 }
 
 .cardPrice {
-  font-size: 14px;
-  font-weight: 600;
-  color: #212121;
-  letter-spacing: 0.8px;
+  margin-top: 4px;
+
+  color: var(--black);
+
+  font-size: var(--font-sm);
+  font-weight: 500;
   white-space: nowrap;
 }

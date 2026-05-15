@@ -63,7 +63,7 @@ export function CartItemRow({ item, onChangeQty, onRemove }: Props) {
         </div>
 
         <div className={styles.actions}>
-          <button className={styles.iconBtn} aria-label="В избранное">
+          <button type="button" className={styles.iconBtn} aria-label="В избранное">
             <Image
               src="/icons/like.svg"
               alt=""
@@ -74,6 +74,7 @@ export function CartItemRow({ item, onChangeQty, onRemove }: Props) {
           </button>
 
           <button
+            type="button"
             className={styles.iconBtn}
             onClick={() => onRemove(item.variantId)}
             aria-label="Удалить"

@@ -1,0 +1,56 @@
+.table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.tableHead {
+  border-bottom: 1px solid var(--line);
+}
+
+.tableHead th {
+  padding: 0 16px 12px 0;
+
+  color: var(--muted);
+
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-align: left;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.tableRow {
+  border-bottom: 1px solid var(--line);
+}
+
+.tableRow td {
+  padding: 16px 16px 16px 0;
+
+  color: var(--black);
+
+  font-size: var(--font-sm);
+  vertical-align: middle;
+}
+
+.tableCellMuted {
+  color: var(--muted);
+}
+
+.tableCellRight {
+  text-align: right;
+}
+
+.tableActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.tableEmpty {
+  padding: 32px 0;
+  border-bottom: 1px solid var(--line);
+
+  color: var(--muted);
+  font-size: var(--font-sm);
+}

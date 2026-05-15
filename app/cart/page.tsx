@@ -165,8 +165,12 @@ export default function CartPage() {
   }
 
   if (loading) {
-    return <div className={styles.state}>Загрузка…</div>;
-  }
+  return (
+    <div className="pageContainer">
+      <div className={styles.state}>Загрузка…</div>
+    </div>
+  );
+}
 
   return (
     <div className="pageContainer">

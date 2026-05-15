@@ -40,7 +40,7 @@ export function AdminProductDetails({
   return (
     <>
       <div className={styles.detailsHeader}>
-        <button className={styles.backBtn} onClick={onBack}>
+        <button type="button" className={styles.backBtn} onClick={onBack}>
           ← Назад
         </button>
         <h1 className={styles.sectionTitleNoMargin}>{product.title}</h1>
@@ -133,6 +133,7 @@ export function AdminProductDetails({
             <div className={styles.detailsActions}>
               {product.status === "MODERATION" ? (
                 <button
+                type="button"
                   className={styles.primaryBtn}
                   onClick={onApprove}
                   disabled={loading}
@@ -143,6 +144,7 @@ export function AdminProductDetails({
 
               {product.status === "BLOCKED" ? (
                 <button
+                type="button"
                   className={styles.secondaryBtn}
                   onClick={onUnblock}
                   disabled={loading}
@@ -151,6 +153,7 @@ export function AdminProductDetails({
                 </button>
               ) : (
                 <button
+                type="button"
                   className={styles.dangerBtn}
                   onClick={onBlock}
                   disabled={loading}

@@ -28,157 +28,128 @@ export function SellerOrderDetails({
   buildSellerStatusLabel,
 }: Props) {
   return (
-    <>
-      <div className={styles.detailsHeader}>
+    <section className={styles.orderDetailsPage}>
+      <div className={styles.orderDetailsHeader}>
         <button type="button" className={styles.backBtn} onClick={onBack}>
-          Назад
+          ← Назад
         </button>
 
-        <h1 className={styles.sectionTitleNoMargin}>Заказ #{order.id}</h1>
-      </div>
-
-      <div className={styles.detailsMeta}>
-        <span className={styles.statusBadge}>{buildSellerStatusLabel(order)}</span>
-        <span className={styles.dot}>·</span>
-        <span className={styles.muted}>
-          {new Date(order.createdAt).toLocaleString("ru-RU")}
-        </span>
-      </div>
-
-      <div className={styles.detailsLayout}>
-        <section className={styles.detailsSection}>
-          <h2 className={styles.detailsSectionTitle}>Товары</h2>
-
-          <div className={styles.detailsItems}>
-            {order.items.map((item, index) => (
-              <div key={`${item.sku}-${index}`} className={styles.detailsItemRow}>
-                <div className={styles.detailsItemImageWrap}>
-                  {item.imageUrl ? (
-                    <img
-                      src={item.imageUrl}
-                      alt={item.productTitle}
-                      className={styles.detailsItemImage}
-                    />
-                  ) : (
-                    <div className={styles.detailsItemImagePlaceholder} />
-                  )}
-                </div>
-
-                <div className={styles.detailsItemMain}>
-                  <div className={styles.detailsItemTitle}>{item.productTitle}</div>
-
-                  <div className={styles.detailsItemMeta}>Размер: {item.size}</div>
-                  <div className={styles.detailsItemMeta}>Цвет: {item.color}</div>
-                  <div className={styles.detailsItemMeta}>Кол-во: {item.quantity}</div>
-                  <div className={styles.detailsItemMeta}>
-                    Цена: {item.price.toLocaleString()} ₽
-                  </div>
-                  <div className={styles.detailsItemMeta}>SKU: {item.sku}</div>
-                </div>
-
-                <div className={styles.detailsItemTotal}>
-                  {item.lineTotal.toLocaleString()} ₽
-                </div>
-              </div>
-            ))}
+        <div>
+          <h1 className={styles.sectionTitleNoMargin}>Заказ #{order.id}</h1>
+          <div className={styles.orderDetailsMeta}>
+            <span>{buildSellerStatusLabel(order)}</span>
+            <span>•</span>
+            <span>{new Date(order.createdAt).toLocaleString("ru-RU")}</span>
+            <span>•</span>
+            <span>{order.totalAmount.toLocaleString()} ₽</span>
           </div>
-        </section>
+        </div>
+      </div>
 
-        <div className={styles.detailsAside}>
-          <section className={styles.detailsSection}>
-            <h2 className={styles.detailsSectionTitle}>Информация о заказе</h2>
+      <div className={styles.orderDetailsSummary}>
+        <SummaryItem label="Статус заказа" value={formatOrderStatus(order.status)} />
+        <SummaryItem label="Оплата" value={formatPaymentStatus(order.paymentStatus)} />
+        <SummaryItem label="Доставка" value={formatDeliveryStatus(order.deliveryStatus)} />
+        <SummaryItem label="Товаров" value={`${order.items.length}`} />
+      </div>
 
-            <div className={styles.infoGrid}>
-              <div className={styles.infoRow}>
-                <span className={styles.infoLabel}>Номер</span>
-                <span className={styles.infoValue}>#{order.id}</span>
-              </div>
+      <div className={styles.orderDetailsLayout}>
+        <main className={styles.orderDetailsMain}>
+          <section className={styles.orderDetailsSection}>
+            <h2 className={styles.orderDetailsSectionTitle}>Товары</h2>
 
-              <div className={styles.infoRow}>
-                <span className={styles.infoLabel}>Группа</span>
-                <span className={styles.infoValue}>{order.orderGroupId}</span>
-              </div>
+            <div className={styles.orderItemsList}>
+              {order.items.map((item, index) => (
+                <article key={`${item.sku}-${index}`} className={styles.orderItemRow}>
+                  <div className={styles.orderItemImageWrap}>
+                    {item.imageUrl ? (
+                      <img
+                        src={item.imageUrl}
+                        alt={item.productTitle}
+                        className={styles.orderItemImage}
+                      />
+                    ) : (
+                      <div className={styles.orderItemImagePlaceholder} />
+                    )}
+                  </div>
 
-              <div className={styles.infoRow}>
-                <span className={styles.infoLabel}>Статус заказа</span>
-                <span className={styles.infoValue}>
-                  {formatOrderStatus(order.status)}
-                </span>
-              </div>
+                  <div className={styles.orderItemMain}>
+                    <div className={styles.orderItemTitle}>{item.productTitle}</div>
 
-              <div className={styles.infoRow}>
-                <span className={styles.infoLabel}>Статус оплаты</span>
-                <span className={styles.infoValue}>
-                  {formatPaymentStatus(order.paymentStatus)}
-                </span>
-              </div>
+                    <div className={styles.orderItemMeta}>
+                      <span>SKU: {item.sku}</span>
+                      <span>•</span>
+                      <span>{item.size}</span>
+                      <span>•</span>
+                      <span>{item.color}</span>
+                    </div>
 
-              <div className={styles.infoRow}>
-                <span className={styles.infoLabel}>Статус доставки</span>
-                <span className={styles.infoValue}>
-                  {formatDeliveryStatus(order.deliveryStatus)}
-                </span>
-              </div>
+                    <div className={styles.orderItemMeta}>
+                      {item.quantity} × {item.price.toLocaleString()} ₽
+                    </div>
+                  </div>
 
-              <div className={styles.infoRow}>
-                <span className={styles.infoLabel}>Создан</span>
-                <span className={styles.infoValue}>
-                  {new Date(order.createdAt).toLocaleString("ru-RU")}
-                </span>
-              </div>
-
-              <div className={styles.infoRow}>
-                <span className={styles.infoLabel}>Сумма</span>
-                <span className={styles.infoValue}>
-                  {order.totalAmount.toLocaleString()} ₽
-                </span>
-              </div>
+                  <div className={styles.orderItemTotal}>
+                    {item.lineTotal.toLocaleString()} ₽
+                  </div>
+                </article>
+              ))}
             </div>
           </section>
 
-          <section className={styles.detailsSection}>
-            <h2 className={styles.detailsSectionTitle}>Доставка</h2>
+          <section className={styles.orderDetailsSection}>
+            <h2 className={styles.orderDetailsSectionTitle}>Получатель</h2>
 
-            <div className={styles.infoGrid}>
-              <div className={styles.infoRowColumn}>
-                <span className={styles.infoLabel}>Способ доставки</span>
-                <span className={styles.infoValue}>{order.deliveryMethod}</span>
-              </div>
+            <div className={styles.orderInfoGrid}>
+              <InfoRow label="Имя" value={order.recipientName} />
+              <InfoRow label="Телефон" value={order.recipientPhone} />
+            </div>
+          </section>
 
-              <div className={styles.infoRowColumn}>
-                <span className={styles.infoLabel}>Адрес / ПВЗ</span>
-                <span className={styles.infoValue}>{order.deliveryAddress}</span>
-              </div>
+          <section className={styles.orderDetailsSection}>
+            <h2 className={styles.orderDetailsSectionTitle}>Доставка</h2>
+
+            <div className={styles.orderInfoGrid}>
+              <InfoRow label="Способ доставки" value={order.deliveryMethod} />
+              <InfoRow label="Адрес / ПВЗ" value={order.deliveryAddress} />
 
               {order.trackingNumber ? (
-                <div className={styles.infoRowColumn}>
-                  <span className={styles.infoLabel}>Трек-номер</span>
-                  <span className={styles.infoValue}>{order.trackingNumber}</span>
-                </div>
+                <InfoRow label="Трек-номер" value={order.trackingNumber} />
               ) : null}
             </div>
           </section>
+        </main>
 
-          <section className={styles.detailsSection}>
-            <h2 className={styles.detailsSectionTitle}>Получатель</h2>
+        <aside className={styles.orderDetailsAside}>
+          <div className={styles.orderStickyPanel}>
+            <section className={styles.orderPanelSection}>
+              <h2>Информация</h2>
 
-            <div className={styles.infoGrid}>
-              <div className={styles.infoRowColumn}>
-                <span className={styles.infoLabel}>Имя</span>
-                <span className={styles.infoValue}>{order.recipientName}</span>
+              <div className={styles.orderInfoGrid}>
+                <InfoRow label="Номер" value={`#${order.id}`} />
+                <InfoRow label="Группа" value={String(order.orderGroupId)} />
+                <InfoRow label="Создан" value={new Date(order.createdAt).toLocaleString("ru-RU")} />
               </div>
+            </section>
 
-              <div className={styles.infoRowColumn}>
-                <span className={styles.infoLabel}>Телефон</span>
-                <span className={styles.infoValue}>{order.recipientPhone}</span>
+            <section className={styles.orderPanelSection}>
+              <h2>Сумма</h2>
+
+              <div className={styles.orderTotals}>
+                <InfoRow label="Товары" value={`${order.subtotalAmount.toLocaleString()} ₽`} />
+                <InfoRow label="Доставка" value={`${order.deliveryAmount.toLocaleString()} ₽`} />
+                <InfoRow label="Скидка" value={`${order.discountAmount.toLocaleString()} ₽`} />
+
+                <div className={styles.orderTotalFinal}>
+                  <span>Итого</span>
+                  <strong>{order.totalAmount.toLocaleString()} ₽</strong>
+                </div>
               </div>
-            </div>
-          </section>
+            </section>
 
-          <section className={styles.detailsSection}>
-            <h2 className={styles.detailsSectionTitle}>Действия продавца</h2>
+            <section className={styles.orderPanelSection}>
+              <h2>Действия</h2>
 
-            <div className={styles.detailsActions}>
               {canShip ? (
                 <button
                   type="button"
@@ -193,10 +164,28 @@ export function SellerOrderDetails({
                   Для текущего статуса отправка недоступна
                 </div>
               )}
-            </div>
-          </section>
-        </div>
+            </section>
+          </div>
+        </aside>
       </div>
-    </>
+    </section>
+  );
+}
+
+function SummaryItem({ label, value }: { label: string; value: string }) {
+  return (
+    <div className={styles.orderDetailsSummaryItem}>
+      <strong>{value}</strong>
+      <span>{label}</span>
+    </div>
+  );
+}
+
+function InfoRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className={styles.orderInfoRow}>
+      <span>{label}</span>
+      <strong>{value}</strong>
+    </div>
   );
 }

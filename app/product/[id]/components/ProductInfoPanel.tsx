@@ -14,7 +14,7 @@ type Props = {
   adding: boolean;
   isFav: boolean;
   onAddToCart: () => void;
-  onToggleFavorite: () => void;
+  onToggleFavorite: () => void | Promise<void>;
   isSellerView: boolean;
   onEditProduct: () => void;
 };
@@ -105,20 +105,19 @@ export function ProductInfoPanel({
           )}
 
           {!isSellerView ? (
-            <button
-              type="button"
-              className={`${styles.favoriteBtn} ${
-                isFav ? styles.favoriteBtnActive : ""
-              }`}
-              onClick={onToggleFavorite}
-            >
-              <span>{isFav ? "В избранном" : "В избранное"}</span>
-              <img
-                src={isFav ? "/icons/like-filled.svg" : "/icons/like.svg"}
-                alt=""
-                aria-hidden="true"
-              />
-            </button>
+          <button
+            type="button"
+            className={`${styles.favoriteBtn} ${isFav ? styles.favoriteBtnActive : ""}`}
+            onClick={() => void onToggleFavorite()}
+            aria-pressed={isFav}
+          >
+            <span>{isFav ? "В избранном" : "В избранное"}</span>
+            <img
+              src={isFav ? "/icons/like-filled.svg" : "/icons/like.svg"}
+              alt=""
+              aria-hidden="true"
+            />
+          </button>
           ) : null}
         </div>
       </div>

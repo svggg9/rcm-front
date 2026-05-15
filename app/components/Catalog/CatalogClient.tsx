@@ -272,7 +272,7 @@ export function CatalogClient({
 
         {visibleProducts.length === 0 ? (
         <div className={styles.empty}>Ничего не найдено</div>
-        ) : null}
+      ) : null}
       </section>
     </div>
   );

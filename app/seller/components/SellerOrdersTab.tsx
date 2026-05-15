@@ -26,10 +26,22 @@ export function SellerOrdersTab({
   onShip,
   onOpenOrder,
 }: Props) {
+  const paidCount = orders.filter((order) => order.paymentStatus === "PAID").length;
+  const readyCount = orders.filter(
+    (order) => order.deliveryStatus === "READY_FOR_SHIPMENT"
+  ).length;
+  const totalAmount = orders.reduce((sum, order) => sum + order.totalAmount, 0);
+
   return (
-    <>
-      <div className={styles.header}>
-        <h1 className={styles.sectionTitle}>Заказы продавца</h1>
+    <section className={styles.ordersPage}>
+      <div className={styles.ordersHeader}>
+        <div>
+          <div className={styles.kicker}>Продажи</div>
+          <h1 className={styles.sectionTitleNoMargin}>Заказы</h1>
+          <p className={styles.productsHint}>
+            Управление заказами, оплатой и отправкой.
+          </p>
+        </div>
 
         <button
           type="button"
@@ -41,10 +53,28 @@ export function SellerOrdersTab({
         </button>
       </div>
 
+      <div className={styles.ordersSummary}>
+        <SummaryItem label="Всего заказов" value={orders.length.toString()} />
+        <SummaryItem label="Оплачены" value={paidCount.toString()} />
+        <SummaryItem label="К отправке" value={readyCount.toString()} />
+        <SummaryItem label="Оборот" value={`${totalAmount.toLocaleString()} ₽`} />
+      </div>
+
+      <div className={styles.ordersToolbar}>
+        <span>{orders.length ? `${orders.length} заказ(ов)` : "Список заказов"}</span>
+        <span>Последние заказы продавца</span>
+      </div>
+
       {orders.length === 0 ? (
         <div className={styles.empty}>Пока нет заказов</div>
       ) : (
-        <div className={styles.list}>
+        <div className={styles.ordersList}>
+          <div className={styles.ordersListHead}>
+            <span>Заказ</span>
+            <span>Сумма</span>
+            <span>Действия</span>
+          </div>
+
           {orders.map((order) => (
             <SellerOrderCard
               key={order.id}
@@ -58,6 +88,15 @@ export function SellerOrdersTab({
           ))}
         </div>
       )}
-    </>
+    </section>
+  );
+}
+
+function SummaryItem({ label, value }: { label: string; value: string }) {
+  return (
+    <div className={styles.ordersSummaryItem}>
+      <strong>{value}</strong>
+      <span>{label}</span>
+    </div>
   );
 }

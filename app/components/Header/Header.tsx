@@ -11,6 +11,7 @@ import { useCartCount } from "../../lib/useCartCount";
 import { useClientAuth } from "../../lib/useClientAuth";
 import { useFavorites } from "../../lib/FavoritesContext";
 import { useUserRole } from "../../lib/useUserRole";
+import { useAuthModal } from "../AuthModal/useAuthModal";
 
 type Category = {
   id: number;
@@ -55,6 +56,7 @@ function HeaderContent() {
   const cartCount = useCartCount();
   const role = useUserRole();
   const { count: favoritesCount } = useFavorites();
+  const { openAuth } = useAuthModal();
 
   useEffect(() => {
     setSearch(activeSearch);
@@ -231,19 +233,20 @@ function HeaderContent() {
               </span>
             </Link>
 
-            <Link
-              href={
-                isAuth === true ? "/account?tab=orders" : "/auth/login?next=/account"
-              }
-              className={styles.iconBtn}
-            >
-              <Image
-                src="/icons/user.svg"
-                alt="Profile"
-                width={22}
-                height={22}
-              />
-            </Link>
+            {isAuth === true ? (
+              <Link href="/account?tab=orders" className={styles.iconBtn}>
+                <Image src="/icons/user.svg" alt="Profile" width={22} height={22} />
+              </Link>
+              ) : (
+                <button
+                  type="button"
+                  className={styles.iconBtn}
+                  onClick={() => openAuth("login", "/account?tab=orders")}
+                  aria-label="Войти"
+                >
+                  <Image src="/icons/user.svg" alt="" width={22} height={22} />
+                </button>
+              )}
           </div>
         </div>
       </div>
