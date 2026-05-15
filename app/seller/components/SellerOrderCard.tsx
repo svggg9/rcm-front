@@ -21,43 +21,50 @@ export function SellerOrderCard({
   onShip,
   onOpen,
 }: Props) {
+  const itemsCount = order.items.reduce((sum, item) => sum + item.quantity, 0);
+  const firstItem = order.items[0];
+
   return (
-    <div className={styles.card}>
-      <div className={styles.cardTop}>
-        <div>
-          <div className={styles.cardTitle}>Заказ #{order.id}</div>
-          <div className={styles.muted}>
-            {new Date(order.createdAt).toLocaleString("ru-RU")} · {statusLabel}
-          </div>
+    <article className={styles.orderRow}>
+      <div className={styles.orderMain}>
+        <div className={styles.orderTitleRow}>
+          <button
+            type="button"
+            onClick={() => onOpen(order.id)}
+            className={styles.orderTitleBtn}
+          >
+            Заказ #{order.id}
+          </button>
+
+          <span className={styles.orderStatus}>{statusLabel}</span>
         </div>
 
-        <div className={styles.total}>{order.totalAmount.toLocaleString()} ₽</div>
-      </div>
+        <div className={styles.orderMeta}>
+          <span>{new Date(order.createdAt).toLocaleString("ru-RU")}</span>
+          <span>•</span>
+          <span>{order.recipientName}</span>
+          <span>•</span>
+          <span>{itemsCount} шт.</span>
+        </div>
 
-      <div className={styles.items}>
-        {order.items.map((item, index) => (
-          <div key={`${item.sku}-${index}`} className={styles.itemRow}>
-            <div className={styles.itemMeta}>
-              <div>{item.productTitle}</div>
-              <div className={styles.muted}>
-                {item.size} / {item.color} — {item.quantity} ×{" "}
-                {item.price.toLocaleString()} ₽
-              </div>
-            </div>
-
-            <div className={styles.lineTotal}>
-              {item.lineTotal.toLocaleString()} ₽
-            </div>
+        {firstItem ? (
+          <div className={styles.orderProductLine}>
+            {firstItem.productTitle}
+            {order.items.length > 1 ? ` + ещё ${order.items.length - 1}` : ""}
           </div>
-        ))}
+        ) : null}
       </div>
 
-      <div className={styles.actions}>
+      <div className={styles.orderAmount}>
+        {order.totalAmount.toLocaleString()} ₽
+      </div>
+
+      <div className={styles.orderActions}>
         <button
           type="button"
           onClick={() => onShip(order.id)}
           disabled={shipping || !canShip}
-          className={styles.primaryBtn}
+          className={styles.secondaryBtn}
         >
           {shipping ? "Отмечаем…" : "Отправил"}
         </button>
@@ -65,11 +72,11 @@ export function SellerOrderCard({
         <button
           type="button"
           onClick={() => onOpen(order.id)}
-          className={styles.secondaryBtn}
+          className={styles.primaryBtn}
         >
           Открыть
         </button>
       </div>
-    </div>
+    </article>
   );
 }

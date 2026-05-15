@@ -182,9 +182,7 @@ export default function ProductPageClient({ product, related }: Props) {
               isSellerView={isSellerView}
               onAddToCart={handleAddToCart}
               onToggleFavorite={handleToggleFavorite}
-              onEditProduct={() =>
-                router.push(`/seller?tab=products&mode=edit&productId=${product.id}`)
-              }
+              onEditProduct={() => router.push(`/seller/products/${product.id}/edit`)}
             />
           </div>
 

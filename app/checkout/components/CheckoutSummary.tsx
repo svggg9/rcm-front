@@ -102,8 +102,12 @@ export function CheckoutSummary({
         <div className={styles.promoBlock}>
           <label className={styles.label}>Промокод</label>
           <div className={styles.promoRow}>
-            <input className={styles.input} placeholder="Введите промокод" />
-            <button type="button" className={styles.promoBtn}>
+            <input
+              className={styles.input}
+              placeholder="Введите промокод"
+              disabled
+            />
+            <button type="button" className={styles.promoBtn} disabled>
               Применить
             </button>
           </div>

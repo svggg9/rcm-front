@@ -1,6 +1,6 @@
 .section {
-  margin-top: 56px;
   width: 100%;
+  margin-top: 56px;
 }
 
 .header {
@@ -8,10 +8,10 @@
 }
 
 .title {
-  margin: 0;
+  color: var(--black);
   font-size: 22px;
   font-weight: 500;
-  letter-spacing: 0.01em;
+  letter-spacing: -0.02em;
 }
 
 .carousel {
@@ -22,12 +22,15 @@
 .scroller {
   display: flex;
   gap: 16px;
+
   overflow-x: auto;
   overflow-y: hidden;
+
   scroll-snap-type: x mandatory;
   scroll-behavior: smooth;
+
   padding: 0 56px 6px;
-  -ms-overflow-style: none;
+
   scrollbar-width: none;
 }
 
@@ -44,31 +47,32 @@
 .arrow {
   position: absolute;
   top: 50%;
-  transform: translateY(-50%);
   z-index: 3;
-  width: 44px;
-  height: 44px;
+
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border: 1px solid #d9d9d9;
-  background: #fff;
-  color: #111;
+
+  width: 44px;
+  height: 44px;
+
+  border: 1px solid var(--line);
+  background: var(--white);
+  color: var(--black);
+
   cursor: pointer;
+
+  transform: translateY(-50%);
+
   transition:
-    background-color 0.18s ease,
-    border-color 0.18s ease,
-    opacity 0.18s ease,
-    transform 0.18s ease;
+    background var(--transition),
+    border-color var(--transition),
+    opacity var(--transition);
 }
 
 .arrow:hover:not(:disabled) {
-  background: #f6f6f6;
-  border-color: #bfbfbf;
-}
-
-.arrow:active:not(:disabled) {
-  transform: translateY(-50%) scale(0.98);
+  border-color: var(--black);
+  background: var(--soft);
 }
 
 .arrow:disabled {

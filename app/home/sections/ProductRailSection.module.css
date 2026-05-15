@@ -7,22 +7,29 @@
   align-items: center;
   justify-content: space-between;
   gap: 16px;
+
   margin-bottom: 18px;
 }
 
 .title {
-  margin: 0;
-  font-size: 28px;
+  color: var(--black);
+
+  font-size: var(--font-2xl);
   font-weight: 500;
-  letter-spacing: 0.01em;
+  letter-spacing: -0.03em;
 }
 
 .link {
-  font-size: 14px;
-  color: #111;
+  color: var(--black);
+
+  font-size: var(--font-sm);
   text-decoration: none;
+
   border-bottom: 1px solid transparent;
-  transition: border-color 0.18s ease, opacity 0.18s ease;
+
+  transition:
+    border-color var(--transition),
+    opacity var(--transition);
 }
 
 .link:hover {
@@ -31,7 +38,11 @@
 
 .empty {
   padding: 24px 0;
-  color: #666;
+
+  color: var(--muted);
+  font-size: var(--font-sm);
+
+  border-bottom: 1px solid var(--line);
 }
 
 @media (max-width: 768px) {
@@ -40,6 +51,6 @@
   }
 
   .title {
-    font-size: 22px;
+    font-size: var(--font-xl);
   }
 }

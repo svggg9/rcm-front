@@ -1,24 +1,87 @@
 :root {
-  --bg: #ffffff;
-  --text: #111111;
-  --muted: #6b6b6b;
-  --border: #e6e6e6;
+  --black: #111111;
+  --white: #ffffff;
+  --gold: #b08d57;
 
-  --surface: #ffffff;
-  --surface-2: #fafafa;
+  --bg: var(--white);
+  --text: var(--black);
 
-  --primary: #111111;
-  --primary-hover: #2a2a2a;
+  --muted: #6f6f6f;
+  --line: #e6e6e6;
+  --soft: #f7f7f7;
 
-  --danger: #b00020;
-  --danger-bg: #fff2f2;
+  --success: #216a43;
+  --warning: #8a6a2f;
+  --danger: #9b2c2c;
+
+  /* spacing */
 
   --space-1: 4px;
   --space-2: 8px;
   --space-3: 12px;
   --space-4: 16px;
-  --space-5: 24px;
-  --space-6: 32px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-7: 32px;
+  --space-8: 40px;
+  --space-9: 48px;
+
+  /* layout */
 
   --container: 1440px;
+  --content-width: 1920px;
+
+  --page-padding: 24px;
+
+  --site-header-height: 148px;
+  --product-sticky-header-height: 72px;
+
+  /* typography */
+
+  --font-xs: 12px;
+  --font-sm: 13px;
+  --font-md: 14px;
+  --font-lg: 16px;
+  --font-xl: 20px;
+  --font-2xl: 28px;
+  --font-3xl: 40px;
+  --font-4xl: 56px;
+
+  /* radius */
+
+  --radius-none: 0;
+
+  /* motion */
+
+  --transition-fast: 0.14s ease;
+  --transition-medium: 0.22s ease;
+
+  /* layers */
+
+  --z-header: 100;
+  --z-modal: 500;
+  --z-toast: 700;
+
+  /* shadows */
+
+  --shadow-card: 0 8px 24px rgba(0, 0, 0, 0.04);
+  --shadow-modal: 0 24px 80px rgba(0, 0, 0, 0.18);
+}
+
+@media (max-width: 1100px) {
+  :root {
+    --site-header-height: 206px;
+  }
+}
+
+@media (max-width: 768px) {
+  :root {
+    --page-padding: 16px;
+  }
+}
+
+@media (max-width: 640px) {
+  :root {
+    --site-header-height: 208px;
+  }
 }

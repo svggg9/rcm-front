@@ -11,7 +11,7 @@ export function EmptyCart() {
       <h2>Корзина пуста</h2>
       <p>Добавьте товары, чтобы оформить заказ</p>
 
-      <button onClick={() => router.push("/catalog")}>
+      <button type="button" onClick={() => router.push("/catalog")}>
         Перейти в каталог
       </button>
     </div>

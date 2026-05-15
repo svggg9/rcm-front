@@ -61,6 +61,7 @@ export function AdminSellersTab({
         </div>
 
         <button
+        type="button"
           className={styles.refreshBtn}
           onClick={onRefresh}
           disabled={refreshing}
@@ -72,6 +73,7 @@ export function AdminSellersTab({
       <div className={styles.filters}>
         {FILTERS.map((item) => (
           <button
+          type="button"
             key={item}
             className={`${styles.filterBtn} ${
               filter === item ? styles.filterBtnActive : ""
@@ -140,6 +142,7 @@ export function AdminSellersTab({
                   <div className={styles.actions}>
                     {canApprove ? (
                       <button
+                      type="button"
                         className={styles.primaryBtn}
                         disabled={loading}
                         onClick={() => onApprove(seller.id)}
@@ -150,6 +153,7 @@ export function AdminSellersTab({
 
                     {canReject ? (
                       <button
+                      type="button"
                         className={styles.dangerBtn}
                         disabled={loading}
                         onClick={() => onReject(seller.id)}

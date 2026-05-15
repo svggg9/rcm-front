@@ -1,32 +1,30 @@
-.card {
-  display: flex;
-  flex-direction: column;
+.item {
+  list-style: none;
 }
 
-.image {
-  width: 100%;
+.media {
   aspect-ratio: 3 / 4;
-  background: #eee;
+  background: var(--soft);
   animation: pulse 1.2s ease-in-out infinite;
 }
 
-.text {
-  padding-top: 8px;
-}
+.line,
+.lineShort {
+  height: 10px;
+  margin-top: 10px;
 
-.line {
-  height: 12px;
-  background: #eee;
-  margin-bottom: 6px;
+  background: var(--soft);
+
   animation: pulse 1.2s ease-in-out infinite;
 }
 
-.short {
+.lineShort {
   width: 60%;
+  margin-top: 6px;
 }
 
 @keyframes pulse {
-  0% { opacity: .6; }
+  0% { opacity: 0.55; }
   50% { opacity: 1; }
-  100% { opacity: .6; }
+  100% { opacity: 0.55; }
 }

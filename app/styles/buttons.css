@@ -1,0 +1,59 @@
+.buttonPrimary,
+.buttonSecondary,
+.buttonGhost {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  height: 42px;
+  padding: 0 16px;
+
+  font-size: var(--font-sm);
+  font-weight: 500;
+
+  cursor: pointer;
+
+  transition:
+    background var(--transition),
+    color var(--transition),
+    border-color var(--transition),
+    opacity var(--transition);
+}
+
+.buttonPrimary {
+  border: 1px solid var(--black);
+  background: var(--black);
+  color: var(--white);
+}
+
+.buttonPrimary:hover {
+  opacity: 0.86;
+}
+
+.buttonSecondary {
+  border: 1px solid var(--line);
+  background: var(--white);
+  color: var(--black);
+}
+
+.buttonSecondary:hover {
+  border-color: var(--black);
+  background: var(--soft);
+}
+
+.buttonGhost {
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--muted);
+}
+
+.buttonGhost:hover {
+  color: var(--black);
+}
+
+.buttonPrimary:disabled,
+.buttonSecondary:disabled,
+.buttonGhost:disabled {
+  opacity: 0.4;
+  cursor: default;
+}

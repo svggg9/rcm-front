@@ -26,7 +26,7 @@ export function ProductDetailsAccordion({
   return (
     <div className={styles.accordion}>
       <section className={styles.accItem}>
-        <button type="button" className={styles.accBtn} disabled>
+        <button type="button" className={styles.accBtn} aria-expanded="true">
           <span>Описание</span>
           <span className={styles.accIcon}>−</span>
         </button>
@@ -50,9 +50,11 @@ export function ProductDetailsAccordion({
                 {selectedVariant ? (
                   <li>
                     Наличие:{" "}
-                    {selectedVariant.availableQuantity > 0
-                      ? `${selectedVariant.availableQuantity} шт.`
-                      : "нет в наличии"}
+                {selectedVariant.availableQuantity === null
+                  ? "без ограничения остатка"
+                  : selectedVariant.availableQuantity > 0
+                    ? `${selectedVariant.availableQuantity} шт.`
+                    : "нет в наличии"}
                   </li>
                 ) : null}
               </ul>

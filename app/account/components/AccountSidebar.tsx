@@ -23,8 +23,8 @@ export function AccountSidebar({
             currentTab === "orders" ? styles.menuItemActive : ""
           }`}
         >
-          Мои заказы
-          <span className={styles.menuCount}>{ordersCount}</span>
+        <span>Мои заказы</span>
+        <span className={styles.menuCount}>{ordersCount}</span>
         </Link>
 
         <Link
@@ -33,7 +33,7 @@ export function AccountSidebar({
             currentTab === "profile" ? styles.menuItemActive : ""
           }`}
         >
-          Мои данные
+          <span>Мои данные</span>
         </Link>
       </nav>
 

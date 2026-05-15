@@ -131,12 +131,24 @@ export default function FavoritesPage() {
   return (
     <div className="pageContainer">
       <div className={styles.page}>
-        <h1 className={styles.pageTitle}>Избранное</h1>
+        <div className={styles.header}>
+          <h1 className={styles.pageTitle}>Избранное</h1>
 
+          {!loading ? (
+            <div className={styles.count}>
+              {products.length} товар(ов)
+            </div>
+          ) : null}
+        </div>
         {loading ? (
           <div className={styles.muted}>Загрузка…</div>
         ) : products.length === 0 ? (
-          <div className={styles.muted}>Пока пусто</div>
+          <div className={styles.empty}>
+            <div className={styles.emptyTitle}>В избранном пока пусто</div>
+            <div className={styles.emptyText}>
+              Сохраняйте товары, чтобы вернуться к ним позже.
+            </div>
+          </div>
         ) : (
           <ul className={styles.grid}>
             {products.map((product) => (

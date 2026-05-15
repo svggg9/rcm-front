@@ -65,6 +65,7 @@ export function AdminProductsTab({
         </div>
 
         <button
+          type="button"
           className={styles.refreshBtn}
           onClick={onRefresh}
           disabled={refreshing}
@@ -76,6 +77,7 @@ export function AdminProductsTab({
       <div className={styles.filters}>
         {STATUSES.map((item) => (
           <button
+          type="button"
             key={item}
             className={`${styles.filterBtn} ${
               status === item ? styles.filterBtnActive : ""
@@ -130,6 +132,7 @@ export function AdminProductsTab({
 
                   <div className={styles.actions}>
                     <button
+                    type="button"
                       className={styles.secondaryBtn}
                       onClick={() => onOpenProduct(product.id)}
                     >
@@ -138,6 +141,7 @@ export function AdminProductsTab({
 
                     {product.status === "MODERATION" ? (
                       <button
+                      type="button"
                         className={styles.primaryBtn}
                         disabled={loading}
                         onClick={() => onApprove(product.id)}
@@ -148,6 +152,7 @@ export function AdminProductsTab({
 
                     {product.status === "BLOCKED" ? (
                       <button
+                      type="button"
                         className={styles.secondaryBtn}
                         disabled={loading}
                         onClick={() => onUnblock(product.id)}
@@ -156,6 +161,7 @@ export function AdminProductsTab({
                       </button>
                     ) : (
                       <button
+                      type="button"
                         className={styles.dangerBtn}
                         disabled={loading}
                         onClick={() => onBlock(product.id)}

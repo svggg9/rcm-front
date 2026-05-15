@@ -14,6 +14,18 @@ export function ProductGallery({ title, images, onOpenImage }: Props) {
   const bottomImages = images.slice(2, 6);
   const bottomCount = bottomImages.length;
 
+  if (images.length === 0) {
+  return (
+    <div className={styles.gallery}>
+      <div className={styles.galleryTop}>
+        <div className={styles.galleryLarge}>
+          <div className={styles.galleryPlaceholder}>Фото отсутствует</div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
   return (
     <div className={styles.gallery}>
       <div className={styles.galleryTop}>

@@ -1,0 +1,19 @@
+.sectionHeader {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 24px;
+}
+
+.sectionTitle {
+  color: var(--black);
+  font-size: 22px;
+  font-weight: 500;
+  letter-spacing: -0.03em;
+}
+
+.sectionHint {
+  color: var(--muted);
+  font-size: var(--font-sm);
+  line-height: 1.5;
+}
