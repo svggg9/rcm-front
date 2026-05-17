@@ -2,6 +2,7 @@
 
 import { SellerOrderCard } from "./SellerOrderCard";
 import styles from "../Seller.module.css";
+import { EmptyState } from "../../components/ui/EmptyState";
 
 import type { SellerOrder } from "../types";
 
@@ -66,7 +67,10 @@ export function SellerOrdersTab({
       </div>
 
       {orders.length === 0 ? (
-        <div className={styles.empty}>Пока нет заказов</div>
+        <EmptyState
+          title="Пока нет заказов"
+          text="Когда покупатели оформят заказы, они появятся здесь."
+        />
       ) : (
         <div className={styles.ordersList}>
           <div className={styles.ordersListHead}>

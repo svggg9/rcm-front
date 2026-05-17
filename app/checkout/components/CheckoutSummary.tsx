@@ -2,6 +2,7 @@
 
 import styles from "../Checkout.module.css";
 import type { CartItem } from "../types";
+import Image from "next/image";
 
 type Props = {
   items: CartItem[];
@@ -36,7 +37,7 @@ export function CheckoutSummary({
           type="button"
           onClick={onSubmit}
           disabled={submitting || !checkoutReady}
-          className={styles.placeOrderBtn}
+          className="buttonPrimary wFull"
         >
           {submitting ? "Оформляем…" : "Оформить заказ"}
         </button>
@@ -55,7 +56,7 @@ export function CheckoutSummary({
         <div className={styles.summaryItems}>
           {items.map((item) => (
             <div key={item.variantId} className={styles.summaryItem}>
-              <img
+              <Image
                 src={item.imageUrl || "/placeholder-product.png"}
                 alt={item.title}
                 className={styles.summaryImage}

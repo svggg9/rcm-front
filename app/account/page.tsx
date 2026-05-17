@@ -141,84 +141,91 @@ function AccountPageContent() {
   useEffect(() => {
     if (isAuth !== true) return;
 
-    setLoading(true);
-    setError(null);
+    void Promise.resolve().then(() => {
+      setLoading(true);
+      setError(null);
 
-    Promise.all([
-      apiFetch(`${API_URL}/api/profile`).then(async (response) => {
-        if (!response.ok) {
-          throw new Error(
-            (await response.text().catch(() => "")) ||
-              `Ошибка /api/profile (${response.status})`
-          );
-        }
-
-        return response.json() as Promise<Me>;
-      }),
-      apiFetch(`${API_URL}/api/orders/my?page=0&size=20`).then(
-        async (response) => {
+      return Promise.all([
+        apiFetch(`${API_URL}/api/profile`).then(async (response) => {
           if (!response.ok) {
             throw new Error(
               (await response.text().catch(() => "")) ||
-                `Ошибка /api/orders/my (${response.status})`
+                `Ошибка /api/profile (${response.status})`
             );
           }
 
-          return response.json() as Promise<PageResponse<Order>>;
-        }
-      ),
-    ])
-      .then(([meData, ordersPage]) => {
-        setMe(meData);
-        setOrders(Array.isArray(ordersPage.content) ? ordersPage.content : []);
+          return response.json() as Promise<Me>;
+        }),
+        apiFetch(`${API_URL}/api/orders/my?page=0&size=20`).then(
+          async (response) => {
+            if (!response.ok) {
+              throw new Error(
+                (await response.text().catch(() => "")) ||
+                  `Ошибка /api/orders/my (${response.status})`
+              );
+            }
 
-        const displayName = meData.displayName?.trim() ?? "";
-        if (displayName) {
-          const parts = displayName.split(/\s+/).filter(Boolean);
-          setLastName(parts[0] ?? "");
-          setFirstName(parts[1] ?? "");
-          setMiddleName(parts[2] ?? "");
-        } else {
-          setLastName("");
-          setFirstName(meData.username ?? "");
-          setMiddleName("");
-        }
+            return response.json() as Promise<PageResponse<Order>>;
+          }
+        ),
+      ])
+        .then(([meData, ordersPage]) => {
+          setMe(meData);
+          setOrders(Array.isArray(ordersPage.content) ? ordersPage.content : []);
 
-        setPhone(meData.phone ?? "");
-        setLoading(false);
-      })
-      .catch((e: Error) => {
-        setError(e.message);
-        setLoading(false);
-      });
+          const displayName = meData.displayName?.trim() ?? "";
+
+          if (displayName) {
+            const parts = displayName.split(/\s+/).filter(Boolean);
+            setLastName(parts[0] ?? "");
+            setFirstName(parts[1] ?? "");
+            setMiddleName(parts[2] ?? "");
+          } else {
+            setLastName("");
+            setFirstName(meData.username ?? "");
+            setMiddleName("");
+          }
+
+          setPhone(meData.phone ?? "");
+          setLoading(false);
+        })
+        .catch((e: Error) => {
+          setError(e.message);
+          setLoading(false);
+        });
+    });
   }, [isAuth]);
 
   useEffect(() => {
     if (currentTab !== "orders" || !selectedOrderId) {
-      setSelectedOrder(null);
+      void Promise.resolve().then(() => {
+        setSelectedOrder(null);
+      });
       return;
     }
 
-    setDetailsLoading(true);
-    setError(null);
+    void Promise.resolve().then(() => {
+      setDetailsLoading(true);
+      setError(null);
 
-    apiFetch(`${API_URL}/api/orders/${selectedOrderId}`)
-      .then(async (response) => {
-        if (!response.ok) {
-          const text = await response.text().catch(() => "");
-          throw new Error(text || "Не удалось загрузить заказ");
-        }
+      return apiFetch(`${API_URL}/api/orders/${selectedOrderId}`)
+        .then(async (response) => {
+          if (!response.ok) {
+            const text = await response.text().catch(() => "");
+            throw new Error(text || "Не удалось загрузить заказ");
+          }
 
-        return response.json() as Promise<Order>;
-      })
-      .then((data) => {
-        setSelectedOrder(data);
-        setDetailsLoading(false);
-      })
-      .catch((e: Error) => {
-        setError(e.message);
-        setDetailsLoading(false);
-      });
+          return response.json() as Promise<Order>;
+        })
+        .then((data) => {
+          setSelectedOrder(data);
+          setDetailsLoading(false);
+        })
+        .catch((e: Error) => {
+          setError(e.message);
+          setDetailsLoading(false);
+        });
+    });
   }, [currentTab, selectedOrderId]);
 
   function logout() {
@@ -249,7 +256,9 @@ function AccountPageContent() {
   if (isAuth === null || loading) {
     return (
       <div className="pageContainer">
-        <div className={styles.page}>Загрузка…</div>
+        <div className={styles.page}>
+          <div className={styles.sectionTitle}>Загрузка аккаунта…</div>
+        </div>
       </div>
     );
   }
@@ -257,7 +266,10 @@ function AccountPageContent() {
   if (error && !selectedOrderId) {
     return (
       <div className="pageContainer">
-        <div className={styles.page}>{error}</div>
+        <div className={styles.page}>
+          <div className={styles.sectionTitle}>Не удалось загрузить аккаунт</div>
+          <div className={styles.errorText}>{error}</div>
+        </div>
       </div>
     );
   }

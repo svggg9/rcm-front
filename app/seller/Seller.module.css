@@ -16,10 +16,8 @@
 
 /* ─── Layouts ─── */
 .layout {
-  display: grid;
-  grid-template-columns: 220px minmax(0, 1fr);
-  gap: 40px;
-  align-items: start;
+  display: flex;
+  flex-direction: column;
 }
 
 .createLayout {
@@ -39,102 +37,6 @@
 
 .orderDetailsLayout {
   grid-template-columns: minmax(0, 1fr) 360px;
-}
-
-/* ─── Sidebar ─── */
-.sidebar {
-  position: sticky;
-  top: calc(var(--site-header-height) + 24px);
-  display: flex;
-  flex-direction: column;
-  gap: 24px;
-}
-
-.sidebarTitle {
-  border-bottom: 1px solid var(--line);
-  padding-bottom: 18px;
-}
-
-.sidebarTitle span {
-  display: block;
-  margin-bottom: 6px;
-  color: var(--gold);
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-}
-
-.sidebarTitle strong {
-  display: block;
-  color: var(--black);
-  font-size: 18px;
-  line-height: 1.2;
-  font-weight: 600;
-  letter-spacing: -0.02em;
-}
-
-/* ─── Nav menu ─── */
-.menu {
-  background: #fff;
-  border-top: 1px solid var(--line);
-}
-
-.menuItem,
-.menuItemDisabled {
-  width: 100%;
-  min-height: 48px;
-  padding: 0;
-  border: none;
-  border-bottom: 1px solid var(--line);
-  background: transparent;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  text-decoration: none;
-  color: var(--muted);
-  font-size: 13px;
-  text-align: left;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  cursor: pointer;
-}
-
-.menuItem:hover { color: var(--black); }
-
-.menuItemActive {
-  color: var(--black);
-  font-weight: 600;
-}
-
-.menuItemActive::before {
-  content: "";
-  width: 2px;
-  height: 18px;
-  background: var(--gold);
-  margin-right: 10px;
-}
-
-.menuItemActive span:first-child { margin-right: auto; }
-
-.menuItemDisabled {
-  color: #aaa;
-  cursor: default;
-}
-
-.menuItemDisabled small {
-  color: var(--gold);
-  font-size: 10px;
-  font-weight: 500;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-}
-
-.menuCount {
-  color: var(--gold);
-  font-size: 12px;
-  font-weight: 600;
 }
 
 /* ─── Content area ─── */
@@ -224,59 +126,6 @@
 .createSecondaryBtn:disabled {
   opacity: 0.4;
   cursor: default;
-}
-
-/* ─── Status badges ─── */
-.productStatusBadge,
-.orderStatus,
-.statusDraft,
-.statusModeration,
-.statusActive,
-.statusArchived,
-.statusBlocked {
-  border: 1px solid var(--line);
-  padding: 3px 7px;
-  font-size: 11px;
-  color: var(--black);
-  background: #fff;
-}
-
-.statusActive {
-  border-color: var(--gold);
-  color: var(--gold);
-}
-
-.statusBlocked { color: #9b2c2c; }
-
-/* ─── Empty / Error states ─── */
-.error,
-.empty,
-.productsEmpty {
-  border-bottom: 1px solid var(--line);
-  padding: 16px 0;
-  background: #fff;
-  color: var(--muted);
-}
-
-.error { color: #9b2c2c; }
-
-.productsEmpty {
-  padding: 40px 0;
-  text-align: center;
-}
-
-.productsEmptyIcon { display: none; }
-
-.productsEmpty h2 {
-  margin: 0 0 8px;
-  font-size: 22px;
-  font-weight: 600;
-}
-
-.productsEmpty p {
-  margin: 0 auto 18px;
-  max-width: 420px;
-  color: var(--muted);
 }
 
 /* ─── Headers / Actions ─── */
@@ -847,15 +696,6 @@
   margin: 0;
 }
 
-.productUnlimited {
-  align-self: end;
-  border: 1px solid var(--line);
-  background: var(--soft);
-  padding: 8px 9px;
-  font-size: 13px;
-  color: var(--muted);
-}
-
 .productActions {
   display: flex;
   align-items: center;
@@ -1222,7 +1062,6 @@
 
 /* ─── Responsive ─── */
 @media (max-width: 1024px) {
-  .layout,
   .detailsLayout,
   .createLayout,
   .orderDetailsLayout {
@@ -1230,7 +1069,10 @@
     gap: 28px;
   }
 
-  .sidebar,
+  .layout {
+    gap: 28px;
+  }
+
   .sideCard,
   .orderStickyPanel { position: static; }
 }
@@ -1318,4 +1160,25 @@
 
 .ordersToolbar span:first-child {
   color: var(--black);
+}
+
+.sidebarActions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.sidebarSoon {
+  height: 36px;
+  padding: 0 12px;
+
+  border: 1px solid var(--line);
+  background: var(--soft);
+  color: var(--muted);
+
+  font-size: var(--font-xs);
+  font-weight: 500;
+
+  cursor: default;
 }

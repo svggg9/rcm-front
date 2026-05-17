@@ -5,6 +5,9 @@ import { useMemo, useState } from "react";
 
 import { apiFetch, API_URL } from "../../lib/api";
 import styles from "../Seller.module.css";
+import { EmptyState } from "../../components/ui/EmptyState";
+import { StatusBadge } from "../../components/ui/StatusBadge";
+import Image from "next/image";
 
 type SellerProductVariant = {
   id: number;
@@ -40,8 +43,6 @@ type ProductFilter = "ALL" | "ACTIVE" | "DRAFT" | "UNLIMITED";
 export function SellerProductsTab({
   products,
   loading,
-  refreshing,
-  onRefresh,
 }: Props) {
   const [filter, setFilter] = useState<ProductFilter>("ALL");
 
@@ -115,22 +116,25 @@ export function SellerProductsTab({
       </div>
 
       {loading ? (
-        <div className={styles.empty}>Загружаем товары…</div>
+        <EmptyState title="Загружаем товары…" />
       ) : products.length === 0 ? (
-        <div className={styles.productsEmpty}>
-          <div className={styles.productsEmptyIcon}>+</div>
-          <h2>Товаров пока нет</h2>
-          <p>Создай первую карточку товара, добавь фото и отправь её на публикацию.</p>
-
-          <Link
-            href="/seller?tab=products&mode=create"
-            className={styles.createProductLink}
-          >
-            Добавить товар
-          </Link>
-        </div>
+        <EmptyState
+          title="Товаров пока нет"
+          text="Создай первую карточку товара, добавь фото и отправь её на публикацию."
+          actions={
+            <Link
+              href="/seller?tab=products&mode=create"
+              className={styles.createProductLink}
+            >
+              Добавить товар
+            </Link>
+          }
+        />
       ) : filteredProducts.length === 0 ? (
-        <div className={styles.empty}>По выбранному фильтру товаров нет.</div>
+        <EmptyState
+          title="Товаров нет"
+          text="По выбранному фильтру ничего не найдено."
+        />
       ) : (
         <div className={styles.productsList}>
           {filteredProducts.map((product) => (
@@ -184,7 +188,7 @@ function ProductRow({ product }: { product: SellerProduct }) {
     <article className={styles.productRow}>
       <div className={styles.productImageBox}>
         {mainImage ? (
-          <img src={mainImage} alt={product.title} className={styles.productImage} />
+          <Image src={mainImage} alt={product.title} className={styles.productImage} />
         ) : (
           <div className={styles.productImagePlaceholder}>Изображение отсутствует</div>
         )}
@@ -193,7 +197,9 @@ function ProductRow({ product }: { product: SellerProduct }) {
       <div className={styles.productMain}>
         <div className={styles.productTitleRow}>
           <h2>{product.title || "Новый товар"}</h2>
-          <StatusBadge status={product.status ?? "DRAFT"} />
+          <StatusBadge tone={getProductStatusTone(product.status)}>
+            {formatProductStatus(product.status)}
+          </StatusBadge>
         </div>
 
         <div className={styles.productMeta}>
@@ -367,28 +373,35 @@ function InlineEditableNumber({
   );
 }
 
-function StatusBadge({
-  status,
-}: {
-  status: "DRAFT" | "MODERATION" | "ACTIVE" | "ARCHIVED" | "BLOCKED";
-}) {
-  const label = {
-    DRAFT: "Черновик",
-    MODERATION: "На модерации",
-    ACTIVE: "Активен",
-    ARCHIVED: "Архив",
-    BLOCKED: "Заблокирован",
-  }[status];
+function getProductStatusTone(status: SellerProduct["status"]) {
+  switch (status) {
+    case "ACTIVE":
+      return "success";
+    case "MODERATION":
+      return "warning";
+    case "BLOCKED":
+    case "ARCHIVED":
+      return "danger";
+    default:
+      return "default";
+  }
+}
 
-  const className = {
-    DRAFT: styles.statusDraft,
-    MODERATION: styles.statusModeration,
-    ACTIVE: styles.statusActive,
-    ARCHIVED: styles.statusArchived,
-    BLOCKED: styles.statusBlocked,
-  }[status];
-
-  return <span className={`${styles.productStatusBadge} ${className}`}>{label}</span>;
+function formatProductStatus(status: SellerProduct["status"]) {
+  switch (status) {
+    case "DRAFT":
+      return "Черновик";
+    case "MODERATION":
+      return "На модерации";
+    case "ACTIVE":
+      return "Активен";
+    case "ARCHIVED":
+      return "Архив";
+    case "BLOCKED":
+      return "Заблокирован";
+    default:
+      return "Черновик";
+  }
 }
 
 function formatAudience(audience?: "MEN" | "WOMEN" | "UNISEX") {

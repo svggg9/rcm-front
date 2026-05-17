@@ -1,6 +1,8 @@
 
 import styles from "../Admin.module.css";
 import type { AdminSeller, SellerFilter } from "../types";
+import { EmptyState } from "../../components/ui/EmptyState";
+import { StatusBadge } from "../../components/ui/StatusBadge";
 
 type Props = {
   sellers: AdminSeller[];
@@ -15,6 +17,12 @@ type Props = {
 };
 
 const FILTERS: SellerFilter[] = ["REQUESTS", "APPROVED", "ALL"];
+
+function getSellerStatusTone(seller: AdminSeller) {
+  if (seller.role === "SELLER" && seller.sellerApproved) return "success";
+  if (seller.sellerRequested) return "warning";
+  return "default";
+}
 
 function formatFilter(filter: SellerFilter) {
   switch (filter) {
@@ -86,7 +94,10 @@ export function AdminSellersTab({
       </div>
 
       {sellers.length === 0 ? (
-        <div className={styles.empty}>Продавцов по этому фильтру нет.</div>
+        <EmptyState
+          title="Продавцов нет"
+          text="По выбранному фильтру ничего не найдено."
+        />
       ) : (
         <div className={styles.list}>
           {sellers.map((seller) => {
@@ -110,10 +121,9 @@ export function AdminSellersTab({
                         {seller.phone || "Без телефона"}
                       </div>
                     </div>
-
-                    <span className={styles.statusBadge}>
-                      {formatSellerStatus(seller)}
-                    </span>
+                      <StatusBadge tone={getSellerStatusTone(seller)}>
+                        {formatSellerStatus(seller)}
+                      </StatusBadge>
                   </div>
 
                   <div className={styles.sellerMetaGrid}>

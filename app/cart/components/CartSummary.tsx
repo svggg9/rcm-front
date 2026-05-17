@@ -30,13 +30,14 @@ export function CartSummary({ subtotal, onCheckout, disabled }: Props) {
         <span>{subtotal.toLocaleString()} ₽</span>
       </div>
 
-      <button
-        className={styles.checkoutBtn}
-        onClick={onCheckout}
-        disabled={disabled}
-      >
-        Перейти к оплате
-      </button>
+    <button
+      type="button"
+      className="buttonPrimary wFull"
+      onClick={onCheckout}
+      disabled={disabled}
+    >
+      Перейти к оплате
+    </button>
     </aside>
   );
 }

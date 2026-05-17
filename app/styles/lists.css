@@ -1,0 +1,115 @@
+.list {
+  display: flex;
+  flex-direction: column;
+}
+
+.listRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 20px;
+
+  padding: 20px 0;
+
+  border-bottom: 1px solid var(--line);
+}
+
+.listRowCard {
+  padding: 20px;
+  border: 1px solid var(--line);
+  background: var(--white);
+}
+
+.listRowHover {
+  transition:
+    background var(--transition),
+    border-color var(--transition);
+}
+
+.listRowHover:hover {
+  background: var(--soft);
+}
+
+.listRowTop {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.listRowBottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.listTitle {
+  color: var(--black);
+  font-size: var(--font-lg);
+  font-weight: 500;
+  line-height: 1.3;
+}
+
+.listText {
+  color: var(--black);
+  font-size: var(--font-sm);
+  line-height: 1.5;
+}
+
+.listMuted {
+  color: var(--muted);
+  font-size: var(--font-sm);
+  line-height: 1.5;
+}
+
+.listMeta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.listDivider {
+  color: #bdbdbd;
+}
+
+.listActions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.listThumbs {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.listThumb {
+  width: 56px;
+  height: 72px;
+
+  background: var(--soft);
+
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.listThumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+@media (max-width: 768px) {
+  .listRowTop,
+  .listRowBottom {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .listActions {
+    width: 100%;
+  }
+}

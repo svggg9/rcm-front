@@ -12,6 +12,8 @@ import { CheckoutContactSection } from "./components/CheckoutContactSection";
 import { CheckoutDeliverySection } from "./components/CheckoutDeliverySection";
 import { CheckoutPaymentSection } from "./components/CheckoutPaymentSection";
 import { CheckoutSummary } from "./components/CheckoutSummary";
+import { toast } from "sonner";
+import { Loader } from "../components/ui/Loader";
 
 import type {
   CartItem,
@@ -69,6 +71,16 @@ export default function CheckoutPage() {
 
   const submitLockRef = useRef(false);
 
+  const checkoutSnapshotRef = useRef({
+    email: "",
+    fullName: "",
+    phone: "",
+    deliveryMethod: "PICKUP" as DeliveryMethod,
+    selectedAddressId: "",
+    deliveryAddress: "",
+    comment: "",
+  });
+
   const [contactConfirmed, setContactConfirmed] = useState(false);
   const [deliveryConfirmed, setDeliveryConfirmed] = useState(false);
   const [paymentConfirmed, setPaymentConfirmed] = useState(false);
@@ -86,6 +98,26 @@ export default function CheckoutPage() {
   const [comment, setComment] = useState("");
 
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("SBP");
+
+  useEffect(() => {
+    checkoutSnapshotRef.current = {
+      email,
+      fullName,
+      phone,
+      deliveryMethod,
+      selectedAddressId,
+      deliveryAddress,
+      comment,
+    };
+  }, [
+    email,
+    fullName,
+    phone,
+    deliveryMethod,
+    selectedAddressId,
+    deliveryAddress,
+    comment,
+  ]);
 
   useEffect(() => {
     if (isAuth === null) return;
@@ -160,39 +192,41 @@ export default function CheckoutPage() {
           me = (await profileResponse.json()) as Me;
         }
 
+        const existing = checkoutSnapshotRef.current;
+
         const prefill = buildCheckoutPrefill({
           me,
           existing: {
-            email,
-            fullName,
-            phone,
-            deliveryMethod,
-            deliveryAddress,
-            comment,
+            email: existing.email,
+            fullName: existing.fullName,
+            phone: existing.phone,
+            deliveryMethod: existing.deliveryMethod,
+            deliveryAddress: existing.deliveryAddress,
+            comment: existing.comment,
           },
         });
 
-        if (!email.trim() && prefill.email) {
+        if (!existing.email.trim() && prefill.email) {
           setEmail(prefill.email);
         }
 
-        if (!fullName.trim() && prefill.fullName) {
+        if (!existing.fullName.trim() && prefill.fullName) {
           setFullName(prefill.fullName);
         }
 
-        if (!phone.trim() && prefill.phone) {
+        if (!existing.phone.trim() && prefill.phone) {
           setPhone(prefill.phone);
         }
 
-        if (!deliveryAddress.trim() && prefill.deliveryAddress) {
+        if (!existing.deliveryAddress.trim() && prefill.deliveryAddress) {
           setDeliveryAddress(prefill.deliveryAddress);
         }
 
-        if (!comment.trim() && prefill.comment) {
+        if (!existing.comment.trim() && prefill.comment) {
           setComment(prefill.comment);
         }
 
-        if (!deliveryAddress.trim() && !selectedAddressId) {
+        if (!existing.deliveryAddress.trim() && !existing.selectedAddressId) {
           setDeliveryMethod(prefill.deliveryMethod);
         }
 
@@ -204,9 +238,11 @@ export default function CheckoutPage() {
         const cartData: CartItem[] = await cartResponse.json();
         setItems(Array.isArray(cartData) ? cartData : []);
       } catch (e) {
-        setError(
-          e instanceof Error ? e.message : "Не удалось загрузить checkout"
-        );
+          const message =
+            e instanceof Error ? e.message : "Не удалось загрузить checkout";
+
+          setError(message);
+          toast.error(message);
       } finally {
         if (active) {
           setLoading(false);
@@ -244,6 +280,11 @@ export default function CheckoutPage() {
   const deliveryPrice = 0;
   const total = subtotal + deliveryPrice;
 
+  function showError(message: string) {
+  setError(message);
+  toast.error(message);
+}
+
   function handleConfirmContact() {
     setError(null);
 
@@ -254,7 +295,7 @@ export default function CheckoutPage() {
     });
 
     if (validationError) {
-      setError(validationError);
+      showError(validationError);
       return;
     }
 
@@ -272,7 +313,7 @@ export default function CheckoutPage() {
     });
 
     if (validationError) {
-      setError(validationError);
+      showError(validationError);
       return;
     }
 
@@ -321,7 +362,7 @@ export default function CheckoutPage() {
     }
 
     if (!contactConfirmed || !deliveryConfirmed || !paymentConfirmed) {
-      setError("Подтвердите все этапы оформления заказа");
+      showError("Подтвердите все этапы оформления заказа");
       return;
     }
 
@@ -388,11 +429,14 @@ export default function CheckoutPage() {
 
       clearCheckoutDraft();
       emitCartChanged();
+      toast.success("Переходим к оплате");
       window.location.href = payment.confirmationUrl;
     } catch (e) {
-      setError(
-        e instanceof Error ? e.message : "Ошибка оформления заказа"
-      );
+        const message =
+          e instanceof Error ? e.message : "Ошибка оформления заказа";
+
+        setError(message);
+        toast.error(message);
     } finally {
       submitLockRef.current = false;
       setSubmitting(false);
@@ -402,7 +446,7 @@ export default function CheckoutPage() {
   if (loading) {
     return (
       <div className="pageContainer">
-        <div className={styles.page}>Загрузка…</div>
+        <Loader fullPage label="Загружаем оформление" />
       </div>
     );
   }
@@ -423,7 +467,21 @@ export default function CheckoutPage() {
         </div>
 
         {items.length === 0 ? (
-          <div className={styles.empty}>Корзина пуста</div>
+          <div className="emptyState">
+            <h2 className="emptyStateTitle">Корзина пуста</h2>
+            <p className="emptyStateText">
+              Добавьте товары, чтобы перейти к оформлению заказа
+            </p>
+            <div className="emptyStateActions">
+              <button
+                type="button"
+                className="buttonPrimary"
+                onClick={() => router.push("/catalog")}
+              >
+                Перейти в каталог
+              </button>
+            </div>
+          </div>
         ) : (
           <div className={styles.layout}>
             <div className={styles.main}>

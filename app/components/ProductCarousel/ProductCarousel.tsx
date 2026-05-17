@@ -6,7 +6,6 @@ import {
   useMemo,
   useRef,
   useState,
-  type UIEvent,
 } from "react";
 
 import { ProductTile } from "../ProductTile/ProductTile";
@@ -44,7 +43,7 @@ export function ProductCarousel({ title, products }: Props) {
     updateScrollState();
   }, [visibleProducts, updateScrollState]);
 
-  function handleScroll(_event: UIEvent<HTMLDivElement>) {
+  function handleScroll() {
     updateScrollState();
   }
 

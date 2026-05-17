@@ -1,5 +1,7 @@
-import Link from "next/link";
-import styles from "../Admin.module.css";
+"use client";
+
+import { DashboardTabs } from "../../components/ui/DashboardTabs";
+
 import type { AdminTab } from "../types";
 
 type Props = {
@@ -14,28 +16,22 @@ export function AdminSidebar({
   sellersCount,
 }: Props) {
   return (
-    <aside className={styles.sidebar}>
-      <nav className={styles.menu}>
-        <Link
-          href="/admin?tab=products"
-          className={`${styles.menuItem} ${
-            currentTab === "products" ? styles.menuItemActive : ""
-          }`}
-        >
-          <span>Товары</span>
-          <span className={styles.menuCount}>{productsCount}</span>
-        </Link>
-
-        <Link
-          href="/admin?tab=sellers"
-          className={`${styles.menuItem} ${
-            currentTab === "sellers" ? styles.menuItemActive : ""
-          }`}
-        >
-          <span>Продавцы</span>
-          <span className={styles.menuCount}>{sellersCount}</span>
-        </Link>
-      </nav>
-    </aside>
+    <DashboardTabs
+      ariaLabel="Меню администратора"
+      tabs={[
+        {
+          href: "/admin?tab=products",
+          label: "Товары",
+          active: currentTab === "products",
+          count: productsCount,
+        },
+        {
+          href: "/admin?tab=sellers",
+          label: "Продавцы",
+          active: currentTab === "sellers",
+          count: sellersCount,
+        },
+      ]}
+    />
   );
 }

@@ -21,16 +21,24 @@ export function ProductTile({ product }: { product: Product }) {
 
   const mainImage = product.images?.[0];
   const hoverImage = product.images?.[1];
+  const hasHoverImage = hoverImage && hoverImage !== mainImage;
 
   const { favoriteIds, toggle } = useFavorites();
   const fav = favoriteIds.includes(product.id);
 
   const prefetchedRef = useRef(false);
 
+  const priceText =
+  product.minPrice > 0
+    ? `${product.minPrice.toLocaleString("ru-RU")} ₽`
+    : "Цена по запросу";
+
   function prefetchProduct() {
     if (prefetchedRef.current) return;
     prefetchedRef.current = true;
+    if (window.innerWidth > 768) {
     router.prefetch(`/product/${product.id}`);
+}
   }
 
   async function onLike(e: React.MouseEvent<HTMLButtonElement>) {
@@ -60,7 +68,7 @@ export function ProductTile({ product }: { product: Product }) {
             <div className={styles.noImage}>Нет изображения</div>
           )}
 
-          {hoverImage ? (
+          {hasHoverImage ? (
             <Image
               src={hoverImage}
               alt=""
@@ -74,9 +82,7 @@ export function ProductTile({ product }: { product: Product }) {
         <div className={styles.info}>
           <div className={styles.brand}>{product.brand}</div>
           <div className={styles.title}>{product.title}</div>
-          <div className={styles.price}>
-            {product.minPrice.toLocaleString("ru-RU")} ₽
-          </div>
+          <div className={styles.price}>{priceText}</div>
         </div>
 
         <button

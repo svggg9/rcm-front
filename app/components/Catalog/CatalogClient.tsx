@@ -6,6 +6,7 @@ import Link from "next/link";
 import styles from "./Catalog.module.css";
 import { ProductTile } from "../ProductTile/ProductTile";
 import { ChevronDownIcon } from "../icons/ChevronDownIcon";
+import { EmptyState } from "../ui/EmptyState";
 
 import type {
   CatalogProduct,
@@ -16,31 +17,41 @@ import {
   audienceLabels,
   buildCatalogQuery,
   getMinPrice,
+  getProductsCountText,
   sortLabels,
-  sortProducts,
 } from "./catalogUtils";
 
 type Props = {
   products: CatalogProduct[];
+  totalProducts: number;
   brands: string[];
   selectedCategory: string;
   selectedAudience: SelectedAudience;
   initialBrand: string;
   searchQuery: string;
   pageTitle: string;
+  currentPage: number;
+  totalPages: number;
+  initialSort: SortValue;
+  hasError: boolean;
 };
 
 export function CatalogClient({
   products,
+  totalProducts,
   brands,
   selectedCategory,
   selectedAudience,
   initialBrand,
   searchQuery,
   pageTitle,
+  currentPage,
+  totalPages,
+  initialSort,
+  hasError,
 }: Props) {
   const [selectedBrand, setSelectedBrand] = useState(initialBrand);
-  const [sortBy, setSortBy] = useState<SortValue>("");
+  const [sortBy, setSortBy] = useState<SortValue>(initialSort);
   const [brandsOpen, setBrandsOpen] = useState(false);
   const [sortOpen, setSortOpen] = useState(false);
 
@@ -50,6 +61,10 @@ export function CatalogClient({
   useEffect(() => {
     setSelectedBrand(initialBrand);
   }, [initialBrand]);
+
+  useEffect(() => {
+    setSortBy(initialSort);
+  }, [initialSort]);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -75,11 +90,6 @@ export function CatalogClient({
   }, []);
 
   const visibleBrands = useMemo(() => brands.slice(0, 8), [brands]);
-
-  const visibleProducts = useMemo(() => {
-    return sortProducts(products, sortBy);
-  }, [products, sortBy]);
-
   const breadcrumbAudienceLabel = audienceLabels[selectedAudience];
   const sortButtonText = sortBy ? sortLabels[sortBy] : "Сортировка";
 
@@ -93,9 +103,14 @@ export function CatalogClient({
     setBrandsOpen(false);
   }
 
-  function selectSort(value: Exclude<SortValue, "">) {
-    setSortBy((prev) => (prev === value ? "" : value));
-    setSortOpen(false);
+  function getSortHref(value: Exclude<SortValue, "">) {
+    return buildCatalogQuery({
+      audience: selectedAudience,
+      category: selectedCategory,
+      brand: selectedBrand,
+      q: searchQuery,
+      sort: sortBy === value ? "" : value,
+    });
   }
 
   return (
@@ -105,10 +120,9 @@ export function CatalogClient({
           <ol className={styles.breadcrumbList}>
             <li className={styles.breadcrumbItem}>
               <Link
-                href={buildCatalogQuery({
-                  audience: selectedAudience,
-                })}
+                href={buildCatalogQuery({ audience: selectedAudience })}
                 className={styles.breadcrumbLink}
+                prefetch={false}
               >
                 {breadcrumbAudienceLabel}
               </Link>
@@ -144,22 +158,27 @@ export function CatalogClient({
                 !selectedBrand ? styles.chipActive : ""
               }`}
               onClick={toggleBrandsDropdown}
+              aria-expanded={brandsOpen}
+              aria-haspopup="menu"
             >
               <span>{selectedBrand || "Все"}</span>
               <ChevronDownIcon className={styles.chevron} />
             </button>
 
             {brandsOpen ? (
-              <div className={styles.dropdownMenu}>
+              <div className={styles.dropdownMenu} role="menu">
                 <Link
                   href={buildCatalogQuery({
                     audience: selectedAudience,
                     category: selectedCategory,
                     q: searchQuery,
+                    sort: sortBy,
                   })}
                   className={`${styles.dropdownItem} ${
                     !selectedBrand ? styles.dropdownItemActive : ""
                   }`}
+                  onClick={() => setBrandsOpen(false)}
+                  prefetch={false}
                 >
                   Все бренды
                 </Link>
@@ -172,10 +191,13 @@ export function CatalogClient({
                       category: selectedCategory,
                       brand,
                       q: searchQuery,
+                      sort: sortBy,
                     })}
                     className={`${styles.dropdownItem} ${
                       selectedBrand === brand ? styles.dropdownItemActive : ""
                     }`}
+                    onClick={() => setBrandsOpen(false)}
+                    prefetch={false}
                   >
                     {brand}
                   </Link>
@@ -193,10 +215,12 @@ export function CatalogClient({
                   category: selectedCategory,
                   brand: selectedBrand === brand ? "" : brand,
                   q: searchQuery,
+                  sort: sortBy,
                 })}
                 className={`${styles.chip} ${
                   selectedBrand === brand ? styles.chipActive : ""
                 }`}
+                prefetch={false}
               >
                 {brand}
               </Link>
@@ -209,42 +233,28 @@ export function CatalogClient({
             type="button"
             className={styles.sortButton}
             onClick={toggleSortDropdown}
+            aria-expanded={sortOpen}
+            aria-haspopup="menu"
           >
             <span className={styles.sortButtonText}>{sortButtonText}</span>
             <ChevronDownIcon className={styles.chevron} />
           </button>
 
           {sortOpen ? (
-            <div className={styles.sortMenu}>
-              <button
-                type="button"
-                className={`${styles.dropdownItem} ${
-                  sortBy === "price-desc" ? styles.dropdownItemActive : ""
-                }`}
-                onClick={() => selectSort("price-desc")}
-              >
-                По убыванию цены
-              </button>
-
-              <button
-                type="button"
-                className={`${styles.dropdownItem} ${
-                  sortBy === "price-asc" ? styles.dropdownItemActive : ""
-                }`}
-                onClick={() => selectSort("price-asc")}
-              >
-                По возрастанию цены
-              </button>
-
-              <button
-                type="button"
-                className={`${styles.dropdownItem} ${
-                  sortBy === "newest" ? styles.dropdownItemActive : ""
-                }`}
-                onClick={() => selectSort("newest")}
-              >
-                Новинки
-              </button>
+            <div className={styles.sortMenu} role="menu">
+              {(["price-desc", "price-asc", "newest"] as const).map((value) => (
+                <Link
+                  key={value}
+                  href={getSortHref(value)}
+                  className={`${styles.dropdownItem} ${
+                    sortBy === value ? styles.dropdownItemActive : ""
+                  }`}
+                  onClick={() => setSortOpen(false)}
+                  prefetch={false}
+                >
+                  {sortLabels[value]}
+                </Link>
+              ))}
             </div>
           ) : null}
         </div>
@@ -252,11 +262,11 @@ export function CatalogClient({
 
       <section className={styles.results}>
         <div className={styles.resultsBar}>
-          <div className={styles.count}>{`${visibleProducts.length} товаров`}</div>
+          <div className={styles.count}>{getProductsCountText(totalProducts)}</div>
         </div>
 
         <ul className={styles.grid} aria-busy="false">
-          {visibleProducts.map((product) => (
+          {products.map((product) => (
             <ProductTile
               key={product.id}
               product={{
@@ -270,10 +280,46 @@ export function CatalogClient({
           ))}
         </ul>
 
-        {visibleProducts.length === 0 ? (
-        <div className={styles.empty}>Ничего не найдено</div>
-      ) : null}
+        {products.length === 0 ? (
+          <EmptyState
+            title={hasError ? "Не удалось загрузить каталог" : "Ничего не найдено"}
+            text={
+              hasError
+                ? "Обновите страницу или попробуйте позже."
+                : "Попробуйте изменить бренд, категорию или поисковый запрос."
+            }
+          />
+        ) : null}
       </section>
+
+      {totalPages > 1 ? (
+        <nav className={styles.pagination} aria-label="Пагинация">
+          {Array.from({ length: totalPages }, (_, index) => {
+            const page = index + 1;
+
+            return (
+              <Link
+                key={page}
+                href={buildCatalogQuery({
+                  audience: selectedAudience,
+                  category: selectedCategory,
+                  brand: selectedBrand,
+                  q: searchQuery,
+                  page,
+                  sort: sortBy,
+                })}
+                className={`${styles.pageLink} ${
+                  currentPage === page ? styles.pageLinkActive : ""
+                }`}
+                aria-current={currentPage === page ? "page" : undefined}
+                prefetch={false}
+              >
+                {page}
+              </Link>
+            );
+          })}
+        </nav>
+      ) : null}
     </div>
   );
 }

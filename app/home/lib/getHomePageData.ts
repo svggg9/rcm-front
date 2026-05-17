@@ -8,36 +8,64 @@ import {
 type CatalogAudience = "men" | "women" | "all";
 type ProductAudience = "MEN" | "WOMEN" | "UNISEX";
 
-function resolveMinPrice(item: any): number {
-  if (Array.isArray(item.variants) && item.variants.length > 0) {
-    const prices = item.variants
-      .map((v: any) => v?.price)
-      .filter((price: unknown): price is number => typeof price === "number");
+type RawVariant = {
+  price?: unknown;
+};
 
-    if (prices.length > 0) {
-      return Math.min(...prices);
-    }
+type RawProduct = {
+  id?: unknown;
+  title?: unknown;
+  images?: unknown;
+  brand?: unknown;
+  category?: unknown;
+  audience?: unknown;
+  variants?: unknown;
+};
+
+function resolveMinPrice(item: RawProduct): number {
+  if (!Array.isArray(item.variants) || item.variants.length === 0) {
+    return 0;
   }
 
-  return 0;
+  const prices = item.variants
+    .map((variant) => (variant as RawVariant).price)
+    .filter((price): price is number => typeof price === "number");
+
+  return prices.length > 0 ? Math.min(...prices) : 0;
 }
 
 function normalizeProducts(data: unknown): HomeProduct[] {
   if (!Array.isArray(data)) return [];
 
-  return data.map((item: any) => ({
-    id: item.id,
-    title: item.title,
-    images: Array.isArray(item.images) ? item.images : [],
-    brand: typeof item.brand === "string" ? item.brand : null,
-    category: typeof item.category === "string" ? item.category : null,
-    audience:
-      item.audience === "MEN" || item.audience === "WOMEN" || item.audience === "UNISEX"
-        ? item.audience
-        : "UNISEX",
-    minPrice: resolveMinPrice(item),
-    variants: Array.isArray(item.variants) ? item.variants : [],
-  }));
+  return data
+    .map((item): HomeProduct | null => {
+      const product = item as RawProduct;
+
+      if (typeof product.id !== "number" || typeof product.title !== "string") {
+        return null;
+      }
+
+      const audience: ProductAudience =
+        product.audience === "MEN" ||
+        product.audience === "WOMEN" ||
+        product.audience === "UNISEX"
+          ? product.audience
+          : "UNISEX";
+
+      return {
+        id: product.id,
+        title: product.title,
+        images: Array.isArray(product.images)
+          ? product.images.filter((image): image is string => typeof image === "string")
+          : [],
+        brand: typeof product.brand === "string" ? product.brand : null,
+        category: typeof product.category === "string" ? product.category : null,
+        audience,
+        minPrice: resolveMinPrice(product),
+        variants: Array.isArray(product.variants) ? product.variants : [],
+      };
+    })
+    .filter((product): product is HomeProduct => product !== null);
 }
 
 function matchesAudience(
@@ -58,20 +86,23 @@ function filterByAudience(
   products: HomeProduct[],
   audience: CatalogAudience
 ): HomeProduct[] {
-  return products.filter((p) => matchesAudience(p.audience, audience));
+  return products.filter((product) => matchesAudience(product.audience, audience));
 }
 
 function getFirstBrand(products: HomeProduct[]): string | null {
   const found = products.find(
-    (p) => typeof p.brand === "string" && p.brand.trim().length > 0
+    (product) => typeof product.brand === "string" && product.brand.trim().length > 0
   );
+
   return found?.brand ?? null;
 }
 
 function getFirstCategory(products: HomeProduct[]): string | null {
   const found = products.find(
-    (p) => typeof p.category === "string" && p.category.trim().length > 0
+    (product) =>
+      typeof product.category === "string" && product.category.trim().length > 0
   );
+
   return found?.category ?? null;
 }
 
@@ -120,7 +151,7 @@ function buildBrandShowcase(
     };
   }
 
-  const brandProducts = products.filter((p) => p.brand === brand).slice(0, 4);
+  const brandProducts = products.filter((product) => product.brand === brand).slice(0, 4);
 
   return {
     title: "Новинки из коллекций лучших брендов",
@@ -144,7 +175,7 @@ function buildCategoryShowcase(
   }
 
   const categoryProducts = products
-    .filter((p) => p.category === category)
+    .filter((product) => product.category === category)
     .slice(0, 4);
 
   return {
@@ -179,7 +210,7 @@ export async function getHomePageData(
       throw new Error("products request failed");
     }
 
-    const json = await response.json();
+    const json: unknown = await response.json();
     const products = filterByAudience(normalizeProducts(json), audience);
 
     return {

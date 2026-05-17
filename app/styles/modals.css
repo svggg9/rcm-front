@@ -1,0 +1,161 @@
+.modalOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  padding: 24px;
+
+  background: rgba(17, 17, 17, 0.42);
+
+  animation: modalOverlayEnter 0.18s ease;
+}
+
+.modal {
+  width: 100%;
+  max-width: 440px;
+  max-height: calc(100vh - 48px);
+
+  overflow-y: auto;
+
+  border: 1px solid var(--line);
+  background: var(--white);
+
+  animation: modalEnter 0.18s ease;
+}
+
+.modalWide {
+  max-width: 720px;
+}
+
+.modalHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+
+  padding: 24px 24px 0;
+}
+
+.modalTitle {
+  color: var(--black);
+
+  font-size: var(--font-2xl);
+  line-height: 1.1;
+  font-weight: 500;
+  letter-spacing: -0.03em;
+}
+
+.modalClose {
+  width: 40px;
+  height: 40px;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  color: var(--black);
+
+  flex-shrink: 0;
+}
+
+.modalBody {
+  padding: 24px;
+}
+
+.modalFooter {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+
+  padding: 0 24px 24px;
+}
+
+.modalTabs {
+  display: flex;
+  gap: 24px;
+
+  margin-bottom: 24px;
+
+  border-bottom: 1px solid var(--line);
+}
+
+.modalTab {
+  position: relative;
+
+  height: 44px;
+
+  color: var(--muted);
+
+  font-size: var(--font-sm);
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.modalTabActive {
+  color: var(--black);
+}
+
+.modalTabActive::after {
+  content: "";
+
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+
+  height: 1px;
+
+  background: var(--black);
+}
+
+@keyframes modalOverlayEnter {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes modalEnter {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (max-width: 768px) {
+  .modalOverlay {
+    padding: 0;
+    align-items: flex-end;
+  }
+
+  .modal,
+  .modalWide {
+    max-width: none;
+    max-height: 92vh;
+  }
+
+  .modalHeader {
+    padding: 20px 20px 0;
+  }
+
+  .modalBody {
+    padding: 20px;
+  }
+
+  .modalFooter {
+    padding: 0 20px 20px;
+  }
+}

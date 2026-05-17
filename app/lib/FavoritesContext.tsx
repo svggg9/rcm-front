@@ -15,6 +15,10 @@ import {
   removeGuestFavorite,
 } from "./favorites";
 
+type FavoriteProduct = {
+  id?: unknown;
+};
+
 type FavoritesContextType = {
   favoriteIds: number[];
   count: number;
@@ -40,19 +44,19 @@ export function FavoritesProvider({
     }
 
     try {
-      const r = await apiFetch(`${API_URL}/api/favorites`);
+      const response = await apiFetch(`${API_URL}/api/favorites`);
 
-      if (!r.ok) {
+      if (!response.ok) {
         setFavoriteIds([]);
         return;
       }
 
-      const data = await r.json();
+      const data: unknown = await response.json();
 
       if (Array.isArray(data)) {
         const ids = data
-          .map((p: any) => p?.id)
-          .filter((x: any): x is number => typeof x === "number");
+          .map((product: FavoriteProduct) => product.id)
+          .filter((id): id is number => typeof id === "number");
 
         setFavoriteIds(ids);
       } else {
@@ -64,12 +68,12 @@ export function FavoritesProvider({
   }, []);
 
   useEffect(() => {
-    refresh();
+    void Promise.resolve().then(refresh);
   }, [refresh]);
 
   useEffect(() => {
     const handler = () => {
-      refresh();
+      void refresh();
     };
 
     window.addEventListener("auth-changed", handler);
@@ -91,12 +95,14 @@ export function FavoritesProvider({
       }
 
       const method = isFav ? "DELETE" : "POST";
-      const r = await apiFetch(`${API_URL}/api/favorites/${id}`, { method });
+      const response = await apiFetch(`${API_URL}/api/favorites/${id}`, {
+        method,
+      });
 
-      if (!r.ok) return;
+      if (!response.ok) return;
 
       setFavoriteIds((prev) =>
-        isFav ? prev.filter((x) => x !== id) : [...prev, id]
+        isFav ? prev.filter((value) => value !== id) : [...prev, id]
       );
     },
     [favoriteIds]
@@ -118,8 +124,10 @@ export function FavoritesProvider({
 
 export function useFavorites() {
   const ctx = useContext(FavoritesContext);
+
   if (!ctx) {
     throw new Error("useFavorites must be used inside FavoritesProvider");
   }
+
   return ctx;
 }

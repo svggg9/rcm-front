@@ -1,5 +1,6 @@
 import type { Option, ProductImageItem, SellerProduct } from "../types";
 import styles from "../ProductEditPage.module.css";
+import Image from "next/image";
 
 type Props = {
   title: string;
@@ -29,7 +30,7 @@ export function ProductPreviewAside({
       <div className={styles.stickyCard}>
         <div className={styles.previewImageBox}>
           {images[0] ? (
-            <img src={images[0].url} alt="" className={styles.previewImage} />
+            <Image src={images[0].url} alt="" className={styles.previewImage} />
           ) : (
             <div className={styles.previewPlaceholder}>Нет фото</div>
           )}

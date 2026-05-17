@@ -205,6 +205,7 @@ export function buildCatalogQuery(params: {
   brand?: string;
   q?: string;
   page?: number;
+  sort?: SortValue;
 }): string {
   const searchParams = new URLSearchParams();
 
@@ -228,6 +229,30 @@ export function buildCatalogQuery(params: {
     searchParams.set("page", String(params.page));
   }
 
+  if (params.sort) {
+    searchParams.set("sort", params.sort);
+}
+
   const query = searchParams.toString();
   return query ? `/catalog?${query}` : "/catalog";
+}
+
+export function normalizeSort(value?: string): SortValue {
+  if (value === "newest" || value === "price-asc" || value === "price-desc") {
+    return value;
+  }
+
+  return "";
+}
+
+export function getProductsCountText(count: number): string {
+  const mod10 = count % 10;
+  const mod100 = count % 100;
+
+  if (mod10 === 1 && mod100 !== 11) return `${count} товар`;
+  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) {
+    return `${count} товара`;
+  }
+
+  return `${count} товаров`;
 }

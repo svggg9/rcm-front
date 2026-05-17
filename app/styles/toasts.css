@@ -1,0 +1,43 @@
+.rcmToast {
+  border-radius: 0 !important;
+  border: 1px solid var(--gold) !important;
+  background: var(--white) !important;
+  color: var(--black) !important;
+  box-shadow: none !important;
+
+  padding: 14px 16px !important;
+
+  font-size: var(--font-sm) !important;
+  text-align: center !important;
+}
+
+.rcmToastTitle {
+  width: 100%;
+  text-align: center !important;
+
+  color: var(--black) !important;
+  font-size: var(--font-sm) !important;
+  font-weight: 500 !important;
+}
+
+.rcmToastDescription {
+  width: 100%;
+  text-align: center !important;
+
+  color: var(--muted) !important;
+  font-size: var(--font-sm) !important;
+}
+
+@media (max-width: 640px) {
+  .rcmToaster {
+    left: 16px !important;
+    right: 16px !important;
+    bottom: max(16px, env(safe-area-inset-bottom)) !important;
+    width: auto !important;
+  }
+
+  .rcmToast {
+    width: 100% !important;
+    max-width: none !important;
+  }
+}

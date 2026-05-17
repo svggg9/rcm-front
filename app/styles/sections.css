@@ -5,9 +5,28 @@
   margin-bottom: 24px;
 }
 
+.sectionHeaderRow {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+  margin-bottom: 24px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid var(--line);
+}
+
 .sectionTitle {
   color: var(--black);
   font-size: 22px;
+  line-height: 1.2;
+  font-weight: 500;
+  letter-spacing: -0.03em;
+}
+
+.sectionTitleLarge {
+  color: var(--black);
+  font-size: var(--font-2xl);
+  line-height: 1.1;
   font-weight: 500;
   letter-spacing: -0.03em;
 }
@@ -16,4 +35,9 @@
   color: var(--muted);
   font-size: var(--font-sm);
   line-height: 1.5;
+}
+
+.dividerSection {
+  padding: 24px 0;
+  border-bottom: 1px solid var(--line);
 }

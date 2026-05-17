@@ -1,0 +1,23 @@
+.imageCover {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.imageContain {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.aspectProduct {
+  aspect-ratio: 3 / 4;
+}
+
+.aspectSquare {
+  aspect-ratio: 1 / 1;
+}
+
+.imagePlaceholder {
+  background: var(--soft);
+}

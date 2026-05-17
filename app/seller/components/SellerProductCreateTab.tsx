@@ -3,6 +3,7 @@
 import Link from "next/link";
 
 import styles from "../Seller.module.css";
+import Image from "next/image";
 
 type Option = {
   id: number;
@@ -349,7 +350,7 @@ export function SellerProductCreateTab({
 
                 {imageUrl ? (
                   <div className={styles.preview}>
-                    <img src={imageUrl} alt="Фото товара" className={styles.previewImg} />
+                    <Image src={imageUrl} alt="Фото товара" className={styles.previewImg} />
 
                     <div className={styles.previewMeta}>
                       <b>Фото загружено</b>

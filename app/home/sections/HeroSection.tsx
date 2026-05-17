@@ -1,6 +1,7 @@
 import Link from "next/link";
 import styles from "./HeroSection.module.css";
 import { HeroBlock } from "../types";
+import Image from "next/image";
 
 type HeroSectionProps = {
   block: HeroBlock;
@@ -10,7 +11,7 @@ export function HeroSection({ block }: HeroSectionProps) {
   return (
     <section className={styles.hero}>
       <div className={styles.media}>
-        <img
+        <Image fill
           src={block.image}
           alt={block.imageAlt}
           className={styles.image}

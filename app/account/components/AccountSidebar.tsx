@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import { DashboardTabs } from "../../components/ui/DashboardTabs";
 import styles from "../Account.module.css";
 
 type Props = {
@@ -15,31 +15,26 @@ export function AccountSidebar({
   onLogout,
 }: Props) {
   return (
-    <aside className={styles.sidebar}>
-      <nav className={styles.menu} aria-label="Меню аккаунта">
-        <Link
-          href="/account?tab=orders"
-          className={`${styles.menuItem} ${
-            currentTab === "orders" ? styles.menuItemActive : ""
-          }`}
-        >
-        <span>Мои заказы</span>
-        <span className={styles.menuCount}>{ordersCount}</span>
-        </Link>
-
-        <Link
-          href="/account?tab=profile"
-          className={`${styles.menuItem} ${
-            currentTab === "profile" ? styles.menuItemActive : ""
-          }`}
-        >
-          <span>Мои данные</span>
-        </Link>
-      </nav>
-
-      <button type="button" className={styles.logout} onClick={onLogout}>
-        Выйти из аккаунта
-      </button>
-    </aside>
+    <DashboardTabs
+      ariaLabel="Меню аккаунта"
+      tabs={[
+        {
+          href: "/account?tab=orders",
+          label: "Мои заказы",
+          active: currentTab === "orders",
+          count: ordersCount,
+        },
+        {
+          href: "/account?tab=profile",
+          label: "Мои данные",
+          active: currentTab === "profile",
+        },
+      ]}
+      actions={
+        <button type="button" className={styles.logout} onClick={onLogout}>
+          Выйти
+        </button>
+      }
+    />
   );
 }

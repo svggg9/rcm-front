@@ -22,9 +22,7 @@
   display: flex;
   align-items: center;
   gap: 10px;
-
   color: var(--muted);
-
   font-size: var(--font-sm);
 }
 
@@ -49,7 +47,6 @@
 
 .heading {
   color: var(--black);
-
   font-size: 36px;
   line-height: 1.1;
   font-weight: 500;
@@ -57,19 +54,26 @@
 }
 
 .catalogActions {
+  position: sticky;
+  top: var(--site-header-height);
+  z-index: 10;
+
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 24px;
 
   margin-bottom: 20px;
+  padding: 12px 0;
+
+  background: var(--white);
+  border-bottom: 1px solid transparent;
 }
 
 .chipsRow {
   display: flex;
   align-items: center;
   gap: 12px;
-
   min-width: 0;
   flex: 1;
 }
@@ -111,7 +115,6 @@
   font-size: var(--font-sm);
   white-space: nowrap;
   text-decoration: none;
-
   cursor: pointer;
 
   transition:
@@ -152,13 +155,24 @@
 
 .dropdownMenu {
   left: 0;
-  max-height: 320px;
+  width: min(320px, 90vw);
+  max-height: 360px;
   overflow-y: auto;
 }
 
 .sortMenu {
   right: 0;
   min-width: 250px;
+}
+
+.dropdownMenu::before,
+.sortMenu::before {
+  content: "";
+  position: sticky;
+  top: 0;
+  display: block;
+  height: 1px;
+  background: var(--line);
 }
 
 .dropdownItem {
@@ -175,9 +189,7 @@
 
   text-align: left;
   text-decoration: none;
-
   font-size: var(--font-sm);
-
   cursor: pointer;
 }
 
@@ -229,18 +241,7 @@
   margin-bottom: 12px;
 }
 
-.count,
-.perPage {
-  color: var(--muted);
-  font-size: var(--font-sm);
-}
-
-.empty {
-  margin-top: 20px;
-  padding: 24px 0;
-
-  border-bottom: 1px solid var(--line);
-
+.count {
   color: var(--muted);
   font-size: var(--font-sm);
 }
@@ -249,6 +250,7 @@
   display: grid;
   grid-template-columns: repeat(1, minmax(0, 1fr));
   gap: 20px 12px;
+  min-height: 400px;
 }
 
 .pagination {
@@ -316,15 +318,41 @@
   .catalogActions {
     flex-direction: column;
     align-items: stretch;
+    gap: 14px;
+
+    padding: 10px 0;
+    border-bottom-color: var(--line);
   }
 
   .chipsRow {
     flex-direction: column;
     align-items: stretch;
+    gap: 10px;
   }
 
+  .dropdownWrap,
   .sortWrap {
-    align-self: flex-start;
+    width: 100%;
+  }
+
+  .dropdownChip,
+  .sortButton {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .quickFilters {
+    width: 100%;
+    padding-bottom: 2px;
+  }
+
+  .dropdownMenu,
+  .sortMenu {
+    left: 0;
+    right: auto;
+    width: 100%;
+    min-width: 0;
+    max-height: 280px;
   }
 }
 

@@ -3,6 +3,7 @@
 import styles from "../ProductPage.module.css";
 
 import type { Product, Variant } from "../lib/types";
+import Image from "next/image";
 
 type Props = {
   product: Product;
@@ -112,7 +113,7 @@ export function ProductInfoPanel({
             aria-pressed={isFav}
           >
             <span>{isFav ? "В избранном" : "В избранное"}</span>
-            <img
+            <Image
               src={isFav ? "/icons/like-filled.svg" : "/icons/like.svg"}
               alt=""
               aria-hidden="true"

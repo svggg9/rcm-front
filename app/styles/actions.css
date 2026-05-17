@@ -1,0 +1,48 @@
+.stickyActions {
+  position: sticky;
+  bottom: 0;
+  z-index: 20;
+
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+
+  padding: 16px 0;
+
+  border-top: 1px solid var(--line);
+  background: var(--white);
+}
+
+.mobileBottomActions {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .stickyActions {
+    padding: 12px 0;
+  }
+
+  .stickyActions > * {
+    flex: 1;
+  }
+
+  .mobileBottomActions {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 500;
+
+    display: flex;
+    gap: 8px;
+
+    padding: 12px 16px max(12px, env(safe-area-inset-bottom));
+
+    border-top: 1px solid var(--line);
+    background: var(--white);
+  }
+
+  .mobileBottomActions > * {
+    flex: 1;
+  }
+}

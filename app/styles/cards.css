@@ -1,0 +1,32 @@
+.card {
+  border: 1px solid var(--line);
+  background: var(--white);
+}
+
+.cardPadding16 {
+  padding: 16px;
+}
+
+.cardPadding20 {
+  padding: 20px;
+}
+
+.cardPadding24 {
+  padding: 24px;
+}
+
+.cardHover {
+  transition:
+    border-color var(--transition),
+    background var(--transition);
+}
+
+.cardHover:hover {
+  background: var(--soft);
+}
+
+.cardSection + .cardSection {
+  margin-top: 24px;
+  padding-top: 24px;
+  border-top: 1px solid var(--line);
+}
