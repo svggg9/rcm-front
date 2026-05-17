@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { toast } from "sonner";
 
 import { setAuth, ensureCartId } from "../../lib/auth";
 import { apiFetch, API_URL } from "../../lib/api";
@@ -22,11 +23,10 @@ function LoginPageContent() {
 
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
-    setError("");
+
 
     try {
       const cartId = await ensureCartId();
@@ -50,10 +50,12 @@ function LoginPageContent() {
         clearGuestFavoriteIds();
         window.dispatchEvent(new Event("auth-changed"));
       }
-
+      toast.success("Вы вошли в аккаунт");
       router.replace(next);
     } catch (error) {
-      setError((error as Error).message);
+        toast.error(
+          error instanceof Error ? error.message : "Ошибка входа"
+        );
     }
   }
 
@@ -88,8 +90,6 @@ function LoginPageContent() {
                 autoComplete="current-password"
               />
             </label>
-
-            {error ? <div className={styles.error}>{error}</div> : null}
 
             <button type="submit" className={styles.button}>
               Войти

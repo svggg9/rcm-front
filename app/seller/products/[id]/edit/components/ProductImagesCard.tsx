@@ -2,6 +2,7 @@
 import { SectionHeader } from "./SectionHeader";
 import type { ProductImageItem } from "../types";
 import styles from "../ProductEditPage.module.css";
+import Image from "next/image";
 
 type Props = {
   images: ProductImageItem[];
@@ -80,7 +81,7 @@ export function ProductImagesCard({
                 dragImageId === image.id ? styles.imageCardDragging : ""
               }`}
             >
-              <img src={image.url} alt="" className={styles.image} />
+              <Image src={image.url} alt="" className={styles.image} />
 
               <div className={styles.imageMeta}>
                 <span>{index === 0 ? "Главное фото" : `Фото ${index + 1}`}</span>

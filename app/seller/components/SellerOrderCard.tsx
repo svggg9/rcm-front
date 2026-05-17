@@ -3,6 +3,7 @@
 import styles from "../Seller.module.css";
 
 import type { SellerOrder } from "../types";
+import { StatusBadge } from "../../components/ui/StatusBadge";
 
 type Props = {
   order: SellerOrder;
@@ -36,7 +37,7 @@ export function SellerOrderCard({
             Заказ #{order.id}
           </button>
 
-          <span className={styles.orderStatus}>{statusLabel}</span>
+          <StatusBadge tone={getOrderTone(order)}>{statusLabel}</StatusBadge>
         </div>
 
         <div className={styles.orderMeta}>
@@ -79,4 +80,18 @@ export function SellerOrderCard({
       </div>
     </article>
   );
+}
+
+function getOrderTone(order: SellerOrder) {
+  if (order.paymentStatus === "FAILED") return "danger";
+  if (order.deliveryStatus === "DELIVERED") return "success";
+  if (
+    order.paymentStatus === "PAID" ||
+    order.deliveryStatus === "READY_FOR_SHIPMENT" ||
+    order.deliveryStatus === "IN_TRANSIT"
+  ) {
+    return "warning";
+  }
+
+  return "default";
 }

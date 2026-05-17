@@ -17,6 +17,7 @@ import {
   getGuestFavoriteIds,
   syncFavoritesAfterLogin,
 } from "../../lib/favorites";
+import { toast } from "sonner";
 
 import { AuthModalContext, type AuthModalMode } from "./useAuthModal";
 import styles from "./AuthModal.module.css";
@@ -38,18 +39,15 @@ export function AuthModalProvider({ children }: Props) {
   const [showPassword, setShowPassword] = useState(false);
 
   const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState("");
 
   const openAuth = useCallback((nextMode: AuthModalMode = "login", nextPath = "/") => {
     setMode(nextMode);
     setNext(nextPath);
-    setError("");
     setOpen(true);
   }, []);
 
   const closeAuth = useCallback(() => {
     setOpen(false);
-    setError("");
   }, []);
 
   const value = useMemo(
@@ -90,6 +88,7 @@ export function AuthModalProvider({ children }: Props) {
 
     window.dispatchEvent(new Event("auth-changed"));
     closeAuth();
+    toast.success(mode === "login" ? "Вы вошли в аккаунт" : "Аккаунт создан");
     router.replace(next);
     router.refresh();
   }
@@ -100,7 +99,6 @@ export function AuthModalProvider({ children }: Props) {
     if (submitting) return;
 
     setSubmitting(true);
-    setError("");
 
     try {
       const cartId = await ensureCartId();
@@ -116,11 +114,13 @@ export function AuthModalProvider({ children }: Props) {
 
       const data: { token: string; cartId: string } = await response.json();
       await finishAuth(data.token, data.cartId);
-    } catch (error) {
-      setError(error instanceof Error ? error.message : "Ошибка входа");
-    } finally {
-      setSubmitting(false);
-    }
+      } catch (error) {
+        toast.error(
+          error instanceof Error ? error.message : "Ошибка входа"
+        );
+      } finally {
+        setSubmitting(false);
+      }
   }
 
   async function handleRegister(event: FormEvent<HTMLFormElement>) {
@@ -129,7 +129,6 @@ export function AuthModalProvider({ children }: Props) {
     if (submitting) return;
 
     setSubmitting(true);
-    setError("");
 
     try {
       const registerResponse = await apiFetch(`${API_URL}/api/auth/register`, {
@@ -156,11 +155,13 @@ export function AuthModalProvider({ children }: Props) {
 
       const data: { token: string; cartId: string } = await loginResponse.json();
       await finishAuth(data.token, data.cartId);
-    } catch (error) {
-      setError(error instanceof Error ? error.message : "Ошибка регистрации");
-    } finally {
-      setSubmitting(false);
-    }
+      } catch (error) {
+        toast.error(
+          error instanceof Error ? error.message : "Ошибка входа"
+        );
+      } finally {
+        setSubmitting(false);
+      }
   }
 
   return (
@@ -202,7 +203,6 @@ export function AuthModalProvider({ children }: Props) {
                   }`}
                   onClick={() => {
                     setMode("login");
-                    setError("");
                   }}
                 >
                   Войти
@@ -217,7 +217,6 @@ export function AuthModalProvider({ children }: Props) {
                   }`}
                   onClick={() => {
                     setMode("register");
-                    setError("");
                   }}
                 >
                   Создать аккаунт
@@ -265,8 +264,6 @@ export function AuthModalProvider({ children }: Props) {
                     Забыли пароль?
                   </button>
 
-                  {error ? <div className={styles.error}>{error}</div> : null}
-
                   <button
                     type="submit"
                     className={styles.submit}
@@ -282,7 +279,6 @@ export function AuthModalProvider({ children }: Props) {
                       className={styles.switchButton}
                       onClick={() => {
                         setMode("register");
-                        setError("");
                       }}
                     >
                       Создать аккаунт
@@ -341,8 +337,6 @@ export function AuthModalProvider({ children }: Props) {
                     </span>
                   </label>
 
-                  {error ? <div className={styles.error}>{error}</div> : null}
-
                   <button
                     type="submit"
                     className={styles.submit}
@@ -358,7 +352,6 @@ export function AuthModalProvider({ children }: Props) {
                       className={styles.switchButton}
                       onClick={() => {
                         setMode("login");
-                        setError("");
                       }}
                     >
                       Войти

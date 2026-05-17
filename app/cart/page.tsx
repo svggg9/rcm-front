@@ -17,6 +17,8 @@ import { getCart, removeItem, updateQuantity } from "./lib/cartApi";
 import { CartItemRow } from "./components/CartItemRow";
 import { CartSummary } from "./components/CartSummary";
 import { EmptyCart } from "./components/EmptyCart";
+import { toast } from "sonner";
+import { Loader } from "../components/ui/Loader";
 
 import styles from "./Cart.module.css";
 
@@ -130,10 +132,13 @@ export default function CartPage() {
 
     try {
       const data = await updateQuantity(cartId, variantId, qty);
+
       setItems(data);
       emitCartChanged();
     } catch (error) {
-      console.error(error);
+      toast.error(
+        error instanceof Error ? error.message : "Не удалось изменить количество"
+      );
     }
   }
 
@@ -142,10 +147,14 @@ export default function CartPage() {
 
     try {
       const data = await removeItem(cartId, variantId);
+
       setItems(data);
       emitCartChanged();
+      toast("Товар удалён из корзины");
     } catch (error) {
-      console.error(error);
+      toast.error(
+        error instanceof Error ? error.message : "Не удалось удалить товар"
+      );
     }
   }
 
@@ -164,13 +173,13 @@ export default function CartPage() {
     router.push("/checkout");
   }
 
-  if (loading) {
-  return (
-    <div className="pageContainer">
-      <div className={styles.state}>Загрузка…</div>
-    </div>
-  );
-}
+    if (loading) {
+      return (
+        <div className="pageContainer">
+          <Loader fullPage label="Загружаем корзину" />
+        </div>
+      );
+    }
 
   return (
     <div className="pageContainer">

@@ -1,5 +1,8 @@
 "use client";
 
+import Image from "next/image";
+
+import { StatusBadge } from "../../components/ui/StatusBadge";
 import styles from "../Account.module.css";
 
 import type { OrderItemPreview } from "../types";
@@ -28,7 +31,7 @@ export function AccountOrderCard({
     <button type="button" className={styles.orderPreviewCard} onClick={onClick}>
       <div className={styles.orderPreviewMain}>
         <div className={styles.orderStatusLine}>
-          <span className={styles.orderStatus}>{statusLabel}</span>
+          <StatusBadge>{statusLabel}</StatusBadge>
           <span className={styles.orderDate}>{dateLabel}</span>
         </div>
 
@@ -42,9 +45,11 @@ export function AccountOrderCard({
               key={`${item.imageUrl ?? "placeholder"}-${index}`}
               className={styles.orderImageWrap}
             >
-              <img
+              <Image
                 src={item.imageUrl || "/placeholder.png"}
                 alt=""
+                width={52}
+                height={68}
                 className={styles.orderImage}
               />
             </div>

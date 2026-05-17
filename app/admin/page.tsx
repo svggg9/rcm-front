@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useCallback, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
 import styles from "./Admin.module.css";
@@ -12,6 +12,7 @@ import { AdminSidebar } from "./components/AdminSidebar";
 import { AdminProductsTab } from "./components/AdminProductsTab";
 import { AdminProductDetails } from "./components/AdminProductDetails";
 import { AdminSellersTab } from "./components/AdminSellersTab";
+import { EmptyState } from "../components/ui/EmptyState";
 
 import {
   approveProduct,
@@ -81,7 +82,7 @@ function AdminPageContent() {
     }
   }, [isAuth, role, router]);
 
-  async function loadProducts(options?: { silent?: boolean }) {
+  const loadProducts = useCallback(async (options?: { silent?: boolean }) => {
     const silent = options?.silent ?? false;
 
     if (silent) setRefreshing(true);
@@ -99,9 +100,9 @@ function AdminPageContent() {
       setLoading(false);
       setRefreshing(false);
     }
-  }
+  }, [currentStatus]);
 
-  async function loadSellers(options?: { silent?: boolean }) {
+  const loadSellers = useCallback(async (options?: { silent?: boolean }) => {
     const silent = options?.silent ?? false;
 
     if (silent) setRefreshing(true);
@@ -119,9 +120,9 @@ function AdminPageContent() {
       setLoading(false);
       setRefreshing(false);
     }
-  }
+  }, [currentSellerFilter]);
 
-  async function loadSelectedProduct(id: number) {
+  const loadSelectedProduct = useCallback(async (id: number) => {
     setDetailsLoading(true);
     setError(null);
 
@@ -133,7 +134,7 @@ function AdminPageContent() {
     } finally {
       setDetailsLoading(false);
     }
-  }
+  }, []);
 
   useEffect(() => {
     if (isAuth !== true || role !== "ADMIN") return;
@@ -143,7 +144,7 @@ function AdminPageContent() {
     } else {
       void loadSellers();
     }
-  }, [isAuth, role, currentTab, currentStatus, currentSellerFilter]);
+  }, [isAuth, role, currentTab, loadProducts, loadSellers]);
 
   useEffect(() => {
     if (isAuth !== true || role !== "ADMIN") return;
@@ -161,7 +162,7 @@ function AdminPageContent() {
     }
 
     void loadSelectedProduct(id);
-  }, [isAuth, role, currentTab, selectedProductId]);
+  }, [isAuth, role, currentTab, selectedProductId, loadSelectedProduct]);
 
   function changeProductStatus(status: ProductStatus | "ALL") {
     router.push(`/admin?tab=products&status=${status}`);
@@ -222,7 +223,9 @@ function AdminPageContent() {
   if (isAuth === null || loading) {
     return (
       <div className="pageContainer">
-        <div className={styles.page}>Загрузка…</div>
+        <div className={styles.page}>
+          <div className={styles.sectionTitle}>Загрузка админ-панели…</div>
+        </div>
       </div>
     );
   }
@@ -230,7 +233,12 @@ function AdminPageContent() {
   if (role && role !== "ADMIN") {
     return (
       <div className="pageContainer">
-        <div className={styles.page}>Недостаточно прав.</div>
+        <div className={styles.page}>
+          <EmptyState
+            title="Недостаточно прав"
+            text="Эта страница доступна только администраторам."
+          />
+        </div>
       </div>
     );
   }

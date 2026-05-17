@@ -11,6 +11,7 @@ import {
   syncFavoritesAfterLogin,
   clearGuestFavoriteIds,
 } from "../../lib/favorites";
+import { toast } from "sonner";
 
 import styles from "./Register.module.css";
 
@@ -22,11 +23,9 @@ function RegisterPageContent() {
 
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
-    setError("");
 
     try {
       const registerResponse = await apiFetch(`${API_URL}/api/auth/register`, {
@@ -61,10 +60,12 @@ function RegisterPageContent() {
         clearGuestFavoriteIds();
         window.dispatchEvent(new Event("auth-changed"));
       }
-
+      toast.success("Аккаунт создан");
       router.replace(next);
     } catch (error) {
-      setError((error as Error).message);
+        toast.error(
+          error instanceof Error ? error.message : "Ошибка регистрации"
+        );
     }
   }
 
@@ -97,8 +98,6 @@ function RegisterPageContent() {
                 autoComplete="new-password"
               />
             </label>
-
-            {error ? <div className={styles.error}>{error}</div> : null}
 
             <button type="submit" className={styles.button}>
               Зарегистрироваться

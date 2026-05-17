@@ -71,12 +71,22 @@ export function useProductPage(productId: string) {
 
   // ===== VIEWER KEYBOARD =====
   useEffect(() => {
-    if (!viewerOpen || !product?.images?.length) return;
+    const imagesCount = product?.images?.length ?? 0;
+
+    if (!viewerOpen || imagesCount === 0) return;
 
     function onKeyDown(e: KeyboardEvent) {
-      if (e.key === "Escape") setViewerOpen(false);
-      if (e.key === "ArrowRight") nextImage();
-      if (e.key === "ArrowLeft") prevImage();
+      if (e.key === "Escape") {
+        setViewerOpen(false);
+      }
+
+      if (e.key === "ArrowRight") {
+        setViewerIndex((prev) => (prev + 1) % imagesCount);
+      }
+
+      if (e.key === "ArrowLeft") {
+        setViewerIndex((prev) => (prev === 0 ? imagesCount - 1 : prev - 1));
+      }
     }
 
     window.addEventListener("keydown", onKeyDown);
@@ -86,7 +96,7 @@ export function useProductPage(productId: string) {
       window.removeEventListener("keydown", onKeyDown);
       document.body.style.overflow = "";
     };
-  }, [viewerOpen, product]);
+  }, [viewerOpen, product?.images?.length]);
 
   // ===== DERIVED =====
   const selectedVariant: Variant | null = useMemo(() => {

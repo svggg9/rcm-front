@@ -11,6 +11,7 @@ import { SellerOrdersTab } from "./components/SellerOrdersTab";
 import { SellerOrderDetails } from "./components/SellerOrderDetails";
 import { SellerProductCreateTab } from "./components/SellerProductCreateTab";
 import { SellerProductsTab } from "./components/SellerProductsTab";
+import { Loader } from "../components/ui/Loader";
 
 import type {
   Audience,
@@ -179,33 +180,33 @@ function SellerPageContent() {
   }, [isAuth, router]);
 
   async function loadProducts(options?: { silent?: boolean }) {
-  const silent = options?.silent ?? false;
+    const silent = options?.silent ?? false;
 
-  if (silent) {
-    setProductsRefreshing(true);
-  } else {
-    setProductsLoading(true);
-  }
-
-  setError(null);
-
-  try {
-    const response = await apiFetch(`${API_URL}/api/seller/products?page=0&size=50`);
-
-    if (!response.ok) {
-      const text = await response.text().catch(() => "");
-      throw new Error(text || `Ошибка загрузки товаров (${response.status})`);
+    if (silent) {
+      setProductsRefreshing(true);
+    } else {
+      setProductsLoading(true);
     }
 
-    const data: PageResponse<SellerProduct> = await response.json();
-    setProducts(Array.isArray(data.content) ? data.content : []);
-  } catch (e) {
-    setError(e instanceof Error ? e.message : "Не удалось загрузить товары");
-  } finally {
-    setProductsLoading(false);
-    setProductsRefreshing(false);
+    setError(null);
+
+    try {
+      const response = await apiFetch(`${API_URL}/api/seller/products?page=0&size=50`);
+
+      if (!response.ok) {
+        const text = await response.text().catch(() => "");
+        throw new Error(text || `Ошибка загрузки товаров (${response.status})`);
+      }
+
+      const data: PageResponse<SellerProduct> = await response.json();
+      setProducts(Array.isArray(data.content) ? data.content : []);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Не удалось загрузить товары");
+    } finally {
+      setProductsLoading(false);
+      setProductsRefreshing(false);
+    }
   }
-}
 
   async function loadOrders(options?: { silent?: boolean }) {
     const silent = options?.silent ?? false;
@@ -242,12 +243,12 @@ function SellerPageContent() {
   }, [isAuth]);
 
   useEffect(() => {
-  if (isAuth !== true) return;
-  if (currentTab !== "products") return;
-  if (productsMode !== "list") return;
+    if (isAuth !== true) return;
+    if (currentTab !== "products") return;
+    if (productsMode !== "list") return;
 
-  void loadProducts();
-  }, [isAuth, currentTab, productsMode]);
+    void loadProducts();
+    }, [isAuth, currentTab, productsMode]);
 
   useEffect(() => {
     if (currentTab !== "orders" || !selectedOrderId) {
@@ -466,7 +467,9 @@ function SellerPageContent() {
   if (isAuth === null || loading) {
     return (
       <div className="pageContainer">
-        <div className={styles.page}>Загрузка…</div>
+        <div className={styles.page}>
+          <Loader />
+        </div>
       </div>
     );
   }

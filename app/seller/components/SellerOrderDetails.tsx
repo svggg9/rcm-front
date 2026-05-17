@@ -3,6 +3,8 @@
 import styles from "../Seller.module.css";
 
 import type { SellerOrder } from "../types";
+import { StatusBadge } from "../../components/ui/StatusBadge";
+import Image from "next/image";
 
 type Props = {
   order: SellerOrder;
@@ -37,7 +39,9 @@ export function SellerOrderDetails({
         <div>
           <h1 className={styles.sectionTitleNoMargin}>Заказ #{order.id}</h1>
           <div className={styles.orderDetailsMeta}>
-            <span>{buildSellerStatusLabel(order)}</span>
+            <StatusBadge tone={getOrderTone(order)}>
+              {buildSellerStatusLabel(order)}
+            </StatusBadge>
             <span>•</span>
             <span>{new Date(order.createdAt).toLocaleString("ru-RU")}</span>
             <span>•</span>
@@ -63,7 +67,7 @@ export function SellerOrderDetails({
                 <article key={`${item.sku}-${index}`} className={styles.orderItemRow}>
                   <div className={styles.orderItemImageWrap}>
                     {item.imageUrl ? (
-                      <img
+                      <Image
                         src={item.imageUrl}
                         alt={item.productTitle}
                         className={styles.orderItemImage}
@@ -188,4 +192,18 @@ function InfoRow({ label, value }: { label: string; value: string }) {
       <strong>{value}</strong>
     </div>
   );
+}
+
+function getOrderTone(order: SellerOrder) {
+  if (order.paymentStatus === "FAILED") return "danger";
+  if (order.deliveryStatus === "DELIVERED") return "success";
+  if (
+    order.paymentStatus === "PAID" ||
+    order.deliveryStatus === "READY_FOR_SHIPMENT" ||
+    order.deliveryStatus === "IN_TRANSIT"
+  ) {
+    return "warning";
+  }
+
+  return "default";
 }

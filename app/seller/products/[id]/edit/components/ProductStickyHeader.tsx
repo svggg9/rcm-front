@@ -8,6 +8,7 @@ import type {
   SellerProduct,
 } from "../types";
 import styles from "../ProductEditPage.module.css";
+import Image from "next/image";
 
 type Props = {
   productId: number;
@@ -62,7 +63,7 @@ export function ProductStickyHeader({
 
           <div className={styles.lockedImageBox}>
             {images[0] ? (
-              <img src={images[0].url} alt="" className={styles.lockedImage} />
+              <Image src={images[0].url} alt="" className={styles.lockedImage} />
             ) : (
               <div className={styles.lockedImagePlaceholder}>Фото</div>
             )}

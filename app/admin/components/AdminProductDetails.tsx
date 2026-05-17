@@ -1,5 +1,7 @@
 import styles from "../Admin.module.css";
 import type { AdminProduct } from "../types";
+import { StatusBadge } from "../../components/ui/StatusBadge";
+import Image from "next/image";
 
 type Props = {
   product: AdminProduct;
@@ -27,6 +29,20 @@ function formatStatus(status: string) {
   }
 }
 
+function getProductStatusTone(status: string) {
+  switch (status) {
+    case "ACTIVE":
+      return "success";
+    case "MODERATION":
+      return "warning";
+    case "BLOCKED":
+    case "ARCHIVED":
+      return "danger";
+    default:
+      return "default";
+  }
+}
+
 export function AdminProductDetails({
   product,
   actionProductId,
@@ -49,7 +65,9 @@ export function AdminProductDetails({
       <div className={styles.detailsMeta}>
         <span>ID {product.id}</span>
         <span className={styles.dot}>·</span>
-        <span className={styles.statusBadge}>{formatStatus(product.status)}</span>
+        <StatusBadge tone={getProductStatusTone(product.status)}>
+          {formatStatus(product.status)}
+        </StatusBadge>
         <span className={styles.dot}>·</span>
         <span>{product.brand || "Без бренда"}</span>
       </div>
@@ -61,7 +79,15 @@ export function AdminProductDetails({
           <div className={styles.gallery}>
             {product.images?.length ? (
               product.images.map((image) => (
-                <img key={image} src={image} alt={product.title} />
+                <div key={image} className={styles.galleryImageWrap}>
+                  <Image
+                    src={image}
+                    alt={product.title}
+                    width={160}
+                    height={214}
+                    className={styles.galleryImage}
+                  />
+                </div>
               ))
             ) : (
               <div className={styles.galleryEmpty}>Фото не загружены</div>

@@ -19,6 +19,7 @@ import { ProductImageViewer } from "./components/ProductImageViewer";
 import type { Product } from "./lib/types";
 import { addVariantToCart } from "./lib/productPageApi";
 import { getMinPrice, getSizesText } from "./lib/productPageUtils";
+import { toast } from "sonner";
 
 type Props = {
   product: Product;
@@ -99,12 +100,12 @@ export default function ProductPageClient({ product, related }: Props) {
       const cartId = await ensureCartId();
 
       if (!cartId) {
-        alert("Не удалось создать корзину");
+        toast.error("Не удалось создать корзину");
         return;
       }
 
       if (!selectedVariant) {
-        alert("Нет доступных вариантов");
+        toast.error("Нет доступных вариантов");
         return;
       }
 
@@ -112,7 +113,7 @@ export default function ProductPageClient({ product, related }: Props) {
         selectedVariant.availableQuantity !== null &&
         selectedVariant.availableQuantity <= 0
       ) {
-        alert("Этот вариант отсутствует в наличии");
+        toast.error("Этот вариант отсутствует в наличии");
         return;
       }
 
@@ -124,17 +125,29 @@ export default function ProductPageClient({ product, related }: Props) {
         qty: 1,
       });
 
+      toast.success("Товар добавлен в корзину");
+
       emitCartChanged();
     } catch (error) {
-      alert((error as Error).message);
+        toast.error(
+          error instanceof Error ? error.message : "Не удалось добавить в корзину"
+        );
     } finally {
       setAdding(false);
     }
   }
 
   async function handleToggleFavorite() {
-    await toggle(product.id);
-  }
+      try {
+        await toggle(product.id);
+
+        toast(isFav ? "Удалено из избранного" : "Добавлено в избранное");
+      } catch (error) {
+        toast.error(
+          error instanceof Error ? error.message : "Не удалось обновить избранное"
+        );
+      }
+    }
 
   function openViewer(index: number) {
     setViewerIndex(index);

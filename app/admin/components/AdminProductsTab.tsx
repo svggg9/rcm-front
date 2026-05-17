@@ -1,5 +1,9 @@
+import { EmptyState } from "../../components/ui/EmptyState";
+import { StatusBadge } from "../../components/ui/StatusBadge";
+
 import styles from "../Admin.module.css";
 import type { AdminProduct, ProductStatus } from "../types";
+import Image from "next/image";
 
 type Props = {
   products: AdminProduct[];
@@ -43,6 +47,20 @@ function formatStatus(status: string) {
   }
 }
 
+function getProductStatusTone(status: string) {
+  switch (status) {
+    case "ACTIVE":
+      return "success";
+    case "MODERATION":
+      return "warning";
+    case "BLOCKED":
+    case "ARCHIVED":
+      return "danger";
+    default:
+      return "default";
+  }
+}
+
 export function AdminProductsTab({
   products,
   status,
@@ -77,7 +95,7 @@ export function AdminProductsTab({
       <div className={styles.filters}>
         {STATUSES.map((item) => (
           <button
-          type="button"
+            type="button"
             key={item}
             className={`${styles.filterBtn} ${
               status === item ? styles.filterBtnActive : ""
@@ -90,7 +108,10 @@ export function AdminProductsTab({
       </div>
 
       {products.length === 0 ? (
-        <div className={styles.empty}>Товаров с таким статусом нет.</div>
+        <EmptyState
+          title="Товаров нет"
+          text="По выбранному статусу ничего не найдено."
+        />
       ) : (
         <div className={styles.list}>
           {products.map((product) => {
@@ -105,7 +126,12 @@ export function AdminProductsTab({
                   type="button"
                 >
                   {image ? (
-                    <img src={image} alt={product.title} />
+                    <Image
+                      src={image}
+                      alt={product.title}
+                      width={88}
+                      height={116}
+                    />
                   ) : (
                     <div className={styles.productImagePlaceholder}>Нет фото</div>
                   )}
@@ -121,9 +147,9 @@ export function AdminProductsTab({
                       </div>
                     </div>
 
-                    <span className={styles.statusBadge}>
+                    <StatusBadge tone={getProductStatusTone(product.status)}>
                       {formatStatus(product.status)}
-                    </span>
+                    </StatusBadge>
                   </div>
 
                   <p className={styles.productDescription}>
@@ -132,7 +158,7 @@ export function AdminProductsTab({
 
                   <div className={styles.actions}>
                     <button
-                    type="button"
+                      type="button"
                       className={styles.secondaryBtn}
                       onClick={() => onOpenProduct(product.id)}
                     >
@@ -141,7 +167,7 @@ export function AdminProductsTab({
 
                     {product.status === "MODERATION" ? (
                       <button
-                      type="button"
+                        type="button"
                         className={styles.primaryBtn}
                         disabled={loading}
                         onClick={() => onApprove(product.id)}
@@ -152,7 +178,7 @@ export function AdminProductsTab({
 
                     {product.status === "BLOCKED" ? (
                       <button
-                      type="button"
+                        type="button"
                         className={styles.secondaryBtn}
                         disabled={loading}
                         onClick={() => onUnblock(product.id)}
@@ -161,7 +187,7 @@ export function AdminProductsTab({
                       </button>
                     ) : (
                       <button
-                      type="button"
+                        type="button"
                         className={styles.dangerBtn}
                         disabled={loading}
                         onClick={() => onBlock(product.id)}

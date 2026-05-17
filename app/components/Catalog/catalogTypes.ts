@@ -22,6 +22,7 @@ export type CatalogSearchParams = {
   brand?: string;
   q?: string;
   page?: string;
+  sort?: string;
 };
 
 export type PaginatedProducts = {

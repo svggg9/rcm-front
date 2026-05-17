@@ -4,6 +4,7 @@ import { AccountOrderCard } from "./AccountOrderCard";
 import styles from "../Account.module.css";
 
 import type { Order } from "../types";
+import { EmptyState } from "../../components/ui/EmptyState";
 
 type Props = {
   orders: Order[];
@@ -21,7 +22,10 @@ export function AccountOrdersTab({
       <div className={styles.sectionTitle}>Мои заказы</div>
 
       {orders.length === 0 ? (
-        <div className={styles.empty}>Пока нет заказов</div>
+        <EmptyState
+          title="Пока нет заказов"
+          text="Когда вы оформите заказ, он появится здесь."
+        />
       ) : (
         <div className={styles.ordersPreviewList}>
           {orders.map((order) => (

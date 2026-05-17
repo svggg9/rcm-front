@@ -5,14 +5,13 @@
 
 .header {
   display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 24px;
+  flex-direction: column;
+  gap: 12px;
 
-  margin-bottom: 24px;
-  padding-bottom: 18px;
+  margin-bottom: 40px;
+  padding-bottom: 0;
 
-  border-bottom: 1px solid var(--line);
+  border-bottom: 0;
 }
 
 .pageTitle {
@@ -27,32 +26,6 @@
 .count {
   color: var(--muted);
   font-size: var(--font-sm);
-}
-
-.muted,
-.empty {
-  color: var(--muted);
-  font-size: var(--font-md);
-}
-
-.empty {
-  padding: 48px 0;
-  border-bottom: 1px solid var(--line);
-}
-
-.emptyTitle {
-  color: var(--black);
-
-  font-size: var(--font-xl);
-  font-weight: 500;
-  letter-spacing: -0.02em;
-}
-
-.emptyText {
-  margin-top: 8px;
-
-  color: var(--muted);
-  font-size: var(--font-md);
 }
 
 .grid {
@@ -86,4 +59,105 @@
   .grid {
     grid-template-columns: 1fr;
   }
+}
+
+.card {
+  display: grid;
+  grid-template-rows: auto 1fr;
+}
+
+.cardLink {
+  display: grid;
+  gap: 10px;
+}
+
+.imageBox {
+  position: relative;
+  aspect-ratio: 3 / 4;
+  background: var(--soft);
+  overflow: hidden;
+}
+
+.image {
+  object-fit: cover;
+}
+
+.placeholder {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--muted);
+  font-size: var(--font-sm);
+}
+
+.info {
+  display: grid;
+  gap: 4px;
+  min-height: 104px;
+}
+
+.brand {
+  color: var(--black);
+  font-size: var(--font-sm);
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.name {
+  color: var(--black);
+  font-size: var(--font-sm);
+  line-height: 1.45;
+}
+
+.price,
+.soldOut {
+  margin-top: 8px;
+  color: var(--black);
+  font-size: var(--font-md);
+}
+
+.soldOut {
+  color: var(--muted);
+}
+
+.cardActions {
+  display: grid;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.sizeHint {
+  min-height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  color: var(--black);
+  font-size: var(--font-sm);
+}
+
+.removeFavorite {
+  position: absolute;
+  top: 0;
+  right: 0;
+
+  width: 40px;
+  height: 40px;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  background: var(--white);
+  color: var(--black);
+
+  font-size: 24px;
+  line-height: 1;
+}
+
+.card {
+  position: relative;
+  display: grid;
+  grid-template-rows: auto 1fr;
 }

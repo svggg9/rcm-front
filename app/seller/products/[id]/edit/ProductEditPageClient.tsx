@@ -12,6 +12,7 @@ import { ProductImagesCard } from "./components/ProductImagesCard";
 import { ProductVariantsCard } from "./components/ProductVariantsCard";
 import { ProductShippingCard } from "./components/ProductShippingCard";
 import { ProductPreviewAside } from "./components/ProductPreviewAside";
+import { toast } from "sonner";
 
 import type {
   Audience,
@@ -67,7 +68,6 @@ export function ProductEditPageClient({ productId }: Props) {
   const [publishing, setPublishing] = useState(false);
 
   const [error, setError] = useState<string | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
 
   const cardScore = useMemo(() => {
     let score = 0;
@@ -172,9 +172,10 @@ export function ProductEditPageClient({ productId }: Props) {
         setInitialized(true);
         setDirty(false);
         setLastSavedAt(new Date());
+        toast.success("Товар сохранён");
       } catch (e) {
         if (!cancelled) {
-          setError(e instanceof Error ? e.message : "Не удалось загрузить товар");
+          toast.error(e instanceof Error ? e.message : "Не удалось загрузить товар");
         }
       } finally {
         if (!cancelled) {
@@ -208,20 +209,18 @@ export function ProductEditPageClient({ productId }: Props) {
   function markDirty() {
     if (!initialized) return;
     setDirty(true);
-    setNotice(null);
   }
 
   async function saveProduct() {
     if (saving || !dirty) return;
 
     setError(null);
-    setNotice(null);
 
-    if (!title.trim()) return setError("Введите название товара");
-    if (!description.trim()) return setError("Введите описание");
-    if (categoryId === "") return setError("Выберите категорию");
-    if (brandId === "") return setError("Выберите бренд");
-    if (variants.length === 0) return setError("Добавьте хотя бы один вариант");
+    if (!title.trim()) return failValidation("Введите название товара");
+    if (!description.trim()) return failValidation("Введите описание");
+    if (categoryId === "") return failValidation("Выберите категорию");
+    if (brandId === "") return failValidation("Выберите бренд");
+    if (variants.length === 0) return failValidation("Добавьте хотя бы один вариант");
 
     for (const variant of variants) {
       if (!variant.sku.trim()) return setError("У каждого варианта должен быть SKU");
@@ -274,7 +273,7 @@ export function ProductEditPageClient({ productId }: Props) {
       setDirty(false);
       setLastSavedAt(new Date());
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Не удалось сохранить товар");
+      toast.error(e instanceof Error ? e.message : "Не удалось сохранить товар");
     } finally {
       setSaving(false);
     }
@@ -285,7 +284,6 @@ export function ProductEditPageClient({ productId }: Props) {
 
     setUploading(true);
     setError(null);
-    setNotice(null);
 
     try {
       for (const file of selectedFiles) {
@@ -304,10 +302,10 @@ export function ProductEditPageClient({ productId }: Props) {
       }
 
       setSelectedFiles([]);
-      setNotice("Фото загружены");
+      toast.success("Фото загружены");
       await reloadProductImages();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Не удалось загрузить фото");
+      toast.error(e instanceof Error ? e.message : "Не удалось загрузить фото");
     } finally {
       setUploading(false);
     }
@@ -327,7 +325,6 @@ export function ProductEditPageClient({ productId }: Props) {
 
     setImages((current) => current.filter((image) => image.id !== imageId));
     setError(null);
-    setNotice(null);
 
     try {
       const response = await apiFetch(
@@ -340,11 +337,11 @@ export function ProductEditPageClient({ productId }: Props) {
         throw new Error(text || `Ошибка удаления (${response.status})`);
       }
 
-      setNotice("Фото удалено");
+      toast.success("Фото удалено");
       await reloadProductImages();
     } catch (e) {
       setImages(previous);
-      setError(e instanceof Error ? e.message : "Не удалось удалить фото");
+      toast.error(e instanceof Error ? e.message : "Не удалось удалить фото");
     }
   }
 
@@ -367,9 +364,9 @@ export function ProductEditPageClient({ productId }: Props) {
         throw new Error(text || `Ошибка сортировки (${response.status})`);
       }
 
-      setNotice("Порядок фото сохранён");
+      toast.success("Порядок фото сохранён");
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Не удалось сохранить порядок фото");
+      toast.error(e instanceof Error ? e.message : "Не удалось сохранить порядок фото");
       await reloadProductImages();
     } finally {
       setReordering(false);
@@ -397,7 +394,6 @@ export function ProductEditPageClient({ productId }: Props) {
 
     setPublishing(true);
     setError(null);
-    setNotice(null);
 
     try {
       const response = await apiFetch(`${API_URL}/api/seller/products/${productId}/publish`, {
@@ -409,9 +405,9 @@ export function ProductEditPageClient({ productId }: Props) {
         throw new Error(text || `Ошибка публикации (${response.status})`);
       }
 
-      setNotice("Товар отправлен на публикацию");
+      toast.success("Товар отправлен на модерацию");
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Не удалось опубликовать товар");
+      toast.error(e instanceof Error ? e.message : "Не удалось опубликовать товар");
     } finally {
       setPublishing(false);
     }
@@ -422,7 +418,6 @@ export function ProductEditPageClient({ productId }: Props) {
 
     setArchiving(true);
     setError(null);
-    setNotice(null);
 
     try {
       const response = await apiFetch(`${API_URL}/api/seller/products/${productId}/archive`, {
@@ -434,10 +429,10 @@ export function ProductEditPageClient({ productId }: Props) {
         throw new Error(text || `Ошибка архивации (${response.status})`);
       }
 
-      setNotice("Товар перенесён в архив");
+      toast.success("Товар перенесён в архив");
       setActionsOpen(false);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Не удалось перенести товар в архив");
+      toast.error(e instanceof Error ? e.message : "Не удалось перенести товар в архив");
     } finally {
       setArchiving(false);
     }
@@ -483,6 +478,11 @@ export function ProductEditPageClient({ productId }: Props) {
     );
   }
 
+  function failValidation(message: string) {
+    setError(message);
+    toast.error(message);
+  }
+
   return (
     <div className="pageContainer">
       <div className={styles.page}>
@@ -509,7 +509,6 @@ export function ProductEditPageClient({ productId }: Props) {
         />
 
         {error ? <div className={styles.error}>{error}</div> : null}
-        {notice ? <div className={styles.notice}>{notice}</div> : null}
 
         <div className={styles.layout}>
           <main className={styles.main}>
