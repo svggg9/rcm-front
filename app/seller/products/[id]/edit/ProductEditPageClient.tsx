@@ -1,10 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
 
 import { apiFetch, API_URL } from "../../../../lib/api";
-import { useClientAuth } from "../../../../lib/useClientAuth";
 
 import { ProductStickyHeader } from "./components/ProductStickyHeader";
 import { ProductGeneralCard } from "./components/ProductGeneralCard";
@@ -30,9 +28,6 @@ type Props = {
 };
 
 export function ProductEditPageClient({ productId }: Props) {
-  const router = useRouter();
-  const isAuth = useClientAuth();
-
   const [initialized, setInitialized] = useState(false);
   const [dirty, setDirty] = useState(false);
   const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null);
@@ -97,16 +92,6 @@ export function ProductEditPageClient({ productId }: Props) {
   ]);
 
   useEffect(() => {
-    if (isAuth === null) return;
-
-    if (!isAuth) {
-      router.push(`/auth/login?next=/seller/products/${productId}/edit`);
-    }
-  }, [isAuth, productId, router]);
-
-  useEffect(() => {
-    if (isAuth !== true) return;
-
     let cancelled = false;
 
     async function loadData() {
@@ -189,7 +174,7 @@ export function ProductEditPageClient({ productId }: Props) {
     return () => {
       cancelled = true;
     };
-  }, [isAuth, productId]);
+  }, [productId]);
 
   useEffect(() => {
     if (!dirty) return;
@@ -470,7 +455,7 @@ export function ProductEditPageClient({ productId }: Props) {
     markDirty();
   }
 
-  if (isAuth === null || loading) {
+  if (loading) {
     return (
       <div className="pageContainer">
         <div className={styles.page}>Загрузка…</div>
@@ -507,7 +492,7 @@ export function ProductEditPageClient({ productId }: Props) {
         onArchive={() => void archiveProduct()}
         onActionsOpenChange={setActionsOpen}
         />
-
+    <div className={styles.pageContent}>
         {error ? <div className={styles.error}>{error}</div> : null}
 
         <div className={styles.layout}>
@@ -598,6 +583,7 @@ export function ProductEditPageClient({ productId }: Props) {
             packageWeightKg={packageWeightKg}
             variantsCount={variants.length}
             />
+            </div>
         </div>
       </div>
     </div>

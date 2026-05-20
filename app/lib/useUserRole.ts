@@ -1,18 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { getUserRole } from "./auth";
+import { useCurrentUser } from "./useCurrentUser";
 
 export function useUserRole() {
-  const [role, setRole] = useState<string | null>(null);
+  const { user } = useCurrentUser();
 
-  useEffect(() => {
-    const sync = () => setRole(getUserRole());
-    sync();
-
-    window.addEventListener("auth-changed", sync as EventListener);
-    return () => window.removeEventListener("auth-changed", sync as EventListener);
-  }, []);
-
-  return role;
+  return user?.role ?? null;
 }

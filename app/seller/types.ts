@@ -74,3 +74,61 @@ export type PageResponse<T> = {
   size: number;
   number: number;
 };
+
+export type SellerProductVariant = {
+  id: number;
+  size: string;
+  color: string;
+  price: number;
+  availableQuantity: number | null;
+  sku: string;
+  stockTrackingEnabled?: boolean;
+};
+
+export type SellerProduct = {
+  id: number;
+  title: string;
+  description: string;
+  brand: string | null;
+  category: string | null;
+  audience?: "MEN" | "WOMEN" | "UNISEX";
+  status?: "DRAFT" | "MODERATION" | "ACTIVE" | "ARCHIVED" | "BLOCKED";
+  variants: SellerProductVariant[];
+  images: string[];
+};
+
+export type SellerProductListItem = {
+  id: number;
+  title: string;
+  status?: "DRAFT" | "MODERATION" | "ACTIVE" | "ARCHIVED" | "BLOCKED";
+
+  brandName: string | null;
+  categoryName: string | null;
+
+  coverImage: string | null;
+
+  minPrice: number | null;
+  totalStock: number | null;
+  variantsCount: number | null;
+};
+
+export type SellerOrderListItem = {
+  id: number;
+  orderGroupId: string;
+
+  status: SellerOrderStatus;
+  paymentStatus: SellerPaymentStatus;
+  deliveryStatus: SellerDeliveryStatus;
+
+  totalAmount: number;
+  currency: string;
+
+  recipientName: string;
+
+  firstProductTitle: string | null;
+  firstImageUrl: string | null;
+
+  itemsCount: number;
+
+  createdAt: string;
+};

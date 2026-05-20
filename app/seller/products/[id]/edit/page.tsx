@@ -1,3 +1,6 @@
+import { redirect } from "next/navigation";
+
+import { getServerSession } from "../../../../lib/session";
 import { ProductEditPageClient } from "./ProductEditPageClient";
 
 type Props = {
@@ -7,6 +10,16 @@ type Props = {
 };
 
 export default async function ProductEditPage({ params }: Props) {
+  const session = await getServerSession();
+
+  if (!session) {
+    redirect("/auth/login?next=/seller/products");
+  }
+
+  if (session.role !== "SELLER" && session.role !== "ADMIN") {
+    redirect("/");
+  }
+
   const { id } = await params;
   const productId = Number(id);
 

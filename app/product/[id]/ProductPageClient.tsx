@@ -9,7 +9,6 @@ import { emitCartChanged } from "../../lib/cartEvents";
 import { useFavorites } from "../../lib/FavoritesContext";
 import { useUserRole } from "../../lib/useUserRole";
 import { ProductCarousel } from "../../components/ProductCarousel/ProductCarousel";
-import { mapProductToCarouselProduct } from "../../lib/productMappers";
 
 import { ProductGallery } from "./components/ProductGallery";
 import { ProductInfoPanel } from "./components/ProductInfoPanel";
@@ -20,10 +19,11 @@ import type { Product } from "./lib/types";
 import { addVariantToCart } from "./lib/productPageApi";
 import { getMinPrice, getSizesText } from "./lib/productPageUtils";
 import { toast } from "sonner";
+import type { CarouselProduct } from "../../components/ProductCarousel/types";
 
 type Props = {
   product: Product;
-  related: Product[];
+  related: CarouselProduct[];
 };
 
 export default function ProductPageClient({ product, related }: Props) {
@@ -210,10 +210,7 @@ export default function ProductPageClient({ product, related }: Props) {
           />
 
           {related.length > 0 ? (
-            <ProductCarousel
-              title="Другие товары"
-              products={related.map(mapProductToCarouselProduct)}
-            />
+            <ProductCarousel title="Другие товары" products={related} />
           ) : null}
         </div>
       </div>

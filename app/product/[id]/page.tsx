@@ -1,7 +1,8 @@
 import { API_URL } from "../../lib/api";
 import ProductPageClient from "./ProductPageClient";
 import type { Product } from "./lib/types";
-import { getRelatedProducts } from "./lib/productPageUtils";
+import { mapProductToCarouselProduct } from "../../lib/productMappers";
+import type { CarouselProduct } from "../../components/ProductCarousel/types";
 
 export const dynamic = "force-dynamic";
 
@@ -17,17 +18,24 @@ async function getProduct(id: string): Promise<Product | null> {
   return response.json();
 }
 
-async function getProducts(): Promise<Product[]> {
-  const response = await fetch(`${API_URL}/api/products`, {
-    cache: "no-store",
+async function getRelatedProductItems(id: string): Promise<CarouselProduct[]> {
+  const response = await fetch(`${API_URL}/api/products/${id}/related?limit=12`, {
+    next: { revalidate: 60 },
   });
 
   if (!response.ok) {
     return [];
   }
 
-  const data: Product[] = await response.json();
-  return Array.isArray(data) ? data : [];
+  const data: unknown = await response.json();
+
+  if (!Array.isArray(data)) {
+    return [];
+  }
+
+  return data
+    .map((product) => mapProductToCarouselProduct(product))
+    .filter((product): product is CarouselProduct => product !== null);
 }
 
 export default async function ProductPage({
@@ -37,16 +45,14 @@ export default async function ProductPage({
 }) {
   const { id } = await params;
 
-  const [product, products] = await Promise.all([
+  const [product, related] = await Promise.all([
     getProduct(id),
-    getProducts(),
+    getRelatedProductItems(id),
   ]);
 
   if (!product) {
     return <div className="pageContainer">Товар не найден</div>;
   }
-
-  const related = getRelatedProducts(products, product, 12);
 
   return <ProductPageClient product={product} related={related} />;
 }

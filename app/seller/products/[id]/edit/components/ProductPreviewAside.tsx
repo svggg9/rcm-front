@@ -30,7 +30,13 @@ export function ProductPreviewAside({
       <div className={styles.stickyCard}>
         <div className={styles.previewImageBox}>
           {images[0] ? (
-            <Image src={images[0].url} alt="" className={styles.previewImage} />
+            <Image
+              src={images[0].url}
+              alt=""
+              fill
+              sizes="360px"
+              className={styles.previewImage}
+            />
           ) : (
             <div className={styles.previewPlaceholder}>Нет фото</div>
           )}

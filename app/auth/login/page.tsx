@@ -40,10 +40,10 @@ function LoginPageContent() {
         throw new Error("Неверный логин или пароль");
       }
 
-      const data: { token: string; cartId: string } = await response.json();
+      const data: { cartId: string } = await response.json();
       const guestFavoriteIds = getGuestFavoriteIds();
 
-      setAuth(data.token, data.cartId);
+      setAuth(data.cartId);
 
       if (guestFavoriteIds.length > 0) {
         await syncFavoritesAfterLogin(guestFavoriteIds);

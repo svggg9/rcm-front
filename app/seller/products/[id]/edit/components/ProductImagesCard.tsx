@@ -81,7 +81,13 @@ export function ProductImagesCard({
                 dragImageId === image.id ? styles.imageCardDragging : ""
               }`}
             >
-              <Image src={image.url} alt="" className={styles.image} />
+              <Image
+                src={image.url}
+                alt=""
+                fill
+                sizes="160px"
+                className={styles.image}
+              />
 
               <div className={styles.imageMeta}>
                 <span>{index === 0 ? "Главное фото" : `Фото ${index + 1}`}</span>

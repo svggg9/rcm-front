@@ -65,3 +65,17 @@ export type Order = {
   createdAt: string;
   items: OrderItem[];
 };
+
+export type OrderListItem = {
+  id: number;
+  orderGroupId: string;
+  status: OrderStatus;
+  paymentStatus: PaymentStatus;
+  deliveryStatus: DeliveryStatus;
+  totalAmount: number;
+  currency: string;
+  firstProductTitle: string | null;
+  firstImageUrl: string | null;
+  itemsCount: number;
+  createdAt: string;
+};

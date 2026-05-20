@@ -4,6 +4,7 @@ import Link from "next/link";
 
 import styles from "../Seller.module.css";
 import Image from "next/image";
+import { toast } from "sonner";
 
 type Option = {
   id: number;
@@ -84,6 +85,55 @@ export function SellerProductCreateTab({
   onUploadImage,
 }: Props) {
   const productCreated = Boolean(createdProductId);
+
+  function handleCreateProduct() {
+  if (!title.trim()) {
+    toast.error("Введите название товара");
+    return;
+  }
+
+  if (categoryId === "") {
+    toast.error("Выберите категорию");
+    return;
+  }
+
+  if (brandId === "") {
+    toast.error("Выберите бренд");
+    return;
+  }
+
+  if (!description.trim()) {
+    toast.error("Введите описание товара");
+    return;
+  }
+
+  if (!size.trim()) {
+    toast.error("Введите размер");
+    return;
+  }
+
+  if (!color.trim()) {
+    toast.error("Введите цвет");
+    return;
+  }
+
+  if (price <= 0) {
+    toast.error("Цена должна быть больше 0");
+    return;
+  }
+
+  if (stockTrackingEnabled && quantity <= 0) {
+    toast.error("Количество должно быть больше 0");
+    return;
+  }
+
+  if (!sku.trim()) {
+    toast.error("Введите SKU");
+    return;
+  }
+
+  onCreateProduct();
+}
 
   return (
     <div className={styles.createPage}>
@@ -284,7 +334,7 @@ export function SellerProductCreateTab({
             <div className={styles.createActions}>
               <button
                 type="button"
-                onClick={onCreateProduct}
+                onClick={handleCreateProduct}
                 disabled={submitting || productCreated}
                 className={styles.createPrimaryBtn}
               >
@@ -350,7 +400,13 @@ export function SellerProductCreateTab({
 
                 {imageUrl ? (
                   <div className={styles.preview}>
-                    <Image src={imageUrl} alt="Фото товара" className={styles.previewImg} />
+                    <Image
+                      src={imageUrl}
+                      alt="Фото товара"
+                      width={240}
+                      height={320}
+                      className={styles.previewImg}
+                    />
 
                     <div className={styles.previewMeta}>
                       <b>Фото загружено</b>
@@ -364,36 +420,6 @@ export function SellerProductCreateTab({
             )}
           </section>
         </main>
-
-        <aside className={styles.createSidebar}>
-          <div className={styles.sideCard}>
-            <div className={styles.sideTitle}>Этапы</div>
-
-            <Step title="Основная информация" text="Название, описание, категория" number={1} done />
-            <Step title="Первый вариант" text="Размер, цвет, цена и SKU" number={2} done />
-            <Step
-              title="Редактор товара"
-              text={productCreated ? "Можно открыть полную карточку" : "Доступен после создания"}
-              number={3}
-              done={productCreated}
-            />
-            <Step
-              title="Фото и габариты"
-              text="Массовая загрузка, сортировка, доставка"
-              number={4}
-              done={productCreated}
-            />
-
-            {productCreated ? (
-              <Link
-                href={`/seller/products/${createdProductId}/edit`}
-                className={styles.openProductLink}
-              >
-                Открыть редактор
-              </Link>
-            ) : null}
-          </div>
-        </aside>
       </div>
     </div>
   );
@@ -404,28 +430,6 @@ function CardHeader({ title, hint }: { title: string; hint: string }) {
     <div className={styles.createCardHeader}>
       <h2>{title}</h2>
       <p>{hint}</p>
-    </div>
-  );
-}
-
-function Step({
-  number,
-  title,
-  text,
-  done,
-}: {
-  number: number;
-  title: string;
-  text: string;
-  done: boolean;
-}) {
-  return (
-    <div className={done ? styles.stepDone : styles.stepMuted}>
-      <span>{number}</span>
-      <div>
-        <b>{title}</b>
-        <p>{text}</p>
-      </div>
     </div>
   );
 }

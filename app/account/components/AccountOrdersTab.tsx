@@ -3,12 +3,12 @@
 import { AccountOrderCard } from "./AccountOrderCard";
 import styles from "../Account.module.css";
 
-import type { Order } from "../types";
+import type { OrderListItem } from "../types";
 import { EmptyState } from "../../components/ui/EmptyState";
 
 type Props = {
-  orders: Order[];
-  buildOrderStatusLabel: (order: Order) => string;
+  orders: OrderListItem[];
+  buildOrderStatusLabel: (order: OrderListItem) => string;
   onOpenOrder: (orderId: number) => void;
 };
 
@@ -38,7 +38,8 @@ export function AccountOrdersTab({
                 month: "long",
               })}
               amountLabel={`${order.totalAmount.toLocaleString()} ₽`}
-              items={Array.isArray(order.items) ? order.items : []}
+              firstImageUrl={order.firstImageUrl}
+              itemsCount={order.itemsCount}
               onClick={() => onOpenOrder(order.id)}
             />
           ))}

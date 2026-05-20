@@ -76,10 +76,10 @@ export function AuthModalProvider({ children }: Props) {
     };
   }, [open, closeAuth]);
 
-  async function finishAuth(token: string, cartId: string) {
+  async function finishAuth(cartId: string) {
     const guestFavoriteIds = getGuestFavoriteIds();
 
-    setAuth(token, cartId);
+    setAuth(cartId);
 
     if (guestFavoriteIds.length > 0) {
       await syncFavoritesAfterLogin(guestFavoriteIds);
@@ -112,8 +112,8 @@ export function AuthModalProvider({ children }: Props) {
         throw new Error("Неверный логин или пароль");
       }
 
-      const data: { token: string; cartId: string } = await response.json();
-      await finishAuth(data.token, data.cartId);
+      const data: { cartId: string } = await response.json();
+      await finishAuth(data.cartId);
       } catch (error) {
         toast.error(
           error instanceof Error ? error.message : "Ошибка входа"
@@ -153,8 +153,8 @@ export function AuthModalProvider({ children }: Props) {
         throw new Error(text || "Регистрация успешна, но вход не выполнен");
       }
 
-      const data: { token: string; cartId: string } = await loginResponse.json();
-      await finishAuth(data.token, data.cartId);
+      const data: { cartId: string } = await loginResponse.json();
+      await finishAuth(data.cartId);
       } catch (error) {
         toast.error(
           error instanceof Error ? error.message : "Ошибка входа"

@@ -8,7 +8,6 @@ import { ensureCartId } from "../lib/auth";
 import { emitCartChanged } from "../lib/cartEvents";
 import { addVariantToCart } from "../product/[id]/lib/productPageApi";
 import { apiFetch, API_URL } from "../lib/api";
-import { getToken } from "../lib/auth";
 import { getGuestFavoriteIds } from "../lib/favorites";
 import { toast } from "sonner";
 import { Loader } from "../components/ui/Loader";
@@ -84,9 +83,9 @@ export default function FavoritesPage() {
       setLoading(true);
 
       try {
-        const token = getToken();
+          const profileResponse = await apiFetch(`${API_URL}/api/profile`);
 
-        if (token) {
+          if (profileResponse.ok) {
           const response = await apiFetch(`${API_URL}/api/favorites`);
           if (!response.ok) {
             throw new Error("favorites load failed");
@@ -107,7 +106,7 @@ export default function FavoritesPage() {
           return;
         }
 
-        const response = await apiFetch(`${API_URL}/api/products`);
+        const response = await apiFetch(`${API_URL}/api/products/list`);
         if (!response.ok) {
           throw new Error("products load failed");
         }

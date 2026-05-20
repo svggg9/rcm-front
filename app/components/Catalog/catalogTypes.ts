@@ -12,8 +12,11 @@ export type CatalogProduct = {
   brand: string;
   category: string;
   audience: Audience;
+  status: string | null;
   images: string[];
-  variants: Variant[];
+  variants: { price: number }[];
+  minPrice: number;
+  inStock?: boolean;
 };
 
 export type CatalogSearchParams = {

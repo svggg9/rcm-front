@@ -67,11 +67,14 @@ export function SellerOrderDetails({
                 <article key={`${item.sku}-${index}`} className={styles.orderItemRow}>
                   <div className={styles.orderItemImageWrap}>
                     {item.imageUrl ? (
+                    <div className={styles.orderItemImageWrap}>
                       <Image
                         src={item.imageUrl}
                         alt={item.productTitle}
+                        fill
                         className={styles.orderItemImage}
                       />
+                    </div>
                     ) : (
                       <div className={styles.orderItemImagePlaceholder} />
                     )}
