@@ -117,6 +117,8 @@ export function ProductInfoPanel({
               src={isFav ? "/icons/like-filled.svg" : "/icons/like.svg"}
               alt=""
               aria-hidden="true"
+              width={20}
+              height={20}
             />
           </button>
           ) : null}

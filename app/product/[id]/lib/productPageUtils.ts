@@ -25,24 +25,3 @@ export function getSizesText(product: Product): string {
 
   return `Доступные размеры: ${sizes.join(", ")}`;
 }
-
-export function getRelatedProducts(
-  allProducts: Product[],
-  currentProduct: Product,
-  limit = 12
-): Product[] {
-  return allProducts
-    .filter((item) => item.id !== currentProduct.id)
-    .sort((a, b) => {
-      const scoreA =
-        (a.category === currentProduct.category ? 2 : 0) +
-        (a.brand === currentProduct.brand ? 1 : 0);
-
-      const scoreB =
-        (b.category === currentProduct.category ? 2 : 0) +
-        (b.brand === currentProduct.brand ? 1 : 0);
-
-      return scoreB - scoreA;
-    })
-    .slice(0, limit);
-}

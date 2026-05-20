@@ -24,13 +24,18 @@ type RawProduct = {
   brand?: unknown;
   category?: unknown;
   audience?: unknown;
+  status?: unknown;
+  coverImage?: unknown;
+  hoverImage?: unknown;
+  minPrice?: unknown;
+  inStock?: unknown;
+
   images?: unknown;
   variants?: unknown;
 };
 
 export function getMinPrice(product: CatalogProduct): number {
-  if (!product.variants.length) return 0;
-  return Math.min(...product.variants.map((variant) => variant.price));
+  return product.minPrice;
 }
 
 export function normalizeAudience(value: string | null): SelectedAudience {
@@ -71,14 +76,12 @@ export function normalizeProducts(data: unknown): CatalogProduct[] {
     .map((item): CatalogProduct | null => {
       const product = item as RawProduct;
 
-      if (
-        typeof product.id !== "number" ||
-        typeof product.title !== "string" ||
-        typeof product.brand !== "string" ||
-        typeof product.category !== "string"
-      ) {
+      if (typeof product.id !== "number" || typeof product.title !== "string") {
         return null;
       }
+
+      const brand = typeof product.brand === "string" ? product.brand : "";
+      const category = typeof product.category === "string" ? product.category : "";
 
       const audience =
         product.audience === "MEN" ||
@@ -87,11 +90,29 @@ export function normalizeProducts(data: unknown): CatalogProduct[] {
           ? product.audience
           : "UNISEX";
 
-      const images = Array.isArray(product.images)
+      const coverImage =
+        typeof product.coverImage === "string" && product.coverImage.length > 0
+          ? product.coverImage
+          : null;
+
+      const hoverImage =
+        typeof product.hoverImage === "string" &&
+        product.hoverImage.length > 0 &&
+        product.hoverImage !== coverImage
+          ? product.hoverImage
+          : null;
+
+      const lightweightImages = [coverImage, hoverImage].filter(
+        (image): image is string => typeof image === "string"
+      );
+
+      const fallbackImages = Array.isArray(product.images)
         ? product.images.filter((image): image is string => typeof image === "string")
         : [];
 
-      const variants = Array.isArray(product.variants)
+      const images = lightweightImages.length > 0 ? lightweightImages : fallbackImages;
+
+      const fallbackVariants = Array.isArray(product.variants)
         ? product.variants
             .map((variant): { price: number } | null => {
               if (
@@ -108,14 +129,24 @@ export function normalizeProducts(data: unknown): CatalogProduct[] {
             .filter((variant): variant is { price: number } => variant !== null)
         : [];
 
+      const minPrice =
+        typeof product.minPrice === "number"
+          ? product.minPrice
+          : fallbackVariants.length
+            ? Math.min(...fallbackVariants.map((variant) => variant.price))
+            : 0;
+
       return {
         id: product.id,
         title: product.title,
-        brand: product.brand,
-        category: product.category,
+        brand,
+        category,
         audience,
+        status: typeof product.status === "string" ? product.status : null,
         images,
-        variants,
+        variants: fallbackVariants,
+        minPrice,
+        inStock: typeof product.inStock === "boolean" ? product.inStock : undefined,
       };
     })
     .filter((product): product is CatalogProduct => product !== null);
@@ -231,7 +262,7 @@ export function buildCatalogQuery(params: {
 
   if (params.sort) {
     searchParams.set("sort", params.sort);
-}
+  }
 
   const query = searchParams.toString();
   return query ? `/catalog?${query}` : "/catalog";

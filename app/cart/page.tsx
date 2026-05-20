@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { API_URL, apiFetch } from "../lib/api";
 import { ensureCartId } from "../lib/auth";
 import { emitCartChanged } from "../lib/cartEvents";
-import { useClientAuth } from "../lib/useClientAuth";
+import { useCurrentUser } from "../lib/useCurrentUser";
 import { mapProductToCarouselProduct } from "../lib/productMappers";
 
 import { ProductCarousel } from "../components/ProductCarousel/ProductCarousel";
@@ -44,7 +44,7 @@ type Product = {
 
 export default function CartPage() {
   const router = useRouter();
-  const isAuth = useClientAuth();
+  const { isAuthenticated: isAuth } = useCurrentUser();
 
   const [items, setItems] = useState<CartItem[]>([]);
   const [recommendations, setRecommendations] = useState<Product[]>([]);
@@ -106,7 +106,7 @@ export default function CartPage() {
 
     async function loadRecommendations() {
       try {
-        const res = await apiFetch(`${API_URL}/api/products`);
+        const res = await apiFetch(`${API_URL}/api/products/list`);
         if (!res.ok) throw new Error("Failed to load recommendations");
 
         const data: Product[] = await res.json();

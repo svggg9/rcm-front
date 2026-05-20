@@ -1,15 +1,9 @@
-import { getToken } from "./auth";
 import { API_URL } from "./config";
 
 export { API_URL };
 
 export async function apiFetch(url: string, options: RequestInit = {}) {
-  const token = getToken();
   const headers = new Headers(options.headers);
-
-  if (token) {
-    headers.set("Authorization", `Bearer ${token}`);
-  }
 
   const isFormData =
     typeof FormData !== "undefined" && options.body instanceof FormData;
@@ -21,6 +15,26 @@ export async function apiFetch(url: string, options: RequestInit = {}) {
   return fetch(url, {
     ...options,
     headers,
-    credentials: "include", // важно для будущих cookie/refresh
+    credentials: "include",
   });
+}
+
+export async function getSellerOrdersList(params?: {
+  page?: number;
+  size?: number;
+}) {
+  const search = new URLSearchParams();
+
+  search.set("page", String(params?.page ?? 0));
+  search.set("size", String(params?.size ?? 20));
+
+  const response = await apiFetch(
+    `${API_URL}/api/seller/orders/list?${search.toString()}`
+  );
+
+  if (!response.ok) {
+    throw new Error("Не удалось загрузить список заказов");
+  }
+
+  return response.json();
 }

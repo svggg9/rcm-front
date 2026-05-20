@@ -1,5 +1,4 @@
 import { apiFetch, API_URL } from "./api";
-import { getToken } from "./auth";
 
 const GUEST_FAVORITES_KEY = "guest_favorite_ids";
 
@@ -11,7 +10,6 @@ export function getGuestFavoriteIds(): number[] {
     if (!raw) return [];
 
     const parsed = JSON.parse(raw);
-
     if (!Array.isArray(parsed)) return [];
 
     return parsed.filter((x): x is number => typeof x === "number");
@@ -22,11 +20,13 @@ export function getGuestFavoriteIds(): number[] {
 
 export function setGuestFavoriteIds(ids: number[]): void {
   if (typeof window === "undefined") return;
+
   localStorage.setItem(GUEST_FAVORITES_KEY, JSON.stringify(ids));
 }
 
 export function clearGuestFavoriteIds(): void {
   if (typeof window === "undefined") return;
+
   localStorage.removeItem(GUEST_FAVORITES_KEY);
 }
 
@@ -36,17 +36,23 @@ export function isGuestFavorite(productId: number): boolean {
 
 export function addGuestFavorite(productId: number): number[] {
   const ids = getGuestFavoriteIds();
+
   if (ids.includes(productId)) return ids;
 
   const next = [...ids, productId];
+
   setGuestFavoriteIds(next);
+
   return next;
 }
 
 export function removeGuestFavorite(productId: number): number[] {
   const ids = getGuestFavoriteIds();
+
   const next = ids.filter((id) => id !== productId);
+
   setGuestFavoriteIds(next);
+
   return next;
 }
 
@@ -60,54 +66,53 @@ export function toggleGuestFavorite(productId: number): number[] {
   return addGuestFavorite(productId);
 }
 
-/**
- * Добавить в избранное на сервере
- */
+async function hasSession(): Promise<boolean> {
+  const response = await apiFetch(`${API_URL}/api/auth/session`);
+
+  return response.ok;
+}
+
 export async function addFavorite(productId: number): Promise<void> {
-  const token = getToken();
-  if (!token) {
+  const authenticated = await hasSession();
+
+  if (!authenticated) {
     addGuestFavorite(productId);
     return;
   }
 
-  const r = await apiFetch(`${API_URL}/api/favorites/${productId}`, {
+  const response = await apiFetch(`${API_URL}/api/favorites/${productId}`, {
     method: "POST",
   });
 
-  if (!r.ok) {
+  if (!response.ok) {
     throw new Error("favorites add failed");
   }
 }
 
-/**
- * Удалить из избранного на сервере
- */
 export async function removeFavorite(productId: number): Promise<void> {
-  const token = getToken();
-  if (!token) {
+  const authenticated = await hasSession();
+
+  if (!authenticated) {
     removeGuestFavorite(productId);
     return;
   }
 
-  const r = await apiFetch(`${API_URL}/api/favorites/${productId}`, {
+  const response = await apiFetch(`${API_URL}/api/favorites/${productId}`, {
     method: "DELETE",
   });
 
-  if (!r.ok) {
+  if (!response.ok) {
     throw new Error("favorites remove failed");
   }
 }
 
-/**
- * Переключить состояние
- */
 export async function toggleFavorite(
   productId: number,
   isFav: boolean
 ): Promise<void> {
-  const token = getToken();
+  const authenticated = await hasSession();
 
-  if (!token) {
+  if (!authenticated) {
     toggleGuestFavorite(productId);
     return;
   }
@@ -119,13 +124,12 @@ export async function toggleFavorite(
   return addFavorite(productId);
 }
 
-/**
- * Синхронизация guest favorites после логина
- */
 export async function syncFavoritesAfterLogin(ids: number[]): Promise<void> {
-  const token = getToken();
-  if (!token) return;
   if (!ids.length) return;
+
+  const authenticated = await hasSession();
+
+  if (!authenticated) return;
 
   const uniqueIds = Array.from(new Set(ids)).filter(
     (x): x is number => typeof x === "number"
@@ -133,12 +137,12 @@ export async function syncFavoritesAfterLogin(ids: number[]): Promise<void> {
 
   if (!uniqueIds.length) return;
 
-  const r = await apiFetch(`${API_URL}/api/favorites/sync`, {
+  const response = await apiFetch(`${API_URL}/api/favorites/sync`, {
     method: "POST",
     body: JSON.stringify({ ids: uniqueIds }),
   });
 
-  if (!r.ok) {
+  if (!response.ok) {
     throw new Error("favorites sync failed");
   }
 }

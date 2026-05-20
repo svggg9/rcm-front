@@ -1,36 +1,79 @@
 import { API_URL } from "../../lib/api";
 
-type ProductVariant = {
-  id: number;
-  size: string;
-  color: string;
-  price: number;
-  quantity: number;
-  sku: string;
-};
-
 export type StorefrontProduct = {
   id: number;
   title: string;
-  description: string;
   brand: string | null;
-  category: string;
+  category: string | null;
   audience?: "MEN" | "WOMEN" | "UNISEX";
   images: string[];
-  variants: ProductVariant[];
+  minPrice: number;
 };
 
+type RawProduct = {
+  id?: unknown;
+  title?: unknown;
+  brand?: unknown;
+  category?: unknown;
+  audience?: unknown;
+  coverImage?: unknown;
+  hoverImage?: unknown;
+  minPrice?: unknown;
+};
+
+function normalizeProducts(data: unknown): StorefrontProduct[] {
+  if (!Array.isArray(data)) return [];
+
+  return data
+    .map((item): StorefrontProduct | null => {
+      const product = item as RawProduct;
+
+      if (typeof product.id !== "number" || typeof product.title !== "string") {
+        return null;
+      }
+
+      const coverImage =
+        typeof product.coverImage === "string" && product.coverImage.length > 0
+          ? product.coverImage
+          : null;
+
+      const hoverImage =
+        typeof product.hoverImage === "string" &&
+        product.hoverImage.length > 0 &&
+        product.hoverImage !== coverImage
+          ? product.hoverImage
+          : null;
+
+      return {
+        id: product.id,
+        title: product.title,
+        brand: typeof product.brand === "string" ? product.brand : null,
+        category: typeof product.category === "string" ? product.category : null,
+        audience:
+          product.audience === "MEN" ||
+          product.audience === "WOMEN" ||
+          product.audience === "UNISEX"
+            ? product.audience
+            : "UNISEX",
+        images: [coverImage, hoverImage].filter(
+          (image): image is string => typeof image === "string"
+        ),
+        minPrice: typeof product.minPrice === "number" ? product.minPrice : 0,
+      };
+    })
+    .filter((product): product is StorefrontProduct => product !== null);
+}
+
 async function fetchProducts(): Promise<StorefrontProduct[]> {
-  const res = await fetch(`${API_URL}/api/products`, {
-    cache: "no-store",
+  const res = await fetch(`${API_URL}/api/products/list`, {
+    next: { revalidate: 120 },
   });
 
   if (!res.ok) {
     throw new Error("Failed to load products");
   }
 
-  const data: StorefrontProduct[] = await res.json();
-  return Array.isArray(data) ? data : [];
+  return normalizeProducts(await res.json());
 }
 
 export async function getLatestProducts(limit = 12): Promise<StorefrontProduct[]> {
@@ -44,9 +87,7 @@ export async function getProductsByBrand(
 ): Promise<StorefrontProduct[]> {
   const products = await fetchProducts();
 
-  return products
-    .filter((product) => product.brand === brand)
-    .slice(0, limit);
+  return products.filter((product) => product.brand === brand).slice(0, limit);
 }
 
 export async function getProductsByCategory(
@@ -55,9 +96,7 @@ export async function getProductsByCategory(
 ): Promise<StorefrontProduct[]> {
   const products = await fetchProducts();
 
-  return products
-    .filter((product) => product.category === category)
-    .slice(0, limit);
+  return products.filter((product) => product.category === category).slice(0, limit);
 }
 
 export async function getRelatedProducts(

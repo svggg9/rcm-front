@@ -5,14 +5,13 @@ import Image from "next/image";
 import { StatusBadge } from "../../components/ui/StatusBadge";
 import styles from "../Account.module.css";
 
-import type { OrderItemPreview } from "../types";
-
 type Props = {
   id: number;
   statusLabel: string;
   dateLabel: string;
   amountLabel: string;
-  items: OrderItemPreview[];
+  firstImageUrl: string | null;
+  itemsCount: number;
   onClick: () => void;
 };
 
@@ -21,11 +20,10 @@ export function AccountOrderCard({
   statusLabel,
   dateLabel,
   amountLabel,
-  items,
+  firstImageUrl,
+  itemsCount,
   onClick,
 }: Props) {
-  const visibleItems = items.slice(0, 3);
-  const hiddenCount = Math.max(items.length - visibleItems.length, 0);
 
   return (
     <button type="button" className={styles.orderPreviewCard} onClick={onClick}>
@@ -39,29 +37,22 @@ export function AccountOrderCard({
       </div>
 
       <div className={styles.orderPreviewImages}>
-        {visibleItems.length > 0 ? (
-          visibleItems.map((item, index) => (
-            <div
-              key={`${item.imageUrl ?? "placeholder"}-${index}`}
-              className={styles.orderImageWrap}
-            >
-              <Image
-                src={item.imageUrl || "/placeholder.png"}
-                alt=""
-                width={52}
-                height={68}
-                className={styles.orderImage}
-              />
-            </div>
-          ))
-        ) : (
-          <div className={styles.orderImageWrap}>
+        <div className={styles.orderImageWrap}>
+          {firstImageUrl ? (
+            <Image
+              src={firstImageUrl}
+              alt=""
+              width={52}
+              height={68}
+              className={styles.orderImage}
+            />
+          ) : (
             <div className={styles.orderImagePlaceholder} />
-          </div>
-        )}
+          )}
+        </div>
 
-        {hiddenCount > 0 ? (
-          <div className={styles.orderMoreItems}>+{hiddenCount}</div>
+        {itemsCount > 1 ? (
+          <div className={styles.orderMoreItems}>+{itemsCount - 1}</div>
         ) : null}
       </div>
 

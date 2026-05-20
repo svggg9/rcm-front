@@ -1,38 +1,19 @@
 import { API_URL } from "../../lib/api";
-import {
-  HomePageData,
-  HomeProduct,
-  ProductShowcaseData,
-} from "../types";
+import { HomePageData, HomeProduct, ProductShowcaseData } from "../types";
 
 type CatalogAudience = "men" | "women" | "all";
 type ProductAudience = "MEN" | "WOMEN" | "UNISEX";
 
-type RawVariant = {
-  price?: unknown;
-};
-
 type RawProduct = {
   id?: unknown;
   title?: unknown;
-  images?: unknown;
   brand?: unknown;
   category?: unknown;
   audience?: unknown;
-  variants?: unknown;
+  coverImage?: unknown;
+  hoverImage?: unknown;
+  minPrice?: unknown;
 };
-
-function resolveMinPrice(item: RawProduct): number {
-  if (!Array.isArray(item.variants) || item.variants.length === 0) {
-    return 0;
-  }
-
-  const prices = item.variants
-    .map((variant) => (variant as RawVariant).price)
-    .filter((price): price is number => typeof price === "number");
-
-  return prices.length > 0 ? Math.min(...prices) : 0;
-}
 
 function normalizeProducts(data: unknown): HomeProduct[] {
   if (!Array.isArray(data)) return [];
@@ -45,6 +26,18 @@ function normalizeProducts(data: unknown): HomeProduct[] {
         return null;
       }
 
+      const coverImage =
+        typeof product.coverImage === "string" && product.coverImage.length > 0
+          ? product.coverImage
+          : null;
+
+      const hoverImage =
+        typeof product.hoverImage === "string" &&
+        product.hoverImage.length > 0 &&
+        product.hoverImage !== coverImage
+          ? product.hoverImage
+          : null;
+
       const audience: ProductAudience =
         product.audience === "MEN" ||
         product.audience === "WOMEN" ||
@@ -55,14 +48,13 @@ function normalizeProducts(data: unknown): HomeProduct[] {
       return {
         id: product.id,
         title: product.title,
-        images: Array.isArray(product.images)
-          ? product.images.filter((image): image is string => typeof image === "string")
-          : [],
+        images: [coverImage, hoverImage].filter(
+          (image): image is string => typeof image === "string"
+        ),
         brand: typeof product.brand === "string" ? product.brand : null,
         category: typeof product.category === "string" ? product.category : null,
         audience,
-        minPrice: resolveMinPrice(product),
-        variants: Array.isArray(product.variants) ? product.variants : [],
+        minPrice: typeof product.minPrice === "number" ? product.minPrice : 0,
       };
     })
     .filter((product): product is HomeProduct => product !== null);
@@ -111,7 +103,7 @@ function fallbackProducts(products: HomeProduct[], count = 4): HomeProduct[] {
 }
 
 function latestProducts(products: HomeProduct[], count = 4): HomeProduct[] {
-  return [...products].slice(-count).reverse();
+  return [...products].slice(0, count);
 }
 
 function buildCatalogHref(params: {
@@ -181,9 +173,7 @@ function buildCategoryShowcase(
   return {
     title: `${category} из новых коллекций`,
     href: buildCatalogHref({ audience, category }),
-    products: categoryProducts.length
-      ? categoryProducts
-      : fallbackProducts(products),
+    products: categoryProducts.length ? categoryProducts : fallbackProducts(products),
   };
 }
 
@@ -202,7 +192,7 @@ export async function getHomePageData(
   audience: CatalogAudience = "all"
 ): Promise<HomePageData> {
   try {
-    const response = await fetch(`${API_URL}/api/products`, {
+    const response = await fetch(`${API_URL}/api/products/list`, {
       next: { revalidate: 120 },
     });
 

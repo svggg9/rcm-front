@@ -50,10 +50,10 @@ function RegisterPageContent() {
         throw new Error(text || "Регистрация успешна, но вход не выполнен");
       }
 
-      const data: { token: string; cartId: string } = await loginResponse.json();
+      const data: { cartId: string } = await loginResponse.json();
       const guestFavoriteIds = getGuestFavoriteIds();
 
-      setAuth(data.token, data.cartId);
+      setAuth(data.cartId);
 
       if (guestFavoriteIds.length > 0) {
         await syncFavoritesAfterLogin(guestFavoriteIds);

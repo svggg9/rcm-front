@@ -2,11 +2,11 @@
 
 import styles from "../Seller.module.css";
 
-import type { SellerOrder } from "../types";
+import type { SellerOrderListItem } from "../types";
 import { StatusBadge } from "../../components/ui/StatusBadge";
 
 type Props = {
-  order: SellerOrder;
+  order: SellerOrderListItem;
   shipping: boolean;
   canShip: boolean;
   statusLabel: string;
@@ -22,8 +22,6 @@ export function SellerOrderCard({
   onShip,
   onOpen,
 }: Props) {
-  const itemsCount = order.items.reduce((sum, item) => sum + item.quantity, 0);
-  const firstItem = order.items[0];
 
   return (
     <article className={styles.orderRow}>
@@ -45,13 +43,12 @@ export function SellerOrderCard({
           <span>•</span>
           <span>{order.recipientName}</span>
           <span>•</span>
-          <span>{itemsCount} шт.</span>
+          <span>{order.itemsCount} шт.</span>
         </div>
 
-        {firstItem ? (
+        {order.firstProductTitle ? (
           <div className={styles.orderProductLine}>
-            {firstItem.productTitle}
-            {order.items.length > 1 ? ` + ещё ${order.items.length - 1}` : ""}
+            {order.firstProductTitle}
           </div>
         ) : null}
       </div>
@@ -82,7 +79,7 @@ export function SellerOrderCard({
   );
 }
 
-function getOrderTone(order: SellerOrder) {
+function getOrderTone(order: SellerOrderListItem) {
   if (order.paymentStatus === "FAILED") return "danger";
   if (order.deliveryStatus === "DELIVERED") return "success";
   if (

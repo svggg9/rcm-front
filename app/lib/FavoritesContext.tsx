@@ -7,8 +7,8 @@ import {
   useEffect,
   useState,
 } from "react";
+
 import { apiFetch, API_URL } from "./api";
-import { getToken } from "./auth";
 import {
   getGuestFavoriteIds,
   addGuestFavorite,
@@ -28,6 +28,11 @@ type FavoritesContextType = {
 
 const FavoritesContext = createContext<FavoritesContextType | null>(null);
 
+async function hasSession() {
+  const response = await apiFetch(`${API_URL}/api/auth/session`);
+  return response.ok;
+}
+
 export function FavoritesProvider({
   children,
 }: {
@@ -36,9 +41,9 @@ export function FavoritesProvider({
   const [favoriteIds, setFavoriteIds] = useState<number[]>([]);
 
   const refresh = useCallback(async () => {
-    const token = getToken();
+    const authenticated = await hasSession();
 
-    if (!token) {
+    if (!authenticated) {
       setFavoriteIds(getGuestFavoriteIds());
       return;
     }
@@ -53,15 +58,16 @@ export function FavoritesProvider({
 
       const data: unknown = await response.json();
 
-      if (Array.isArray(data)) {
-        const ids = data
-          .map((product: FavoriteProduct) => product.id)
-          .filter((id): id is number => typeof id === "number");
-
-        setFavoriteIds(ids);
-      } else {
+      if (!Array.isArray(data)) {
         setFavoriteIds([]);
+        return;
       }
+
+      const ids = data
+        .map((product: FavoriteProduct) => product.id)
+        .filter((id): id is number => typeof id === "number");
+
+      setFavoriteIds(ids);
     } catch {
       setFavoriteIds([]);
     }
@@ -82,10 +88,10 @@ export function FavoritesProvider({
 
   const toggle = useCallback(
     async (id: number) => {
-      const token = getToken();
       const isFav = favoriteIds.includes(id);
+      const authenticated = await hasSession();
 
-      if (!token) {
+      if (!authenticated) {
         const next = isFav
           ? removeGuestFavorite(id)
           : addGuestFavorite(id);
@@ -95,6 +101,7 @@ export function FavoritesProvider({
       }
 
       const method = isFav ? "DELETE" : "POST";
+
       const response = await apiFetch(`${API_URL}/api/favorites/${id}`, {
         method,
       });

@@ -8,7 +8,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import styles from "./Header.module.css";
 import { apiFetch, API_URL } from "../../lib/api";
 import { useCartCount } from "../../lib/useCartCount";
-import { useClientAuth } from "../../lib/useClientAuth";
+import { useCurrentUser } from "../../lib/useCurrentUser";
 import { useFavorites } from "../../lib/FavoritesContext";
 import { useUserRole } from "../../lib/useUserRole";
 import { useAuthModal } from "../AuthModal/useAuthModal";
@@ -52,7 +52,7 @@ function HeaderContent() {
   const [search, setSearch] = useState(activeSearch);
   const [bannerIndex, setBannerIndex] = useState(0);
 
-  const isAuth = useClientAuth();
+  const { isAuthenticated: isAuth } = useCurrentUser();
   const cartCount = useCartCount();
   const role = useUserRole();
   const { count: favoritesCount } = useFavorites();
@@ -151,7 +151,26 @@ function HeaderContent() {
   const activeBanner = banners[bannerIndex];
 
   return (
-    <header className={styles.header}>
+    <header
+        className={styles.header}
+        ref={(node) => {
+          if (!node) return;
+
+          const update = () => {
+            document.documentElement.style.setProperty(
+            "--site-header-height",
+            `${Math.ceil(node.getBoundingClientRect().height)}px`
+            );
+          };
+
+          update();
+
+          const observer = new ResizeObserver(update);
+          observer.observe(node);
+
+          return () => observer.disconnect();
+        }}
+      >
       <div className={styles.banner}>
         <div className={styles.inner}>
           <div className={styles.bannerText}>

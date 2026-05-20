@@ -4,14 +4,14 @@ import { SellerOrderCard } from "./SellerOrderCard";
 import styles from "../Seller.module.css";
 import { EmptyState } from "../../components/ui/EmptyState";
 
-import type { SellerOrder } from "../types";
+import type { SellerOrderListItem } from "../types";
 
 type Props = {
-  orders: SellerOrder[];
+  orders: SellerOrderListItem[];
   refreshing: boolean;
   shippingId: number | null;
-  buildSellerStatusLabel: (order: SellerOrder) => string;
-  canShipOrder: (order: SellerOrder) => boolean;
+  buildSellerStatusLabel: (order: SellerOrderListItem) => string;
+  canShipOrder: (order: SellerOrderListItem) => boolean;
   onRefresh: () => void;
   onShip: (orderId: number) => void;
   onOpenOrder: (orderId: number) => void;

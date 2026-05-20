@@ -21,10 +21,7 @@
 }
 
 .createLayout {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 260px;
-  gap: 40px;
-  align-items: start;
+  display: block;
 }
 
 .detailsLayout,
@@ -349,6 +346,7 @@
   background: var(--soft);
   border: 1px solid var(--line);
   overflow: hidden;
+  position: relative;
 }
 
 .orderItemImage,
@@ -801,8 +799,6 @@
 
 .createContent {
   min-width: 0;
-  grid-column: 1;
-  grid-row: 1;
   display: flex;
   flex-direction: column;
 }

@@ -2,55 +2,28 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
+import Image from "next/image";
 
-import { apiFetch, API_URL } from "../../lib/api";
 import styles from "../Seller.module.css";
 import { EmptyState } from "../../components/ui/EmptyState";
 import { StatusBadge } from "../../components/ui/StatusBadge";
-import Image from "next/image";
 
-type SellerProductVariant = {
-  id: number;
-  size: string;
-  color: string;
-  price: number;
-  availableQuantity: number | null;
-  sku: string;
-  stockTrackingEnabled?: boolean;
-};
-
-type SellerProduct = {
-  id: number;
-  title: string;
-  description: string;
-  brand: string | null;
-  category: string | null;
-  audience?: "MEN" | "WOMEN" | "UNISEX";
-  status?: "DRAFT" | "MODERATION" | "ACTIVE" | "ARCHIVED" | "BLOCKED";
-  variants: SellerProductVariant[];
-  images: string[];
-};
+import type { SellerProductListItem } from "../types";
 
 type Props = {
-  products: SellerProduct[];
+  products: SellerProductListItem[];
   loading: boolean;
   refreshing: boolean;
   onRefresh: () => void;
 };
 
-type ProductFilter = "ALL" | "ACTIVE" | "DRAFT" | "UNLIMITED";
+type ProductFilter = "ALL" | "ACTIVE" | "DRAFT";
 
-export function SellerProductsTab({
-  products,
-  loading,
-}: Props) {
+export function SellerProductsTab({ products, loading }: Props) {
   const [filter, setFilter] = useState<ProductFilter>("ALL");
 
   const activeCount = products.filter((product) => product.status === "ACTIVE").length;
   const draftCount = products.filter((product) => product.status === "DRAFT").length;
-  const unlimitedCount = products.filter((product) =>
-    product.variants.some((variant) => variant.stockTrackingEnabled === false)
-  ).length;
 
   const filteredProducts = useMemo(() => {
     if (filter === "ACTIVE") {
@@ -59,12 +32,6 @@ export function SellerProductsTab({
 
     if (filter === "DRAFT") {
       return products.filter((product) => product.status === "DRAFT");
-    }
-
-    if (filter === "UNLIMITED") {
-      return products.filter((product) =>
-        product.variants.some((variant) => variant.stockTrackingEnabled === false)
-      );
     }
 
     return products;
@@ -105,13 +72,6 @@ export function SellerProductsTab({
           label="Черновики"
           value={draftCount}
           onClick={() => setFilter("DRAFT")}
-        />
-
-        <FilterButton
-          active={filter === "UNLIMITED"}
-          label="Без учета остатков"
-          value={unlimitedCount}
-          onClick={() => setFilter("UNLIMITED")}
         />
       </div>
 
@@ -171,24 +131,25 @@ function FilterButton({
   );
 }
 
-function ProductRow({ product }: { product: SellerProduct }) {
+function ProductRow({ product }: { product: SellerProductListItem }) {
   const [menuOpen, setMenuOpen] = useState(false);
 
-  const mainImage = product.images?.[0] ?? null;
-  const firstVariant = product.variants?.[0] ?? null;
-
-  const [price, setPrice] = useState(firstVariant?.price ?? 0);
-  const [quantity, setQuantity] = useState(firstVariant?.availableQuantity ?? 0);
-
-  const hasUnlimitedStock = product.variants.some(
-    (variant) => variant.stockTrackingEnabled === false
-  );
+  const mainImage = product.coverImage;
+  const minPrice = product.minPrice ?? 0;
+  const totalStock = product.totalStock ?? 0;
+  const variantsCount = product.variantsCount ?? 0;
 
   return (
     <article className={styles.productRow}>
       <div className={styles.productImageBox}>
         {mainImage ? (
-          <Image src={mainImage} alt={product.title} className={styles.productImage} />
+          <Image
+            src={mainImage}
+            alt={product.title}
+            className={styles.productImage}
+            width={160}
+            height={200}
+          />
         ) : (
           <div className={styles.productImagePlaceholder}>Изображение отсутствует</div>
         )}
@@ -203,62 +164,34 @@ function ProductRow({ product }: { product: SellerProduct }) {
         </div>
 
         <div className={styles.productMeta}>
-          <span>SKU: {firstVariant?.sku || "не заполнен"}</span>
+          <span>ID: {product.id}</span>
           <span>•</span>
-          <span>{product.category || "Категория не определена"}</span>
+          <span>{product.categoryName || "Категория не определена"}</span>
           <span>•</span>
-          <span>{product.brand || "Бренд не указан"}</span>
+          <span>{product.brandName || "Бренд не указан"}</span>
         </div>
 
         <div className={styles.productTags}>
-          <span>{formatAudience(product.audience)}</span>
-          <span>{product.variants.length} вариант(ов)</span>
-          <span>{hasUnlimitedStock ? "∞ Без учета остатков" : "Остатки включены"}</span>
+          <span>{variantsCount} вариант(ов)</span>
+          <span>Остаток: {Number(totalStock).toLocaleString()}</span>
         </div>
       </div>
 
       <div className={styles.productRightSide}>
         <div className={styles.productInlineFields}>
-          <InlineEditableNumber
-            label="Цена, ₽"
-            value={price}
-            onChange={setPrice}
-            onCommit={(value) => {
-              if (!firstVariant?.id) return;
-
-              void apiFetch(`${API_URL}/api/seller/products/${product.id}/variants/bulk`, {
-                method: "PATCH",
-                body: JSON.stringify({ price: value }),
-              }).catch(console.error);
-            }}
-          />
-
-          {hasUnlimitedStock ? (
-            <div className={styles.inlineFieldWrap}>
-              <div className={styles.inlineFieldLabel}>Количество, ед.</div>
-
-              <div className={styles.inlineReadonlyField}>
-                <b>∞</b>
-              </div>
+          <div className={styles.inlineFieldWrap}>
+            <div className={styles.inlineFieldLabel}>Цена от, ₽</div>
+            <div className={styles.inlineReadonlyField}>
+              <b>{Number(minPrice).toLocaleString()}</b>
             </div>
-          ) : (
-            <InlineEditableNumber
-              label="Количество, ед."
-              value={quantity}
-              onChange={setQuantity}
-              onCommit={(value) => {
-                if (!firstVariant?.id) return;
+          </div>
 
-                void apiFetch(
-                  `${API_URL}/api/seller/products/${product.id}/variants/bulk`,
-                  {
-                    method: "PATCH",
-                    body: JSON.stringify({ stockQuantity: value }),
-                  }
-                ).catch(console.error);
-              }}
-            />
-          )}
+          <div className={styles.inlineFieldWrap}>
+            <div className={styles.inlineFieldLabel}>Количество, ед.</div>
+            <div className={styles.inlineReadonlyField}>
+              <b>{Number(totalStock).toLocaleString()}</b>
+            </div>
+          </div>
         </div>
 
         <div className={styles.productActions}>
@@ -304,76 +237,7 @@ function ProductRow({ product }: { product: SellerProduct }) {
   );
 }
 
-function InlineEditableNumber({
-  label,
-  value,
-  onChange,
-  onCommit,
-}: {
-  label: string;
-  value: number;
-  onChange: (value: number) => void;
-  onCommit: (value: number) => void;
-}) {
-  const [editing, setEditing] = useState(false);
-  const [draft, setDraft] = useState(String(value));
-
-  function commit() {
-    const nextValue = Number(draft);
-
-    if (!Number.isFinite(nextValue) || nextValue < 0) {
-      setDraft(String(value));
-      setEditing(false);
-      return;
-    }
-
-    onChange(nextValue);
-    onCommit(nextValue);
-    setEditing(false);
-  }
-
-  return (
-    <div className={styles.inlineFieldWrap}>
-      <div className={styles.inlineFieldLabel}>{label}</div>
-
-      {editing ? (
-        <div className={styles.inlineEditField}>
-          <input
-            autoFocus
-            type="number"
-            value={draft}
-            min={0}
-            onChange={(event) => setDraft(event.target.value)}
-            onBlur={commit}
-            onKeyDown={(event) => {
-              if (event.key === "Enter") {
-                event.currentTarget.blur();
-              }
-
-              if (event.key === "Escape") {
-                setDraft(String(value));
-                setEditing(false);
-              }
-            }}
-          />
-        </div>
-      ) : (
-        <button
-          type="button"
-          className={styles.inlineValueField}
-          onClick={() => {
-            setDraft(String(value));
-            setEditing(true);
-          }}
-        >
-          <b>{Number(value).toLocaleString()}</b>
-        </button>
-      )}
-    </div>
-  );
-}
-
-function getProductStatusTone(status: SellerProduct["status"]) {
+function getProductStatusTone(status: SellerProductListItem["status"]) {
   switch (status) {
     case "ACTIVE":
       return "success";
@@ -387,7 +251,7 @@ function getProductStatusTone(status: SellerProduct["status"]) {
   }
 }
 
-function formatProductStatus(status: SellerProduct["status"]) {
+function formatProductStatus(status: SellerProductListItem["status"]) {
   switch (status) {
     case "DRAFT":
       return "Черновик";
@@ -402,10 +266,4 @@ function formatProductStatus(status: SellerProduct["status"]) {
     default:
       return "Черновик";
   }
-}
-
-function formatAudience(audience?: "MEN" | "WOMEN" | "UNISEX") {
-  if (audience === "MEN") return "Для него";
-  if (audience === "WOMEN") return "Для неё";
-  return "Унисекс";
 }

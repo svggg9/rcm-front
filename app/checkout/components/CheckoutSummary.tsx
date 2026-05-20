@@ -59,6 +59,8 @@ export function CheckoutSummary({
               <Image
                 src={item.imageUrl || "/placeholder-product.png"}
                 alt={item.title}
+                width={64}
+                height={84}
                 className={styles.summaryImage}
               />
 
