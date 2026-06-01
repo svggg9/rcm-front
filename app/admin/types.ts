@@ -1,4 +1,4 @@
-export type AdminTab = "products" | "sellers";
+export type AdminTab = "products" | "sellers" | "dictionaries";
 
 export type ProductStatus =
   | "DRAFT"
@@ -48,3 +48,14 @@ export type AdminSeller = {
   sellerApproved: boolean | null;
   sellerRequested: boolean;
 };
+
+export type DictionaryItem = {
+  id: number;
+  name: string;
+  slug?: string | null;
+  hex?: string | null;
+  sortOrder?: number | null;
+  isActive?: boolean | null;
+};
+
+export type DictionaryKind = "categories" | "brands" | "sizes" | "colors";

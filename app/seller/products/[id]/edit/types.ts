@@ -14,8 +14,11 @@ export type ProductStatus =
 
 export type ProductVariant = {
   id: number | null;
+  sizeId: number | "";
   size: string;
+  colorId: number | "";
   color: string;
+  colorHex?: string | null;
   price: number;
   availableQuantity: number | null;
   sku: string;

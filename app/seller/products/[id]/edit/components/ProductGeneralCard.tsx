@@ -1,4 +1,3 @@
-
 import { SectionHeader } from "./SectionHeader";
 import type { Audience, Option } from "../types";
 import styles from "../ProductEditPage.module.css";
@@ -32,9 +31,15 @@ export function ProductGeneralCard({
   onBrandIdChange,
   onAudienceChange,
 }: Props) {
+  const categoriesEmpty = categories.length === 0;
+  const brandsEmpty = brands.length === 0;
+
   return (
     <section className={styles.card}>
-      <SectionHeader title="Основные данные" hint="Название, категория, бренд и описание." />
+      <SectionHeader
+        title="Основные данные"
+        hint="Название, категория, бренд и описание."
+      />
 
       <div className={styles.formGrid}>
         <label className={styles.fieldFull}>
@@ -42,7 +47,8 @@ export function ProductGeneralCard({
           <input
             value={title}
             onChange={(event) => onTitleChange(event.target.value)}
-            className={styles.select}
+            className={styles.input}
+            placeholder="Например: хлопковая рубашка"
           />
         </label>
 
@@ -54,14 +60,22 @@ export function ProductGeneralCard({
               onCategoryIdChange(event.target.value ? Number(event.target.value) : "")
             }
             className={styles.select}
+            disabled={categoriesEmpty}
           >
-            <option value="">Выбери категорию</option>
+            <option value="">
+              {categoriesEmpty ? "Категории не найдены" : "Выберите категорию"}
+            </option>
+
             {categories.map((category) => (
               <option key={category.id} value={category.id}>
                 {category.name}
               </option>
             ))}
           </select>
+
+          {categoriesEmpty ? (
+            <small>Сначала добавьте категории в админке.</small>
+          ) : null}
         </label>
 
         <label className={styles.field}>
@@ -72,25 +86,33 @@ export function ProductGeneralCard({
               onBrandIdChange(event.target.value ? Number(event.target.value) : "")
             }
             className={styles.select}
+            disabled={brandsEmpty}
           >
-            <option value="">Выбери бренд</option>
+            <option value="">
+              {brandsEmpty ? "Бренды не найдены" : "Выберите бренд"}
+            </option>
+
             {brands.map((brand) => (
               <option key={brand.id} value={brand.id}>
                 {brand.name}
               </option>
             ))}
           </select>
+
+          {brandsEmpty ? (
+            <small>Сначала добавьте бренды в админке.</small>
+          ) : null}
         </label>
 
         <label className={styles.field}>
-          <span>Для кого</span>
+          <span>Аудитория</span>
           <select
             value={audience}
             onChange={(event) => onAudienceChange(event.target.value as Audience)}
             className={styles.select}
           >
-            <option value="MEN">Для него</option>
-            <option value="WOMEN">Для неё</option>
+            <option value="MEN">Мужское</option>
+            <option value="WOMEN">Женское</option>
             <option value="UNISEX">Унисекс</option>
           </select>
         </label>
@@ -103,6 +125,7 @@ export function ProductGeneralCard({
             className={styles.textarea}
             rows={8}
             maxLength={6000}
+            placeholder="Материал, посадка, особенности, рекомендации по уходу."
           />
           <small>{description.length}/6000</small>
         </label>

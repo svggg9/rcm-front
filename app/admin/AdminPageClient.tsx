@@ -9,6 +9,7 @@ import { AdminSidebar } from "./components/AdminSidebar";
 import { AdminProductsTab } from "./components/AdminProductsTab";
 import { AdminProductDetails } from "./components/AdminProductDetails";
 import { AdminSellersTab } from "./components/AdminSellersTab";
+import { AdminDictionariesTab } from "./components/AdminDictionariesTab";
 
 import {
   approveProduct,
@@ -19,6 +20,10 @@ import {
   getAdminSellers,
   rejectSeller,
   unblockProduct,
+  createAdminDictionaryItem,
+  deleteAdminDictionaryItem,
+  getAdminDictionary,
+  updateAdminDictionaryItem,
 } from "./lib/adminApi";
 
 import type {
@@ -27,10 +32,14 @@ import type {
   AdminTab,
   ProductStatus,
   SellerFilter,
+  DictionaryItem,
+  DictionaryKind,
 } from "./types";
 
 function normalizeTab(raw: string | null): AdminTab {
-  return raw === "sellers" ? "sellers" : "products";
+  if (raw === "sellers") return "sellers";
+  if (raw === "dictionaries") return "dictionaries";
+  return "products";
 }
 
 function AdminPageContent() {
@@ -52,6 +61,12 @@ function AdminPageContent() {
 
   const [sellers, setSellers] = useState<AdminSeller[]>([]);
   const [totalSellers, setTotalSellers] = useState(0);
+
+  const [categories, setCategories] = useState<DictionaryItem[]>([]);
+  const [brands, setBrands] = useState<DictionaryItem[]>([]);
+  const [sizes, setSizes] = useState<DictionaryItem[]>([]);
+  const [colors, setColors] = useState<DictionaryItem[]>([]);
+  const [dictionaryActionKey, setDictionaryActionKey] = useState<string | null>(null);
 
   const [loading, setLoading] = useState(true);
   const [detailsLoading, setDetailsLoading] = useState(false);
@@ -81,6 +96,35 @@ function AdminPageContent() {
       setRefreshing(false);
     }
   }, [currentStatus]);
+
+  const loadDictionaries = useCallback(async (options?: { silent?: boolean }) => {
+  const silent = options?.silent ?? false;
+
+  if (silent) setRefreshing(true);
+  else setLoading(true);
+
+  setError(null);
+
+  try {
+    const [categoriesData, brandsData, sizesData, colorsData] =
+      await Promise.all([
+        getAdminDictionary("categories"),
+        getAdminDictionary("brands"),
+        getAdminDictionary("sizes"),
+        getAdminDictionary("colors"),
+      ]);
+
+    setCategories(categoriesData);
+    setBrands(brandsData);
+    setSizes(sizesData);
+    setColors(colorsData);
+  } catch (e) {
+    setError(e instanceof Error ? e.message : "Не удалось загрузить справочники");
+  } finally {
+    setLoading(false);
+    setRefreshing(false);
+  }
+}, []);
 
   const loadSellers = useCallback(async (options?: { silent?: boolean }) => {
     const silent = options?.silent ?? false;
@@ -119,10 +163,16 @@ function AdminPageContent() {
   useEffect(() => {
     if (currentTab === "products") {
       void loadProducts();
-    } else {
-      void loadSellers();
+      return;
     }
-  }, [currentTab, loadProducts, loadSellers]);
+
+    if (currentTab === "sellers") {
+      void loadSellers();
+      return;
+    }
+
+    void loadDictionaries();
+  }, [currentTab, loadProducts, loadSellers, loadDictionaries]);
 
   useEffect(() => {
     if (currentTab !== "products" || !selectedProductId) {
@@ -156,6 +206,55 @@ function AdminPageContent() {
 
   function closeProductDetails() {
     router.push(`/admin?tab=products&status=${currentStatus}`);
+  }
+
+  async function createDictionaryItem(
+  kind: DictionaryKind,
+  item: Partial<DictionaryItem>
+) {
+  setDictionaryActionKey(`${kind}:create`);
+  setError(null);
+
+  try {
+    await createAdminDictionaryItem(kind, item);
+    await loadDictionaries({ silent: true });
+  } catch (e) {
+    setError(e instanceof Error ? e.message : "Не удалось создать значение");
+  } finally {
+    setDictionaryActionKey(null);
+  }
+  }
+
+  async function updateDictionaryItem(
+    kind: DictionaryKind,
+    id: number,
+    item: Partial<DictionaryItem>
+  ) {
+    setDictionaryActionKey(`${kind}:${id}`);
+    setError(null);
+
+    try {
+      await updateAdminDictionaryItem(kind, id, item);
+      await loadDictionaries({ silent: true });
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Не удалось обновить значение");
+    } finally {
+      setDictionaryActionKey(null);
+    }
+  }
+
+  async function deleteDictionaryItem(kind: DictionaryKind, id: number) {
+    setDictionaryActionKey(`${kind}:${id}`);
+    setError(null);
+
+    try {
+      await deleteAdminDictionaryItem(kind, id);
+      await loadDictionaries({ silent: true });
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Не удалось выключить значение");
+    } finally {
+      setDictionaryActionKey(null);
+    }
   }
 
   async function runProductAction(
@@ -219,7 +318,18 @@ function AdminPageContent() {
           <main className={styles.content}>
             {error ? <div className={styles.error}>{error}</div> : null}
 
-            {currentTab === "sellers" ? (
+            {currentTab === "dictionaries" ? (
+          <AdminDictionariesTab
+            categories={categories}
+            brands={brands}
+            sizes={sizes}
+            colors={colors}
+            actionKey={dictionaryActionKey}
+            onCreate={(kind, item) => void createDictionaryItem(kind, item)}
+            onUpdate={(kind, id, item) => void updateDictionaryItem(kind, id, item)}
+            onDelete={(kind, id) => void deleteDictionaryItem(kind, id)}
+          />
+        ) : currentTab === "sellers" ? (
               <AdminSellersTab
                 sellers={sellers}
                 filter={currentSellerFilter}

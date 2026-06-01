@@ -1,69 +1,123 @@
+"use client";
+
+import { useState } from "react";
+import Image from "next/image";
 
 import { SectionHeader } from "./SectionHeader";
 import type { ProductImageItem } from "../types";
 import styles from "../ProductEditPage.module.css";
-import Image from "next/image";
+
+type UploadProgress = {
+  done: number;
+  total: number;
+};
 
 type Props = {
   images: ProductImageItem[];
-  selectedFiles: File[];
   uploading: boolean;
   reordering: boolean;
   dragImageId: number | null;
+  uploadProgress: UploadProgress;
   onFilesChange: (files: File[]) => void;
-  onUploadImages: () => void;
+  onUploadImages: (files: File[]) => void;
   onDragImageStart: (imageId: number) => void;
   onDragImageEnd: () => void;
   onMoveImage: (imageId: number) => void;
   onDeleteImage: (imageId: number) => void;
+  onMoveImageByIndex: (fromIndex: number, toIndex: number) => void;
 };
 
 export function ProductImagesCard({
   images,
-  selectedFiles,
   uploading,
   reordering,
   dragImageId,
+  uploadProgress,
   onFilesChange,
   onUploadImages,
   onDragImageStart,
   onDragImageEnd,
   onMoveImage,
   onDeleteImage,
+  onMoveImageByIndex,
 }: Props) {
+  const [dragActive, setDragActive] = useState(false);
+
+  function uploadFiles(files: File[]) {
+    const imageFiles = files.filter((file) => file.type.startsWith("image/"));
+
+    if (imageFiles.length === 0 || uploading) {
+      return;
+    }
+
+    onFilesChange(imageFiles);
+    onUploadImages(imageFiles);
+  }
+
   return (
     <section className={styles.card}>
       <SectionHeader
         title="Изображения"
-        hint="Первое фото будет главным. Перетащи фото, чтобы поменять порядок."
+        hint="Первое фото будет главным. Можно выбрать несколько файлов или перетащить их в область загрузки."
       />
 
-      <div className={styles.uploadPanel}>
+      <div
+        className={`${styles.dropZone} ${dragActive ? styles.dropZoneActive : ""}`}
+        onDragEnter={(event) => {
+          event.preventDefault();
+          setDragActive(true);
+        }}
+        onDragOver={(event) => {
+          event.preventDefault();
+          setDragActive(true);
+        }}
+        onDragLeave={(event) => {
+          event.preventDefault();
+          setDragActive(false);
+        }}
+        onDrop={(event) => {
+          event.preventDefault();
+          setDragActive(false);
+          uploadFiles(Array.from(event.dataTransfer.files));
+        }}
+      >
+        <div>
+          <strong>{uploading ? "Загружаем фото…" : "Перетащи фото сюда"}</strong>
+          <span>
+            {uploading
+              ? `${uploadProgress.done} из ${uploadProgress.total}`
+              : "JPG, PNG, WEBP. Можно выбрать сразу несколько файлов."}
+          </span>
+        </div>
+
         <label className={styles.filePicker}>
           <input
             type="file"
             accept="image/*"
             multiple
-            onChange={(event) => onFilesChange(Array.from(event.target.files ?? []))}
+            disabled={uploading}
+            onChange={(event) => {
+              uploadFiles(Array.from(event.target.files ?? []));
+              event.target.value = "";
+            }}
           />
-          <span>
-            {selectedFiles.length
-              ? `Выбрано файлов: ${selectedFiles.length}`
-              : "Выбрать фото"}
-          </span>
+          <span>{uploading ? "Загрузка…" : "Выбрать фото"}</span>
         </label>
-
-        <button
-          type="button"
-          onClick={onUploadImages}
-          disabled={uploading || selectedFiles.length === 0}
-          className={styles.primaryBtn}
-        >
-          {uploading ? "Загружаем…" : "Загрузить"}
-        </button>
-
-        {reordering ? <span className={styles.muted}>Сохраняем порядок…</span> : null}
       </div>
+
+      {uploading && uploadProgress.total > 0 ? (
+        <div className={styles.progressTrack}>
+          <div
+            style={{
+              width: `${Math.round(
+                (uploadProgress.done / uploadProgress.total) * 100
+              )}%`,
+            }}
+          />
+        </div>
+      ) : null}
+
+      {reordering ? <span className={styles.muted}>Сохраняем порядок…</span> : null}
 
       {images.length === 0 ? (
         <div className={styles.emptyBox}>Фото пока нет.</div>
@@ -72,7 +126,7 @@ export function ProductImagesCard({
           {images.map((image, index) => (
             <div
               key={image.id}
-              draggable
+              draggable={!reordering}
               onDragStart={() => onDragImageStart(image.id)}
               onDragOver={(event) => event.preventDefault()}
               onDrop={() => onMoveImage(image.id)}
@@ -89,15 +143,38 @@ export function ProductImagesCard({
                 className={styles.image}
               />
 
-              <div className={styles.imageMeta}>
-                <span>{index === 0 ? "Главное фото" : `Фото ${index + 1}`}</span>
+              {index === 0 ? (
+                <div className={styles.mainImageBadge}>Главное</div>
+              ) : null}
+
+              <button
+                type="button"
+                onClick={() => onDeleteImage(image.id)}
+                className={styles.imageDeleteBtn}
+                aria-label="Удалить фото"
+              >
+                ×
+              </button>
+
+              <div className={styles.imageControls}>
+                <button
+                  type="button"
+                  onClick={() => onMoveImageByIndex(index, index - 1)}
+                  disabled={index === 0 || reordering}
+                  className={styles.imageMoveBtn}
+                  aria-label="Переместить фото левее"
+                >
+                  ←
+                </button>
 
                 <button
                   type="button"
-                  onClick={() => onDeleteImage(image.id)}
-                  className={styles.dangerTextBtn}
+                  onClick={() => onMoveImageByIndex(index, index + 1)}
+                  disabled={index === images.length - 1 || reordering}
+                  className={styles.imageMoveBtn}
+                  aria-label="Переместить фото правее"
                 >
-                  Удалить
+                  →
                 </button>
               </div>
             </div>

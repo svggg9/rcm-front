@@ -2,6 +2,8 @@ import { API_URL, apiFetch } from "../../lib/api";
 import type {
   AdminProduct,
   AdminSeller,
+  DictionaryItem,
+  DictionaryKind,
   PageResponse,
   ProductStatus,
   SellerFilter,
@@ -112,5 +114,69 @@ export async function rejectSeller(id: number): Promise<void> {
 
   if (!response.ok) {
     throw new Error(await readError(response, "Не удалось отклонить заявку"));
+  }
+}
+
+export async function getAdminDictionary(
+  kind: DictionaryKind
+): Promise<DictionaryItem[]> {
+  const response = await apiFetch(`${API_URL}/api/admin/dictionaries/${kind}`);
+
+  if (!response.ok) {
+    throw new Error(await readError(response, "Не удалось загрузить справочник"));
+  }
+
+  return response.json();
+}
+
+export async function createAdminDictionaryItem(
+  kind: DictionaryKind,
+  item: Partial<DictionaryItem>
+): Promise<DictionaryItem> {
+  const response = await apiFetch(`${API_URL}/api/admin/dictionaries/${kind}`, {
+    method: "POST",
+    body: JSON.stringify(item),
+  });
+
+  if (!response.ok) {
+    throw new Error(await readError(response, "Не удалось создать значение"));
+  }
+
+  return response.json();
+}
+
+export async function updateAdminDictionaryItem(
+  kind: DictionaryKind,
+  id: number,
+  item: Partial<DictionaryItem>
+): Promise<DictionaryItem> {
+  const response = await apiFetch(
+    `${API_URL}/api/admin/dictionaries/${kind}/${id}`,
+    {
+      method: "PUT",
+      body: JSON.stringify(item),
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error(await readError(response, "Не удалось обновить значение"));
+  }
+
+  return response.json();
+}
+
+export async function deleteAdminDictionaryItem(
+  kind: DictionaryKind,
+  id: number
+): Promise<void> {
+  const response = await apiFetch(
+    `${API_URL}/api/admin/dictionaries/${kind}/${id}`,
+    {
+      method: "DELETE",
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error(await readError(response, "Не удалось отключить значение"));
   }
 }
