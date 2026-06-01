@@ -31,6 +31,11 @@ export function AdminSidebar({
           active: currentTab === "sellers",
           count: sellersCount,
         },
+        {
+          href: "/admin?tab=dictionaries",
+          label: "Справочники",
+          active: currentTab === "dictionaries",
+        },
       ]}
     />
   );

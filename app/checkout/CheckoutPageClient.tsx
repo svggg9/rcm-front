@@ -74,6 +74,7 @@ function CheckoutPageContent() {
   const [error, setError] = useState<string | null>(null);
 
   const submitLockRef = useRef(false);
+  const [draftHydrated, setDraftHydrated] = useState(false);
 
   const checkoutSnapshotRef = useRef({
     email: "",
@@ -133,24 +134,23 @@ function CheckoutPageContent() {
   useEffect(() => {
     const draft = loadCheckoutDraft();
 
-    if (!draft) return;
+    if (draft) {
+      setEmail(draft.email);
+      setFullName(draft.fullName);
+      setPhone(draft.phone);
+      setDeliveryMethod(draft.deliveryMethod);
+      setSelectedAddressId(draft.selectedAddressId);
+      setDeliveryAddress(draft.deliveryAddress);
+      setComment(draft.comment);
+      setPaymentMethod(draft.paymentMethod);
+    }
 
-    setEmail(draft.email);
-    setFullName(draft.fullName);
-    setPhone(draft.phone);
-
-    setDeliveryMethod(draft.deliveryMethod);
-
-    setSelectedAddressId(draft.selectedAddressId);
-
-    setDeliveryAddress(draft.deliveryAddress);
-
-    setComment(draft.comment);
-
-    setPaymentMethod(draft.paymentMethod);
+    setDraftHydrated(true);
   }, []);
 
   useEffect(() => {
+    if (!draftHydrated) return;
+
     saveCheckoutDraft({
       email,
       fullName,
@@ -162,6 +162,7 @@ function CheckoutPageContent() {
       paymentMethod,
     });
   }, [
+    draftHydrated,
     email,
     fullName,
     phone,
@@ -416,15 +417,17 @@ function CheckoutPageContent() {
     try {
       const payload: CheckoutRequest = {
         cartId,
-
         recipientName: fullName.trim(),
-
         recipientPhone: phone.trim(),
-
+        recipientEmail: email.trim(),
         deliveryAddress: deliveryAddress.trim(),
-
         deliveryMethod,
-
+        pickupPointId:
+          deliveryMethod === "PICKUP"
+            ? selectedAddressId || undefined
+            : undefined,
+        deliveryPriceAmount: deliveryPrice,
+        deliveryCurrency: "RUB",
         comment: comment.trim() || undefined,
       };
 
@@ -585,9 +588,26 @@ function CheckoutPageContent() {
                 }
                 onEdit={editContact}
                 onConfirm={handleConfirmContact}
-                onEmailChange={setEmail}
-                onFullNameChange={setFullName}
-                onPhoneChange={setPhone}
+                onEmailChange={(value) => {
+                  setEmail(value);
+                  setContactConfirmed(false);
+                  setDeliveryConfirmed(false);
+                  setPaymentConfirmed(false);
+                }}
+
+                onFullNameChange={(value) => {
+                  setFullName(value);
+                  setContactConfirmed(false);
+                  setDeliveryConfirmed(false);
+                  setPaymentConfirmed(false);
+                }}
+
+                onPhoneChange={(value) => {
+                  setPhone(value);
+                  setContactConfirmed(false);
+                  setDeliveryConfirmed(false);
+                  setPaymentConfirmed(false);
+                }}
               />
 
               <CheckoutDeliverySection
@@ -610,15 +630,24 @@ function CheckoutPageContent() {
                 onConfirm={
                   handleConfirmDelivery
                 }
-                onDeliveryMethodChange={
-                  setDeliveryMethod
-                }
-                onAddressChange={
-                  setSelectedAddressId
-                }
-                onDeliveryAddressChange={
-                  setDeliveryAddress
-                }
+                onDeliveryMethodChange={(value) => {
+                  setDeliveryMethod(value);
+                  setDeliveryConfirmed(false);
+                  setPaymentConfirmed(false);
+                }}
+
+                onAddressChange={(value) => {
+                  setSelectedAddressId(value);
+                  setDeliveryConfirmed(false);
+                  setPaymentConfirmed(false);
+                }}
+
+                onDeliveryAddressChange={(value) => {
+                  setDeliveryAddress(value);
+                  setDeliveryConfirmed(false);
+                  setPaymentConfirmed(false);
+                }}
+
                 onCommentChange={setComment}
               />
 
@@ -637,9 +666,10 @@ function CheckoutPageContent() {
                 onConfirm={
                   handleConfirmPayment
                 }
-                onPaymentMethodChange={
-                  setPaymentMethod
-                }
+                onPaymentMethodChange={(value) => {
+                  setPaymentMethod(value);
+                  setPaymentConfirmed(false);
+                }}
               />
 
               {error ? (

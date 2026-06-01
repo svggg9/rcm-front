@@ -13,14 +13,14 @@ export type CreateProductReq = {
   categoryId: number;
   brandId: number;
   audience: Audience;
-  variants: Array<{
-    size: string;
-    color: string;
+  variants: {
+    sizeId: number;
+    colorId: number;
     price: number;
     quantity: number | null;
     sku: string;
     stockTrackingEnabled: boolean;
-  }>;
+  }[];
 };
 
 export type SellerOrderStatus = "NEW" | "CONFIRMED" | "CANCELED" | "COMPLETED";
@@ -30,8 +30,11 @@ export type SellerPaymentStatus = "PENDING" | "PAID" | "FAILED" | "CANCELED";
 export type SellerDeliveryStatus =
   | "PENDING"
   | "READY_FOR_SHIPMENT"
+  | "READY_FOR_PICKUP"
   | "IN_TRANSIT"
-  | "DELIVERED";
+  | "DELIVERED"
+  | "RETURNED"
+  | "CANCELLED";
 
 export type SellerOrderItem = {
   productId: number;

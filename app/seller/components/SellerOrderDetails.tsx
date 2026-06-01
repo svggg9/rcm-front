@@ -1,10 +1,12 @@
 "use client";
 
+import Image from "next/image";
+
+import { StatusBadge } from "../../components/ui/StatusBadge";
 import styles from "../Seller.module.css";
+import { apiFetch, API_URL } from "../../lib/api";
 
 import type { SellerOrder } from "../types";
-import { StatusBadge } from "../../components/ui/StatusBadge";
-import Image from "next/image";
 
 type Props = {
   order: SellerOrder;
@@ -29,6 +31,8 @@ export function SellerOrderDetails({
   formatDeliveryStatus,
   buildSellerStatusLabel,
 }: Props) {
+  const labelHref = `/api/seller/orders/${order.id}/delivery-label`;
+
   return (
     <section className={styles.orderDetailsPage}>
       <div className={styles.orderDetailsHeader}>
@@ -38,6 +42,7 @@ export function SellerOrderDetails({
 
         <div>
           <h1 className={styles.sectionTitleNoMargin}>Заказ #{order.id}</h1>
+
           <div className={styles.orderDetailsMeta}>
             <StatusBadge tone={getOrderTone(order)}>
               {buildSellerStatusLabel(order)}
@@ -67,14 +72,12 @@ export function SellerOrderDetails({
                 <article key={`${item.sku}-${index}`} className={styles.orderItemRow}>
                   <div className={styles.orderItemImageWrap}>
                     {item.imageUrl ? (
-                    <div className={styles.orderItemImageWrap}>
                       <Image
                         src={item.imageUrl}
                         alt={item.productTitle}
                         fill
                         className={styles.orderItemImage}
                       />
-                    </div>
                     ) : (
                       <div className={styles.orderItemImagePlaceholder} />
                     )}
@@ -135,7 +138,10 @@ export function SellerOrderDetails({
               <div className={styles.orderInfoGrid}>
                 <InfoRow label="Номер" value={`#${order.id}`} />
                 <InfoRow label="Группа" value={String(order.orderGroupId)} />
-                <InfoRow label="Создан" value={new Date(order.createdAt).toLocaleString("ru-RU")} />
+                <InfoRow
+                  label="Создан"
+                  value={new Date(order.createdAt).toLocaleString("ru-RU")}
+                />
               </div>
             </section>
 
@@ -171,6 +177,32 @@ export function SellerOrderDetails({
                   Для текущего статуса отправка недоступна
                 </div>
               )}
+
+              <a
+                href={labelHref}
+                className={styles.secondaryBtn}
+                target="_blank"
+                rel="noreferrer"
+              >
+                Скачать ярлык
+              </a>
+
+              <button
+                type="button"
+                className={styles.secondaryBtn}
+                onClick={async () => {
+                  await apiFetch(
+                    `${API_URL}/api/delivery/shipments/order/${order.id}/sync`,
+                    {
+                      method: "POST",
+                    }
+                  );
+
+                  window.location.reload();
+                }}
+              >
+                Синхронизировать доставку
+              </button>
             </section>
           </div>
         </aside>
@@ -188,11 +220,11 @@ function SummaryItem({ label, value }: { label: string; value: string }) {
   );
 }
 
-function InfoRow({ label, value }: { label: string; value: string }) {
+function InfoRow({ label, value }: { label: string; value: string | null | undefined }) {
   return (
     <div className={styles.orderInfoRow}>
       <span>{label}</span>
-      <strong>{value}</strong>
+      <strong>{value || "—"}</strong>
     </div>
   );
 }
@@ -200,6 +232,7 @@ function InfoRow({ label, value }: { label: string; value: string }) {
 function getOrderTone(order: SellerOrder) {
   if (order.paymentStatus === "FAILED") return "danger";
   if (order.deliveryStatus === "DELIVERED") return "success";
+
   if (
     order.paymentStatus === "PAID" ||
     order.deliveryStatus === "READY_FOR_SHIPMENT" ||

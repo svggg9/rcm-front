@@ -1,14 +1,12 @@
 "use client";
 
-import Link from "next/link";
-
 import styles from "../Seller.module.css";
-import Image from "next/image";
 import { toast } from "sonner";
 
 type Option = {
   id: number;
   name: string;
+  hex?: string | null;
 };
 
 type Audience = "MEN" | "WOMEN" | "UNISEX";
@@ -17,36 +15,46 @@ type Props = {
   categories: Option[];
   brands: Option[];
   loadingLists: boolean;
+
   title: string;
   description: string;
   categoryId: number | "";
   brandId: number | "";
   audience: Audience;
-  size: string;
-  color: string;
+
   price: number;
   quantity: number;
   sku: string;
   submitting: boolean;
-  createdProductId: number | null;
-  file: File | null;
-  uploading: boolean;
-  imageUrl: string | null;
+
   stockTrackingEnabled: boolean;
+
+  sizes: Option[];
+  colors: Option[];
+  sizeId: number | "";
+  colorId: number | "";
+
+  newBrandName: string;
+  creatingBrand: boolean;
+
+  onNewBrandNameChange: (value: string) => void;
+  onCreateBrand: () => void;
+
+  onSizeIdChange: (value: number | "") => void;
+  onColorIdChange: (value: number | "") => void;
   onStockTrackingEnabledChange: (value: boolean) => void;
+
   onTitleChange: (value: string) => void;
   onDescriptionChange: (value: string) => void;
   onCategoryIdChange: (value: number | "") => void;
   onBrandIdChange: (value: number | "") => void;
   onAudienceChange: (value: Audience) => void;
-  onSizeChange: (value: string) => void;
-  onColorChange: (value: string) => void;
+
   onPriceChange: (value: number) => void;
   onQuantityChange: (value: number) => void;
   onSkuChange: (value: string) => void;
-  onFileChange: (value: File | null) => void;
+
   onCreateProduct: () => void;
-  onUploadImage: () => void;
 };
 
 export function SellerProductCreateTab({
@@ -58,82 +66,80 @@ export function SellerProductCreateTab({
   categoryId,
   brandId,
   audience,
-  size,
-  color,
+  sizes,
+  colors,
+  sizeId,
+  colorId,
   price,
   quantity,
   sku,
   submitting,
-  createdProductId,
-  file,
-  uploading,
-  imageUrl,
   stockTrackingEnabled,
+  newBrandName,
+  creatingBrand,
+  onNewBrandNameChange,
+  onCreateBrand,
+  onSizeIdChange,
+  onColorIdChange,
   onStockTrackingEnabledChange,
   onTitleChange,
   onDescriptionChange,
   onCategoryIdChange,
   onBrandIdChange,
   onAudienceChange,
-  onSizeChange,
-  onColorChange,
   onPriceChange,
   onQuantityChange,
   onSkuChange,
-  onFileChange,
   onCreateProduct,
-  onUploadImage,
 }: Props) {
-  const productCreated = Boolean(createdProductId);
-
   function handleCreateProduct() {
-  if (!title.trim()) {
-    toast.error("Введите название товара");
-    return;
-  }
+    if (!title.trim()) {
+      toast.error("Введите название товара");
+      return;
+    }
 
-  if (categoryId === "") {
-    toast.error("Выберите категорию");
-    return;
-  }
+    if (categoryId === "") {
+      toast.error("Выберите категорию");
+      return;
+    }
 
-  if (brandId === "") {
-    toast.error("Выберите бренд");
-    return;
-  }
+    if (brandId === "") {
+      toast.error("Выберите бренд");
+      return;
+    }
 
-  if (!description.trim()) {
-    toast.error("Введите описание товара");
-    return;
-  }
+    if (!description.trim()) {
+      toast.error("Введите описание товара");
+      return;
+    }
 
-  if (!size.trim()) {
-    toast.error("Введите размер");
-    return;
-  }
+    if (sizeId === "") {
+      toast.error("Выберите размер");
+      return;
+    }
 
-  if (!color.trim()) {
-    toast.error("Введите цвет");
-    return;
-  }
+    if (colorId === "") {
+      toast.error("Выберите цвет");
+      return;
+    }
 
-  if (price <= 0) {
-    toast.error("Цена должна быть больше 0");
-    return;
-  }
+    if (price <= 0) {
+      toast.error("Цена должна быть больше 0");
+      return;
+    }
 
-  if (stockTrackingEnabled && quantity <= 0) {
-    toast.error("Количество должно быть больше 0");
-    return;
-  }
+    if (stockTrackingEnabled && quantity <= 0) {
+      toast.error("Количество должно быть больше 0");
+      return;
+    }
 
-  if (!sku.trim()) {
-    toast.error("Введите SKU");
-    return;
-  }
+    if (!sku.trim()) {
+      toast.error("Введите SKU");
+      return;
+    }
 
-  onCreateProduct();
-}
+    onCreateProduct();
+  }
 
   return (
     <div className={styles.createPage}>
@@ -142,19 +148,17 @@ export function SellerProductCreateTab({
           <div className={styles.kicker}>Кабинет продавца</div>
           <h1 className={styles.createTitle}>Добавление товара</h1>
           <p className={styles.createHint}>
-            Заполни базовые данные и создай черновик. После создания лучше перейти
-            в полноценную страницу редактирования, чтобы добавить фото, варианты и габариты.
+            Создай черновик товара. После этого откроется полноценный редактор:
+            фото, варианты, габариты и публикация будут на следующем экране.
           </p>
         </div>
 
         <div className={styles.createStatusCard}>
-          <div className={productCreated ? styles.statusDotDone : styles.statusDot} />
+          <div className={styles.statusDot} />
           <div>
-            <div className={styles.statusTitle}>
-              {productCreated ? "Товар создан" : "Черновик товара"}
-            </div>
+            <div className={styles.statusTitle}>Черновик товара</div>
             <div className={styles.statusSub}>
-              {productCreated ? `ID товара: ${createdProductId}` : "Создай товар, чтобы открыть редактор"}
+              После создания откроется редактор
             </div>
           </div>
         </div>
@@ -185,7 +189,9 @@ export function SellerProductCreateTab({
                   disabled={loadingLists}
                   value={categoryId}
                   onChange={(event) =>
-                    onCategoryIdChange(event.target.value ? Number(event.target.value) : "")
+                    onCategoryIdChange(
+                      event.target.value ? Number(event.target.value) : ""
+                    )
                   }
                   className={styles.createInput}
                 >
@@ -204,7 +210,9 @@ export function SellerProductCreateTab({
                   disabled={loadingLists}
                   value={brandId}
                   onChange={(event) =>
-                    onBrandIdChange(event.target.value ? Number(event.target.value) : "")
+                    onBrandIdChange(
+                      event.target.value ? Number(event.target.value) : ""
+                    )
                   }
                   className={styles.createInput}
                 >
@@ -217,11 +225,31 @@ export function SellerProductCreateTab({
                 </select>
               </label>
 
+              <div className={styles.brandCreateRow}>
+                <input
+                  value={newBrandName}
+                  onChange={(event) => onNewBrandNameChange(event.target.value)}
+                  className={styles.createInput}
+                  placeholder="Добавить свой бренд"
+                />
+
+                <button
+                  type="button"
+                  onClick={onCreateBrand}
+                  disabled={creatingBrand || !newBrandName.trim()}
+                  className={styles.createSecondaryBtn}
+                >
+                  {creatingBrand ? "Добавляем…" : "Добавить"}
+                </button>
+              </div>
+
               <label className={styles.field}>
                 <span>Для кого</span>
                 <select
                   value={audience}
-                  onChange={(event) => onAudienceChange(event.target.value as Audience)}
+                  onChange={(event) =>
+                    onAudienceChange(event.target.value as Audience)
+                  }
                   className={styles.createInput}
                 >
                   <option value="MEN">Для него</option>
@@ -252,22 +280,44 @@ export function SellerProductCreateTab({
             <div className={styles.formGrid}>
               <label className={styles.field}>
                 <span className={styles.required}>Размер</span>
-                <input
-                  value={size}
-                  onChange={(event) => onSizeChange(event.target.value)}
+                <select
+                  disabled={loadingLists}
+                  value={sizeId}
+                  onChange={(event) =>
+                    onSizeIdChange(
+                      event.target.value ? Number(event.target.value) : ""
+                    )
+                  }
                   className={styles.createInput}
-                  placeholder="Например: M, 42, 700C"
-                />
+                >
+                  <option value="">Выбери размер</option>
+                  {sizes.map((size) => (
+                    <option key={size.id} value={size.id}>
+                      {size.name}
+                    </option>
+                  ))}
+                </select>
               </label>
 
               <label className={styles.field}>
                 <span className={styles.required}>Цвет</span>
-                <input
-                  value={color}
-                  onChange={(event) => onColorChange(event.target.value)}
+                <select
+                  disabled={loadingLists}
+                  value={colorId}
+                  onChange={(event) =>
+                    onColorIdChange(
+                      event.target.value ? Number(event.target.value) : ""
+                    )
+                  }
                   className={styles.createInput}
-                  placeholder="Например: белый"
-                />
+                >
+                  <option value="">Выбери цвет</option>
+                  {colors.map((color) => (
+                    <option key={color.id} value={color.id}>
+                      {color.name}
+                    </option>
+                  ))}
+                </select>
               </label>
 
               <label className={styles.field}>
@@ -289,7 +339,9 @@ export function SellerProductCreateTab({
                   <input
                     type="checkbox"
                     checked={stockTrackingEnabled}
-                    onChange={(event) => onStockTrackingEnabledChange(event.target.checked)}
+                    onChange={(event) =>
+                      onStockTrackingEnabledChange(event.target.checked)
+                    }
                   />
                   <span>Учитывать количество товара</span>
                 </label>
@@ -307,7 +359,9 @@ export function SellerProductCreateTab({
                   <input
                     type="number"
                     value={quantity}
-                    onChange={(event) => onQuantityChange(Number(event.target.value))}
+                    onChange={(event) =>
+                      onQuantityChange(Number(event.target.value))
+                    }
                     className={styles.createInput}
                     min={0}
                     placeholder="0"
@@ -316,7 +370,9 @@ export function SellerProductCreateTab({
               ) : (
                 <div className={styles.field}>
                   <span>Количество</span>
-                  <div className={styles.unlimitedBox}>∞ Без учета остатков</div>
+                  <div className={styles.unlimitedBox}>
+                    ∞ Без учета остатков
+                  </div>
                 </div>
               )}
 
@@ -335,89 +391,19 @@ export function SellerProductCreateTab({
               <button
                 type="button"
                 onClick={handleCreateProduct}
-                disabled={submitting || productCreated}
+                disabled={submitting}
                 className={styles.createPrimaryBtn}
               >
-                {submitting ? "Создаём товар…" : productCreated ? "Товар создан" : "Создать товар"}
+                {submitting
+                  ? "Создаём черновик…"
+                  : "Создать и перейти к редактору"}
               </button>
 
-              {productCreated ? (
-                <Link
-                  href={`/seller/products/${createdProductId}/edit`}
-                  className={styles.createSecondaryBtn}
-                >
-                  Перейти к редактированию
-                </Link>
-              ) : (
-                <span className={styles.mutedText}>После создания появится страница редактирования.</span>
-              )}
+              <span className={styles.mutedText}>
+                Фото, дополнительные варианты и габариты добавишь на следующем
+                экране.
+              </span>
             </div>
-          </section>
-
-          <section className={styles.createCard}>
-            <CardHeader
-              title="Фото товара"
-              hint="Для массовой загрузки и сортировки фото перейди в редактор товара."
-            />
-
-            {!productCreated ? (
-              <div className={styles.lockedBox}>
-                <div className={styles.lockedIcon}>Фото</div>
-                <div>
-                  <b>Сначала создай товар</b>
-                  <p>Загрузка изображений доступна после появления ID товара.</p>
-                </div>
-              </div>
-            ) : (
-              <>
-                <div className={styles.uploadPanel}>
-                  <label className={styles.fileLabel}>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={(event) => onFileChange(event.target.files?.[0] ?? null)}
-                    />
-
-                    <div>
-                      <div className={styles.fileName}>
-                        {file ? file.name : "Выбери изображение товара"}
-                      </div>
-                      <div className={styles.fileHint}>
-                        {file ? "Файл готов к загрузке" : "PNG, JPG, WEBP"}
-                      </div>
-                    </div>
-                  </label>
-
-                  <button
-                    type="button"
-                    onClick={onUploadImage}
-                    disabled={uploading || !file}
-                    className={styles.createSecondaryBtn}
-                  >
-                    {uploading ? "Загружаем…" : "Загрузить фото"}
-                  </button>
-                </div>
-
-                {imageUrl ? (
-                  <div className={styles.preview}>
-                    <Image
-                      src={imageUrl}
-                      alt="Фото товара"
-                      width={240}
-                      height={320}
-                      className={styles.previewImg}
-                    />
-
-                    <div className={styles.previewMeta}>
-                      <b>Фото загружено</b>
-                      <a href={imageUrl} target="_blank" rel="noreferrer">
-                        Открыть изображение
-                      </a>
-                    </div>
-                  </div>
-                ) : null}
-              </>
-            )}
           </section>
         </main>
       </div>

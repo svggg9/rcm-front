@@ -44,6 +44,8 @@ export function ProductEditPageClient({ productId }: Props) {
   const [categoryId, setCategoryId] = useState<number | "">("");
   const [brandId, setBrandId] = useState<number | "">("");
   const [audience, setAudience] = useState<Audience>("UNISEX");
+  const [sizes, setSizes] = useState<Option[]>([]);
+  const [colors, setColors] = useState<Option[]>([]);
 
   const [packageWidthCm, setPackageWidthCm] = useState<number | "">("");
   const [packageHeightCm, setPackageHeightCm] = useState<number | "">("");
@@ -63,6 +65,11 @@ export function ProductEditPageClient({ productId }: Props) {
   const [publishing, setPublishing] = useState(false);
 
   const [error, setError] = useState<string | null>(null);
+
+  const [uploadProgress, setUploadProgress] = useState({
+      done: 0,
+      total: 0,
+    });
 
   const cardScore = useMemo(() => {
     let score = 0;
@@ -99,10 +106,18 @@ export function ProductEditPageClient({ productId }: Props) {
       setError(null);
 
       try {
-        const [productResponse, categoriesResponse, brandsResponse] = await Promise.all([
+        const [
+          productResponse,
+          categoriesResponse,
+          brandsResponse,
+          sizesResponse,
+          colorsResponse,
+        ] = await Promise.all([
           apiFetch(`${API_URL}/api/seller/products/${productId}`),
-          apiFetch(`${API_URL}/api/categories`),
-          apiFetch(`${API_URL}/api/brands`),
+          apiFetch(`${API_URL}/api/catalog/categories`),
+          apiFetch(`${API_URL}/api/catalog/brands`),
+          apiFetch(`${API_URL}/api/sizes`),
+          apiFetch(`${API_URL}/api/colors`),
         ]);
 
         if (!productResponse.ok) {
@@ -118,20 +133,38 @@ export function ProductEditPageClient({ productId }: Props) {
           throw new Error("Не удалось загрузить бренды");
         }
 
+        if (!sizesResponse.ok) {
+          throw new Error("Не удалось загрузить размеры");
+        }
+
+        if (!colorsResponse.ok) {
+          throw new Error("Не удалось загрузить цвета");
+        }
+
         const productData: SellerProduct = await productResponse.json();
         const categoriesData: Option[] = await categoriesResponse.json();
         const brandsData: Option[] = await brandsResponse.json();
+        const sizesData: Option[] = await sizesResponse.json();
+        const colorsData: Option[] = await colorsResponse.json();
 
         if (cancelled) return;
 
+        const safeCategories = Array.isArray(categoriesData) ? categoriesData : [];
+        const safeBrands = Array.isArray(brandsData) ? brandsData : [];
+        const safeSizes = Array.isArray(sizesData) ? sizesData : [];
+        const safeColors = Array.isArray(colorsData) ? colorsData : [];
+
+        setSizes(safeSizes);
+        setColors(safeColors);
+
         setProduct(productData);
-        setCategories(Array.isArray(categoriesData) ? categoriesData : []);
-        setBrands(Array.isArray(brandsData) ? brandsData : []);
+        setCategories(safeCategories);
+        setBrands(safeBrands);
 
         setTitle(productData.title ?? "");
         setDescription(productData.description ?? "");
-        setCategoryId(productData.categoryId ?? "");
-        setBrandId(productData.brandId ?? "");
+        setCategoryId(productData.categoryId ?? safeCategories[0]?.id ?? "");
+        setBrandId(productData.brandId ?? safeBrands[0]?.id ?? "");
         setAudience(productData.audience ?? "UNISEX");
 
         setPackageWidthCm(productData.packageWidthCm ?? "");
@@ -143,8 +176,11 @@ export function ProductEditPageClient({ productId }: Props) {
           Array.isArray(productData.variants) && productData.variants.length
             ? productData.variants.map((variant) => ({
                 id: variant.id,
+                sizeId: variant.sizeId ?? "",
                 size: variant.size ?? "",
+                colorId: variant.colorId ?? "",
                 color: variant.color ?? "",
+                colorHex: variant.colorHex ?? null,
                 price: Number(variant.price ?? 0),
                 availableQuantity: variant.availableQuantity,
                 sku: variant.sku ?? "",
@@ -157,7 +193,6 @@ export function ProductEditPageClient({ productId }: Props) {
         setInitialized(true);
         setDirty(false);
         setLastSavedAt(new Date());
-        toast.success("Товар сохранён");
       } catch (e) {
         if (!cancelled) {
           toast.error(e instanceof Error ? e.message : "Не удалось загрузить товар");
@@ -208,16 +243,16 @@ export function ProductEditPageClient({ productId }: Props) {
     if (variants.length === 0) return failValidation("Добавьте хотя бы один вариант");
 
     for (const variant of variants) {
-      if (!variant.sku.trim()) return setError("У каждого варианта должен быть SKU");
-      if (!variant.size.trim()) return setError("У каждого варианта должен быть размер");
-      if (!variant.color.trim()) return setError("У каждого варианта должен быть цвет");
-      if (variant.price <= 0) return setError("Цена варианта должна быть больше 0");
+      if (!variant.sku.trim()) return failValidation("У каждого варианта должен быть SKU");
+      if (!variant.sizeId) return failValidation("У каждого варианта должен быть размер");
+      if (!variant.colorId) return failValidation("У каждого варианта должен быть цвет");
+      if (variant.price <= 0) return failValidation("Цена варианта должна быть больше 0");
 
       if (
         variant.stockTrackingEnabled &&
         (variant.availableQuantity === null || variant.availableQuantity < 0)
       ) {
-        return setError("Количество не может быть меньше 0");
+        return failValidation("Количество не может быть меньше 0");
       }
     }
 
@@ -238,8 +273,8 @@ export function ProductEditPageClient({ productId }: Props) {
           packageWeightKg: numberOrNull(packageWeightKg),
           variants: variants.map((variant) => ({
             id: variant.id,
-            size: variant.size.trim(),
-            color: variant.color.trim(),
+            sizeId: variant.sizeId ? Number(variant.sizeId) : null,
+            colorId: variant.colorId ? Number(variant.colorId) : null,
             price: Number(variant.price),
             stockQuantity: variant.stockTrackingEnabled
               ? Number(variant.availableQuantity ?? 0)
@@ -257,6 +292,7 @@ export function ProductEditPageClient({ productId }: Props) {
 
       setDirty(false);
       setLastSavedAt(new Date());
+      toast.success("Товар сохранён");
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Не удалось сохранить товар");
     } finally {
@@ -264,14 +300,17 @@ export function ProductEditPageClient({ productId }: Props) {
     }
   }
 
-  async function uploadImages() {
-    if (!selectedFiles.length || uploading) return;
+  async function uploadImages(filesToUpload = selectedFiles) {
+    if (!filesToUpload.length || uploading) return;
 
     setUploading(true);
     setError(null);
+    setUploadProgress({ done: 0, total: filesToUpload.length });
 
     try {
-      for (const file of selectedFiles) {
+      for (let i = 0; i < filesToUpload.length; i++) {
+        const file = filesToUpload[i];
+
         const formData = new FormData();
         formData.append("file", file);
 
@@ -284,6 +323,11 @@ export function ProductEditPageClient({ productId }: Props) {
           const text = await response.text().catch(() => "");
           throw new Error(text || `Ошибка загрузки ${file.name}`);
         }
+
+        setUploadProgress({
+          done: i + 1,
+          total: filesToUpload.length,
+        });
       }
 
       setSelectedFiles([]);
@@ -293,6 +337,7 @@ export function ProductEditPageClient({ productId }: Props) {
       toast.error(e instanceof Error ? e.message : "Не удалось загрузить фото");
     } finally {
       setUploading(false);
+      setUploadProgress({ done: 0, total: 0 });
     }
   }
 
@@ -365,6 +410,14 @@ export function ProductEditPageClient({ productId }: Props) {
     const toIndex = images.findIndex((image) => image.id === targetImageId);
 
     if (fromIndex < 0 || toIndex < 0) return;
+
+    moveImageByIndex(fromIndex, toIndex);
+  }
+
+  function moveImageByIndex(fromIndex: number, toIndex: number) {
+    if (fromIndex < 0 || toIndex < 0) return;
+    if (fromIndex >= images.length || toIndex >= images.length) return;
+    if (fromIndex === toIndex) return;
 
     const nextImages = [...images];
     const [moved] = nextImages.splice(fromIndex, 1);
@@ -439,7 +492,10 @@ export function ProductEditPageClient({ productId }: Props) {
       {
         id: null,
         size: "",
+        sizeId: "",
+        colorId: "",
         color: "",
+        colorHex: null,
         price: 0,
         availableQuantity: 0,
         sku: "",
@@ -528,17 +584,18 @@ export function ProductEditPageClient({ productId }: Props) {
             />
 
             <ProductImagesCard
+            uploadProgress={uploadProgress}
             images={images}
-            selectedFiles={selectedFiles}
             uploading={uploading}
             reordering={reordering}
             dragImageId={dragImageId}
             onFilesChange={setSelectedFiles}
-            onUploadImages={() => void uploadImages()}
+            onUploadImages={(files) => void uploadImages(files)}
             onDragImageStart={setDragImageId}
             onDragImageEnd={() => setDragImageId(null)}
             onMoveImage={(imageId) => moveImage(imageId)}
             onDeleteImage={(imageId) => void deleteImage(imageId)}
+            onMoveImageByIndex={moveImageByIndex}
             />
 
             <ProductVariantsCard
@@ -546,6 +603,8 @@ export function ProductEditPageClient({ productId }: Props) {
             onUpdateVariant={updateVariant}
             onAddVariant={addVariant}
             onRemoveVariant={removeVariant}
+            sizes={sizes}
+            colors={colors}
             />
 
             <ProductShippingCard

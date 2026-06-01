@@ -214,10 +214,14 @@ function HeaderContent() {
 
           <div className={styles.actions}>
             {isAuth === true && isSellerRole(role) ? (
-              <Link href="/seller?tab=orders" className={styles.iconBtn}>
+              <Link
+                href="/seller?tab=orders"
+                className={styles.iconBtn}
+                aria-label="Кабинет продавца"
+              >
                 <Image
                   src="/icons/seller.svg"
-                  alt="Seller"
+                  alt="Кабинет продавца"
                   width={22}
                   height={22}
                 />

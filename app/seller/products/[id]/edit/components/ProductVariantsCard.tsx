@@ -1,9 +1,11 @@
 import { SectionHeader } from "./SectionHeader";
-import type { ProductVariant } from "../types";
+import type { Option, ProductVariant } from "../types";
 import styles from "../ProductEditPage.module.css";
 
 type Props = {
   variants: ProductVariant[];
+  sizes: Option[];
+  colors: Option[];
   onUpdateVariant: (index: number, patch: Partial<ProductVariant>) => void;
   onAddVariant: () => void;
   onRemoveVariant: (index: number) => void;
@@ -11,6 +13,8 @@ type Props = {
 
 export function ProductVariantsCard({
   variants,
+  sizes,
+  colors,
   onUpdateVariant,
   onAddVariant,
   onRemoveVariant,
@@ -26,11 +30,7 @@ export function ProductVariantsCard({
               <strong>Вариант {index + 1}</strong>
 
               {variants.length > 1 ? (
-                <button
-                  type="button"
-                  onClick={() => onRemoveVariant(index)}
-                  className={styles.dangerTextBtn}
-                >
+                <button type="button" onClick={() => onRemoveVariant(index)} className={styles.dangerTextBtn}>
                   Удалить
                 </button>
               ) : null}
@@ -39,24 +39,42 @@ export function ProductVariantsCard({
             <div className={styles.formGrid}>
               <label className={styles.field}>
                 <span className={styles.required}>Размер</span>
-                <input
-                  value={variant.size}
+                <select
+                  value={variant.sizeId ?? ""}
                   onChange={(event) =>
-                    onUpdateVariant(index, { size: event.target.value })
+                    onUpdateVariant(index, {
+                      sizeId: event.target.value ? Number(event.target.value) : "",
+                    })
                   }
-                  className={styles.input}
-                />
+                  className={styles.select}
+                >
+                  <option value="">Выбери размер</option>
+                  {sizes.map((size) => (
+                    <option key={size.id} value={size.id}>
+                      {size.name}
+                    </option>
+                  ))}
+                </select>
               </label>
 
               <label className={styles.field}>
                 <span className={styles.required}>Цвет</span>
-                <input
-                  value={variant.color}
+                <select
+                  value={variant.colorId ?? ""}
                   onChange={(event) =>
-                    onUpdateVariant(index, { color: event.target.value })
+                    onUpdateVariant(index, {
+                      colorId: event.target.value ? Number(event.target.value) : "",
+                    })
                   }
-                  className={styles.input}
-                />
+                  className={styles.select}
+                >
+                  <option value="">Выбери цвет</option>
+                  {colors.map((color) => (
+                    <option key={color.id} value={color.id}>
+                      {color.name}
+                    </option>
+                  ))}
+                </select>
               </label>
 
               <label className={styles.field}>
@@ -65,9 +83,7 @@ export function ProductVariantsCard({
                   type="number"
                   min={0}
                   value={variant.price}
-                  onChange={(event) =>
-                    onUpdateVariant(index, { price: Number(event.target.value) })
-                  }
+                  onChange={(event) => onUpdateVariant(index, { price: Number(event.target.value) })}
                   className={styles.input}
                 />
               </label>
@@ -76,16 +92,13 @@ export function ProductVariantsCard({
                 <span className={styles.required}>SKU</span>
                 <input
                   value={variant.sku}
-                  onChange={(event) =>
-                    onUpdateVariant(index, { sku: event.target.value })
-                  }
+                  onChange={(event) => onUpdateVariant(index, { sku: event.target.value })}
                   className={styles.input}
                 />
               </label>
 
               <label className={styles.fieldFull}>
                 <span>Учет остатков</span>
-
                 <label className={styles.checkboxRow}>
                   <input
                     type="checkbox"
@@ -93,9 +106,7 @@ export function ProductVariantsCard({
                     onChange={(event) =>
                       onUpdateVariant(index, {
                         stockTrackingEnabled: event.target.checked,
-                        availableQuantity: event.target.checked
-                          ? variant.availableQuantity ?? 0
-                          : null,
+                        availableQuantity: event.target.checked ? variant.availableQuantity ?? 0 : null,
                       })
                     }
                   />

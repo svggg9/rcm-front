@@ -772,3 +772,201 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
+
+.dropZone {
+  min-height: 128px;
+  padding: 22px;
+  border: 1px dashed var(--line);
+  background: var(--white);
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+
+  transition: border-color 0.18s ease, background 0.18s ease;
+}
+
+.dropZone strong {
+  display: block;
+  margin-bottom: 6px;
+
+  color: var(--black);
+  font-size: var(--font-md);
+  font-weight: 500;
+}
+
+.dropZone span {
+  display: block;
+
+  color: var(--muted);
+  font-size: var(--font-sm);
+  line-height: 1.5;
+}
+
+.dropZoneActive {
+  border-color: var(--black);
+  background: var(--soft);
+}
+
+.queueBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+
+  padding: 18px 0;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+
+.queueHeader {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+
+  color: var(--black);
+  font-size: var(--font-sm);
+}
+
+.queueHeader span {
+  color: var(--muted);
+}
+
+.queueGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(128px, 1fr));
+  gap: 12px;
+}
+
+.queueCard {
+  position: relative;
+  aspect-ratio: 1 / 1;
+  overflow: hidden;
+
+  border: 1px solid var(--line);
+  background: var(--soft);
+}
+
+.queueImage {
+  object-fit: cover;
+}
+
+.queueMeta {
+  position: absolute;
+  inset: auto 0 0 0;
+
+  padding: 9px;
+  border-top: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.94);
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.queueMeta span {
+  min-width: 0;
+
+  color: var(--black);
+  font-size: 11px;
+  font-weight: 500;
+
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.progressTrack {
+  height: 3px;
+  background: var(--line);
+  overflow: hidden;
+}
+
+.progressTrack div {
+  height: 100%;
+  background: var(--black);
+  transition: width 0.18s ease;
+}
+
+@media (max-width: 768px) {
+  .dropZone {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .queueGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.imageDeleteBtn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 2;
+
+  width: 28px;
+  height: 28px;
+
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.92);
+  color: var(--black);
+
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.imageDeleteBtn:hover {
+  border-color: var(--black);
+}
+
+.imageControls {
+  position: absolute;
+  inset: auto 0 0 0;
+  z-index: 2;
+
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+
+  padding: 8px;
+}
+
+.imageMoveBtn {
+  width: 34px;
+  height: 30px;
+
+  border: 1px solid var(--line);
+  background: var(--white);
+  color: var(--black);
+
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.imageMoveBtn:hover:not(:disabled) {
+  border-color: var(--black);
+}
+
+.imageMoveBtn:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.mainImageBadge {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  z-index: 2;
+
+  padding: 5px 8px;
+
+  border: 1px solid var(--black);
+  background: rgba(255, 255, 255, 0.92);
+  color: var(--black);
+
+  font-size: 11px;
+  font-weight: 500;
+}

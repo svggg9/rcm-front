@@ -23,8 +23,13 @@ export type CheckoutRequest = {
   cartId: string;
   recipientName: string;
   recipientPhone: string;
+  recipientEmail: string;
   deliveryAddress: string;
   deliveryMethod: DeliveryMethod;
+  pickupPointId?: string;
+  deliveryOfferId?: string;
+  deliveryPriceAmount?: number;
+  deliveryCurrency?: string;
   comment?: string;
 };
 
