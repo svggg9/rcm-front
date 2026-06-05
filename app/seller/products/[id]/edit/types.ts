@@ -8,6 +8,7 @@ export type Option = {
 export type ProductStatus =
   | "DRAFT"
   | "MODERATION"
+  | "NEEDS_REVISION"
   | "ACTIVE"
   | "ARCHIVED"
   | "BLOCKED";
@@ -35,12 +36,15 @@ export type SellerProduct = {
   id: number;
   title: string;
   description: string;
+  composition: string | null;
+  article: string | null;
   brandId: number | null;
   brand: string | null;
   categoryId: number | null;
   category: string | null;
   audience: Audience;
   status: ProductStatus;
+  moderationComment: string | null;
   packageWidthCm: number | null;
   packageHeightCm: number | null;
   packageLengthCm: number | null;

@@ -196,6 +196,7 @@ function StatusBadge({ status }: { status: ProductStatus }) {
   const label = {
     DRAFT: "Черновик",
     MODERATION: "На модерации",
+    NEEDS_REVISION: "Нужна доработка",
     ACTIVE: "Активен",
     ARCHIVED: "Архив",
     BLOCKED: "Заблокирован",

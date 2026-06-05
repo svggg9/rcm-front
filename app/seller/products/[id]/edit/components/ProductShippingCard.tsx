@@ -2,7 +2,15 @@ import { NumberField } from "./NumberField";
 import { SectionHeader } from "./SectionHeader";
 import styles from "../ProductEditPage.module.css";
 
+type ValidationErrors = {
+  packageWidthCm?: boolean;
+  packageHeightCm?: boolean;
+  packageLengthCm?: boolean;
+  packageWeightKg?: boolean;
+};
+
 type Props = {
+  validationErrors: ValidationErrors;
   packageWidthCm: number | "";
   packageHeightCm: number | "";
   packageLengthCm: number | "";
@@ -14,6 +22,7 @@ type Props = {
 };
 
 export function ProductShippingCard({
+  validationErrors,
   packageWidthCm,
   packageHeightCm,
   packageLengthCm,
@@ -34,24 +43,28 @@ export function ProductShippingCard({
         <NumberField
           label="Ширина, см"
           value={packageWidthCm}
+          invalid={validationErrors.packageWidthCm}
           onChange={onPackageWidthCmChange}
         />
 
         <NumberField
           label="Высота, см"
           value={packageHeightCm}
+          invalid={validationErrors.packageHeightCm}
           onChange={onPackageHeightCmChange}
         />
 
         <NumberField
           label="Длина, см"
           value={packageLengthCm}
+          invalid={validationErrors.packageLengthCm}
           onChange={onPackageLengthCmChange}
         />
 
         <NumberField
           label="Вес, кг"
           value={packageWeightKg}
+          invalid={validationErrors.packageWeightKg}
           step="0.01"
           onChange={onPackageWeightKgChange}
         />

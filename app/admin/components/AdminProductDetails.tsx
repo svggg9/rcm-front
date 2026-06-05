@@ -1,3 +1,5 @@
+import { useState } from "react";
+
 import styles from "../Admin.module.css";
 import type { AdminProduct } from "../types";
 import { StatusBadge } from "../../components/ui/StatusBadge";
@@ -8,6 +10,7 @@ type Props = {
   actionProductId: number | null;
   onBack: () => void;
   onApprove: () => void;
+  onReturnToRevision: (comment: string) => void;
   onBlock: () => void;
   onUnblock: () => void;
 };
@@ -18,6 +21,8 @@ function formatStatus(status: string) {
       return "Черновик";
     case "MODERATION":
       return "На модерации";
+    case "NEEDS_REVISION":
+      return "warning";
     case "ACTIVE":
       return "Активен";
     case "ARCHIVED":
@@ -48,10 +53,23 @@ export function AdminProductDetails({
   actionProductId,
   onBack,
   onApprove,
+  onReturnToRevision,
   onBlock,
   onUnblock,
 }: Props) {
   const loading = actionProductId === product.id;
+
+  const [revisionComment, setRevisionComment] = useState("");
+
+  function handleReturnToRevision() {
+    const cleanComment = revisionComment.trim();
+
+    if (!cleanComment) {
+      return;
+    }
+
+    onReturnToRevision(cleanComment);
+  }
 
   return (
     <>
@@ -158,14 +176,38 @@ export function AdminProductDetails({
 
             <div className={styles.detailsActions}>
               {product.status === "MODERATION" ? (
-                <button
-                type="button"
-                  className={styles.primaryBtn}
-                  onClick={onApprove}
-                  disabled={loading}
-                >
-                  {loading ? "Одобряем…" : "Одобрить товар"}
-                </button>
+                <>
+                  <button
+                    type="button"
+                    className={styles.primaryBtn}
+                    onClick={onApprove}
+                    disabled={loading}
+                  >
+                    {loading ? "Одобряем…" : "Одобрить товар"}
+                  </button>
+
+                  <div className={styles.revisionForm}>
+                    <label>
+                      <span>Причина возврата</span>
+                      <textarea
+                        value={revisionComment}
+                        onChange={(event) => setRevisionComment(event.target.value)}
+                        placeholder="Например: добавьте фото на белом фоне, уточните состав, исправьте размерную сетку."
+                        className={styles.textarea}
+                        rows={5}
+                      />
+                    </label>
+
+                    <button
+                      type="button"
+                      className={styles.secondaryBtn}
+                      onClick={handleReturnToRevision}
+                      disabled={loading || !revisionComment.trim()}
+                    >
+                      {loading ? "Отправляем…" : "Вернуть на доработку"}
+                    </button>
+                  </div>
+                </>
               ) : null}
 
               {product.status === "BLOCKED" ? (

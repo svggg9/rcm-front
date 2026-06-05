@@ -273,6 +273,7 @@ export function CatalogClient({
                 id: product.id,
                 title: product.title,
                 brand: product.brand,
+                brandSlug: product.brandSlug,
                 images: product.images,
                 minPrice: getMinPrice(product),
               }}

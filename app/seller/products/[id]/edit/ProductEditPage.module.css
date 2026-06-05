@@ -970,3 +970,91 @@
   font-size: 11px;
   font-weight: 500;
 }
+
+.revisionBox {
+  border-bottom: 1px solid var(--line);
+  padding: 18px 0;
+  color: var(--black);
+}
+
+.revisionBox strong {
+  display: block;
+  margin-bottom: 6px;
+  color: #9b2c2c;
+  font-size: 14px;
+}
+
+.revisionBox p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.fieldInvalid {
+  border-color: #9b2c2c !important;
+  background: #faf7f5 !important;
+}
+
+.inlineControl {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+}
+
+.smallBtn {
+  height: 44px;
+  padding: 0 12px;
+  border: 1px solid var(--line);
+  background: #fff;
+  color: var(--black);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.smallBtn:hover {
+  border-color: var(--black);
+}
+
+.inputInvalid,
+.selectInvalid,
+.textareaInvalid {
+  border-color: #9b2c2c;
+  background: #faf5f5;
+}
+
+.fieldInvalid {
+  border-color: #9b2c2c !important;
+  background: #faf7f5 !important;
+}
+
+.dropZoneInvalid {
+  border-color: #9b2c2c !important;
+  background: #faf7f5 !important;
+}
+
+.fieldErrorText {
+  color: #9b2c2c;
+  font-size: 13px;
+}
+
+.validationBox {
+  border-bottom: 1px solid var(--line);
+  padding: 18px 0;
+}
+
+.validationBox strong {
+  display: block;
+  margin-bottom: 10px;
+  color: #9b2c2c;
+  font-size: 14px;
+}
+
+.validationBox ul {
+  margin: 0;
+  padding-left: 18px;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.6;
+}

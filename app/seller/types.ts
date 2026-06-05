@@ -7,6 +7,14 @@ export type Option = {
 
 export type Audience = "MEN" | "WOMEN" | "UNISEX";
 
+export type ProductStatus =
+  | "DRAFT"
+  | "MODERATION"
+  | "NEEDS_REVISION"
+  | "ACTIVE"
+  | "ARCHIVED"
+  | "BLOCKED";
+
 export type CreateProductReq = {
   title: string;
   description: string;
@@ -92,10 +100,12 @@ export type SellerProduct = {
   id: number;
   title: string;
   description: string;
+  composition: string;
+  article: string | null;
   brand: string | null;
   category: string | null;
   audience?: "MEN" | "WOMEN" | "UNISEX";
-  status?: "DRAFT" | "MODERATION" | "ACTIVE" | "ARCHIVED" | "BLOCKED";
+  status?: ProductStatus;
   variants: SellerProductVariant[];
   images: string[];
 };
@@ -103,7 +113,7 @@ export type SellerProduct = {
 export type SellerProductListItem = {
   id: number;
   title: string;
-  status?: "DRAFT" | "MODERATION" | "ACTIVE" | "ARCHIVED" | "BLOCKED";
+  status?: ProductStatus;
 
   brandName: string | null;
   categoryName: string | null;

@@ -3,6 +3,7 @@ export type AdminTab = "products" | "sellers" | "dictionaries";
 export type ProductStatus =
   | "DRAFT"
   | "MODERATION"
+  | "NEEDS_REVISION"
   | "ACTIVE"
   | "ARCHIVED"
   | "BLOCKED";
@@ -34,6 +35,7 @@ export type AdminProduct = {
   category: string | null;
   audience: string;
   status: ProductStatus;
+  moderationComment: string | null;
   variants: AdminProductVariant[];
   images: string[];
 };

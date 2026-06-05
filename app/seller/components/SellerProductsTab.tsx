@@ -19,13 +19,15 @@
     onRefresh: () => void;
   };
 
-  type ProductFilter = "ALL" | "ACTIVE" | "DRAFT";
+  type ProductFilter = "ALL" | "ACTIVE" | "MODERATION" | "NEEDS_REVISION" | "DRAFT";
 
   export function SellerProductsTab({ products, loading }: Props) {
     const [filter, setFilter] = useState<ProductFilter>("ALL");
 
     const activeCount = products.filter((product) => product.status === "ACTIVE").length;
     const draftCount = products.filter((product) => product.status === "DRAFT").length;
+    const moderationCount = products.filter((product) => product.status === "MODERATION").length;
+    const revisionCount = products.filter((product) => product.status === "NEEDS_REVISION").length;
 
     const filteredProducts = useMemo(() => {
       if (filter === "ACTIVE") {
@@ -34,6 +36,14 @@
 
       if (filter === "DRAFT") {
         return products.filter((product) => product.status === "DRAFT");
+      }
+
+      if (filter === "MODERATION") {
+        return products.filter((product) => product.status === "MODERATION");
+      }
+
+      if (filter === "NEEDS_REVISION") {
+        return products.filter((product) => product.status === "NEEDS_REVISION");
       }
 
       return products;
@@ -96,6 +106,20 @@
             label="Активные"
             value={activeCount}
             onClick={() => setFilter("ACTIVE")}
+          />
+
+          <FilterButton
+            active={filter === "MODERATION"}
+            label="На модерации"
+            value={moderationCount}
+            onClick={() => setFilter("MODERATION")}
+          />
+
+          <FilterButton
+            active={filter === "NEEDS_REVISION"}
+            label="На доработке"
+            value={revisionCount}
+            onClick={() => setFilter("NEEDS_REVISION")}
           />
 
           <FilterButton
@@ -276,6 +300,8 @@
         return "success";
       case "MODERATION":
         return "warning";
+      case "NEEDS_REVISION":
+        return "warning";
       case "BLOCKED":
       case "ARCHIVED":
         return "danger";
@@ -290,6 +316,8 @@
         return "Черновик";
       case "MODERATION":
         return "На модерации";
+      case "NEEDS_REVISION":
+        return "На доработке";
       case "ACTIVE":
         return "Активен";
       case "ARCHIVED":
