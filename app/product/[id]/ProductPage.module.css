@@ -532,3 +532,38 @@ a.brand:hover {
   text-decoration: underline;
   text-underline-offset: 4px;
 }
+
+.breadcrumbs {
+  margin-bottom: 20px;
+}
+
+.breadcrumbList {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.breadcrumbItem {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+
+  color: var(--muted);
+  font-size: var(--font-sm);
+}
+
+.breadcrumbItem:not(:last-child)::after {
+  content: "/";
+  color: var(--line);
+}
+
+.breadcrumbLink {
+  color: var(--muted);
+  text-decoration: none;
+}
+
+.breadcrumbLink:hover,
+.breadcrumbCurrent {
+  color: var(--black);
+}

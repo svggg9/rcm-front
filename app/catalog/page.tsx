@@ -1,3 +1,5 @@
+import type { Metadata } from "next";
+
 import { API_URL } from "../lib/api";
 import { CatalogClient } from "../components/Catalog/CatalogClient";
 import {
@@ -10,7 +12,187 @@ import {
 import type {
   CatalogProduct,
   CatalogSearchParams,
+  SelectedAudience,
+  SortValue,
 } from "../components/Catalog/catalogTypes";
+
+const SITE_NAME = "RCMarket";
+
+function buildCatalogSeoTitle(params: {
+  category: string;
+  audience: SelectedAudience;
+  brand: string;
+  q: string;
+}): string {
+  if (params.q) {
+    return `Поиск: ${params.q} | ${SITE_NAME}`;
+  }
+
+  if (params.brand) {
+    return `${params.brand} — товары производителя | ${SITE_NAME}`;
+  }
+
+  if (params.category) {
+    if (params.audience === "men") {
+      return `${params.category} для мужчин | ${SITE_NAME}`;
+    }
+
+    if (params.audience === "women") {
+      return `${params.category} для женщин | ${SITE_NAME}`;
+    }
+
+    return `${params.category} отечественных производителей | ${SITE_NAME}`;
+  }
+
+  if (params.audience === "men") {
+    return `Товары отечественных производителей для мужчин | ${SITE_NAME}`;
+  }
+
+  if (params.audience === "women") {
+    return `Товары отечественных производителей для женщин | ${SITE_NAME}`;
+  }
+
+  return `Каталог отечественных товаров | ${SITE_NAME}`;
+}
+
+function buildCatalogSeoDescription(params: {
+  category: string;
+  audience: SelectedAudience;
+  brand: string;
+  q: string;
+}): string {
+  if (params.q) {
+    return `Результаты поиска «${params.q}» в каталоге RCMarket — маркетплейсе отечественных производителей.`;
+  }
+
+  if (params.brand) {
+    return `Товары производителя ${params.brand} в каталоге RCMarket — маркетплейсе отечественных производителей.`;
+  }
+
+  if (params.category) {
+    return `${params.category} в каталоге RCMarket: товары отечественных производителей, российских брендов и локальных марок.`;
+  }
+
+  if (params.audience === "men") {
+    return `Товары для мужчин в каталоге RCMarket: отечественные производители, российские бренды и локальные марки.`;
+  }
+
+  if (params.audience === "women") {
+    return `Товары для женщин в каталоге RCMarket: отечественные производители, российские бренды и локальные марки.`;
+  }
+
+  return `Каталог RCMarket: товары отечественных производителей, российских брендов и локальных марок в одном месте.`;
+}
+
+function buildCatalogCanonical(params: {
+  category: string;
+  audience: SelectedAudience;
+  brand: string;
+  q: string;
+  page: number;
+  sort: SortValue;
+}): string {
+  const search = new URLSearchParams();
+
+  if (params.audience !== "all") {
+    search.set("audience", params.audience);
+  }
+
+  if (params.category) {
+    search.set("category", params.category);
+  }
+
+  if (params.brand) {
+    search.set("brand", params.brand);
+  }
+
+  if (params.q) {
+    search.set("q", params.q);
+  }
+
+  if (params.page > 1) {
+    search.set("page", String(params.page));
+  }
+
+  if (params.sort) {
+    search.set("sort", params.sort);
+  }
+
+  const query = search.toString();
+
+  return query ? `/catalog?${query}` : "/catalog";
+}
+
+function normalizeCatalogParams(params: CatalogSearchParams) {
+  const selectedCategory = params.category ?? "";
+  const selectedAudience = normalizeAudience(params.audience ?? null);
+  const selectedBrand = params.brand ?? "";
+  const searchQuery = (params.q ?? "").trim().toLowerCase();
+  const page = parsePage(params.page);
+  const sortBy = normalizeSort(params.sort);
+
+  return {
+    selectedCategory,
+    selectedAudience,
+    selectedBrand,
+    searchQuery,
+    page,
+    sortBy,
+  };
+}
+
+export async function generateMetadata({
+  searchParams,
+}: {
+  searchParams?: Promise<CatalogSearchParams>;
+}): Promise<Metadata> {
+  const params = (searchParams ? await searchParams : {}) ?? {};
+  const {
+    selectedCategory,
+    selectedAudience,
+    selectedBrand,
+    searchQuery,
+    page,
+    sortBy,
+  } = normalizeCatalogParams(params);
+
+  const title = buildCatalogSeoTitle({
+    category: selectedCategory,
+    audience: selectedAudience,
+    brand: selectedBrand,
+    q: searchQuery,
+  });
+
+  const description = buildCatalogSeoDescription({
+    category: selectedCategory,
+    audience: selectedAudience,
+    brand: selectedBrand,
+    q: searchQuery,
+  });
+
+  const canonical = buildCatalogCanonical({
+    category: selectedCategory,
+    audience: selectedAudience,
+    brand: selectedBrand,
+    q: searchQuery,
+    page,
+    sort: sortBy,
+  });
+
+  return {
+    title,
+    description,
+    alternates: {
+      canonical,
+    },
+    openGraph: {
+      title,
+      description,
+      type: "website",
+      url: canonical,
+    },
+  };
+}
 
 async function getCatalogProducts(params: {
   audience: string;
@@ -63,9 +245,8 @@ async function getCatalogProducts(params: {
         products: [],
         totalPages: 1,
         totalProducts: 0,
-        brands: [],
         hasError: true,
-      } as never;
+      };
     }
 
     const data: unknown = await response.json();
@@ -75,9 +256,8 @@ async function getCatalogProducts(params: {
         products: [],
         totalPages: 1,
         totalProducts: 0,
-        brands: [],
         hasError: true,
-      } as never;
+      };
     }
 
     const pageData = data as {
@@ -152,12 +332,14 @@ export default async function CatalogPage({
 }) {
   const params = (searchParams ? await searchParams : {}) ?? {};
 
-  const selectedCategory = params.category ?? "";
-  const selectedAudience = normalizeAudience(params.audience ?? null);
-  const selectedBrand = params.brand ?? "";
-  const searchQuery = (params.q ?? "").trim().toLowerCase();
-  const page = parsePage(params.page);
-  const sortBy = normalizeSort(params.sort);
+  const {
+    selectedCategory,
+    selectedAudience,
+    selectedBrand,
+    searchQuery,
+    page,
+    sortBy,
+  } = normalizeCatalogParams(params);
 
   const [{ products, totalPages, totalProducts, hasError }, brands] =
     await Promise.all([

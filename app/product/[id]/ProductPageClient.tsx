@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 
@@ -176,6 +177,31 @@ export default function ProductPageClient({ product, related }: Props) {
     <>
       <div className="pageContainer">
         <div className={styles.page}>
+          <nav className={styles.breadcrumbs} aria-label="Навигационная цепочка">
+  <ol className={styles.breadcrumbList}>
+    <li className={styles.breadcrumbItem}>
+      <Link href="/catalog" className={styles.breadcrumbLink}>
+        Каталог
+      </Link>
+    </li>
+
+    {product.brandSlug ? (
+      <li className={styles.breadcrumbItem}>
+        <Link href={`/brand/${product.brandSlug}`} className={styles.breadcrumbLink}>
+          {product.brand}
+        </Link>
+      </li>
+    ) : product.brand ? (
+      <li className={styles.breadcrumbItem}>
+        <span className={styles.breadcrumbCurrent}>{product.brand}</span>
+      </li>
+    ) : null}
+
+    <li className={styles.breadcrumbItem}>
+      <span className={styles.breadcrumbCurrent}>{product.title}</span>
+    </li>
+  </ol>
+          </nav>
           <div className={styles.top}>
             <ProductGallery
               title={product.title}
