@@ -22,6 +22,7 @@ type RawProduct = {
   id?: unknown;
   title?: unknown;
   brand?: unknown;
+  brandSlug?: unknown;
   category?: unknown;
   audience?: unknown;
   status?: unknown;
@@ -81,7 +82,14 @@ export function normalizeProducts(data: unknown): CatalogProduct[] {
       }
 
       const brand = typeof product.brand === "string" ? product.brand : "";
-      const category = typeof product.category === "string" ? product.category : "";
+
+      const brandSlug =
+        typeof product.brandSlug === "string" && product.brandSlug.length > 0
+          ? product.brandSlug
+          : null;
+
+      const category =
+        typeof product.category === "string" ? product.category : "";
 
       const audience =
         product.audience === "MEN" ||
@@ -107,10 +115,13 @@ export function normalizeProducts(data: unknown): CatalogProduct[] {
       );
 
       const fallbackImages = Array.isArray(product.images)
-        ? product.images.filter((image): image is string => typeof image === "string")
+        ? product.images.filter(
+            (image): image is string => typeof image === "string"
+          )
         : [];
 
-      const images = lightweightImages.length > 0 ? lightweightImages : fallbackImages;
+      const images =
+        lightweightImages.length > 0 ? lightweightImages : fallbackImages;
 
       const fallbackVariants = Array.isArray(product.variants)
         ? product.variants
@@ -140,13 +151,15 @@ export function normalizeProducts(data: unknown): CatalogProduct[] {
         id: product.id,
         title: product.title,
         brand,
+        brandSlug,
         category,
         audience,
         status: typeof product.status === "string" ? product.status : null,
         images,
         variants: fallbackVariants,
         minPrice,
-        inStock: typeof product.inStock === "boolean" ? product.inStock : undefined,
+        inStock:
+          typeof product.inStock === "boolean" ? product.inStock : undefined,
       };
     })
     .filter((product): product is CatalogProduct => product !== null);
@@ -227,6 +240,7 @@ export function paginateProducts(
     items: products.slice(start, end),
     page: safePage,
     totalPages,
+    totalProducts: products.length,
   };
 }
 
