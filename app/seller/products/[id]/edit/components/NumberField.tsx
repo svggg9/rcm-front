@@ -3,14 +3,22 @@ import styles from "../ProductEditPage.module.css";
 type Props = {
   label: string;
   value: number | "";
+  invalid?: boolean;
   onChange: (value: number | "") => void;
   step?: string;
 };
 
-export function NumberField({ label, value, onChange, step = "1" }: Props) {
+export function NumberField({
+  label,
+  value,
+  invalid = false,
+  onChange,
+  step = "1",
+}: Props) {
   return (
     <label className={styles.field}>
       <span>{label}</span>
+
       <input
         type="number"
         min={0}
@@ -19,7 +27,9 @@ export function NumberField({ label, value, onChange, step = "1" }: Props) {
         onChange={(event) =>
           onChange(event.target.value === "" ? "" : Number(event.target.value))
         }
-        className={styles.input}
+        className={`${styles.input} ${
+          invalid ? styles.inputInvalid : ""
+        }`}
       />
     </label>
   );

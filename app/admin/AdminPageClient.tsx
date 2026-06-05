@@ -20,6 +20,7 @@ import {
   getAdminSellers,
   rejectSeller,
   unblockProduct,
+  returnProductToRevision,
   createAdminDictionaryItem,
   deleteAdminDictionaryItem,
   getAdminDictionary,
@@ -278,6 +279,23 @@ function AdminPageContent() {
     }
   }
 
+  async function returnSelectedProductToRevision(comment: string) {
+    if (!selectedProduct) return;
+
+    setActionProductId(selectedProduct.id);
+    setError(null);
+
+    try {
+      await returnProductToRevision(selectedProduct.id, comment);
+      await loadProducts({ silent: true });
+      await loadSelectedProduct(selectedProduct.id);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Не удалось вернуть товар на доработку");
+    } finally {
+      setActionProductId(null);
+    }
+  }
+
   async function runSellerAction(
     sellerId: number,
     action: (id: number) => Promise<void>
@@ -350,6 +368,9 @@ function AdminPageContent() {
                 onBack={closeProductDetails}
                 onApprove={() =>
                   void runProductAction(selectedProduct.id, approveProduct)
+                }
+                onReturnToRevision={(comment) =>
+                  void returnSelectedProductToRevision(comment)
                 }
                 onBlock={() =>
                   void runProductAction(selectedProduct.id, blockProduct)

@@ -10,6 +10,7 @@ export type CatalogProduct = {
   id: number;
   title: string;
   brand: string;
+  brandSlug?: string | null;
   category: string;
   audience: Audience;
   status: string | null;
@@ -32,4 +33,5 @@ export type PaginatedProducts = {
   items: CatalogProduct[];
   page: number;
   totalPages: number;
+  totalProducts: number;
 };

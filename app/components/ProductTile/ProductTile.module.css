@@ -57,12 +57,32 @@
 }
 
 .brand {
+  display: inline;
+
+  padding: 0;
+  border: 0;
+  background: transparent;
+
   color: var(--black);
 
+  font: inherit;
   font-size: var(--font-xs);
   font-weight: 500;
   letter-spacing: 0.08em;
+  text-align: left;
   text-transform: uppercase;
+
+  cursor: pointer;
+}
+
+.brand:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.brand:disabled {
+  cursor: default;
+  text-decoration: none;
 }
 
 .title {

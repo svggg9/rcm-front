@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import styles from "../ProductPage.module.css";
 
 import type { Product, Variant } from "../lib/types";
@@ -39,7 +40,13 @@ export function ProductInfoPanel({
       <div className={styles.label}>Новый сезон</div>
 
       <div className={styles.heading}>
-        <div className={styles.brand}>{product.brand}</div>
+        {product.brandSlug ? (
+          <Link href={`/brand/${product.brandSlug}`} className={styles.brand}>
+            {product.brand}
+          </Link>
+        ) : (
+          <div className={styles.brand}>{product.brand}</div>
+        )}
         <h1 className={styles.title}>{product.title}</h1>
       </div>
 

@@ -13,6 +13,7 @@ type Product = {
   title: string;
   images: string[];
   brand: string | null;
+  brandSlug?: string | null;
   minPrice: number;
 };
 
@@ -80,7 +81,23 @@ export function ProductTile({ product }: { product: Product }) {
         </div>
 
         <div className={styles.info}>
-          <div className={styles.brand}>{product.brand}</div>
+          {product.brand ? (
+              <button
+                type="button"
+                className={styles.brand}
+                onClick={(event) => {
+                  event.preventDefault();
+                  event.stopPropagation();
+
+                  if (product.brandSlug) {
+                    router.push(`/brand/${product.brandSlug}`);
+                  }
+                }}
+                disabled={!product.brandSlug}
+              >
+                {product.brand}
+              </button>
+            ) : null}
           <div className={styles.title}>{product.title}</div>
           <div className={styles.price}>{priceText}</div>
         </div>

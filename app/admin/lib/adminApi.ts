@@ -53,6 +53,20 @@ export async function approveProduct(id: number): Promise<void> {
   }
 }
 
+export async function returnProductToRevision(
+    id: number,
+    comment: string
+  ): Promise<void> {
+    const response = await apiFetch(`${API_URL}/api/admin/products/${id}/revision`, {
+      method: "POST",
+      body: JSON.stringify({ comment }),
+    });
+
+    if (!response.ok) {
+      throw new Error(await readError(response, "Не удалось вернуть товар на доработку"));
+    }
+  }
+
 export async function blockProduct(id: number): Promise<void> {
   const response = await apiFetch(`${API_URL}/api/admin/products/${id}/block`, {
     method: "POST",

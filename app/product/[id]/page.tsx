@@ -3,6 +3,8 @@ import ProductPageClient from "./ProductPageClient";
 import type { Product } from "./lib/types";
 import { mapProductToCarouselProduct } from "../../lib/productMappers";
 import type { CarouselProduct } from "../../components/ProductCarousel/types";
+import { notFound } from "next/navigation";
+import type { Metadata } from "next";
 
 export const dynamic = "force-dynamic";
 
@@ -38,6 +40,45 @@ async function getRelatedProductItems(id: string): Promise<CarouselProduct[]> {
     .filter((product): product is CarouselProduct => product !== null);
 }
 
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}): Promise<Metadata> {
+  const { id } = await params;
+  const product = await getProduct(id);
+
+  if (!product) {
+    return {
+      title: "Товар не найден | RCM",
+      description: "Товар не найден.",
+    };
+  }
+
+  const title = product.brand
+    ? `${product.brand} ${product.title} | RCM`
+    : `${product.title} | RCM`;
+
+  return {
+    title,
+    description:
+      product.description ||
+      `Купить ${product.title} на RCM Marketplace.`,
+    alternates: {
+      canonical: `/product/${product.id}`,
+    },
+    openGraph: {
+      title,
+      description:
+        product.description ||
+        `Купить ${product.title} на RCM Marketplace.`,
+      type: "website",
+      url: `/product/${product.id}`,
+      images: product.images?.[0] ? [{ url: product.images[0] }] : undefined,
+    },
+  };
+}
+
 export default async function ProductPage({
   params,
 }: {
@@ -51,7 +92,7 @@ export default async function ProductPage({
   ]);
 
   if (!product) {
-    return <div className="pageContainer">Товар не найден</div>;
+    notFound();
   }
 
   return <ProductPageClient product={product} related={related} />;

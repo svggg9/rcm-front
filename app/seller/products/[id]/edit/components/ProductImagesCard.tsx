@@ -14,6 +14,7 @@ type UploadProgress = {
 
 type Props = {
   images: ProductImageItem[];
+  invalid?: boolean;
   uploading: boolean;
   reordering: boolean;
   dragImageId: number | null;
@@ -29,6 +30,7 @@ type Props = {
 
 export function ProductImagesCard({
   images,
+  invalid = false,
   uploading,
   reordering,
   dragImageId,
@@ -62,7 +64,9 @@ export function ProductImagesCard({
       />
 
       <div
-        className={`${styles.dropZone} ${dragActive ? styles.dropZoneActive : ""}`}
+        className={`${styles.dropZone} ${
+          dragActive ? styles.dropZoneActive : ""
+        } ${invalid ? styles.dropZoneInvalid : ""}`}
         onDragEnter={(event) => {
           event.preventDefault();
           setDragActive(true);
@@ -118,6 +122,12 @@ export function ProductImagesCard({
       ) : null}
 
       {reordering ? <span className={styles.muted}>Сохраняем порядок…</span> : null}
+
+      {invalid && images.length === 0 ? (
+        <div className={styles.fieldErrorText}>
+          Добавьте хотя бы одно фото товара.
+        </div>
+      ) : null}
 
       {images.length === 0 ? (
         <div className={styles.emptyBox}>Фото пока нет.</div>

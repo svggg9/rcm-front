@@ -12,7 +12,10 @@ export type Product = {
   id: number;
   title: string;
   description: string;
+  composition?: string;
+  article?: string;
   brand: string;
+  brandSlug?: string | null;
   category: string;
   audience?: "MEN" | "WOMEN" | "UNISEX";
   status?: "DRAFT" | "ACTIVE" | "ARCHIVED" | "BLOCKED";

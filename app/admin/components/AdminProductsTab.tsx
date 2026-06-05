@@ -21,6 +21,7 @@ type Props = {
 
 const STATUSES: Array<ProductStatus | "ALL"> = [
   "MODERATION",
+  "NEEDS_REVISION",
   "ACTIVE",
   "BLOCKED",
   "DRAFT",
@@ -34,6 +35,8 @@ function formatStatus(status: string) {
       return "Черновик";
     case "MODERATION":
       return "На модерации";
+    case "NEEDS_REVISION":
+      return "На доработке";
     case "ACTIVE":
       return "Активен";
     case "ARCHIVED":
@@ -52,6 +55,8 @@ function getProductStatusTone(status: string) {
     case "ACTIVE":
       return "success";
     case "MODERATION":
+      return "warning";
+    case "NEEDS_REVISION":
       return "warning";
     case "BLOCKED":
     case "ARCHIVED":

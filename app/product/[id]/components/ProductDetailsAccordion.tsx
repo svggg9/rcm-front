@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import styles from "../ProductPage.module.css";
 
 import type { Product, Variant } from "../lib/types";
@@ -43,9 +44,25 @@ export function ProductDetailsAccordion({
             <div>
               <h3 className={styles.subTitle}>Информация</h3>
               <ul className={styles.list}>
-                <li>Бренд: {product.brand}</li>
+                <li>
+                  Производитель:{" "}
+                  {product.brandSlug ? (
+                    <Link href={`/brand/${product.brandSlug}`}>
+                      {product.brand}
+                    </Link>
+                  ) : (
+                    product.brand
+                  )}
+                </li>
                 <li>Категория: {product.category}</li>
-                <li>Артикул: {product.id}</li>
+
+                {product.composition ? (
+                  <li>Состав: {product.composition}</li>
+                ) : null}
+
+                {product.article ? (
+                  <li>Артикул: {product.article}</li>
+                ) : null}
                 {selectedVariant?.sku ? <li>SKU: {selectedVariant.sku}</li> : null}
                 {selectedVariant ? (
                   <li>
