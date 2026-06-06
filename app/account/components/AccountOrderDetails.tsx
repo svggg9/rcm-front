@@ -3,9 +3,11 @@
 import Image from "next/image";
 import { useState } from "react";
 
+import { Button } from "../../components/ui/Button";
 import { StatusBadge } from "../../components/ui/StatusBadge";
 import { API_URL, apiFetch } from "../../lib/api";
-import styles from "../Account.module.css";
+
+import styles from "./AccountOrderDetails.module.css";
 
 import type { Order } from "../types";
 
@@ -40,9 +42,7 @@ export function AccountOrderDetails({
     try {
       const response = await apiFetch(
         `${API_URL}/api/payments/group/${encodeURIComponent(order.orderGroupId)}`,
-        {
-          method: "POST",
-        }
+        { method: "POST" }
       );
 
       if (!response.ok) {
@@ -65,13 +65,9 @@ export function AccountOrderDetails({
   }
 
   return (
-    <>
-      <div className={styles.orderDetailsHeader}>
-        <button
-          type="button"
-          className={styles.orderBackButton}
-          onClick={onBack}
-        >
+    <section className={styles.page}>
+      <div className={styles.header}>
+        <button type="button" className={styles.backButton} onClick={onBack}>
           <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true">
             <path
               d="M10 2.5L3 11.5L10 20.5M21 11.5H3"
@@ -82,173 +78,150 @@ export function AccountOrderDetails({
           </svg>
         </button>
 
-        <div className={styles.sectionTitleNoMargin}>Заказ #{order.id}</div>
+        <div>
+          <h1 className={styles.title}>Заказ #{order.id}</h1>
+
+          <div className={styles.statusLine}>
+            <StatusBadge>{buildOrderStatusLabel(order)}</StatusBadge>
+            <span>
+              {new Date(order.createdAt).toLocaleDateString("ru-RU", {
+                day: "numeric",
+                month: "long",
+              })}
+            </span>
+          </div>
+        </div>
       </div>
 
-      <section className={styles.orderDetailsStatusCard}>
-        <div className={styles.orderDetailsStatusLine}>
-          <StatusBadge>{buildOrderStatusLabel(order)}</StatusBadge>
-          <span className={styles.orderDate}>
-            {new Date(order.createdAt).toLocaleDateString("ru-RU", {
-              day: "numeric",
-              month: "long",
-            })}
-          </span>
-        </div>
-      </section>
+      <section className={styles.section}>
+        <h2 className={styles.sectionTitle}>Товары</h2>
 
-      <section className={styles.orderDetailsSection}>
-        <h2 className={styles.orderDetailsTitle}>Товары</h2>
-
-        <div className={styles.orderDetailsProducts}>
+        <div className={styles.products}>
           {order.items.map((item, index) => (
-            <div
+            <article
               key={`${item.productTitle}-${index}`}
-              className={styles.orderDetailsProduct}
+              className={styles.product}
             >
-              <div className={styles.orderDetailsImageWrap}>
+              <div className={styles.imageWrap}>
                 {item.imageUrl ? (
                   <Image
                     src={item.imageUrl}
                     alt={item.productTitle}
                     width={88}
                     height={116}
-                    className={styles.orderDetailsImage}
+                    className={styles.image}
                   />
                 ) : (
-                  <div className={styles.orderDetailsImagePlaceholder} />
+                  <div className={styles.imagePlaceholder} />
                 )}
               </div>
 
-              <div className={styles.orderDetailsProductInfo}>
-                <div className={styles.orderDetailsProductTitle}>
-                  {item.productTitle}
-                </div>
+              <div className={styles.productInfo}>
+                <div className={styles.productTitle}>{item.productTitle}</div>
 
-                <div className={styles.orderDetailsMeta}>
+                <div className={styles.productMeta}>
                   {item.size} · {item.color}
                 </div>
 
-                <div className={styles.orderDetailsMeta}>
+                <div className={styles.productMeta}>
                   {item.quantity} × {item.price.toLocaleString()} ₽
                 </div>
 
-                <div className={styles.orderDetailsMeta}>SKU: {item.sku}</div>
+                <div className={styles.productMeta}>SKU: {item.sku}</div>
 
-                <div className={styles.orderDetailsPrice}>
+                <div className={styles.productPrice}>
                   {item.lineTotal.toLocaleString()} ₽
                 </div>
               </div>
-            </div>
+            </article>
           ))}
         </div>
       </section>
 
-      <div className={styles.orderDetailsBottomGrid}>
-        <section className={styles.orderDetailsSection}>
-          <h2 className={styles.orderDetailsTitle}>Детали оплаты</h2>
+      <div className={styles.bottomGrid}>
+        <section className={styles.section}>
+          <h2 className={styles.sectionTitle}>Оплата</h2>
 
-          <div className={styles.orderDetailsRows}>
-            <div className={styles.orderDetailsRow}>
-              <span>Статус заказа</span>
-              <span>{formatOrderStatus(order.status)}</span>
-            </div>
-
-            <div className={styles.orderDetailsRow}>
-              <span>Статус оплаты</span>
-              <span>{formatPaymentStatus(order.paymentStatus)}</span>
-            </div>
-
-            <div className={styles.orderDetailsRow}>
-              <span>Статус доставки</span>
-              <span>{formatDeliveryStatus(order.deliveryStatus)}</span>
-            </div>
-
-            <div className={styles.orderDetailsRow}>
-              <span>Товары</span>
-              <span>{order.subtotalAmount.toLocaleString()} ₽</span>
-            </div>
-
-            <div className={styles.orderDetailsRow}>
-              <span>Доставка</span>
-              <span>
-                {order.deliveryAmount === 0
-                  ? "Бесплатно"
-                  : `${order.deliveryAmount.toLocaleString()} ₽`}
-              </span>
-            </div>
-
-            <div className={styles.orderDetailsRow}>
-              <span>Скидка</span>
-              <span>
-                {order.discountAmount === 0
-                  ? "0 ₽"
-                  : `${order.discountAmount.toLocaleString()} ₽`}
-              </span>
-            </div>
+          <div className={styles.rows}>
+            <InfoRow label="Статус заказа" value={formatOrderStatus(order.status)} />
+            <InfoRow label="Статус оплаты" value={formatPaymentStatus(order.paymentStatus)} />
+            <InfoRow label="Статус доставки" value={formatDeliveryStatus(order.deliveryStatus)} />
           </div>
 
-          <div className={styles.orderDetailsTotal}>
+          <div className={styles.rows}>
+            <InfoRow label="Товары" value={`${order.subtotalAmount.toLocaleString()} ₽`} />
+            <InfoRow
+              label="Доставка"
+              value={
+                order.deliveryAmount === 0
+                  ? "Бесплатно"
+                  : `${order.deliveryAmount.toLocaleString()} ₽`
+              }
+            />
+            <InfoRow
+              label="Скидка"
+              value={
+                order.discountAmount === 0
+                  ? "0 ₽"
+                  : `${order.discountAmount.toLocaleString()} ₽`
+              }
+            />
+          </div>
+
+          <div className={styles.total}>
             <span>Итого</span>
-            <span>{order.totalAmount.toLocaleString()} ₽</span>
+            <strong>{order.totalAmount.toLocaleString()} ₽</strong>
           </div>
 
           {canPay ? (
-            <div className={styles.orderPaymentAction}>
-              <button
-                type="button"
+            <div className={styles.paymentAction}>
+              <Button
+                variant="primary"
                 onClick={() => void handlePay()}
                 disabled={paying}
-                className={styles.orderPayButton}
               >
                 {paying ? "Переходим к оплате…" : "Оплатить"}
-              </button>
+              </Button>
 
-              {payError ? (
-                <div className={styles.orderPayError}>{payError}</div>
-              ) : null}
+              {payError ? <div className={styles.payError}>{payError}</div> : null}
             </div>
           ) : null}
         </section>
 
-        <section className={styles.orderDetailsSection}>
-          <h2 className={styles.orderDetailsTitle}>Детали доставки</h2>
+        <section className={styles.section}>
+          <h2 className={styles.sectionTitle}>Доставка</h2>
 
-          <div className={styles.orderDeliveryBlock}>
-            <div className={styles.orderDeliveryItem}>
-              <div className={styles.infoLabel}>Группа заказов</div>
-              <div className={styles.infoValue}>{order.orderGroupId}</div>
-            </div>
-
-            <div className={styles.orderDeliveryItem}>
-              <div className={styles.infoLabel}>Способ доставки</div>
-              <div className={styles.infoValue}>{order.deliveryMethod}</div>
-            </div>
-
-            <div className={styles.orderDeliveryItem}>
-              <div className={styles.infoLabel}>Адрес / ПВЗ</div>
-              <div className={styles.infoValue}>{order.deliveryAddress}</div>
-            </div>
-
-            <div className={styles.orderDeliveryItem}>
-              <div className={styles.infoLabel}>Получатель</div>
-              <div className={styles.infoValue}>{order.recipientName}</div>
-            </div>
-
-            <div className={styles.orderDeliveryItem}>
-              <div className={styles.infoLabel}>Телефон</div>
-              <div className={styles.infoValue}>{order.recipientPhone}</div>
-            </div>
+          <div className={styles.deliveryBlock}>
+            <DeliveryItem label="Группа заказов" value={order.orderGroupId} />
+            <DeliveryItem label="Способ доставки" value={order.deliveryMethod} />
+            <DeliveryItem label="Адрес / ПВЗ" value={order.deliveryAddress} />
+            <DeliveryItem label="Получатель" value={order.recipientName} />
+            <DeliveryItem label="Телефон" value={order.recipientPhone} />
 
             {order.trackingNumber ? (
-              <div className={styles.orderDeliveryItem}>
-                <div className={styles.infoLabel}>Трек-номер</div>
-                <div className={styles.infoValue}>{order.trackingNumber}</div>
-              </div>
+              <DeliveryItem label="Трек-номер" value={order.trackingNumber} />
             ) : null}
           </div>
         </section>
       </div>
-    </>
+    </section>
+  );
+}
+
+function InfoRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className={styles.row}>
+      <span>{label}</span>
+      <strong>{value}</strong>
+    </div>
+  );
+}
+
+function DeliveryItem({ label, value }: { label: string; value: string }) {
+  return (
+    <div className={styles.deliveryItem}>
+      <div className={styles.infoLabel}>{label}</div>
+      <div className={styles.infoValue}>{value}</div>
+    </div>
   );
 }

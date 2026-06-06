@@ -158,9 +158,15 @@ export function ProductStickyHeader({
 
             {actionsOpen ? (
               <div className={styles.lockedMenu}>
-                <Link href={`/product/${productId}`} target="_blank">
-                  Открыть карточку
-                </Link>
+                {product?.status === "ACTIVE" ? (
+                  <Link href={`/product/${productId}`} target="_blank">
+                    Открыть карточку
+                  </Link>
+                ) : (
+                  <Link href={`/seller/products/${productId}/edit`}>
+                    Редактировать
+                  </Link>
+                )}
 
                 <button type="button" disabled>
                   Скопировать

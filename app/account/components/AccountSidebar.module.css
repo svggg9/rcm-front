@@ -1,0 +1,25 @@
+.logout {
+  flex-shrink: 0;
+  min-height: 40px;
+  padding: 0 14px;
+
+  border: 1px solid var(--line);
+  background: var(--white);
+  color: var(--black);
+
+  font-size: var(--font-sm);
+  font-weight: 500;
+
+  cursor: pointer;
+}
+
+.logout:hover {
+  border-color: var(--black);
+  background: var(--soft);
+}
+
+@media (max-width: 768px) {
+  .logout {
+    width: 100%;
+  }
+}

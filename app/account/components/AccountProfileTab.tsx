@@ -1,6 +1,7 @@
 "use client";
 
-import styles from "../Account.module.css";
+import { Button } from "../../components/ui/Button";
+import styles from "./AccountProfileTab.module.css";
 
 type Props = {
   displayName: string;
@@ -40,8 +41,16 @@ export function AccountProfileTab({
   onPhoneChange,
 }: Props) {
   return (
-    <>
-      <div className={styles.sectionTitle}>Мои данные</div>
+    <section className={styles.page}>
+      <div className={styles.header}>
+        <div>
+          <div className={styles.kicker}>Профиль</div>
+          <h1 className={styles.title}>Мои данные</h1>
+          <p className={styles.hint}>
+            Контактная информация для заказов, доставки и уведомлений.
+          </p>
+        </div>
+      </div>
 
       <section className={styles.profileCard}>
         <div className={styles.profileHead}>
@@ -54,7 +63,12 @@ export function AccountProfileTab({
         </div>
       </section>
 
-      <section className={styles.formCard}>
+      <section className={styles.card}>
+        <div className={styles.cardHeader}>
+          <h2>Основная информация</h2>
+          <p>ФИО и базовые данные покупателя.</p>
+        </div>
+
         <div className={styles.formGrid}>
           <label className={styles.field}>
             <span className={styles.label}>Фамилия</span>
@@ -121,17 +135,17 @@ export function AccountProfileTab({
             </label>
           </div>
         </div>
+      </section>
+
+      <section className={styles.card}>
+        <div className={styles.cardHeader}>
+          <h2>Контакты</h2>
+          <p>E-mail и телефон для связи по заказам.</p>
+        </div>
 
         <div className={styles.infoRows}>
-          <div className={styles.infoRow}>
-            <div className={styles.infoLabel}>E-mail</div>
-            <div className={styles.infoValue}>{email}</div>
-          </div>
-
-          <div className={styles.infoRow}>
-            <div className={styles.infoLabel}>Роль</div>
-            <div className={styles.infoValue}>{role}</div>
-          </div>
+          <InfoRow label="E-mail" value={email} />
+          <InfoRow label="Роль" value={role} />
 
           <div className={styles.infoRow}>
             <div className={styles.infoLabel}>Телефон</div>
@@ -147,11 +161,18 @@ export function AccountProfileTab({
         </div>
 
         <div className={styles.actions}>
-          <button type="button" className={styles.saveBtn}>
-            Сохранить
-          </button>
+          <Button variant="primary">Сохранить</Button>
         </div>
       </section>
-    </>
+    </section>
+  );
+}
+
+function InfoRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className={styles.infoRow}>
+      <div className={styles.infoLabel}>{label}</div>
+      <div className={styles.infoValue}>{value}</div>
+    </div>
   );
 }

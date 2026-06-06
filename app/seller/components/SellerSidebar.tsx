@@ -2,17 +2,12 @@
 
 import { DashboardTabs } from "../../components/ui/DashboardTabs";
 
-import styles from "../Seller.module.css";
-
 type Props = {
-  currentTab: "orders" | "products";
+  currentTab: "orders" | "products" | "brand";
   ordersCount: number;
 };
 
-export function SellerSidebar({
-  currentTab,
-  ordersCount,
-}: Props) {
+export function SellerSidebar({ currentTab, ordersCount }: Props) {
   return (
     <DashboardTabs
       ariaLabel="Меню продавца"
@@ -28,22 +23,12 @@ export function SellerSidebar({
           label: "Товары",
           active: currentTab === "products",
         },
+        {
+          href: "/seller?tab=brand",
+          label: "Производитель",
+          active: currentTab === "brand",
+        },
       ]}
-      actions={
-        <div className={styles.sidebarActions}>
-          <button type="button" className={styles.sidebarSoon}>
-            Аналитика
-          </button>
-
-          <button type="button" className={styles.sidebarSoon}>
-            Финансы
-          </button>
-
-          <button type="button" className={styles.sidebarSoon}>
-            Настройки
-          </button>
-        </div>
-      }
     />
   );
 }

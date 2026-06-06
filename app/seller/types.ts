@@ -1,4 +1,4 @@
-export type SellerTab = "orders" | "products";
+export type SellerTab = "orders" | "products" | "brand";
 
 export type Option = {
   id: number;
@@ -13,7 +13,8 @@ export type ProductStatus =
   | "NEEDS_REVISION"
   | "ACTIVE"
   | "ARCHIVED"
-  | "BLOCKED";
+  | "BLOCKED"
+  | "DELETED";
 
 export type CreateProductReq = {
   title: string;
@@ -144,4 +145,27 @@ export type SellerOrderListItem = {
   itemsCount: number;
 
   createdAt: string;
+};
+
+export type SellerBrand = {
+  id: number;
+  name: string;
+  slug: string | null;
+  description: string | null;
+  logoUrl: string | null;
+  website: string | null;
+  telegram: string | null;
+  vk: string | null;
+  country: string | null;
+  foundationYear: number | null;
+};
+
+export type SellerBrandProfileRequest = {
+  description: string;
+  logoUrl: string;
+  website: string;
+  telegram: string;
+  vk: string;
+  country: string;
+  foundationYear: number | null;
 };

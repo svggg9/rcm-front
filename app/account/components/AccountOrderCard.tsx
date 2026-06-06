@@ -3,7 +3,7 @@
 import Image from "next/image";
 
 import { StatusBadge } from "../../components/ui/StatusBadge";
-import styles from "../Account.module.css";
+import styles from "./AccountOrderCard.module.css";
 
 type Props = {
   id: number;
@@ -24,41 +24,40 @@ export function AccountOrderCard({
   itemsCount,
   onClick,
 }: Props) {
-
   return (
-    <button type="button" className={styles.orderPreviewCard} onClick={onClick}>
-      <div className={styles.orderPreviewMain}>
-        <div className={styles.orderStatusLine}>
+    <button type="button" className={styles.card} onClick={onClick}>
+      <div className={styles.main}>
+        <div className={styles.statusLine}>
           <StatusBadge>{statusLabel}</StatusBadge>
-          <span className={styles.orderDate}>{dateLabel}</span>
+          <span className={styles.date}>{dateLabel}</span>
         </div>
 
-        <div className={styles.orderNumberSmall}>Заказ #{id}</div>
+        <div className={styles.number}>Заказ #{id}</div>
       </div>
 
-      <div className={styles.orderPreviewImages}>
-        <div className={styles.orderImageWrap}>
+      <div className={styles.images}>
+        <div className={styles.imageWrap}>
           {firstImageUrl ? (
             <Image
               src={firstImageUrl}
               alt=""
               width={52}
               height={68}
-              className={styles.orderImage}
+              className={styles.image}
             />
           ) : (
-            <div className={styles.orderImagePlaceholder} />
+            <div className={styles.imagePlaceholder} />
           )}
         </div>
 
         {itemsCount > 1 ? (
-          <div className={styles.orderMoreItems}>+{itemsCount - 1}</div>
+          <div className={styles.moreItems}>+{itemsCount - 1}</div>
         ) : null}
       </div>
 
-      <div className={styles.orderPreviewMeta}>
-        <div className={styles.orderAmountInline}>{amountLabel}</div>
-        <div className={styles.orderOpenLabel}>Открыть</div>
+      <div className={styles.meta}>
+        <div className={styles.amount}>{amountLabel}</div>
+        <div className={styles.openLabel}>Открыть</div>
       </div>
     </button>
   );

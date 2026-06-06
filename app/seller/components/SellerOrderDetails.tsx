@@ -2,9 +2,11 @@
 
 import Image from "next/image";
 
+import { Button } from "../../components/ui/Button";
 import { StatusBadge } from "../../components/ui/StatusBadge";
-import styles from "../Seller.module.css";
 import { apiFetch, API_URL } from "../../lib/api";
+
+import styles from "./SellerOrderDetails.module.css";
 
 import type { SellerOrder } from "../types";
 
@@ -34,16 +36,16 @@ export function SellerOrderDetails({
   const labelHref = `/api/seller/orders/${order.id}/delivery-label`;
 
   return (
-    <section className={styles.orderDetailsPage}>
-      <div className={styles.orderDetailsHeader}>
-        <button type="button" className={styles.backBtn} onClick={onBack}>
+    <section className={styles.page}>
+      <div className={styles.header}>
+        <Button variant="secondary" onClick={onBack}>
           ← Назад
-        </button>
+        </Button>
 
         <div>
-          <h1 className={styles.sectionTitleNoMargin}>Заказ #{order.id}</h1>
+          <h1 className={styles.title}>Заказ #{order.id}</h1>
 
-          <div className={styles.orderDetailsMeta}>
+          <div className={styles.meta}>
             <StatusBadge tone={getOrderTone(order)}>
               {buildSellerStatusLabel(order)}
             </StatusBadge>
@@ -55,38 +57,38 @@ export function SellerOrderDetails({
         </div>
       </div>
 
-      <div className={styles.orderDetailsSummary}>
+      <div className={styles.summary}>
         <SummaryItem label="Статус заказа" value={formatOrderStatus(order.status)} />
         <SummaryItem label="Оплата" value={formatPaymentStatus(order.paymentStatus)} />
         <SummaryItem label="Доставка" value={formatDeliveryStatus(order.deliveryStatus)} />
         <SummaryItem label="Товаров" value={`${order.items.length}`} />
       </div>
 
-      <div className={styles.orderDetailsLayout}>
-        <main className={styles.orderDetailsMain}>
-          <section className={styles.orderDetailsSection}>
-            <h2 className={styles.orderDetailsSectionTitle}>Товары</h2>
+      <div className={styles.layout}>
+        <main className={styles.main}>
+          <section className={styles.section}>
+            <h2 className={styles.sectionTitle}>Товары</h2>
 
-            <div className={styles.orderItemsList}>
+            <div className={styles.itemsList}>
               {order.items.map((item, index) => (
-                <article key={`${item.sku}-${index}`} className={styles.orderItemRow}>
-                  <div className={styles.orderItemImageWrap}>
+                <article key={`${item.sku}-${index}`} className={styles.itemRow}>
+                  <div className={styles.itemImageWrap}>
                     {item.imageUrl ? (
                       <Image
                         src={item.imageUrl}
                         alt={item.productTitle}
                         fill
-                        className={styles.orderItemImage}
+                        className={styles.itemImage}
                       />
                     ) : (
-                      <div className={styles.orderItemImagePlaceholder} />
+                      <div className={styles.itemImagePlaceholder} />
                     )}
                   </div>
 
-                  <div className={styles.orderItemMain}>
-                    <div className={styles.orderItemTitle}>{item.productTitle}</div>
+                  <div className={styles.itemMain}>
+                    <div className={styles.itemTitle}>{item.productTitle}</div>
 
-                    <div className={styles.orderItemMeta}>
+                    <div className={styles.itemMeta}>
                       <span>SKU: {item.sku}</span>
                       <span>•</span>
                       <span>{item.size}</span>
@@ -94,12 +96,12 @@ export function SellerOrderDetails({
                       <span>{item.color}</span>
                     </div>
 
-                    <div className={styles.orderItemMeta}>
+                    <div className={styles.itemMeta}>
                       {item.quantity} × {item.price.toLocaleString()} ₽
                     </div>
                   </div>
 
-                  <div className={styles.orderItemTotal}>
+                  <div className={styles.itemTotal}>
                     {item.lineTotal.toLocaleString()} ₽
                   </div>
                 </article>
@@ -107,19 +109,19 @@ export function SellerOrderDetails({
             </div>
           </section>
 
-          <section className={styles.orderDetailsSection}>
-            <h2 className={styles.orderDetailsSectionTitle}>Получатель</h2>
+          <section className={styles.section}>
+            <h2 className={styles.sectionTitle}>Получатель</h2>
 
-            <div className={styles.orderInfoGrid}>
+            <div className={styles.infoGrid}>
               <InfoRow label="Имя" value={order.recipientName} />
               <InfoRow label="Телефон" value={order.recipientPhone} />
             </div>
           </section>
 
-          <section className={styles.orderDetailsSection}>
-            <h2 className={styles.orderDetailsSectionTitle}>Доставка</h2>
+          <section className={styles.section}>
+            <h2 className={styles.sectionTitle}>Доставка</h2>
 
-            <div className={styles.orderInfoGrid}>
+            <div className={styles.infoGrid}>
               <InfoRow label="Способ доставки" value={order.deliveryMethod} />
               <InfoRow label="Адрес / ПВЗ" value={order.deliveryAddress} />
 
@@ -130,12 +132,12 @@ export function SellerOrderDetails({
           </section>
         </main>
 
-        <aside className={styles.orderDetailsAside}>
-          <div className={styles.orderStickyPanel}>
-            <section className={styles.orderPanelSection}>
+        <aside className={styles.aside}>
+          <div className={styles.stickyPanel}>
+            <section className={styles.panelSection}>
               <h2>Информация</h2>
 
-              <div className={styles.orderInfoGrid}>
+              <div className={styles.infoGrid}>
                 <InfoRow label="Номер" value={`#${order.id}`} />
                 <InfoRow label="Группа" value={String(order.orderGroupId)} />
                 <InfoRow
@@ -145,64 +147,60 @@ export function SellerOrderDetails({
               </div>
             </section>
 
-            <section className={styles.orderPanelSection}>
+            <section className={styles.panelSection}>
               <h2>Сумма</h2>
 
-              <div className={styles.orderTotals}>
+              <div className={styles.totals}>
                 <InfoRow label="Товары" value={`${order.subtotalAmount.toLocaleString()} ₽`} />
                 <InfoRow label="Доставка" value={`${order.deliveryAmount.toLocaleString()} ₽`} />
                 <InfoRow label="Скидка" value={`${order.discountAmount.toLocaleString()} ₽`} />
 
-                <div className={styles.orderTotalFinal}>
+                <div className={styles.totalFinal}>
                   <span>Итого</span>
                   <strong>{order.totalAmount.toLocaleString()} ₽</strong>
                 </div>
               </div>
             </section>
 
-            <section className={styles.orderPanelSection}>
+            <section className={styles.panelSection}>
               <h2>Действия</h2>
 
-              {canShip ? (
-                <button
-                  type="button"
-                  onClick={onShip}
-                  disabled={shipping}
-                  className={styles.primaryBtn}
+              <div className={styles.actions}>
+                {canShip ? (
+                  <Button variant="primary" onClick={onShip} disabled={shipping}>
+                    {shipping ? "Отмечаем…" : "Отправил"}
+                  </Button>
+                ) : (
+                  <div className={styles.muted}>
+                    Для текущего статуса отправка недоступна
+                  </div>
+                )}
+
+                <a
+                  href={labelHref}
+                  className="buttonSecondary"
+                  target="_blank"
+                  rel="noreferrer"
                 >
-                  {shipping ? "Отмечаем…" : "Отправил"}
-                </button>
-              ) : (
-                <div className={styles.muted}>
-                  Для текущего статуса отправка недоступна
-                </div>
-              )}
+                  Скачать ярлык
+                </a>
 
-              <a
-                href={labelHref}
-                className={styles.secondaryBtn}
-                target="_blank"
-                rel="noreferrer"
-              >
-                Скачать ярлык
-              </a>
+                <Button
+                  variant="secondary"
+                  onClick={async () => {
+                    await apiFetch(
+                      `${API_URL}/api/delivery/shipments/order/${order.id}/sync`,
+                      {
+                        method: "POST",
+                      }
+                    );
 
-              <button
-                type="button"
-                className={styles.secondaryBtn}
-                onClick={async () => {
-                  await apiFetch(
-                    `${API_URL}/api/delivery/shipments/order/${order.id}/sync`,
-                    {
-                      method: "POST",
-                    }
-                  );
-
-                  window.location.reload();
-                }}
-              >
-                Синхронизировать доставку
-              </button>
+                    window.location.reload();
+                  }}
+                >
+                  Синхронизировать доставку
+                </Button>
+              </div>
             </section>
           </div>
         </aside>
@@ -213,16 +211,22 @@ export function SellerOrderDetails({
 
 function SummaryItem({ label, value }: { label: string; value: string }) {
   return (
-    <div className={styles.orderDetailsSummaryItem}>
+    <div className={styles.summaryItem}>
       <strong>{value}</strong>
       <span>{label}</span>
     </div>
   );
 }
 
-function InfoRow({ label, value }: { label: string; value: string | null | undefined }) {
+function InfoRow({
+  label,
+  value,
+}: {
+  label: string;
+  value: string | null | undefined;
+}) {
   return (
-    <div className={styles.orderInfoRow}>
+    <div className={styles.infoRow}>
       <span>{label}</span>
       <strong>{value || "—"}</strong>
     </div>

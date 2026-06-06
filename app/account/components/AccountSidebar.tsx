@@ -1,7 +1,7 @@
 "use client";
 
 import { DashboardTabs } from "../../components/ui/DashboardTabs";
-import styles from "../Account.module.css";
+import styles from "./AccountSidebar.module.css";
 
 type Props = {
   currentTab: "profile" | "orders";
