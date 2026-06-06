@@ -1,0 +1,115 @@
+.orderRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 140px 220px;
+  gap: 18px;
+
+  align-items: center;
+
+  padding: 18px 0;
+
+  border-bottom: 1px solid var(--line);
+  background: #fff;
+}
+
+.orderMain {
+  min-width: 0;
+}
+
+.orderTitleRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.orderTitleBtn {
+  border: none;
+  background: transparent;
+  padding: 0;
+
+  cursor: pointer;
+
+  color: var(--black);
+
+  font-size: 15px;
+  font-weight: 600;
+
+  text-align: left;
+}
+
+.orderTitleBtn:hover {
+  text-decoration: underline;
+}
+
+.orderMeta {
+  display: flex;
+  gap: 7px;
+  flex-wrap: wrap;
+
+  margin-top: 8px;
+
+  color: var(--muted);
+
+  font-size: 12px;
+}
+
+.orderProductLine {
+  margin-top: 10px;
+
+  color: var(--muted);
+
+  font-size: 13px;
+
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.orderAmount {
+  color: var(--black);
+
+  font-size: 15px;
+  font-weight: 600;
+
+  white-space: nowrap;
+}
+
+.orderActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+@media (max-width: 900px) {
+  .orderRow {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .orderActions {
+    justify-content: flex-start;
+  }
+}
+
+@media (max-width: 768px) {
+  .orderTitleRow {
+    gap: 8px;
+  }
+
+  .orderMeta {
+    gap: 6px;
+  }
+
+  .orderAmount {
+    font-size: 14px;
+  }
+
+  .orderActions {
+    width: 100%;
+  }
+
+  .orderActions > * {
+    flex: 1;
+  }
+}

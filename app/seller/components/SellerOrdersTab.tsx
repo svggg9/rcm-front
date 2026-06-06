@@ -1,8 +1,10 @@
 "use client";
 
-import { SellerOrderCard } from "./SellerOrderCard";
-import styles from "../Seller.module.css";
+import { Button } from "../../components/ui/Button";
 import { EmptyState } from "../../components/ui/EmptyState";
+
+import { SellerOrderCard } from "./SellerOrderCard";
+import styles from "./SellerOrdersTab.module.css";
 
 import type { SellerOrderListItem } from "../types";
 
@@ -34,34 +36,29 @@ export function SellerOrdersTab({
   const totalAmount = orders.reduce((sum, order) => sum + order.totalAmount, 0);
 
   return (
-    <section className={styles.ordersPage}>
-      <div className={styles.ordersHeader}>
+    <section className={styles.page}>
+      <div className={styles.header}>
         <div>
           <div className={styles.kicker}>Продажи</div>
-          <h1 className={styles.sectionTitleNoMargin}>Заказы</h1>
-          <p className={styles.productsHint}>
+          <h1 className={styles.title}>Заказы</h1>
+          <p className={styles.hint}>
             Управление заказами, оплатой и отправкой.
           </p>
         </div>
 
-        <button
-          type="button"
-          onClick={onRefresh}
-          className={styles.refreshBtn}
-          disabled={refreshing}
-        >
+        <Button variant="secondary" onClick={onRefresh} disabled={refreshing}>
           {refreshing ? "Обновляем…" : "Обновить"}
-        </button>
+        </Button>
       </div>
 
-      <div className={styles.ordersSummary}>
+      <div className={styles.summary}>
         <SummaryItem label="Всего заказов" value={orders.length.toString()} />
         <SummaryItem label="Оплачены" value={paidCount.toString()} />
         <SummaryItem label="К отправке" value={readyCount.toString()} />
         <SummaryItem label="Оборот" value={`${totalAmount.toLocaleString()} ₽`} />
       </div>
 
-      <div className={styles.ordersToolbar}>
+      <div className={styles.toolbar}>
         <span>{orders.length ? `${orders.length} заказ(ов)` : "Список заказов"}</span>
         <span>Последние заказы продавца</span>
       </div>
@@ -72,8 +69,8 @@ export function SellerOrdersTab({
           text="Когда покупатели оформят заказы, они появятся здесь."
         />
       ) : (
-        <div className={styles.ordersList}>
-          <div className={styles.ordersListHead}>
+        <div className={styles.list}>
+          <div className={styles.listHead}>
             <span>Заказ</span>
             <span>Сумма</span>
             <span>Действия</span>
@@ -98,7 +95,7 @@ export function SellerOrdersTab({
 
 function SummaryItem({ label, value }: { label: string; value: string }) {
   return (
-    <div className={styles.ordersSummaryItem}>
+    <div className={styles.summaryItem}>
       <strong>{value}</strong>
       <span>{label}</span>
     </div>

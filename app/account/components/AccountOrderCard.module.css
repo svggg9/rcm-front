@@ -1,0 +1,152 @@
+.card {
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) auto 120px;
+  gap: 24px;
+  align-items: center;
+
+  width: 100%;
+  padding: 20px 0;
+
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  background: var(--white);
+  color: var(--black);
+
+  text-align: left;
+  cursor: pointer;
+}
+
+.card:hover .openLabel {
+  border-color: var(--black);
+}
+
+.main {
+  min-width: 0;
+}
+
+.statusLine {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.date {
+  color: var(--muted);
+  font-size: var(--font-sm);
+}
+
+.number {
+  margin-top: 10px;
+
+  color: var(--black);
+
+  font-size: var(--font-md);
+  font-weight: 500;
+}
+
+.images {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.imageWrap {
+  width: 52px;
+  height: 68px;
+
+  overflow: hidden;
+  background: var(--soft);
+  flex-shrink: 0;
+}
+
+.image,
+.imagePlaceholder {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.image {
+  object-fit: cover;
+}
+
+.imagePlaceholder {
+  background: var(--soft);
+}
+
+.moreItems {
+  width: 52px;
+  height: 68px;
+
+  border: 1px solid var(--line);
+  background: var(--white);
+  color: var(--muted);
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  font-size: var(--font-sm);
+  font-weight: 500;
+}
+
+.meta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 10px;
+}
+
+.amount {
+  color: var(--black);
+
+  font-size: var(--font-md);
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.openLabel {
+  min-height: 32px;
+  padding: 0 12px;
+
+  border: 1px solid var(--line);
+  background: var(--white);
+  color: var(--black);
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  font-size: var(--font-xs);
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+
+  transition: border-color var(--transition);
+}
+
+@media (max-width: 768px) {
+  .card {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+
+  .card:focus-visible {
+    outline: 1px solid var(--black);
+    outline-offset: 4px;
+  }
+
+  .images {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .meta {
+    align-items: flex-start;
+  }
+
+  .openLabel {
+    width: 100%;
+  }
+}

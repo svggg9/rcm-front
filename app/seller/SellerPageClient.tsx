@@ -9,6 +9,7 @@ import { SellerSidebar } from "./components/SellerSidebar";
 import { SellerOrdersTab } from "./components/SellerOrdersTab";
 import { SellerOrderDetails } from "./components/SellerOrderDetails";
 import { SellerProductsTab } from "./components/SellerProductsTab";
+import { SellerBrandTab } from "./components/SellerBrandTab";
 
 import type {
   PageResponse,
@@ -21,7 +22,7 @@ import type {
   SellerTab,
 } from "./types";
 
-import styles from "./Seller.module.css";
+import styles from "./SellerPageClient.module.css";
 
 function formatOrderStatus(status: SellerOrderStatus): string {
   switch (status) {
@@ -104,15 +105,14 @@ function SellerPageContent({ initialProducts, initialOrders }: Props) {
   const router = useRouter();
   const searchParams = useSearchParams();
 
+  const tabParam = searchParams.get("tab");
+
   const currentTab: SellerTab =
-    searchParams.get("tab") === "products" ? "products" : "orders";
+    tabParam === "products" || tabParam === "brand" ? tabParam : "orders";
   const selectedOrderId = searchParams.get("orderId");
 
   const [orders, setOrders] = useState<SellerOrderListItem[]>(initialOrders);
   const [products, setProducts] = useState<SellerProductListItem[]>(initialProducts);
-
-  const [productsLoading, setProductsLoading] = useState(false);
-  const [productsRefreshing, setProductsRefreshing] = useState(false);
 
   const [selectedOrder, setSelectedOrder] = useState<SellerOrder | null>(null);
   const [detailsLoading, setDetailsLoading] = useState(false);
@@ -129,37 +129,6 @@ function SellerPageContent({ initialProducts, initialOrders }: Props) {
   useEffect(() => {
     setOrders(initialOrders);
   }, [initialOrders]);
-
-  async function loadProducts(options?: { silent?: boolean }) {
-    const silent = options?.silent ?? false;
-
-    if (silent) {
-      setProductsRefreshing(true);
-    } else {
-      setProductsLoading(true);
-    }
-
-    setError(null);
-
-    try {
-      const response = await apiFetch(
-        `${API_URL}/api/seller/products/list?page=0&size=50`
-      );
-
-      if (!response.ok) {
-        const text = await response.text().catch(() => "");
-        throw new Error(text || `Ошибка загрузки товаров (${response.status})`);
-      }
-
-      const data: PageResponse<SellerProductListItem> = await response.json();
-      setProducts(Array.isArray(data.content) ? data.content : []);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Не удалось загрузить товары");
-    } finally {
-      setProductsLoading(false);
-      setProductsRefreshing(false);
-    }
-  }
 
   async function loadOrders(options?: { silent?: boolean }) {
     const silent = options?.silent ?? false;
@@ -269,12 +238,12 @@ function SellerPageContent({ initialProducts, initialOrders }: Props) {
           <div className={styles.content}>
             {error ? <div className={styles.error}>{error}</div> : null}
 
-            {currentTab === "products" ? (
+            {currentTab === "brand" ? (
+              <SellerBrandTab />
+            ) : currentTab === "products" ? (
               <SellerProductsTab
                 products={products}
-                loading={productsLoading}
-                refreshing={productsRefreshing}
-                onRefresh={() => void loadProducts({ silent: true })}
+                loading={false}
               />
             ) : detailsLoading ? (
               <div className={styles.sectionTitle}>Загрузка заказа…</div>

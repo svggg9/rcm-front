@@ -146,18 +146,18 @@ export function ProductGeneralCard({
         <label className={styles.fieldFull}>
           <span className={styles.required}>Производитель</span>
 
-          <select
-            value={brandId}
-            onChange={(event) =>
-              onBrandIdChange(
-                event.target.value ? Number(event.target.value) : ""
-              )
-            }
-            className={`${styles.select} ${
-              validationErrors.brandId ? styles.fieldInvalid : ""
-            }`}
-            disabled={brandsEmpty}
-          >
+            <select
+              value={brandId}
+              onChange={(event) =>
+                onBrandIdChange(
+                  event.target.value ? Number(event.target.value) : ""
+                )
+              }
+              className={`${styles.select} ${
+                validationErrors.brandId ? styles.fieldInvalid : ""
+              }`}
+              disabled={brandsEmpty || brands.length === 1}
+            >
             <option value="">
               {brandsEmpty
                 ? "Производители не найдены"
@@ -177,7 +177,11 @@ export function ProductGeneralCard({
             </small>
           ) : brandsEmpty ? (
             <small>
-              Сначала добавьте производителя в кабинете продавца.
+              Сначала заполните производителя в кабинете продавца.
+            </small>
+          ) : brands.length === 1 ? (
+            <small>
+              Производитель привязан к вашему аккаунту.
             </small>
           ) : null}
         </label>

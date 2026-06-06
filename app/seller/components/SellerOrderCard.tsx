@@ -1,9 +1,11 @@
 "use client";
 
-import styles from "../Seller.module.css";
+import styles from "./SellerOrderCard.module.css";
+
+import { Button } from "../../components/ui/Button";
+import { StatusBadge } from "../../components/ui/StatusBadge";
 
 import type { SellerOrderListItem } from "../types";
-import { StatusBadge } from "../../components/ui/StatusBadge";
 
 type Props = {
   order: SellerOrderListItem;
@@ -22,7 +24,6 @@ export function SellerOrderCard({
   onShip,
   onOpen,
 }: Props) {
-
   return (
     <article className={styles.orderRow}>
       <div className={styles.orderMain}>
@@ -58,22 +59,17 @@ export function SellerOrderCard({
       </div>
 
       <div className={styles.orderActions}>
-        <button
-          type="button"
+        <Button
+          variant="secondary"
           onClick={() => onShip(order.id)}
           disabled={shipping || !canShip}
-          className={styles.secondaryBtn}
         >
           {shipping ? "Отмечаем…" : "Отправил"}
-        </button>
+        </Button>
 
-        <button
-          type="button"
-          onClick={() => onOpen(order.id)}
-          className={styles.primaryBtn}
-        >
+        <Button variant="primary" onClick={() => onOpen(order.id)}>
           Открыть
-        </button>
+        </Button>
       </div>
     </article>
   );
@@ -82,6 +78,7 @@ export function SellerOrderCard({
 function getOrderTone(order: SellerOrderListItem) {
   if (order.paymentStatus === "FAILED") return "danger";
   if (order.deliveryStatus === "DELIVERED") return "success";
+
   if (
     order.paymentStatus === "PAID" ||
     order.deliveryStatus === "READY_FOR_SHIPMENT" ||

@@ -1,0 +1,263 @@
+.page {
+  display: flex;
+  flex-direction: column;
+}
+
+.header {
+  margin-bottom: 28px;
+}
+
+.kicker {
+  margin-bottom: 8px;
+
+  color: var(--gold);
+
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.title {
+  margin: 0;
+
+  color: var(--black);
+
+  font-size: var(--font-2xl);
+  line-height: 1.1;
+  font-weight: 500;
+  letter-spacing: -0.03em;
+}
+
+.hint {
+  margin: 8px 0 0;
+
+  color: var(--muted);
+
+  font-size: var(--font-sm);
+  line-height: 1.5;
+}
+
+.profileCard {
+  padding: 0 0 24px;
+  margin-bottom: 24px;
+
+  border-bottom: 1px solid var(--line);
+  background: var(--white);
+}
+
+.profileHead {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.avatar {
+  width: 56px;
+  height: 56px;
+
+  border: 1px solid var(--line);
+  background: var(--soft);
+  color: var(--black);
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+
+  font-size: var(--font-lg);
+  font-weight: 500;
+}
+
+.profileMeta {
+  min-width: 0;
+
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.profileName {
+  color: var(--black);
+  font-size: var(--font-lg);
+  font-weight: 500;
+}
+
+.profileSub {
+  color: var(--muted);
+  font-size: var(--font-sm);
+}
+
+.card {
+  padding: 0 0 32px;
+  margin-bottom: 32px;
+
+  border-bottom: 1px solid var(--line);
+  background: var(--white);
+}
+
+.cardHeader {
+  margin-bottom: 20px;
+}
+
+.cardHeader h2 {
+  margin: 0 0 4px;
+
+  color: var(--black);
+
+  font-size: var(--font-xl);
+  font-weight: 500;
+  letter-spacing: -0.02em;
+}
+
+.cardHeader p {
+  margin: 0;
+
+  color: var(--muted);
+
+  font-size: var(--font-sm);
+  line-height: 1.5;
+}
+
+.formGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.label,
+.infoLabel {
+  color: var(--muted);
+  font-size: var(--font-sm);
+}
+
+.input,
+.inlineInput {
+  width: 100%;
+  height: 46px;
+
+  border: 1px solid var(--line);
+  background: var(--white);
+  color: var(--black);
+
+  padding: 0 14px;
+
+  font-size: var(--font-md);
+  outline: none;
+}
+
+.inlineInput {
+  height: 42px;
+  padding: 0 12px;
+}
+
+.input:focus,
+.inlineInput:focus {
+  border-color: var(--black);
+}
+
+.subSection {
+  margin-top: 24px;
+}
+
+.subSectionTitle {
+  margin-bottom: 12px;
+
+  color: var(--black);
+
+  font-size: var(--font-md);
+  font-weight: 500;
+}
+
+.radioRow {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+
+.radioOption {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+
+  color: var(--black);
+  font-size: var(--font-md);
+}
+
+.radioOption input {
+  accent-color: var(--black);
+}
+
+.infoRows {
+  display: flex;
+  flex-direction: column;
+}
+
+.infoRow {
+  display: grid;
+  grid-template-columns: 140px minmax(0, 1fr);
+  gap: 16px;
+  align-items: center;
+
+  padding: 12px 0;
+
+  border-bottom: 1px solid var(--line);
+}
+
+.infoRow:first-child {
+  padding-top: 0;
+}
+
+.infoRow:last-child {
+  border-bottom: 0;
+  padding-bottom: 0;
+}
+
+.infoValue,
+.infoValueWrap {
+  min-width: 0;
+}
+
+.infoValue {
+  color: var(--black);
+  font-size: var(--font-md);
+  word-break: break-word;
+}
+
+.actions {
+  margin-top: 28px;
+}
+
+@media (max-width: 768px) {
+  .header {
+    margin-bottom: 22px;
+  }
+
+  .title {
+    font-size: var(--font-xl);
+  }
+
+  .profileHead {
+    align-items: flex-start;
+  }
+
+  .formGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .infoRow {
+    grid-template-columns: 1fr;
+    gap: 6px;
+  }
+
+  .actions button {
+    width: 100%;
+  }
+}

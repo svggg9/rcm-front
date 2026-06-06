@@ -164,7 +164,7 @@ export function ProductEditPageClient({ productId }: Props) {
         ] = await Promise.all([
           apiFetch(`${API_URL}/api/seller/products/${productId}`),
           apiFetch(`${API_URL}/api/catalog/categories`),
-          apiFetch(`${API_URL}/api/catalog/brands`),
+          apiFetch(`${API_URL}/api/seller/brands`),
           apiFetch(`${API_URL}/api/sizes`),
           apiFetch(`${API_URL}/api/colors`),
         ]);
@@ -210,11 +210,15 @@ export function ProductEditPageClient({ productId }: Props) {
         setCategories(safeCategories);
         setBrands(safeBrands);
 
+        const nextBrandId =
+          productData.brandId ?? safeBrands[0]?.id ?? "";
+
+        setBrandId(nextBrandId);
+
         setTitle(productData.title ?? "");
         setDescription(productData.description ?? "");
         setComposition(productData.composition ?? "");
         setCategoryId(productData.categoryId ?? "");
-        setBrandId(productData.brandId ?? "");
         setAudience(productData.audience ?? "UNISEX");
 
         setPackageWidthCm(productData.packageWidthCm ?? "");

@@ -1,10 +1,11 @@
 "use client";
 
+import { EmptyState } from "../../components/ui/EmptyState";
+
 import { AccountOrderCard } from "./AccountOrderCard";
-import styles from "../Account.module.css";
+import styles from "./AccountOrdersTab.module.css";
 
 import type { OrderListItem } from "../types";
-import { EmptyState } from "../../components/ui/EmptyState";
 
 type Props = {
   orders: OrderListItem[];
@@ -18,8 +19,16 @@ export function AccountOrdersTab({
   onOpenOrder,
 }: Props) {
   return (
-    <>
-      <div className={styles.sectionTitle}>Мои заказы</div>
+    <section className={styles.page}>
+      <div className={styles.header}>
+        <div>
+          <div className={styles.kicker}>Покупки</div>
+          <h1 className={styles.title}>Мои заказы</h1>
+          <p className={styles.hint}>
+            История заказов, оплата и статус доставки.
+          </p>
+        </div>
+      </div>
 
       {orders.length === 0 ? (
         <EmptyState
@@ -27,7 +36,7 @@ export function AccountOrdersTab({
           text="Когда вы оформите заказ, он появится здесь."
         />
       ) : (
-        <div className={styles.ordersPreviewList}>
+        <div className={styles.list}>
           {orders.map((order) => (
             <AccountOrderCard
               key={order.id}
@@ -45,6 +54,6 @@ export function AccountOrdersTab({
           ))}
         </div>
       )}
-    </>
+    </section>
   );
 }

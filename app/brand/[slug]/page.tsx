@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
@@ -14,6 +15,13 @@ type BrandResponse = {
   id: number;
   name: string;
   slug: string;
+  description: string | null;
+  logoUrl: string | null;
+  website: string | null;
+  telegram: string | null;
+  vk: string | null;
+  country: string | null;
+  foundationYear: number | null;
 };
 
 async function getBrand(slug: string): Promise<BrandResponse | null> {
@@ -56,6 +64,27 @@ async function getBrandProducts(slug: string): Promise<PaginatedProducts> {
   };
 }
 
+function getBrandDescription(brand: BrandResponse): string {
+  return (
+    brand.description ||
+    `Товары производителя ${brand.name} на RCMarket — маркетплейсе отечественных производителей.`
+  );
+}
+
+function getExternalHref(value: string | null): string | null {
+  if (!value) return null;
+
+  if (value.startsWith("http://") || value.startsWith("https://")) {
+    return value;
+  }
+
+  if (value.startsWith("@")) {
+    return `https://t.me/${value.slice(1)}`;
+  }
+
+  return `https://${value}`;
+}
+
 export async function generateMetadata({
   params,
 }: {
@@ -66,22 +95,25 @@ export async function generateMetadata({
 
   if (!brand) {
     return {
-      title: "Производитель не найден | RCM",
+      title: "Производитель не найден | RCMarket",
       description: "Производитель не найден.",
     };
   }
 
+  const description = getBrandDescription(brand);
+
   return {
-    title: `${brand.name} — товары производителя | RCM`,
-    description: `Каталог товаров производителя ${brand.name}. Оригинальные товары российских брендов на RCM Marketplace.`,
+    title: `${brand.name} — товары производителя | RCMarket`,
+    description,
     alternates: {
       canonical: `/brand/${brand.slug}`,
     },
     openGraph: {
-      title: `${brand.name} — товары производителя | RCM`,
-      description: `Каталог товаров производителя ${brand.name} на RCM Marketplace.`,
+      title: `${brand.name} — товары производителя | RCMarket`,
+      description,
       type: "website",
       url: `/brand/${brand.slug}`,
+      images: brand.logoUrl ? [{ url: brand.logoUrl }] : undefined,
     },
   };
 }
@@ -101,6 +133,19 @@ export default async function BrandPage({
   if (!brand) {
     notFound();
   }
+
+  const websiteHref = getExternalHref(brand.website);
+  const telegramHref = getExternalHref(brand.telegram);
+  const vkHref = getExternalHref(brand.vk);
+
+  const hasBrandInfo =
+    Boolean(brand.description) ||
+    Boolean(brand.logoUrl) ||
+    Boolean(brand.country) ||
+    Boolean(brand.foundationYear) ||
+    Boolean(brand.website) ||
+    Boolean(brand.telegram) ||
+    Boolean(brand.vk);
 
   return (
     <div className="pageContainer">
@@ -123,6 +168,74 @@ export default async function BrandPage({
           <div className={styles.headingWrap}>
             <h1 className={styles.heading}>{brand.name}</h1>
           </div>
+
+          {hasBrandInfo ? (
+            <section className={styles.brandHero}>
+              <div className={styles.brandHeroMain}>
+                {brand.description ? (
+                  <p className={styles.brandDescription}>{brand.description}</p>
+                ) : null}
+
+                {brand.country || brand.foundationYear ? (
+                  <div className={styles.brandMeta}>
+                    {brand.country ? <span>{brand.country}</span> : null}
+                    {brand.foundationYear ? (
+                      <span>основан в {brand.foundationYear}</span>
+                    ) : null}
+                  </div>
+                ) : null}
+
+                {websiteHref || telegramHref || vkHref ? (
+                  <div className={styles.brandLinks}>
+                    {websiteHref ? (
+                      <a
+                        href={websiteHref}
+                        target="_blank"
+                        rel="noreferrer"
+                        className={styles.brandLink}
+                      >
+                        Сайт
+                      </a>
+                    ) : null}
+
+                    {telegramHref ? (
+                      <a
+                        href={telegramHref}
+                        target="_blank"
+                        rel="noreferrer"
+                        className={styles.brandLink}
+                      >
+                        Telegram
+                      </a>
+                    ) : null}
+
+                    {vkHref ? (
+                      <a
+                        href={vkHref}
+                        target="_blank"
+                        rel="noreferrer"
+                        className={styles.brandLink}
+                      >
+                        VK
+                      </a>
+                    ) : null}
+                  </div>
+                ) : null}
+              </div>
+
+              {brand.logoUrl ? (
+                <div className={styles.brandLogoBox}>
+                  <Image
+                    src={brand.logoUrl}
+                    alt={brand.name}
+                    fill
+                    sizes="120px"
+                    className={styles.brandLogo}
+                  />
+                </div>
+              ) : null}
+            </section>
+          ) : null}
         </div>
 
         <section className={styles.results}>

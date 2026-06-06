@@ -11,7 +11,7 @@ import { AccountProfileTab } from "./components/AccountProfileTab";
 import { AccountOrdersTab } from "./components/AccountOrdersTab";
 import { AccountOrderDetails } from "./components/AccountOrderDetails";
 
-import styles from "./Account.module.css";
+import styles from "./AccountPageClient.module.css";
 
 import type {
   Me,
