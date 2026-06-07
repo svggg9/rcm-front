@@ -1,6 +1,6 @@
 "use client";
 
-import { DashboardTabs } from "../../components/ui/DashboardTabs";
+import { CabinetSidebar } from "../../components/ui/CabinetSidebar";
 
 import type { AdminTab } from "../types";
 
@@ -16,9 +16,11 @@ export function AdminSidebar({
   sellersCount,
 }: Props) {
   return (
-    <DashboardTabs
+    <CabinetSidebar
       ariaLabel="Меню администратора"
-      tabs={[
+      subtitle="Панель"
+      title="Администратор"
+      items={[
         {
           href: "/admin?tab=products",
           label: "Товары",

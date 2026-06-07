@@ -41,3 +41,16 @@
   padding: 24px 0;
   border-bottom: 1px solid var(--line);
 }
+
+.sectionBlock {
+  padding: 56px 0;
+}
+
+.sectionKicker {
+  margin-bottom: 16px;
+  color: var(--gold);
+  font-size: var(--font-xs);
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}

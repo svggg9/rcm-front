@@ -1,6 +1,8 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 
+import styles from "./CabinetSidebar.module.css";
+
 type SidebarItem = {
   href: string;
   label: string;
@@ -13,36 +15,44 @@ type Props = {
   subtitle?: string;
   items: SidebarItem[];
   footer?: ReactNode;
+  ariaLabel: string;
 };
 
-export function CabinetSidebar({ title, subtitle, items, footer }: Props) {
+export function CabinetSidebar({
+  title,
+  subtitle,
+  items,
+  footer,
+  ariaLabel,
+}: Props) {
   return (
-    <aside className="stickyTop stack24">
+    <aside className={styles.sidebar}>
       {title || subtitle ? (
-        <div className="borderBottom pb18">
-          {subtitle ? <div className="uppercaseLabel mb8">{subtitle}</div> : null}
-          {title ? <strong>{title}</strong> : null}
+        <div className={styles.head}>
+          {subtitle ? <div className={styles.subtitle}>{subtitle}</div> : null}
+          {title ? <strong className={styles.title}>{title}</strong> : null}
         </div>
       ) : null}
 
-      <nav className="sidebarNav">
+      <nav className={styles.nav} aria-label={ariaLabel}>
         {items.map((item) => (
           <Link
             key={item.href}
             href={item.href}
-            className={`sidebarNavItem ${
-              item.active ? "sidebarNavItemActive" : ""
-            }`}
+            className={`${styles.item} ${item.active ? styles.itemActive : ""}`}
+            aria-current={item.active ? "page" : undefined}
+            prefetch={false}
           >
             <span>{item.label}</span>
+
             {typeof item.count === "number" ? (
-              <span className="sidebarNavCount">{item.count}</span>
+              <span className={styles.count}>{item.count}</span>
             ) : null}
           </Link>
         ))}
       </nav>
 
-      {footer}
+      {footer ? <div className={styles.footer}>{footer}</div> : null}
     </aside>
   );
 }

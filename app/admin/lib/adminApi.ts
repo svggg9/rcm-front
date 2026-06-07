@@ -7,6 +7,8 @@ import type {
   PageResponse,
   ProductStatus,
   SellerFilter,
+  AdminSellerApplication,
+  SellerApplicationStatus,
 } from "../types";
 
 async function readError(response: Response, fallback: string) {
@@ -192,5 +194,56 @@ export async function deleteAdminDictionaryItem(
 
   if (!response.ok) {
     throw new Error(await readError(response, "Не удалось отключить значение"));
+  }
+}
+
+export async function getAdminSellerApplications(
+  status: SellerApplicationStatus | "ALL",
+  page = 0,
+  size = 50
+): Promise<PageResponse<AdminSellerApplication>> {
+  const query =
+    status === "ALL"
+      ? `page=${page}&size=${size}`
+      : `status=${status}&page=${page}&size=${size}`;
+
+  const response = await apiFetch(
+    `${API_URL}/api/admin/seller-applications?${query}`
+  );
+
+  if (!response.ok) {
+    throw new Error(await readError(response, "Не удалось загрузить заявки"));
+  }
+
+  return response.json();
+}
+
+export async function approveSellerApplication(id: number): Promise<void> {
+  const response = await apiFetch(
+    `${API_URL}/api/admin/seller-applications/${id}/approve`,
+    {
+      method: "POST",
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error(await readError(response, "Не удалось одобрить заявку"));
+  }
+}
+
+export async function rejectSellerApplication(
+  id: number,
+  comment?: string
+): Promise<void> {
+  const response = await apiFetch(
+    `${API_URL}/api/admin/seller-applications/${id}/reject`,
+    {
+      method: "POST",
+      body: JSON.stringify({ comment: comment ?? null }),
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error(await readError(response, "Не удалось отклонить заявку"));
   }
 }

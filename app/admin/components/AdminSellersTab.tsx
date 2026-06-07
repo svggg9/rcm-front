@@ -1,61 +1,88 @@
-
 import styles from "../Admin.module.css";
-import type { AdminSeller, SellerFilter } from "../types";
+
 import { EmptyState } from "../../components/ui/EmptyState";
 import { StatusBadge } from "../../components/ui/StatusBadge";
 
+import type {
+  AdminSellerApplication,
+  SellerApplicationStatus,
+} from "../types";
+
 type Props = {
-  sellers: AdminSeller[];
-  filter: SellerFilter;
+  applications: AdminSellerApplication[];
+  status: SellerApplicationStatus | "ALL";
   totalElements: number;
   refreshing: boolean;
-  actionSellerId: number | null;
-  onFilterChange: (filter: SellerFilter) => void;
+  actionApplicationId: number | null;
+  onStatusChange: (status: SellerApplicationStatus | "ALL") => void;
   onRefresh: () => void;
   onApprove: (id: number) => void;
   onReject: (id: number) => void;
 };
 
-const FILTERS: SellerFilter[] = ["REQUESTS", "APPROVED", "ALL"];
+const FILTERS: Array<SellerApplicationStatus | "ALL"> = [
+  "NEW",
+  "APPROVED",
+  "REJECTED",
+  "ALL",
+];
 
-function getSellerStatusTone(seller: AdminSeller) {
-  if (seller.role === "SELLER" && seller.sellerApproved) return "success";
-  if (seller.sellerRequested) return "warning";
-  return "default";
-}
-
-function formatFilter(filter: SellerFilter) {
-  switch (filter) {
-    case "REQUESTS":
-      return "Заявки";
+function formatFilter(status: SellerApplicationStatus | "ALL") {
+  switch (status) {
+    case "NEW":
+      return "Новые";
     case "APPROVED":
       return "Одобренные";
+    case "REJECTED":
+      return "Отклонённые";
     case "ALL":
       return "Все";
     default:
-      return filter;
+      return status;
   }
 }
 
-function formatSellerStatus(seller: AdminSeller) {
-  if (seller.role === "SELLER" && seller.sellerApproved) {
-    return "Одобрен";
+function formatStatus(status: SellerApplicationStatus) {
+  switch (status) {
+    case "NEW":
+      return "На рассмотрении";
+    case "APPROVED":
+      return "Одобрена";
+    case "REJECTED":
+      return "Отклонена";
+    default:
+      return status;
   }
+}
 
-  if (seller.sellerRequested) {
-    return "Заявка";
+function getStatusTone(status: SellerApplicationStatus) {
+  switch (status) {
+    case "NEW":
+      return "warning";
+    case "APPROVED":
+      return "success";
+    case "REJECTED":
+      return "danger";
+    default:
+      return "default";
   }
+}
 
-  return "Не продавец";
+function formatDate(value: string) {
+  return new Intl.DateTimeFormat("ru-RU", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  }).format(new Date(value));
 }
 
 export function AdminSellersTab({
-  sellers,
-  filter,
+  applications,
+  status,
   totalElements,
   refreshing,
-  actionSellerId,
-  onFilterChange,
+  actionApplicationId,
+  onStatusChange,
   onRefresh,
   onApprove,
   onReject,
@@ -64,12 +91,12 @@ export function AdminSellersTab({
     <>
       <div className={styles.header}>
         <div>
-          <h1 className={styles.sectionTitleNoMargin}>Продавцы</h1>
+          <h1 className={styles.sectionTitleNoMargin}>Заявки продавцов</h1>
           <div className={styles.muted}>Найдено: {totalElements}</div>
         </div>
 
         <button
-        type="button"
+          type="button"
           className={styles.refreshBtn}
           onClick={onRefresh}
           disabled={refreshing}
@@ -81,97 +108,116 @@ export function AdminSellersTab({
       <div className={styles.filters}>
         {FILTERS.map((item) => (
           <button
-          type="button"
+            type="button"
             key={item}
             className={`${styles.filterBtn} ${
-              filter === item ? styles.filterBtnActive : ""
+              status === item ? styles.filterBtnActive : ""
             }`}
-            onClick={() => onFilterChange(item)}
+            onClick={() => onStatusChange(item)}
           >
             {formatFilter(item)}
           </button>
         ))}
       </div>
 
-      {sellers.length === 0 ? (
+      {applications.length === 0 ? (
         <EmptyState
-          title="Продавцов нет"
+          title="Заявок нет"
           text="По выбранному фильтру ничего не найдено."
         />
       ) : (
         <div className={styles.list}>
-          {sellers.map((seller) => {
-            const loading = actionSellerId === seller.id;
-            const canApprove =
-              seller.sellerRequested || seller.role !== "SELLER";
-            const canReject =
-              seller.sellerRequested ||
-              (seller.role === "SELLER" && seller.sellerApproved);
+          {applications.map((application) => {
+            const loading = actionApplicationId === application.id;
+            const canModerate = application.status === "NEW";
 
             return (
-              <article key={seller.id} className={styles.sellerCard}>
+              <article key={application.id} className={styles.sellerCard}>
                 <div className={styles.sellerMain}>
                   <div className={styles.productTop}>
                     <div>
                       <div className={styles.productTitle}>
-                        {seller.displayName || seller.username}
+                        {application.brandName}
                       </div>
+
                       <div className={styles.muted}>
-                        ID {seller.id} · {seller.email || "Без email"} ·{" "}
-                        {seller.phone || "Без телефона"}
+                        ID {application.id} · user {application.userId} ·{" "}
+                        {formatDate(application.createdAt)}
                       </div>
                     </div>
-                      <StatusBadge tone={getSellerStatusTone(seller)}>
-                        {formatSellerStatus(seller)}
-                      </StatusBadge>
+
+                    <StatusBadge tone={getStatusTone(application.status)}>
+                      {formatStatus(application.status)}
+                    </StatusBadge>
                   </div>
+
+                  {application.brandDescription ? (
+                    <p className={styles.muted}>
+                      {application.brandDescription}
+                    </p>
+                  ) : null}
 
                   <div className={styles.sellerMetaGrid}>
-                    <div>
-                      <span className={styles.infoLabel}>Username</span>
-                      <span className={styles.infoValue}>{seller.username}</span>
-                    </div>
-                    <div>
-                      <span className={styles.infoLabel}>Role</span>
-                      <span className={styles.infoValue}>{seller.role}</span>
-                    </div>
-                    <div>
-                      <span className={styles.infoLabel}>sellerRequested</span>
-                      <span className={styles.infoValue}>
-                        {seller.sellerRequested ? "Да" : "Нет"}
-                      </span>
-                    </div>
-                    <div>
-                      <span className={styles.infoLabel}>sellerApproved</span>
-                      <span className={styles.infoValue}>
-                        {seller.sellerApproved ? "Да" : "Нет"}
-                      </span>
-                    </div>
+                    <Info label="Username" value={application.username} />
+                    <Info label="Контакт" value={application.contactName} />
+                    <Info label="Email" value={application.email} />
+                    <Info label="Телефон" value={application.phone} />
+                    <Info
+                      label="Категория"
+                      value={application.category || "—"}
+                    />
+                    <Info
+                      label="Регион"
+                      value={application.productionRegion || "—"}
+                    />
+                    <Info label="Сайт" value={application.website || "—"} />
+                    <Info
+                      label="Telegram"
+                      value={application.telegram || "—"}
+                    />
                   </div>
 
-                  <div className={styles.actions}>
-                    {canApprove ? (
+                  {application.comment ? (
+                    <div className={styles.infoBlock}>
+                      <span className={styles.infoLabel}>Комментарий</span>
+                      <span className={styles.infoValue}>
+                        {application.comment}
+                      </span>
+                    </div>
+                  ) : null}
+
+                  {application.adminComment ? (
+                    <div className={styles.infoBlock}>
+                      <span className={styles.infoLabel}>
+                        Комментарий администратора
+                      </span>
+                      <span className={styles.infoValue}>
+                        {application.adminComment}
+                      </span>
+                    </div>
+                  ) : null}
+
+                  {canModerate ? (
+                    <div className={styles.actions}>
                       <button
-                      type="button"
+                        type="button"
                         className={styles.primaryBtn}
                         disabled={loading}
-                        onClick={() => onApprove(seller.id)}
+                        onClick={() => onApprove(application.id)}
                       >
                         {loading ? "..." : "Одобрить"}
                       </button>
-                    ) : null}
 
-                    {canReject ? (
                       <button
-                      type="button"
+                        type="button"
                         className={styles.dangerBtn}
                         disabled={loading}
-                        onClick={() => onReject(seller.id)}
+                        onClick={() => onReject(application.id)}
                       >
-                        {loading ? "..." : "Отклонить / снять"}
+                        {loading ? "..." : "Отклонить"}
                       </button>
-                    ) : null}
-                  </div>
+                    </div>
+                  ) : null}
                 </div>
               </article>
             );
@@ -179,5 +225,14 @@ export function AdminSellersTab({
         </div>
       )}
     </>
+  );
+}
+
+function Info({ label, value }: { label: string; value: string }) {
+  return (
+    <div>
+      <span className={styles.infoLabel}>{label}</span>
+      <span className={styles.infoValue}>{value}</span>
+    </div>
   );
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { DashboardTabs } from "../../components/ui/DashboardTabs";
+import { CabinetSidebar } from "../../components/ui/CabinetSidebar";
 import styles from "./AccountSidebar.module.css";
 
 type Props = {
@@ -15,9 +15,11 @@ export function AccountSidebar({
   onLogout,
 }: Props) {
   return (
-    <DashboardTabs
+    <CabinetSidebar
       ariaLabel="Меню аккаунта"
-      tabs={[
+      subtitle="Кабинет"
+      title="Покупатель"
+      items={[
         {
           href: "/account?tab=orders",
           label: "Мои заказы",
@@ -30,7 +32,7 @@ export function AccountSidebar({
           active: currentTab === "profile",
         },
       ]}
-      actions={
+      footer={
         <button type="button" className={styles.logout} onClick={onLogout}>
           Выйти
         </button>

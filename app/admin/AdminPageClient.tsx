@@ -13,28 +13,28 @@ import { AdminDictionariesTab } from "./components/AdminDictionariesTab";
 
 import {
   approveProduct,
-  approveSeller,
   blockProduct,
   getAdminProduct,
   getAdminProducts,
-  getAdminSellers,
-  rejectSeller,
   unblockProduct,
   returnProductToRevision,
   createAdminDictionaryItem,
   deleteAdminDictionaryItem,
   getAdminDictionary,
   updateAdminDictionaryItem,
+  approveSellerApplication,
+  getAdminSellerApplications,
+  rejectSellerApplication,
 } from "./lib/adminApi";
 
 import type {
   AdminProduct,
-  AdminSeller,
   AdminTab,
   ProductStatus,
-  SellerFilter,
   DictionaryItem,
   DictionaryKind,
+  AdminSellerApplication,
+  SellerApplicationStatus,
 } from "./types";
 
 function normalizeTab(raw: string | null): AdminTab {
@@ -53,81 +53,96 @@ function AdminPageContent() {
   const statusParam = searchParams.get("status") as ProductStatus | "ALL" | null;
   const currentStatus: ProductStatus | "ALL" = statusParam || "MODERATION";
 
-  const sellerFilterParam = searchParams.get("sellerFilter") as SellerFilter | null;
-  const currentSellerFilter: SellerFilter = sellerFilterParam || "REQUESTS";
+  const applicationStatusParam = searchParams.get("applicationStatus") as
+    | SellerApplicationStatus
+    | "ALL"
+    | null;
+
+  const currentApplicationStatus: SellerApplicationStatus | "ALL" =
+    applicationStatusParam || "NEW";
 
   const [products, setProducts] = useState<AdminProduct[]>([]);
-  const [selectedProduct, setSelectedProduct] = useState<AdminProduct | null>(null);
+  const [selectedProduct, setSelectedProduct] = useState<AdminProduct | null>(
+    null
+  );
   const [totalProducts, setTotalProducts] = useState(0);
 
-  const [sellers, setSellers] = useState<AdminSeller[]>([]);
-  const [totalSellers, setTotalSellers] = useState(0);
+  const [sellerApplications, setSellerApplications] = useState<
+    AdminSellerApplication[]
+  >([]);
+  const [totalSellerApplications, setTotalSellerApplications] = useState(0);
 
   const [categories, setCategories] = useState<DictionaryItem[]>([]);
   const [brands, setBrands] = useState<DictionaryItem[]>([]);
   const [sizes, setSizes] = useState<DictionaryItem[]>([]);
   const [colors, setColors] = useState<DictionaryItem[]>([]);
-  const [dictionaryActionKey, setDictionaryActionKey] = useState<string | null>(null);
+  const [dictionaryActionKey, setDictionaryActionKey] = useState<string | null>(
+    null
+  );
 
   const [loading, setLoading] = useState(true);
   const [detailsLoading, setDetailsLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
   const [actionProductId, setActionProductId] = useState<number | null>(null);
-  const [actionSellerId, setActionSellerId] = useState<number | null>(null);
+  const [actionApplicationId, setActionApplicationId] = useState<number | null>(
+    null
+  );
 
   const [error, setError] = useState<string | null>(null);
 
-  const loadProducts = useCallback(async (options?: { silent?: boolean }) => {
-    const silent = options?.silent ?? false;
+  const loadProducts = useCallback(
+    async (options?: { silent?: boolean }) => {
+      const silent = options?.silent ?? false;
 
-    if (silent) setRefreshing(true);
-    else setLoading(true);
+      if (silent) setRefreshing(true);
+      else setLoading(true);
 
-    setError(null);
+      setError(null);
 
-    try {
-      const data = await getAdminProducts(currentStatus, 0, 50);
-      setProducts(Array.isArray(data.content) ? data.content : []);
-      setTotalProducts(data.totalElements ?? 0);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Не удалось загрузить товары");
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  }, [currentStatus]);
+      try {
+        const data = await getAdminProducts(currentStatus, 0, 50);
+        setProducts(Array.isArray(data.content) ? data.content : []);
+        setTotalProducts(data.totalElements ?? 0);
+      } catch (e) {
+        setError(e instanceof Error ? e.message : "Не удалось загрузить товары");
+      } finally {
+        setLoading(false);
+        setRefreshing(false);
+      }
+    },
+    [currentStatus]
+  );
+
+  const loadSellerApplications = useCallback(
+    async (options?: { silent?: boolean }) => {
+      const silent = options?.silent ?? false;
+
+      if (silent) setRefreshing(true);
+      else setLoading(true);
+
+      setError(null);
+
+      try {
+        const data = await getAdminSellerApplications(
+          currentApplicationStatus,
+          0,
+          50
+        );
+
+        setSellerApplications(Array.isArray(data.content) ? data.content : []);
+        setTotalSellerApplications(data.totalElements ?? 0);
+      } catch (e) {
+        setError(e instanceof Error ? e.message : "Не удалось загрузить заявки");
+      } finally {
+        setLoading(false);
+        setRefreshing(false);
+      }
+    },
+    [currentApplicationStatus]
+  );
 
   const loadDictionaries = useCallback(async (options?: { silent?: boolean }) => {
-  const silent = options?.silent ?? false;
-
-  if (silent) setRefreshing(true);
-  else setLoading(true);
-
-  setError(null);
-
-  try {
-    const [categoriesData, brandsData, sizesData, colorsData] =
-      await Promise.all([
-        getAdminDictionary("categories"),
-        getAdminDictionary("brands"),
-        getAdminDictionary("sizes"),
-        getAdminDictionary("colors"),
-      ]);
-
-    setCategories(categoriesData);
-    setBrands(brandsData);
-    setSizes(sizesData);
-    setColors(colorsData);
-  } catch (e) {
-    setError(e instanceof Error ? e.message : "Не удалось загрузить справочники");
-  } finally {
-    setLoading(false);
-    setRefreshing(false);
-  }
-}, []);
-
-  const loadSellers = useCallback(async (options?: { silent?: boolean }) => {
     const silent = options?.silent ?? false;
 
     if (silent) setRefreshing(true);
@@ -136,16 +151,25 @@ function AdminPageContent() {
     setError(null);
 
     try {
-      const data = await getAdminSellers(currentSellerFilter, 0, 50);
-      setSellers(Array.isArray(data.content) ? data.content : []);
-      setTotalSellers(data.totalElements ?? 0);
+      const [categoriesData, brandsData, sizesData, colorsData] =
+        await Promise.all([
+          getAdminDictionary("categories"),
+          getAdminDictionary("brands"),
+          getAdminDictionary("sizes"),
+          getAdminDictionary("colors"),
+        ]);
+
+      setCategories(categoriesData);
+      setBrands(brandsData);
+      setSizes(sizesData);
+      setColors(colorsData);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Не удалось загрузить продавцов");
+      setError(e instanceof Error ? e.message : "Не удалось загрузить справочники");
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [currentSellerFilter]);
+  }, []);
 
   const loadSelectedProduct = useCallback(async (id: number) => {
     setDetailsLoading(true);
@@ -168,12 +192,12 @@ function AdminPageContent() {
     }
 
     if (currentTab === "sellers") {
-      void loadSellers();
+      void loadSellerApplications();
       return;
     }
 
     void loadDictionaries();
-  }, [currentTab, loadProducts, loadSellers, loadDictionaries]);
+  }, [currentTab, loadProducts, loadSellerApplications, loadDictionaries]);
 
   useEffect(() => {
     if (currentTab !== "products" || !selectedProductId) {
@@ -195,8 +219,8 @@ function AdminPageContent() {
     router.push(`/admin?tab=products&status=${status}`);
   }
 
-  function changeSellerFilter(filter: SellerFilter) {
-    router.push(`/admin?tab=sellers&sellerFilter=${filter}`);
+  function changeApplicationStatus(status: SellerApplicationStatus | "ALL") {
+    router.push(`/admin?tab=sellers&applicationStatus=${status}`);
   }
 
   function openProduct(productId: number) {
@@ -210,20 +234,20 @@ function AdminPageContent() {
   }
 
   async function createDictionaryItem(
-  kind: DictionaryKind,
-  item: Partial<DictionaryItem>
-) {
-  setDictionaryActionKey(`${kind}:create`);
-  setError(null);
+    kind: DictionaryKind,
+    item: Partial<DictionaryItem>
+  ) {
+    setDictionaryActionKey(`${kind}:create`);
+    setError(null);
 
-  try {
-    await createAdminDictionaryItem(kind, item);
-    await loadDictionaries({ silent: true });
-  } catch (e) {
-    setError(e instanceof Error ? e.message : "Не удалось создать значение");
-  } finally {
-    setDictionaryActionKey(null);
-  }
+    try {
+      await createAdminDictionaryItem(kind, item);
+      await loadDictionaries({ silent: true });
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Не удалось создать значение");
+    } finally {
+      setDictionaryActionKey(null);
+    }
   }
 
   async function updateDictionaryItem(
@@ -290,26 +314,28 @@ function AdminPageContent() {
       await loadProducts({ silent: true });
       await loadSelectedProduct(selectedProduct.id);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Не удалось вернуть товар на доработку");
+      setError(
+        e instanceof Error ? e.message : "Не удалось вернуть товар на доработку"
+      );
     } finally {
       setActionProductId(null);
     }
   }
 
-  async function runSellerAction(
-    sellerId: number,
+  async function runSellerApplicationAction(
+    applicationId: number,
     action: (id: number) => Promise<void>
   ) {
-    setActionSellerId(sellerId);
+    setActionApplicationId(applicationId);
     setError(null);
 
     try {
-      await action(sellerId);
-      await loadSellers({ silent: true });
+      await action(applicationId);
+      await loadSellerApplications({ silent: true });
     } catch (e) {
       setError(e instanceof Error ? e.message : "Не удалось выполнить действие");
     } finally {
-      setActionSellerId(null);
+      setActionApplicationId(null);
     }
   }
 
@@ -330,34 +356,40 @@ function AdminPageContent() {
           <AdminSidebar
             currentTab={currentTab}
             productsCount={totalProducts}
-            sellersCount={totalSellers}
+            sellersCount={totalSellerApplications}
           />
 
           <main className={styles.content}>
             {error ? <div className={styles.error}>{error}</div> : null}
 
             {currentTab === "dictionaries" ? (
-          <AdminDictionariesTab
-            categories={categories}
-            brands={brands}
-            sizes={sizes}
-            colors={colors}
-            actionKey={dictionaryActionKey}
-            onCreate={(kind, item) => void createDictionaryItem(kind, item)}
-            onUpdate={(kind, id, item) => void updateDictionaryItem(kind, id, item)}
-            onDelete={(kind, id) => void deleteDictionaryItem(kind, id)}
-          />
-        ) : currentTab === "sellers" ? (
+              <AdminDictionariesTab
+                categories={categories}
+                brands={brands}
+                sizes={sizes}
+                colors={colors}
+                actionKey={dictionaryActionKey}
+                onCreate={(kind, item) => void createDictionaryItem(kind, item)}
+                onUpdate={(kind, id, item) =>
+                  void updateDictionaryItem(kind, id, item)
+                }
+                onDelete={(kind, id) => void deleteDictionaryItem(kind, id)}
+              />
+            ) : currentTab === "sellers" ? (
               <AdminSellersTab
-                sellers={sellers}
-                filter={currentSellerFilter}
-                totalElements={totalSellers}
+                applications={sellerApplications}
+                status={currentApplicationStatus}
+                totalElements={totalSellerApplications}
                 refreshing={refreshing}
-                actionSellerId={actionSellerId}
-                onFilterChange={changeSellerFilter}
-                onRefresh={() => void loadSellers({ silent: true })}
-                onApprove={(id) => void runSellerAction(id, approveSeller)}
-                onReject={(id) => void runSellerAction(id, rejectSeller)}
+                actionApplicationId={actionApplicationId}
+                onStatusChange={changeApplicationStatus}
+                onRefresh={() => void loadSellerApplications({ silent: true })}
+                onApprove={(id) =>
+                  void runSellerApplicationAction(id, approveSellerApplication)
+                }
+                onReject={(id) =>
+                  void runSellerApplicationAction(id, rejectSellerApplication)
+                }
               />
             ) : detailsLoading ? (
               <div className={styles.sectionTitle}>Загрузка товара…</div>
