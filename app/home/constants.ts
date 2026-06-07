@@ -1,7 +1,7 @@
 import { HeroBlock } from "./types";
 
 export const HOME_PLACEHOLDER_IMAGE =
-  "https://storage.yandexcloud.net/rcm/products/c2e64422-53a5-40eb-ac35-ff9fdc5a2783.png";
+  "https://storage.yandexcloud.net/rcm/products/02f2227e-1aad-4f0c-b50d-50a47aa1c8da.jpg";
 
 export const HOME_HERO: HeroBlock = {
   eyebrow: "Новая коллекция",

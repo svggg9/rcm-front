@@ -5,7 +5,7 @@ import { notFound } from "next/navigation";
 
 import { API_URL } from "../../lib/api";
 import { ProductTile } from "../../components/ProductTile/ProductTile";
-import styles from "../../components/Catalog/Catalog.module.css";
+import styles from "./BrandPage.module.css";
 
 import type { PaginatedProducts } from "../../components/Catalog/catalogTypes";
 

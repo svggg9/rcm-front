@@ -1,0 +1,273 @@
+.page {
+  padding: 32px 0 64px;
+}
+
+.hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 360px;
+  gap: 48px;
+  align-items: stretch;
+  min-height: 440px;
+  border-bottom: 1px solid var(--line);
+}
+
+.heroContent {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 56px 0;
+}
+
+.kicker,
+.sectionKicker,
+.asideLabel {
+  margin-bottom: 16px;
+  color: var(--gold);
+  font-size: var(--font-xs);
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.title {
+  max-width: 860px;
+  margin: 0;
+  color: var(--black);
+  font-size: clamp(40px, 6vw, 82px);
+  font-weight: 500;
+  line-height: 0.95;
+  letter-spacing: -0.06em;
+}
+
+.lead {
+  max-width: 620px;
+  margin: 28px 0 0;
+  color: var(--muted);
+  font-size: var(--font-lg);
+  line-height: 1.6;
+}
+
+.heroActions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 36px;
+}
+
+.heroAside {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding: 32px;
+  background: var(--black);
+  color: var(--white);
+}
+
+.asideTitle {
+  max-width: 280px;
+  font-size: var(--font-2xl);
+  line-height: 1.15;
+  letter-spacing: -0.04em;
+}
+
+.benefits {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  border-bottom: 1px solid var(--line);
+}
+
+.benefit {
+  min-height: 180px;
+  padding: 32px;
+  border-right: 1px solid var(--line);
+}
+
+.benefit:last-child {
+  border-right: 0;
+}
+
+.benefit h2 {
+  margin: 0;
+  color: var(--black);
+  font-size: var(--font-xl);
+  font-weight: 500;
+  letter-spacing: -0.03em;
+}
+
+.benefit p {
+  max-width: 320px;
+  margin: 14px 0 0;
+  color: var(--muted);
+  font-size: var(--font-md);
+  line-height: 1.6;
+}
+
+.contentGrid {
+  display: grid;
+  grid-template-columns: 360px minmax(0, 1fr);
+  gap: 64px;
+  padding-top: 48px;
+}
+
+.infoColumn {
+  position: sticky;
+  top: calc(var(--site-header-height) + 24px);
+  align-self: start;
+}
+
+.steps {
+  border-top: 1px solid var(--line);
+}
+
+.step {
+  display: grid;
+  grid-template-columns: 52px minmax(0, 1fr);
+  gap: 16px;
+  padding: 18px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.stepNumber {
+  color: var(--gold);
+  font-size: var(--font-sm);
+}
+
+.stepTitle {
+  color: var(--black);
+  font-size: var(--font-md);
+  line-height: 1.5;
+}
+
+.formCard {
+  padding: 40px;
+  border: 1px solid var(--line);
+}
+
+.formHeader {
+  max-width: 720px;
+  margin-bottom: 32px;
+}
+
+.formHeader h2 {
+  margin: 0;
+  color: var(--black);
+  font-size: var(--font-2xl);
+  font-weight: 500;
+  letter-spacing: -0.04em;
+}
+
+.formHeader p {
+  margin: 12px 0 0;
+  color: var(--muted);
+  font-size: var(--font-md);
+  line-height: 1.6;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.formGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 24px 28px;
+}
+
+.authNotice {
+  padding: 16px 0;
+  border-top: 1px solid var(--gold);
+  border-bottom: 1px solid var(--gold);
+  color: var(--black);
+  font-size: var(--font-sm);
+  line-height: 1.5;
+}
+
+.actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding-top: 8px;
+}
+
+.stateText {
+  color: var(--muted);
+  font-size: var(--font-md);
+}
+
+.statusBlock {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 16px;
+  padding: 28px 0 0;
+  border-top: 1px solid var(--line);
+}
+
+.statusBlock h3 {
+  margin: 0;
+  color: var(--black);
+  font-size: var(--font-xl);
+  font-weight: 500;
+  letter-spacing: -0.03em;
+}
+
+.statusBlock p {
+  max-width: 640px;
+  margin: 0;
+  color: var(--muted);
+  font-size: var(--font-md);
+  line-height: 1.6;
+}
+
+@media (max-width: 1100px) {
+  .hero {
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
+
+  .heroAside {
+    min-height: 260px;
+  }
+
+  .contentGrid {
+    grid-template-columns: 1fr;
+    gap: 40px;
+  }
+
+  .infoColumn {
+    position: static;
+  }
+}
+
+@media (max-width: 768px) {
+  .page {
+    padding-top: 24px;
+  }
+
+  .heroContent {
+    padding: 40px 0;
+  }
+
+  .benefits {
+    grid-template-columns: 1fr;
+  }
+
+  .benefit {
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .benefit:last-child {
+    border-bottom: 0;
+  }
+
+  .formCard {
+    padding: 28px 20px;
+  }
+
+  .formGrid {
+    grid-template-columns: 1fr;
+  }
+}

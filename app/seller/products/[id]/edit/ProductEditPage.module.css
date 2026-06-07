@@ -1058,3 +1058,37 @@
   font-size: 14px;
   line-height: 1.6;
 }
+
+.onboardingWarning {
+  margin-bottom: 24px;
+  padding: 20px 0;
+  border-top: 1px solid var(--warning);
+  border-bottom: 1px solid var(--warning);
+}
+
+.onboardingWarning strong {
+  display: block;
+  color: var(--black);
+  font-size: var(--font-md);
+  font-weight: 500;
+}
+
+.onboardingWarning p {
+  max-width: 720px;
+  margin: 8px 0 12px;
+  color: var(--muted);
+  font-size: var(--font-sm);
+  line-height: 1.6;
+}
+
+.onboardingWarning a {
+  color: var(--black);
+  font-size: var(--font-sm);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.lockedSecondaryBtn:disabled {
+  cursor: not-allowed;
+  opacity: 0.42;
+}

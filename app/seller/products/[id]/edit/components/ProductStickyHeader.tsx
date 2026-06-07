@@ -25,6 +25,8 @@ type Props = {
   saving: boolean;
   publishing: boolean;
   archiving: boolean;
+  canPublish: boolean;
+  publishBlockedReason?: string;
   actionsOpen: boolean;
   lastSavedAt: Date | null;
   onSave: () => void;
@@ -47,6 +49,8 @@ export function ProductStickyHeader({
   saving,
   publishing,
   archiving,
+  canPublish,
+  publishBlockedReason,
   actionsOpen,
   lastSavedAt,
   onSave,
@@ -137,14 +141,15 @@ export function ProductStickyHeader({
         </div>
 
         <div className={styles.lockedActions}>
-          <button
-            type="button"
-            onClick={onPublish}
-            disabled={publishing}
-            className={styles.lockedSecondaryBtn}
-          >
-            {publishing ? "Отправляем…" : "Опубликовать"}
-          </button>
+            <button
+              type="button"
+              onClick={onPublish}
+              disabled={publishing || !canPublish}
+              className={styles.lockedSecondaryBtn}
+              title={!canPublish ? publishBlockedReason : undefined}
+            >
+              {publishing ? "Отправляем…" : "Опубликовать"}
+            </button>
 
           <div className={styles.lockedMenuWrap}>
             <button

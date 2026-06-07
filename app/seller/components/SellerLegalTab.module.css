@@ -1,0 +1,162 @@
+
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  gap: 24px;
+}
+
+.kicker {
+  margin-bottom: 12px;
+  color: var(--gold);
+  font-size: var(--font-xs);
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.title {
+  margin: 0;
+  color: var(--black);
+  font-size: var(--font-2xl);
+  font-weight: 500;
+  letter-spacing: -0.04em;
+}
+
+.hint {
+  max-width: 720px;
+  margin: 12px 0 0;
+  color: var(--muted);
+  font-size: var(--font-md);
+  line-height: 1.6;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.card {
+  padding: 28px;
+  border: 1px solid var(--line);
+  background: var(--white);
+}
+
+.cardHeader {
+  margin-bottom: 24px;
+}
+
+.cardHeader h2 {
+  margin: 0;
+  color: var(--black);
+  font-size: var(--font-xl);
+  font-weight: 500;
+  letter-spacing: -0.03em;
+}
+
+.cardHeader p {
+  max-width: 640px;
+  margin: 10px 0 0;
+  color: var(--muted);
+  font-size: var(--font-sm);
+  line-height: 1.6;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 24px 28px;
+}
+
+.typeGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  border-top: 1px solid var(--line);
+  border-left: 1px solid var(--line);
+}
+
+.typeOption {
+  min-height: 72px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 18px;
+  border-right: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.typeOption input {
+  margin: 0;
+}
+
+.typeOptionActive {
+  color: var(--black);
+  background: var(--soft);
+}
+
+.agreementRow {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.checkbox {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  color: var(--black);
+  font-size: var(--font-sm);
+  line-height: 1.5;
+}
+
+.checkbox input {
+  margin-top: 2px;
+}
+
+.checkbox a {
+  color: var(--black);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.fieldError {
+  color: var(--danger);
+  font-size: var(--font-sm);
+}
+
+.success {
+  padding: 14px 0;
+  border-top: 1px solid var(--success);
+  border-bottom: 1px solid var(--success);
+  color: var(--success);
+  font-size: var(--font-sm);
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-start;
+}
+
+.state {
+  color: var(--muted);
+  font-size: var(--font-md);
+}
+
+@media (max-width: 900px) {
+  .grid,
+  .typeGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .card {
+    padding: 24px 20px;
+  }
+}

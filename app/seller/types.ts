@@ -1,4 +1,4 @@
-export type SellerTab = "orders" | "products" | "brand";
+export type SellerTab = "orders" | "products" | "brand" | "legal";
 
 export type Option = {
   id: number;

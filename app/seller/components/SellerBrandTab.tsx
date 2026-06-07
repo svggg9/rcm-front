@@ -6,6 +6,7 @@ import { Button } from "../../components/ui/Button";
 import { Field } from "../../components/ui/Field";
 
 import type { SellerBrand, SellerBrandProfileRequest } from "../types";
+import { emitSellerOnboardingChanged } from "../lib/sellerOnboardingEvents";
 import {
   getSellerBrands,
   updateSellerBrandProfile,
@@ -128,6 +129,7 @@ export function SellerBrandTab() {
       );
       setForm(toFormState(updated));
       setSaved(true);
+      emitSellerOnboardingChanged();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Не удалось сохранить профиль");
     } finally {

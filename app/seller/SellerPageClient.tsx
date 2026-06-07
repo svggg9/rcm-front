@@ -10,6 +10,8 @@ import { SellerOrdersTab } from "./components/SellerOrdersTab";
 import { SellerOrderDetails } from "./components/SellerOrderDetails";
 import { SellerProductsTab } from "./components/SellerProductsTab";
 import { SellerBrandTab } from "./components/SellerBrandTab";
+import { SellerLegalTab } from "./components/SellerLegalTab";
+import { SellerOnboardingStatus } from "./components/SellerOnboardingStatus";
 
 import type {
   PageResponse,
@@ -108,7 +110,10 @@ function SellerPageContent({ initialProducts, initialOrders }: Props) {
   const tabParam = searchParams.get("tab");
 
   const currentTab: SellerTab =
-    tabParam === "products" || tabParam === "brand" ? tabParam : "orders";
+    tabParam === "products" || tabParam === "brand" || tabParam === "legal"
+      ? tabParam
+      : "orders";
+
   const selectedOrderId = searchParams.get("orderId");
 
   const [orders, setOrders] = useState<SellerOrderListItem[]>(initialOrders);
@@ -236,15 +241,16 @@ function SellerPageContent({ initialProducts, initialOrders }: Props) {
           <SellerSidebar currentTab={currentTab} ordersCount={orders.length} />
 
           <div className={styles.content}>
+            <SellerOnboardingStatus />
+
             {error ? <div className={styles.error}>{error}</div> : null}
 
             {currentTab === "brand" ? (
               <SellerBrandTab />
+            ) : currentTab === "legal" ? (
+              <SellerLegalTab />
             ) : currentTab === "products" ? (
-              <SellerProductsTab
-                products={products}
-                loading={false}
-              />
+              <SellerProductsTab products={products} loading={false} />
             ) : detailsLoading ? (
               <div className={styles.sectionTitle}>Загрузка заказа…</div>
             ) : selectedOrder ? (

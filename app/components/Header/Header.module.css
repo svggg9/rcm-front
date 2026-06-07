@@ -47,7 +47,7 @@
   line-height: 1;
   text-transform: uppercase;
   letter-spacing: 0.12em;
-  transition: color var(--transition);
+  transition: color var(--transition-fast);
 }
 
 .audienceBtn:hover {
@@ -92,7 +92,7 @@
   display: inline-flex;
   align-items: center;
   cursor: pointer;
-  transition: opacity var(--transition);
+  transition: opacity var(--transition-fast);
 }
 
 .iconBtn:hover {
@@ -164,8 +164,8 @@
   white-space: nowrap;
   cursor: pointer;
   transition:
-    color var(--transition),
-    border-color var(--transition);
+    color var(--transition-fast),
+    border-color var(--transition-fast);
 }
 
 .category:hover {
@@ -198,7 +198,7 @@
   padding: 0 14px;
   font-size: 14px;
   outline: none;
-  transition: border-color var(--transition);
+  transition: border-color var(--transition-fast);
 }
 
 .searchInput:focus {
@@ -220,7 +220,7 @@
   font-weight: 500;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  transition: opacity var(--transition);
+  transition: opacity var(--transition-fast);
 }
 
 .searchBtn:hover {

@@ -118,8 +118,8 @@
   cursor: pointer;
 
   transition:
-    background var(--transition),
-    border-color var(--transition);
+    background var(--transition-fast),
+    border-color var(--transition-fast);
 }
 
 .chip:hover,
@@ -365,110 +365,5 @@
   .sortButton {
     height: 42px;
     font-size: var(--font-sm);
-  }
-}
-
-.brandHero {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 120px;
-  gap: 32px;
-  align-items: start;
-
-  padding: 6px 0 28px;
-  border-bottom: 1px solid var(--line);
-}
-
-.brandHeroMain {
-  min-width: 0;
-}
-
-.brandDescription {
-  max-width: 720px;
-  margin: 0;
-
-  color: var(--black);
-
-  font-size: var(--font-md);
-  line-height: 1.7;
-}
-
-.brandMeta {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
-
-  margin-top: 16px;
-
-  color: var(--muted);
-  font-size: var(--font-sm);
-}
-
-.brandMeta span:not(:last-child)::after {
-  content: "·";
-  margin-left: 8px;
-  color: var(--line);
-}
-
-.brandLinks {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
-
-  margin-top: 18px;
-}
-
-.brandLink {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-
-  height: 38px;
-  padding: 0 14px;
-
-  border: 1px solid var(--line);
-  background: var(--white);
-  color: var(--black);
-
-  font-size: var(--font-sm);
-  font-weight: 500;
-  text-decoration: none;
-}
-
-.brandLink:hover {
-  border-color: var(--black);
-}
-
-.brandLogoBox {
-  position: relative;
-
-  width: 120px;
-  height: 120px;
-
-  border: 1px solid var(--line);
-  background: var(--white);
-
-  overflow: hidden;
-}
-
-.brandLogo {
-  object-fit: contain;
-  padding: 18px;
-}
-
-@media (max-width: 700px) {
-  .brandHero {
-    grid-template-columns: 1fr;
-    gap: 20px;
-  }
-
-  .brandLogoBox {
-    width: 96px;
-    height: 96px;
-  }
-
-  .brandLogo {
-    padding: 14px;
   }
 }

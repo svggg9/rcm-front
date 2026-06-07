@@ -49,6 +49,12 @@ type ValidationErrors = {
   >;
 };
 
+type SellerOnboardingStatus = {
+  progress: number;
+  legalCompleted: boolean;
+  agreementAccepted: boolean;
+};
+
 export function ProductEditPageClient({ productId }: Props) {
   const [initialized, setInitialized] = useState(false);
   const [dirty, setDirty] = useState(false);
@@ -86,6 +92,8 @@ export function ProductEditPageClient({ productId }: Props) {
   const [uploading, setUploading] = useState(false);
   const [reordering, setReordering] = useState(false);
   const [publishing, setPublishing] = useState(false);
+  const [onboardingStatus, setOnboardingStatus] =
+    useState<SellerOnboardingStatus | null>(null);
 
   const [error, setError] = useState<string | null>(null);
   const [validationErrors, setValidationErrors] = useState<ValidationErrors>({});
@@ -161,12 +169,14 @@ export function ProductEditPageClient({ productId }: Props) {
           brandsResponse,
           sizesResponse,
           colorsResponse,
+          onboardingResponse,
         ] = await Promise.all([
           apiFetch(`${API_URL}/api/seller/products/${productId}`),
           apiFetch(`${API_URL}/api/catalog/categories`),
           apiFetch(`${API_URL}/api/seller/brands`),
           apiFetch(`${API_URL}/api/sizes`),
           apiFetch(`${API_URL}/api/colors`),
+          apiFetch(`${API_URL}/api/seller/onboarding-status`),
         ]);
 
         if (!productResponse.ok) {
@@ -195,6 +205,9 @@ export function ProductEditPageClient({ productId }: Props) {
         const brandsData: Option[] = await brandsResponse.json();
         const sizesData: Option[] = await sizesResponse.json();
         const colorsData: Option[] = await colorsResponse.json();
+        const onboardingData: SellerOnboardingStatus | null = onboardingResponse.ok
+          ? await onboardingResponse.json()
+          : null;
 
         if (cancelled) return;
 
@@ -600,6 +613,11 @@ export function ProductEditPageClient({ productId }: Props) {
       return;
     }
 
+    if (!isSellerReadyForPublish()) {
+      toast.error("Заполните реквизиты и примите оферту продавца");
+      return;
+    }
+
     setPublishing(true);
     setError(null);
 
@@ -629,6 +647,10 @@ export function ProductEditPageClient({ productId }: Props) {
     } finally {
       setPublishing(false);
     }
+  }
+
+  function isSellerReadyForPublish() {
+    return onboardingStatus?.progress === 100;
   }
 
   async function archiveProduct() {
@@ -724,6 +746,13 @@ export function ProductEditPageClient({ productId }: Props) {
     toast.error(message);
   }
 
+  const canPublish = onboardingStatus?.progress === 100;
+
+  const publishBlockedReason =
+    onboardingStatus && onboardingStatus.progress < 100
+      ? "Заполните реквизиты и примите оферту продавца"
+      : undefined;
+
   return (
     <div className="pageContainer">
       <div className={styles.page}>
@@ -741,6 +770,8 @@ export function ProductEditPageClient({ productId }: Props) {
         saving={saving}
         publishing={publishing}
         archiving={archiving}
+        canPublish={canPublish}
+        publishBlockedReason={publishBlockedReason}
         actionsOpen={actionsOpen}
         lastSavedAt={lastSavedAt}
         onSave={() => void saveProduct()}
@@ -750,6 +781,17 @@ export function ProductEditPageClient({ productId }: Props) {
         />
     <div className={styles.pageContent}>
         {error ? <div className={styles.error}>{error}</div> : null}
+
+        {onboardingStatus && onboardingStatus.progress < 100 ? (
+          <div className={styles.onboardingWarning}>
+            <strong>Магазин не готов к публикации</strong>
+            <p>
+              Заполните юридические данные и примите оферту продавца, чтобы отправлять
+              товары на модерацию.
+            </p>
+            <a href="/seller?tab=legal">Перейти к реквизитам</a>
+          </div>
+        ) : null}
 
         {product?.status === "NEEDS_REVISION" && product.moderationComment ? (
           <div className={styles.revisionBox}>

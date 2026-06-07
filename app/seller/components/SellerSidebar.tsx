@@ -1,17 +1,21 @@
 "use client";
 
-import { DashboardTabs } from "../../components/ui/DashboardTabs";
+import { CabinetSidebar } from "../../components/ui/CabinetSidebar";
+
+import type { SellerTab } from "../types";
 
 type Props = {
-  currentTab: "orders" | "products" | "brand";
+  currentTab: SellerTab;
   ordersCount: number;
 };
 
 export function SellerSidebar({ currentTab, ordersCount }: Props) {
   return (
-    <DashboardTabs
+    <CabinetSidebar
       ariaLabel="Меню продавца"
-      tabs={[
+      subtitle="Кабинет"
+      title="Продавец"
+      items={[
         {
           href: "/seller?tab=orders",
           label: "Заказы",
@@ -27,6 +31,11 @@ export function SellerSidebar({ currentTab, ordersCount }: Props) {
           href: "/seller?tab=brand",
           label: "Производитель",
           active: currentTab === "brand",
+        },
+        {
+          href: "/seller?tab=legal",
+          label: "Реквизиты",
+          active: currentTab === "legal",
         },
       ]}
     />

@@ -28,6 +28,7 @@ import { Inter } from "next/font/google";
 import { Toaster } from "sonner";
 
 import { Header } from "./components/Header/Header";
+import { Footer } from "./components/Footer/Footer";
 import { FavoritesProvider } from "./lib/FavoritesContext";
 import { AuthModalProvider } from "./components/AuthModal/AuthModalProvider";
 
@@ -53,6 +54,7 @@ export default function RootLayout({
               <main className="appMain">
                 {children}
               </main>
+              <Footer />
             </div>
 
             <Toaster
