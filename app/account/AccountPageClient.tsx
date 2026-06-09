@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { toast } from "sonner";
 
 import { apiFetch, API_URL } from "../lib/api";
 import { logout as logoutAuth } from "../lib/auth";
@@ -87,6 +88,15 @@ function buildOrderStatusLabel(order: Order | OrderListItem): string {
   return formatOrderStatus(order.status);
 }
 
+function normalizeGender(value: Me["gender"]): "men" | "women" | "" {
+  return value === "men" || value === "women" ? value : "";
+}
+
+type Props = {
+  initialMe: Me;
+  initialOrders: OrderListItem[];
+};
+
 function AccountPageContent({ initialMe, initialOrders }: Props) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -96,6 +106,7 @@ function AccountPageContent({ initialMe, initialOrders }: Props) {
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
 
   const [detailsLoading, setDetailsLoading] = useState(false);
+  const [profileSaving, setProfileSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const currentTab: AccountTab =
@@ -103,12 +114,14 @@ function AccountPageContent({ initialMe, initialOrders }: Props) {
 
   const selectedOrderId = searchParams.get("orderId");
 
-  const [lastName, setLastName] = useState("");
-  const [firstName, setFirstName] = useState("");
-  const [middleName, setMiddleName] = useState("");
-  const [birthDate, setBirthDate] = useState("");
-  const [gender, setGender] = useState<"men" | "women" | "">("");
-  const [phone, setPhone] = useState("");
+  const [lastName, setLastName] = useState(initialMe.lastName ?? "");
+  const [firstName, setFirstName] = useState(initialMe.firstName ?? "");
+  const [middleName, setMiddleName] = useState(initialMe.middleName ?? "");
+  const [birthDate, setBirthDate] = useState(initialMe.birthDate ?? "");
+  const [gender, setGender] = useState<"men" | "women" | "">(
+    normalizeGender(initialMe.gender)
+  );
+  const [phone, setPhone] = useState(initialMe.phone ?? "");
 
   useEffect(() => {
     if (currentTab !== "orders" || !selectedOrderId) {
@@ -155,28 +168,60 @@ function AccountPageContent({ initialMe, initialOrders }: Props) {
 
   useEffect(() => {
     setMe(initialMe);
+    setLastName(initialMe.lastName ?? "");
+    setFirstName(initialMe.firstName ?? "");
+    setMiddleName(initialMe.middleName ?? "");
+    setBirthDate(initialMe.birthDate ?? "");
+    setGender(normalizeGender(initialMe.gender));
+    setPhone(initialMe.phone ?? "");
   }, [initialMe]);
 
   useEffect(() => {
     setOrders(initialOrders);
   }, [initialOrders]);
 
-  useEffect(() => {
-    const displayName = initialMe.displayName?.trim() ?? "";
+  async function saveProfile() {
+    if (profileSaving) return;
 
-    if (displayName) {
-      const parts = displayName.split(/\s+/).filter(Boolean);
-      setLastName(parts[0] ?? "");
-      setFirstName(parts[1] ?? "");
-      setMiddleName(parts[2] ?? "");
-    } else {
-      setLastName("");
-      setFirstName(initialMe.username ?? "");
-      setMiddleName("");
+    setProfileSaving(true);
+    setError(null);
+
+    try {
+      const response = await apiFetch(`${API_URL}/api/profile`, {
+        method: "PUT",
+        body: JSON.stringify({
+          firstName,
+          lastName,
+          middleName,
+          birthDate,
+          gender: gender || null,
+          phone,
+        }),
+      });
+
+      if (!response.ok) {
+        const text = await response.text().catch(() => "");
+        throw new Error(text || "Не удалось сохранить профиль");
+      }
+
+      const updated: Me = await response.json();
+
+      setMe(updated);
+      setLastName(updated.lastName ?? "");
+      setFirstName(updated.firstName ?? "");
+      setMiddleName(updated.middleName ?? "");
+      setBirthDate(updated.birthDate ?? "");
+      setGender(normalizeGender(updated.gender));
+      setPhone(updated.phone ?? "");
+
+      toast.success("Профиль сохранён");
+      router.refresh();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Не удалось сохранить профиль");
+    } finally {
+      setProfileSaving(false);
     }
-
-    setPhone(initialMe.phone ?? "");
-  }, [initialMe]);
+  }
 
   async function logout() {
     await logoutAuth();
@@ -196,6 +241,7 @@ function AccountPageContent({ initialMe, initialOrders }: Props) {
     const parts = [lastName, firstName, middleName].filter(
       (value) => value.trim().length > 0
     );
+
     return parts.join(" ").trim();
   }, [lastName, firstName, middleName]);
 
@@ -238,12 +284,14 @@ function AccountPageContent({ initialMe, initialOrders }: Props) {
                 birthDate={birthDate}
                 gender={gender}
                 phone={phone}
+                saving={profileSaving}
                 onLastNameChange={setLastName}
                 onFirstNameChange={setFirstName}
                 onMiddleNameChange={setMiddleName}
                 onBirthDateChange={setBirthDate}
                 onGenderChange={setGender}
                 onPhoneChange={setPhone}
+                onSave={() => void saveProfile()}
               />
             ) : detailsLoading ? (
               <div className={styles.sectionTitle}>Загрузка заказа…</div>
@@ -269,11 +317,6 @@ function AccountPageContent({ initialMe, initialOrders }: Props) {
     </div>
   );
 }
-
-type Props = {
-  initialMe: Me;
-  initialOrders: OrderListItem[];
-};
 
 export function AccountPageClient(props: Props) {
   return <AccountPageContent {...props} />;

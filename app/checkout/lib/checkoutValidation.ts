@@ -1,3 +1,5 @@
+import { isValidPhone } from "../../lib/validation";
+
 export type CheckoutContactValues = {
   email: string;
   fullName: string;
@@ -21,8 +23,8 @@ export function validateContactDetails(
     return "Введите ФИО";
   }
 
-  if (!values.phone.trim()) {
-    return "Введите телефон";
+  if (!isValidPhone(values.phone)) {
+    return "Укажите корректный российский номер телефона";
   }
 
   return null;

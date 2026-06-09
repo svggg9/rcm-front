@@ -1,6 +1,9 @@
 "use client";
 
 import { Button } from "../../components/ui/Button";
+import { PhoneInput } from "../../components/ui/PhoneInput";
+import { TextInput } from "../../components/ui/TextInput";
+
 import styles from "./AccountProfileTab.module.css";
 
 type Props = {
@@ -14,6 +17,8 @@ type Props = {
   birthDate: string;
   gender: "men" | "women" | "";
   phone: string;
+  saving: boolean;
+  onSave: () => void;
   onLastNameChange: (value: string) => void;
   onFirstNameChange: (value: string) => void;
   onMiddleNameChange: (value: string) => void;
@@ -33,6 +38,8 @@ export function AccountProfileTab({
   birthDate,
   gender,
   phone,
+  saving,
+  onSave,
   onLastNameChange,
   onFirstNameChange,
   onMiddleNameChange,
@@ -70,42 +77,30 @@ export function AccountProfileTab({
         </div>
 
         <div className={styles.formGrid}>
-          <label className={styles.field}>
-            <span className={styles.label}>Фамилия</span>
-            <input
-              className={styles.input}
-              value={lastName}
-              onChange={(event) => onLastNameChange(event.target.value)}
-            />
-          </label>
+          <TextInput
+            label="Фамилия"
+            value={lastName}
+            onChange={(event) => onLastNameChange(event.target.value)}
+          />
 
-          <label className={styles.field}>
-            <span className={styles.label}>Имя</span>
-            <input
-              className={styles.input}
-              value={firstName}
-              onChange={(event) => onFirstNameChange(event.target.value)}
-            />
-          </label>
+          <TextInput
+            label="Имя"
+            value={firstName}
+            onChange={(event) => onFirstNameChange(event.target.value)}
+          />
 
-          <label className={styles.field}>
-            <span className={styles.label}>Отчество</span>
-            <input
-              className={styles.input}
-              value={middleName}
-              onChange={(event) => onMiddleNameChange(event.target.value)}
-            />
-          </label>
+          <TextInput
+            label="Отчество"
+            value={middleName}
+            onChange={(event) => onMiddleNameChange(event.target.value)}
+          />
 
-          <label className={styles.field}>
-            <span className={styles.label}>Дата рождения</span>
-            <input
-              className={styles.input}
-              value={birthDate}
-              onChange={(event) => onBirthDateChange(event.target.value)}
-              placeholder="дд.мм.гггг"
-            />
-          </label>
+          <TextInput
+            label="Дата рождения"
+            value={birthDate}
+            onChange={(event) => onBirthDateChange(event.target.value)}
+            placeholder="дд.мм.гггг"
+          />
         </div>
 
         <div className={styles.subSection}>
@@ -143,36 +138,23 @@ export function AccountProfileTab({
           <p>E-mail и телефон для связи по заказам.</p>
         </div>
 
-        <div className={styles.infoRows}>
-          <InfoRow label="E-mail" value={email} />
-          <InfoRow label="Роль" value={role} />
+        <div className={styles.formGrid}>
+          <TextInput label="E-mail" value={email} disabled />
 
-          <div className={styles.infoRow}>
-            <div className={styles.infoLabel}>Телефон</div>
-            <div className={styles.infoValueWrap}>
-              <input
-                className={styles.inlineInput}
-                value={phone}
-                onChange={(event) => onPhoneChange(event.target.value)}
-                placeholder="+7 999 123-45-67"
-              />
-            </div>
-          </div>
+          <TextInput label="Роль" value={role} disabled />
+
+          <PhoneInput
+            value={phone}
+            onChange={(event) => onPhoneChange(event.target.value)}
+          />
         </div>
 
         <div className={styles.actions}>
-          <Button variant="primary">Сохранить</Button>
+          <Button type="button" variant="primary" onClick={onSave} disabled={saving}>
+            {saving ? "Сохраняем…" : "Сохранить"}
+          </Button>
         </div>
       </section>
     </section>
-  );
-}
-
-function InfoRow({ label, value }: { label: string; value: string }) {
-  return (
-    <div className={styles.infoRow}>
-      <div className={styles.infoLabel}>{label}</div>
-      <div className={styles.infoValue}>{value}</div>
-    </div>
   );
 }

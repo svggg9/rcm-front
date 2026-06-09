@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { API_URL } from "./config";
 
 export type SessionUser = {
+  id: number;
   username: string;
   role: string | null;
 };

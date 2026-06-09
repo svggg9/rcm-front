@@ -1,6 +1,11 @@
 export type Me = {
   id: number;
   username: string;
+  firstName: string | null;
+  lastName: string | null;
+  middleName: string | null;
+  birthDate: string | null;
+  gender: "men" | "women" | null;
   email: string | null;
   displayName: string | null;
   role: string;
