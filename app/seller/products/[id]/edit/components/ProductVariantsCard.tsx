@@ -139,9 +139,12 @@ export function ProductVariantsCard({
                   <input
                     type="number"
                     min={0}
-                    value={variant.price}
+                    step={10}
+                    value={variant.price || ""}
                     onChange={(event) =>
-                      onUpdateVariant(index, { price: Number(event.target.value) })
+                      onUpdateVariant(index, {
+                        price: event.target.value === "" ? 0 : Number(event.target.value),
+                      })
                     }
                     className={`${styles.input} ${
                       errors.price ? styles.fieldInvalid : ""
@@ -202,10 +205,12 @@ export function ProductVariantsCard({
                     <input
                       type="number"
                       min={0}
-                      value={variant.availableQuantity ?? 0}
+                      step={1}
+                      value={variant.availableQuantity ?? ""}
                       onChange={(event) =>
                         onUpdateVariant(index, {
-                          availableQuantity: Number(event.target.value),
+                          availableQuantity:
+                            event.target.value === "" ? null : Math.max(0, Number(event.target.value)),
                         })
                       }
                       className={`${styles.input} ${

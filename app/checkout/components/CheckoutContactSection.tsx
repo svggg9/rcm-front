@@ -1,6 +1,8 @@
 "use client";
 
 import styles from "../Checkout.module.css";
+import { PhoneInput } from "../../components/ui/PhoneInput";
+import { TextInput } from "../../components/ui/TextInput";
 
 type Props = {
   email: string;
@@ -51,36 +53,26 @@ export function CheckoutContactSection({
       ) : (
         <div className={styles.sectionBody}>
           <div className={styles.formGrid}>
-            <label className={styles.field}>
-              <span className={styles.label}>Email</span>
-              <input
-                className={styles.input}
-                type="email"
-                value={email}
-                onChange={(event) => onEmailChange(event.target.value)}
-                placeholder="example@mail.com"
-              />
-            </label>
+            <TextInput
+              label="Email"
+              type="email"
+              value={email}
+              onChange={(event) => onEmailChange(event.target.value)}
+              placeholder="example@mail.com"
+            />
 
-            <label className={styles.field}>
-              <span className={styles.label}>ФИО</span>
-              <input
-                className={styles.input}
-                value={fullName}
-                onChange={(event) => onFullNameChange(event.target.value)}
-                placeholder="Иван Иванов"
-              />
-            </label>
+            <TextInput
+              label="ФИО"
+              value={fullName}
+              onChange={(event) => onFullNameChange(event.target.value)}
+              placeholder="Иван Иванов"
+            />
 
-            <label className={styles.field}>
-              <span className={styles.label}>Телефон</span>
-              <input
-                className={styles.input}
-                value={phone}
-                onChange={(event) => onPhoneChange(event.target.value)}
-                placeholder="+7 999 123-45-67"
-              />
-            </label>
+            <PhoneInput
+              required
+              value={phone}
+              onChange={(event) => onPhoneChange(event.target.value)}
+            />
           </div>
 
           <button type="button" onClick={onConfirm} className={styles.confirmBtn}>

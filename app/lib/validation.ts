@@ -11,7 +11,7 @@ export function isValidEmail(value: string): boolean {
 export function isValidPhone(value: string): boolean {
   const digits = value.replace(/\D/g, "");
 
-  return digits.length >= 10 && digits.length <= 15;
+  return /^79\d{9}$/.test(digits);
 }
 
 export function cleanText(value: string): string {

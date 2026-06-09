@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 
 import { Button } from "../../components/ui/Button";
@@ -9,6 +9,7 @@ import { PhoneInput } from "../../components/ui/PhoneInput";
 import { Textarea } from "../../components/ui/Textarea";
 import { TextInput } from "../../components/ui/TextInput";
 import { useCurrentUser } from "../../lib/useCurrentUser";
+import { useAuthModal } from "../../components/AuthModal/useAuthModal";
 import {
   cleanText,
   isNonEmpty,
@@ -42,6 +43,8 @@ const INITIAL_FORM: SellerApplicationForm = {
 
 export function SellerApplyPageClient() {
   const { user, loading: userLoading, isAuthenticated } = useCurrentUser();
+  const { openAuth } = useAuthModal();
+  const pendingSubmitRef = useRef(false);
 
   const [form, setForm] = useState<SellerApplicationForm>(INITIAL_FORM);
   const [errors, setErrors] = useState<FormErrors>({});
@@ -102,6 +105,13 @@ export function SellerApplyPageClient() {
       email: current.email || user.username || "",
     }));
   }, [user]);
+
+  useEffect(() => {
+    if (!isAuthenticated || userLoading || !pendingSubmitRef.current) return;
+
+    pendingSubmitRef.current = false;
+    void sendApplication();
+  }, [isAuthenticated, userLoading]);
 
   const statusText = useMemo(() => {
     if (!application) return null;
@@ -167,13 +177,36 @@ export function SellerApplyPageClient() {
     return nextErrors;
   }
 
+  async function sendApplication() {
+  setSubmitting(true);
+
+  try {
+    const created = await createSellerApplication({
+      brandName: cleanText(form.brandName),
+      brandDescription: cleanText(form.brandDescription),
+      category: cleanText(form.category),
+      productionRegion: cleanText(form.productionRegion),
+      website: cleanText(form.website),
+      telegram: cleanText(form.telegram),
+      contactName: cleanText(form.contactName),
+      phone: cleanText(form.phone),
+      email: cleanText(form.email),
+      comment: cleanText(form.comment),
+    });
+
+    setApplication(created);
+    setForm(INITIAL_FORM);
+  } catch (error) {
+    setFormError(
+      error instanceof Error ? error.message : "Не удалось отправить заявку"
+    );
+  } finally {
+    setSubmitting(false);
+  }
+  }
+
   async function submitApplication(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-
-    if (!isAuthenticated) {
-      window.location.href = "/auth/login?next=/seller/apply";
-      return;
-    }
 
     const nextErrors = validate();
     setErrors(nextErrors);
@@ -183,31 +216,13 @@ export function SellerApplyPageClient() {
       return;
     }
 
-    setSubmitting(true);
-
-    try {
-      const created = await createSellerApplication({
-        brandName: cleanText(form.brandName),
-        brandDescription: cleanText(form.brandDescription),
-        category: cleanText(form.category),
-        productionRegion: cleanText(form.productionRegion),
-        website: cleanText(form.website),
-        telegram: cleanText(form.telegram),
-        contactName: cleanText(form.contactName),
-        phone: cleanText(form.phone),
-        email: cleanText(form.email),
-        comment: cleanText(form.comment),
-      });
-
-      setApplication(created);
-      setForm(INITIAL_FORM);
-    } catch (error) {
-      setFormError(
-        error instanceof Error ? error.message : "Не удалось отправить заявку"
-      );
-    } finally {
-      setSubmitting(false);
+    if (!isAuthenticated) {
+      pendingSubmitRef.current = true;
+      openAuth("login", "/seller/apply");
+      return;
     }
+
+    await sendApplication();
   }
 
   return (
@@ -307,8 +322,7 @@ export function SellerApplyPageClient() {
 
                 {!isAuthenticated ? (
                   <div className={styles.authNotice}>
-                    Форму можно заполнить сейчас. Для отправки заявки понадобится
-                    вход или регистрация.
+                    Форму можно заполнить сейчас. Для отправки заявки войдите или зарегистрируйтесь.
                   </div>
                 ) : null}
 
@@ -417,14 +431,25 @@ export function SellerApplyPageClient() {
                     {submitting ? "Отправляем…" : "Отправить заявку"}
                   </Button>
 
-                  {!isAuthenticated ? (
-                    <Link
+                {!isAuthenticated ? (
+                  <>
+                    <button
+                      type="button"
                       className="buttonGhost"
-                      href="/auth/login?next=/seller/apply"
+                      onClick={() => openAuth("login", "/seller/apply")}
                     >
                       Войти
-                    </Link>
-                  ) : null}
+                    </button>
+
+                    <button
+                      type="button"
+                      className="buttonGhost"
+                      onClick={() => openAuth("register", "/seller/apply")}
+                    >
+                      Регистрация
+                    </button>
+                  </>
+                ) : null}
                 </div>
               </form>
             )}

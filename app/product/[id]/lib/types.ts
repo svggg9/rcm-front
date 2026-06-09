@@ -10,6 +10,7 @@ export type Variant = {
 
 export type Product = {
   id: number;
+  sellerId: number;
   title: string;
   description: string;
   composition?: string;

@@ -17,6 +17,7 @@ import { ProductDetailsAccordion } from "./components/ProductDetailsAccordion";
 import { ProductImageViewer } from "./components/ProductImageViewer";
 
 import type { Product } from "./lib/types";
+import { useCurrentUser } from "../../lib/useCurrentUser";
 import { addVariantToCart } from "./lib/productPageApi";
 import { getMinPrice, getSizesText } from "./lib/productPageUtils";
 import { toast } from "sonner";
@@ -29,9 +30,13 @@ type Props = {
 
 export default function ProductPageClient({ product, related }: Props) {
   const router = useRouter();
-  const role = useUserRole();
+  const { user } = useCurrentUser();
 
-  const isSellerView = role === "SELLER" || role === "ADMIN";
+  const isAdmin = user?.role === "ADMIN";
+  const isOwnSellerProduct =
+    user?.role === "SELLER" && product.sellerId === user.id;
+
+  const isSellerView = isAdmin || isOwnSellerProduct;
 
   const [adding, setAdding] = useState(false);
   const [openFit, setOpenFit] = useState(false);
