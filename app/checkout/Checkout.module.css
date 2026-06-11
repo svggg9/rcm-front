@@ -511,95 +511,6 @@
   }
 }
 
-.pickupPicker {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.pickupSearchRow {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 12px;
-  align-items: end;
-}
-
-.pickupSearchButton {
-  height: 42px;
-  padding: 0 18px;
-  border: 1px solid var(--black);
-  background: var(--black);
-  color: var(--white);
-  font-size: var(--font-sm);
-  cursor: pointer;
-}
-
-.pickupSearchButton:disabled {
-  cursor: not-allowed;
-  opacity: 0.5;
-}
-
-.pickupMapLayout {
-  display: grid;
-  grid-template-columns: minmax(240px, 320px) minmax(0, 1fr);
-  border: 1px solid var(--line);
-  min-height: 420px;
-}
-
-.pickupList {
-  max-height: 420px;
-  overflow: auto;
-  border-right: 1px solid var(--line);
-  background: var(--white);
-}
-
-.pickupPoint {
-  width: 100%;
-  padding: 14px;
-  border: 0;
-  border-bottom: 1px solid var(--line);
-  background: var(--white);
-  text-align: left;
-  cursor: pointer;
-}
-
-.pickupPoint:hover,
-.pickupPointActive {
-  background: var(--soft);
-}
-
-.pickupPointTitle {
-  display: block;
-  color: var(--black);
-  font-size: var(--font-sm);
-  font-weight: 500;
-}
-
-.pickupPointHint {
-  display: block;
-  margin-top: 4px;
-  color: var(--muted);
-  font-size: var(--font-xs);
-}
-
-.pickupMap {
-  min-height: 420px;
-  background: var(--soft);
-}
-
-@media (max-width: 900px) {
-  .pickupSearchRow,
-  .pickupMapLayout {
-    grid-template-columns: 1fr;
-  }
-
-  .pickupList {
-    max-height: 280px;
-    border-right: 0;
-    border-bottom: 1px solid var(--line);
-  }
-}
-
 .cityPicker {
   position: relative;
   display: flex;
@@ -637,4 +548,78 @@
   display: flex;
   flex-direction: column;
   gap: 8px;
+}
+
+.checkRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--black);
+  font-size: var(--font-sm);
+}
+
+.checkRow input {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--black);
+}
+
+.threeColumns {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.deliveryInfoBlock {
+  padding: 16px;
+  border: 1px solid var(--line);
+  background: var(--soft);
+  color: var(--black);
+  font-size: var(--font-sm);
+  line-height: 1.55;
+}
+
+.checkRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--black);
+  font-size: var(--font-sm);
+}
+
+.checkRow input {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--black);
+}
+
+@media (max-width: 700px) {
+  .threeColumns {
+    grid-template-columns: 1fr;
+  }
+}
+
+.selectedPickupBox {
+  padding: 16px;
+  border: 1px solid var(--line);
+  background: var(--white);
+}
+
+.selectedPickupTitle {
+  margin-bottom: 6px;
+  color: var(--black);
+  font-size: var(--font-sm);
+  font-weight: 500;
+}
+
+.selectedPickupAddress {
+  color: var(--black);
+  font-size: var(--font-md);
+  line-height: 1.45;
+}
+
+.selectedPickupMeta {
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: var(--font-sm);
 }

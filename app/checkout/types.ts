@@ -15,6 +15,10 @@ export type DeliveryMethod = "PICKUP" | "COURIER";
 
 export type CheckoutStep = "CONTACT" | "DELIVERY" | "PAYMENT";
 
+export type CountryCode = "RU" | "BY" | "KZ" | "AM";
+
+export type FittingMode = "WITH_FITTING" | "WITHOUT_FITTING";
+
 export type DeliveryOption = {
   id: string;
   label: string;
@@ -47,6 +51,11 @@ export type DeliveryQuoteResponse = {
   etaMinutes: number | null;
   externalOfferId: string | null;
   expiresAt: string;
+
+  periodMinDays: number | null;
+  periodMaxDays: number | null;
+  calendarMinDays: number | null;
+  calendarMaxDays: number | null;
 };
 
 export type CheckoutRequest = {

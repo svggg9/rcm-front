@@ -8,6 +8,9 @@ type Props = {
   email: string;
   fullName: string;
   phone: string;
+  otherRecipientEnabled: boolean;
+  otherRecipientName: string;
+  otherRecipientPhone: string;
   confirmed: boolean;
   expanded: boolean;
   onEdit: () => void;
@@ -15,12 +18,18 @@ type Props = {
   onEmailChange: (value: string) => void;
   onFullNameChange: (value: string) => void;
   onPhoneChange: (value: string) => void;
+  onOtherRecipientEnabledChange: (value: boolean) => void;
+  onOtherRecipientNameChange: (value: string) => void;
+  onOtherRecipientPhoneChange: (value: string) => void;
 };
 
 export function CheckoutContactSection({
   email,
   fullName,
   phone,
+  otherRecipientEnabled,
+  otherRecipientName,
+  otherRecipientPhone,
   confirmed,
   expanded,
   onEdit,
@@ -28,17 +37,24 @@ export function CheckoutContactSection({
   onEmailChange,
   onFullNameChange,
   onPhoneChange,
+  onOtherRecipientEnabledChange,
+  onOtherRecipientNameChange,
+  onOtherRecipientPhoneChange,
 }: Props) {
   return (
     <section className={styles.section}>
       <div className={styles.sectionHeader}>
         <div className={styles.sectionHeaderMain}>
-          <span className={styles.stepBadge}>1</span>
-          <h2 className={styles.sectionTitle}>Контактные данные</h2>
+          <span className={styles.stepBadge}>2</span>
+          <h2 className={styles.sectionTitle}>Получатель</h2>
         </div>
 
         {confirmed ? (
-          <button type="button" onClick={onEdit} className={styles.sectionEditBtn}>
+          <button
+            type="button"
+            onClick={onEdit}
+            className={styles.sectionEditBtn}
+          >
             Изменить
           </button>
         ) : null}
@@ -49,12 +65,24 @@ export function CheckoutContactSection({
           <div>{fullName}</div>
           <div className={styles.sectionSummaryMuted}>{email}</div>
           <div className={styles.sectionSummaryMuted}>{phone}</div>
+
+          {otherRecipientEnabled ? (
+            <div className={styles.sectionSummaryMuted}>
+              Заберет другой человек: {otherRecipientName}, {otherRecipientPhone}
+            </div>
+          ) : null}
         </div>
       ) : (
         <div className={styles.sectionBody}>
           <div className={styles.formGrid}>
+            <PhoneInput
+              required
+              value={phone}
+              onChange={(event) => onPhoneChange(event.target.value)}
+            />
+
             <TextInput
-              label="Email"
+              label="Электронная почта"
               type="email"
               value={email}
               onChange={(event) => onEmailChange(event.target.value)}
@@ -62,21 +90,51 @@ export function CheckoutContactSection({
             />
 
             <TextInput
-              label="ФИО"
+              label="Фамилия, имя и отчество"
               value={fullName}
               onChange={(event) => onFullNameChange(event.target.value)}
-              placeholder="Иван Иванов"
-            />
-
-            <PhoneInput
-              required
-              value={phone}
-              onChange={(event) => onPhoneChange(event.target.value)}
+              placeholder="Иванов Иван Иванович"
             />
           </div>
 
-          <button type="button" onClick={onConfirm} className={styles.confirmBtn}>
-            Подтвердить контакты
+          <label className={styles.checkRow}>
+            <input
+              type="checkbox"
+              checked={otherRecipientEnabled}
+              onChange={(event) =>
+                onOtherRecipientEnabledChange(event.target.checked)
+              }
+            />
+            <span>Заказ заберет другой человек</span>
+          </label>
+
+          {otherRecipientEnabled ? (
+            <div className={styles.formGrid}>
+              <TextInput
+                label="ФИО получателя"
+                value={otherRecipientName}
+                onChange={(event) =>
+                  onOtherRecipientNameChange(event.target.value)
+                }
+                placeholder="Иванов Иван Иванович"
+              />
+
+              <PhoneInput
+                label="Телефон получателя"
+                value={otherRecipientPhone}
+                onChange={(event) =>
+                  onOtherRecipientPhoneChange(event.target.value)
+                }
+              />
+            </div>
+          ) : null}
+
+          <button
+            type="button"
+            onClick={onConfirm}
+            className={styles.confirmBtn}
+          >
+            Подтвердить получателя
           </button>
         </div>
       )}

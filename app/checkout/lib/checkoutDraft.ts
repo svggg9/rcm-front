@@ -7,6 +7,14 @@ export type CheckoutDraft = {
   deliveryMethod: "PICKUP" | "COURIER";
   selectedAddressId: string;
   deliveryAddress: string;
+  countryCode: "RU" | "BY" | "KZ" | "AM";
+  apartment: string;
+  floor: string;
+  intercom: string;
+  fittingMode: "WITH_FITTING" | "WITHOUT_FITTING";
+  otherRecipientEnabled: boolean;
+  otherRecipientName: string;
+  otherRecipientPhone: string;
   comment: string;
   paymentMethod: "SBP" | "CARD";
 };
@@ -36,6 +44,30 @@ export function loadCheckoutDraft(): CheckoutDraft | null {
         typeof parsed.deliveryAddress === "string" ? parsed.deliveryAddress : "",
       comment: typeof parsed.comment === "string" ? parsed.comment : "",
       paymentMethod: parsed.paymentMethod === "CARD" ? "CARD" : "SBP",
+      countryCode:
+        parsed.countryCode === "BY" ||
+        parsed.countryCode === "KZ" ||
+        parsed.countryCode === "AM"
+          ? parsed.countryCode
+          : "RU",
+
+      apartment: typeof parsed.apartment === "string" ? parsed.apartment : "",
+      floor: typeof parsed.floor === "string" ? parsed.floor : "",
+      intercom: typeof parsed.intercom === "string" ? parsed.intercom : "",
+      fittingMode:
+        parsed.fittingMode === "WITHOUT_FITTING"
+          ? "WITHOUT_FITTING"
+          : "WITH_FITTING",
+
+      otherRecipientEnabled: parsed.otherRecipientEnabled === true,
+      otherRecipientName:
+        typeof parsed.otherRecipientName === "string"
+          ? parsed.otherRecipientName
+          : "",
+      otherRecipientPhone:
+        typeof parsed.otherRecipientPhone === "string"
+          ? parsed.otherRecipientPhone
+          : "",
     };
   } catch {
     return null;

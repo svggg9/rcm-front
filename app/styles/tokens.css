@@ -7,8 +7,10 @@
   --text: var(--black);
 
   --muted: #6f6f6f;
-  --line: #e6e6e6;
+  --line: #d2d2d2;
   --soft: #f7f7f7;
+
+  --input-border-color: #111111;
 
   --success: #216a43;
   --warning: #8a6a2f;
