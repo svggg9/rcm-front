@@ -1,0 +1,363 @@
+.section {
+  max-width: 760px;
+  padding: 22px 0;
+  border-bottom: 1px solid var(--line);
+  background: var(--white);
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.headerMain {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.stepBadge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+  border: 1px solid var(--black);
+  color: var(--black);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.title {
+  color: var(--black);
+  font-size: var(--font-xl);
+  line-height: 1.2;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+}
+
+.editButton {
+  border: 0;
+  background: transparent;
+  color: var(--black);
+  font-size: var(--font-sm);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.summary {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  color: var(--black);
+  font-size: var(--font-md);
+}
+
+.summaryMuted {
+  color: var(--muted);
+  font-size: var(--font-sm);
+}
+
+.deliveryContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.fieldWrap,
+.suggestWrap {
+  position: relative;
+}
+
+.flagBadge {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  transform: translateY(-50%);
+  font-size: 13px;
+}
+
+.selectField,
+.textField,
+.textareaField {
+  width: 100%;
+  border: 1px solid var(--line);
+  background: var(--white);
+  color: var(--black);
+  font-size: var(--font-sm);
+  outline: none;
+  transition: border-color 0.15s ease;
+}
+
+.selectField,
+.textField {
+  height: 44px;
+  padding: 0 14px;
+}
+
+.fieldWithIcon {
+  padding-left: 48px;
+}
+
+.selectField {
+  appearance: none;
+  cursor: pointer;
+}
+
+.selectField:hover:not(:disabled),
+.textField:hover:not(:disabled),
+.textareaField:hover:not(:disabled),
+.selectField:focus,
+.textField:focus,
+.textareaField:focus {
+  border-color: var(--black);
+}
+
+.selectField:disabled,
+.textField:disabled,
+.textareaField:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.textareaField {
+  min-height: 82px;
+  padding: 13px 14px;
+  resize: vertical;
+  line-height: 1.45;
+}
+
+.choiceGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.choiceCard {
+  min-height: 66px;
+  padding: 13px 14px;
+  border: 1px solid var(--line);
+  background: var(--white);
+  color: var(--black);
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.15s ease;
+}
+
+.choiceCard:hover:not(:disabled),
+.choiceCardActive {
+  border-color: var(--black);
+}
+
+.choiceCard:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.choiceTitle,
+.choiceText {
+  display: block;
+}
+
+.choiceTitle {
+  color: var(--black);
+  font-size: var(--font-sm);
+  font-weight: 500;
+  line-height: 1.35;
+}
+
+.choiceText {
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: var(--font-xs);
+  line-height: 1.4;
+}
+
+.choiceCheck {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  border: 1px solid var(--black);
+  border-radius: 50%;
+  color: var(--black);
+  font-size: 11px;
+  line-height: 1;
+}
+
+.compactGrid {
+  display: grid;
+  grid-template-columns: 1.4fr 0.8fr 1fr;
+  gap: 10px;
+}
+
+.pickupBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.pickupSelectField {
+  width: 100%;
+  height: 44px;
+  padding: 0 14px;
+  border: 1px solid var(--line);
+  background: var(--white);
+  color: var(--black);
+  font-size: var(--font-sm);
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.15s ease;
+}
+
+.pickupSelectField:hover:not(:disabled),
+.pickupSelectField:focus {
+  border-color: var(--black);
+}
+
+.pickupSelectField:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.pickupSelected {
+  padding: 13px 14px;
+  border: 1px solid var(--line);
+  background: var(--white);
+}
+
+.pickupSelectedLabel {
+  color: var(--muted);
+  font-size: var(--font-xs);
+  line-height: 1.4;
+}
+
+.pickupSelectedValue {
+  margin-top: 4px;
+  color: var(--black);
+  font-size: var(--font-sm);
+  line-height: 1.45;
+}
+
+.infoBlock {
+  padding: 14px;
+  border: 1px solid var(--line);
+  background: var(--white);
+  color: var(--muted);
+  font-size: var(--font-sm);
+  line-height: 1.55;
+}
+
+.inlineHint {
+  margin-top: 6px;
+  color: var(--muted);
+  font-size: var(--font-xs);
+}
+
+.suggestList {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(100% - 1px);
+  z-index: 20;
+  max-height: 240px;
+  overflow: auto;
+  border: 1px solid var(--black);
+  background: var(--white);
+}
+
+.suggestItem {
+  width: 100%;
+  padding: 11px 14px;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  background: var(--white);
+  color: var(--black);
+  text-align: left;
+  font-size: var(--font-sm);
+  line-height: 1.4;
+  cursor: pointer;
+}
+
+.suggestItem:last-child {
+  border-bottom: 0;
+}
+
+.suggestItem:hover,
+.suggestItemActive {
+  background: var(--soft);
+}
+
+.confirmButton {
+  min-height: 44px;
+  align-self: flex-start;
+  padding: 0 18px;
+  border: 1px solid var(--black);
+  background: var(--black);
+  color: var(--white);
+  font-size: var(--font-sm);
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.confirmButton:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+@media (max-width: 760px) {
+  .section {
+    max-width: none;
+    padding: 20px 0;
+  }
+
+  .choiceGrid,
+  .compactGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .confirmButton {
+    width: 100%;
+  }
+}
+
+.pickupSelected {
+  width: 100%;
+  padding: 13px 14px;
+  border: 1px solid var(--line);
+  background: var(--white);
+  text-align: left;
+  cursor: pointer;
+}
+
+.pickupSelected:hover:not(:disabled) {
+  border-color: var(--black);
+}
+
+.pickupSelected:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.pickupSelectedLabel,
+.pickupSelectedValue {
+  display: block;
+}

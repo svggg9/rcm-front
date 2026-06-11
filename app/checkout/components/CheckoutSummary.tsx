@@ -39,13 +39,14 @@ export function CheckoutSummary({
           disabled={submitting || !checkoutReady}
           className="buttonPrimary wFull"
         >
-          {submitting ? "Оформляем…" : "Оформить заказ"}
+          {submitting ? "Оформляем…" : "Подтвердить заказ"}
         </button>
 
-        <div className={styles.disclaimer}>
-          Нажимая «Оформить заказ», вы соглашаетесь с условиями пользования и
-          политикой конфиденциальности.
-        </div>
+          <div className={styles.disclaimer}>
+            Нажимая «Подтвердить заказ», вы соглашаетесь с публичной офертой,
+            политикой конфиденциальности, условиями обработки персональных данных и
+            условиями доставки и возврата.
+          </div>
       </div>
 
       <div className={styles.summaryDivider} />
@@ -97,7 +98,7 @@ export function CheckoutSummary({
             <span className={styles.summaryBottomLabel}>Итого</span>
             <div className={styles.summaryBottomPrice}>
               <div>{total.toLocaleString()} ₽</div>
-              <div className={styles.summaryBottomNote}>Пошлины включены</div>
+              <div className={styles.summaryBottomNote}>Доставка включена</div>
             </div>
           </div>
         </div>
