@@ -59,6 +59,17 @@ export type SellerOrderItem = {
   lineTotal: number;
 };
 
+export type SellerOrderDeliveryInfo = {
+  provider: string | null;
+  method: string | null;
+  requestId: string | null;
+  cdekNumber: string | null;
+  shipmentStatus: string | null;
+  trackingUrl: string | null;
+  priceAmount: number | null;
+  currency: string | null;
+};
+
 export type SellerOrder = {
   id: number;
   orderGroupId: string;
@@ -77,6 +88,7 @@ export type SellerOrder = {
   trackingNumber: string | null;
   createdAt: string;
   items: SellerOrderItem[];
+  delivery: SellerOrderDeliveryInfo | null;
 };
 
 export type PageResponse<T> = {

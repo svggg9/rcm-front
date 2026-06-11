@@ -198,6 +198,18 @@ export function AccountOrderDetails({
             <DeliveryItem label="Получатель" value={order.recipientName} />
             <DeliveryItem label="Телефон" value={order.recipientPhone} />
 
+            {order.delivery?.cdekNumber ? (
+              <DeliveryItem label="Номер СДЭК" value={order.delivery.cdekNumber} />
+            ) : null}
+
+            {order.delivery?.shipmentStatus ? (
+              <DeliveryItem label="Статус СДЭК" value={order.delivery.shipmentStatus} />
+            ) : null}
+
+            {order.delivery?.trackingUrl ? (
+              <DeliveryLink label="Отследить" href={order.delivery.trackingUrl} />
+            ) : null}
+
             {order.trackingNumber ? (
               <DeliveryItem label="Трек-номер" value={order.trackingNumber} />
             ) : null}
@@ -222,6 +234,22 @@ function DeliveryItem({ label, value }: { label: string; value: string }) {
     <div className={styles.deliveryItem}>
       <div className={styles.infoLabel}>{label}</div>
       <div className={styles.infoValue}>{value}</div>
+    </div>
+  );
+}
+
+function DeliveryLink({ label, href }: { label: string; href: string }) {
+  return (
+    <div className={styles.deliveryItem}>
+      <div className={styles.infoLabel}>{label}</div>
+      <a
+        className={styles.infoValue}
+        href={href}
+        target="_blank"
+        rel="noreferrer"
+      >
+        Открыть трекинг
+      </a>
     </div>
   );
 }

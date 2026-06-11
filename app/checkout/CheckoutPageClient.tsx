@@ -24,6 +24,9 @@ import type {
   OrderResponse,
   PaymentInitResponse,
   PaymentMethod,
+  PickupPointSearchResponse,
+  DeliveryQuoteResponse,
+  DeliveryCityOption,
 } from "./types";
 
 import {
@@ -44,23 +47,94 @@ import {
 
 import styles from "./Checkout.module.css";
 
-const DELIVERY_OPTIONS: DeliveryOption[] = [
-  {
-    id: "pvz_1",
-    label: "Москва, ПВЗ на Тверской, 12",
-    hint: "Ежедневно 10:00–22:00",
-  },
-  {
-    id: "pvz_2",
-    label: "Москва, ПВЗ на Арбате, 5",
-    hint: "Ежедневно 09:00–21:00",
-  },
-  {
-    id: "pvz_3",
-    label: "Санкт-Петербург, ПВЗ Невский, 48",
-    hint: "Ежедневно 10:00–21:00",
-  },
-];
+type YandexSuggestItem = {
+  value: string;
+  displayName: string;
+};
+
+type YandexGeoObject = {
+  geometry: {
+    getCoordinates: () => [number, number];
+  };
+  getAddressLine: () => string;
+};
+
+type YandexGeocodeResult = {
+  geoObjects: {
+    get: (index: number) => YandexGeoObject | null;
+  };
+};
+
+type YandexSuggestResponse =
+  | YandexSuggestItem[]
+  | {
+      results?: YandexSuggestItem[];
+    };
+
+type YandexMapsSearchApi = {
+  suggest: (
+    request: string,
+    options?: { results?: number }
+  ) => Promise<YandexSuggestResponse>;
+  geocode: (request: string) => Promise<YandexGeocodeResult>;
+};
+
+function getYmapsSearchApi(): YandexMapsSearchApi | null {
+  if (typeof window === "undefined") return null;
+
+  const maybeWindow = window as Window & {
+    ymaps?: Partial<YandexMapsSearchApi>;
+  };
+
+  if (
+    typeof maybeWindow.ymaps?.suggest !== "function" ||
+    typeof maybeWindow.ymaps?.geocode !== "function"
+  ) {
+    return null;
+  }
+
+  return maybeWindow.ymaps as YandexMapsSearchApi;
+}
+
+let yandexMapsPromise: Promise<void> | null = null;
+
+function loadYandexMaps() {
+  if (typeof window === "undefined") {
+    return Promise.resolve();
+  }
+
+  const maybeWindow = window as Window & {
+    ymaps?: unknown;
+  };
+
+  if (maybeWindow.ymaps) {
+    return Promise.resolve();
+  }
+
+  if (yandexMapsPromise) {
+    return yandexMapsPromise;
+  }
+
+  const apiKey = process.env.NEXT_PUBLIC_YANDEX_MAPS_API_KEY;
+  const suggestApiKey = process.env.NEXT_PUBLIC_YANDEX_SUGGEST_API_KEY;
+
+  if (!apiKey) {
+    return Promise.reject(new Error("Yandex Maps API key is missing"));
+  }
+
+  yandexMapsPromise = new Promise((resolve, reject) => {
+    const script = document.createElement("script");
+    script.src = `https://api-maps.yandex.ru/2.1/?apikey=${apiKey}&lang=ru_RU${
+      suggestApiKey ? `&suggest_apikey=${suggestApiKey}` : ""
+    }`;
+    script.async = true;
+    script.onload = () => resolve();
+    script.onerror = () => reject(new Error("Failed to load Yandex Maps"));
+    document.head.appendChild(script);
+  });
+
+  return yandexMapsPromise;
+}
 
 function CheckoutPageContent() {
   const router = useRouter();
@@ -102,6 +176,27 @@ function CheckoutPageContent() {
 
   const [selectedAddressId, setSelectedAddressId] =
     useState("");
+
+  const [deliveryOptions, setDeliveryOptions] = useState<DeliveryOption[]>([]);
+  const [cityQuery, setCityQuery] = useState("");
+  const [cityOptions, setCityOptions] = useState<DeliveryCityOption[]>([]);
+  const [selectedCity, setSelectedCity] =
+    useState<DeliveryCityOption | null>(null);
+  const [cityLoading, setCityLoading] = useState(false);
+  const [cityTouched, setCityTouched] = useState(false);
+  const [pickupLoading, setPickupLoading] = useState(false);
+  const [quoteLoading, setQuoteLoading] = useState(false);
+  const [deliveryQuoteToken, setDeliveryQuoteToken] = useState("");
+  const [deliveryOfferId, setDeliveryOfferId] = useState("");
+  const [deliveryPrice, setDeliveryPrice] = useState(0);
+  const [deliveryCurrency, setDeliveryCurrency] = useState("RUB");
+
+  const [addressOptions, setAddressOptions] = useState<
+    { value: string; displayName: string }[]
+  >([]);
+  const [addressLoading, setAddressLoading] = useState(false);
+  const [addressLat, setAddressLat] = useState<number | null>(null);
+  const [addressLon, setAddressLon] = useState<number | null>(null);
 
   const [deliveryAddress, setDeliveryAddress] =
     useState("");
@@ -286,11 +381,24 @@ function CheckoutPageContent() {
   }, []);
 
   useEffect(() => {
+  if (!cityTouched) return;
+
+  if (cityQuery.trim().length < 2) {
+    setCityOptions([]);
+    return;
+  }
+
+  const timeoutId = window.setTimeout(() => {
+    void searchCities(cityQuery);
+  }, 350);
+
+  return () => window.clearTimeout(timeoutId);
+}, [cityQuery, cityTouched]);
+
+  useEffect(() => {
     if (deliveryMethod === "PICKUP") {
       const selectedOption =
-        DELIVERY_OPTIONS.find(
-          (option) => option.id === selectedAddressId
-        ) ?? null;
+        deliveryOptions.find((option) => option.id === selectedAddressId) ?? null;
 
       if (selectedOption) {
         setDeliveryAddress(selectedOption.label);
@@ -302,7 +410,17 @@ function CheckoutPageContent() {
     if (selectedAddressId) {
       setSelectedAddressId("");
     }
-  }, [deliveryMethod, selectedAddressId]);
+  }, [deliveryMethod, selectedAddressId, deliveryOptions]);
+
+  useEffect(() => {
+  if (deliveryMethod !== "COURIER") return;
+
+  const timeoutId = window.setTimeout(() => {
+    void searchAddressSuggestions(deliveryAddress);
+  }, 350);
+
+  return () => window.clearTimeout(timeoutId);
+}, [deliveryAddress, deliveryMethod, selectedCity]);
 
   const subtotal = useMemo(() => {
     return items.reduce(
@@ -310,8 +428,6 @@ function CheckoutPageContent() {
       0
     );
   }, [items]);
-
-  const deliveryPrice = 0;
 
   const total = subtotal + deliveryPrice;
 
@@ -341,7 +457,150 @@ function CheckoutPageContent() {
     setActiveStep("DELIVERY");
   }
 
-  function handleConfirmDelivery() {
+  async function searchPickupPoints() {
+  if (!selectedCity) {
+    showError("Выберите город из списка");
+    return;
+  }
+
+  try {
+    setPickupLoading(true);
+    setError(null);
+
+    const response = await apiFetch(`${API_URL}/api/delivery/pickup-points/search`, {
+      method: "POST",
+      body: JSON.stringify({
+        location: selectedCity.fullName,
+      }),
+    });
+
+    if (!response.ok) {
+      const text = await response.text().catch(() => "");
+      throw new Error(text || "Не удалось загрузить пункты выдачи");
+    }
+
+      const data = (await response.json()) as PickupPointSearchResponse;
+
+      const options: DeliveryOption[] = Array.isArray(data.points)
+        ? data.points.map((point) => ({
+          id: String(point.id),
+          label: point.fullAddress || point.name || String(point.id),
+          hint: point.instruction || point.type || undefined,
+          latitude: point.latitude ?? null,
+          longitude: point.longitude ?? null,
+          cityCode: point.cityCode ?? null,
+        }))
+      : [];
+
+    setDeliveryOptions(options);
+
+    if (options.length === 0) {
+      toast.message("ПВЗ не найдены");
+    }
+  } catch (e) {
+    const message =
+      e instanceof Error ? e.message : "Не удалось загрузить пункты выдачи";
+
+    showError(message);
+  } finally {
+    setPickupLoading(false);
+  }
+  }
+
+  async function searchCities(query: string) {
+  if (!query.trim()) {
+    setCityOptions([]);
+    return;
+  }
+
+  try {
+    setCityLoading(true);
+    setError(null);
+
+    const response = await apiFetch(
+      `${API_URL}/api/delivery/cities/search?query=${encodeURIComponent(
+        query.trim()
+      )}&countryCode=RU`
+    );
+
+    if (!response.ok) {
+      const text = await response.text().catch(() => "");
+      throw new Error(text || "Не удалось найти город");
+    }
+
+    const data = (await response.json()) as DeliveryCityOption[];
+
+    setCityOptions(Array.isArray(data) ? data : []);
+  } catch (e) {
+    const message =
+      e instanceof Error ? e.message : "Не удалось найти город";
+
+    showError(message);
+  } finally {
+    setCityLoading(false);
+  }
+  }
+
+  async function createDeliveryQuote() {
+    const selectedPickupPoint =
+      deliveryOptions.find((option) => option.id === selectedAddressId) ?? null;
+
+    try {
+      setQuoteLoading(true);
+      setError(null);
+
+      const response = await apiFetch(`${API_URL}/api/delivery/quotes`, {
+        method: "POST",
+        body: JSON.stringify({
+          method: deliveryMethod === "PICKUP" ? "PICKUP_POINT" : "COURIER",
+          recipientName: fullName.trim(),
+          recipientPhone: phone.trim(),
+          pickupPointId:
+            deliveryMethod === "PICKUP" ? selectedAddressId : undefined,
+          address:
+            deliveryMethod === "PICKUP"
+              ? {
+                  fullText: selectedPickupPoint?.label ?? "",
+                  cityCode:
+                    selectedPickupPoint?.cityCode ??
+                    selectedCity?.code ??
+                    undefined,
+                }
+              : {
+                  fullText: deliveryAddress.trim(),
+                  cityCode: selectedCity?.code ?? undefined,
+                  lat: addressLat ?? undefined,
+                  lon: addressLon ?? undefined,
+                },
+          comment: comment.trim() || undefined,
+        }),
+      });
+
+      if (!response.ok) {
+        const text = await response.text().catch(() => "");
+        throw new Error(text || "Не удалось рассчитать доставку");
+      }
+
+      const quote = (await response.json()) as DeliveryQuoteResponse;
+
+      setDeliveryQuoteToken(quote.quoteToken);
+      setDeliveryOfferId(quote.externalOfferId || quote.quoteToken);
+      setDeliveryPrice(Number(quote.priceAmount || 0));
+      setDeliveryCurrency(quote.currency || "RUB");
+
+      return true;
+    } catch (e) {
+      const message =
+        e instanceof Error ? e.message : "Не удалось рассчитать доставку";
+
+      showError(message);
+      return false;
+    } finally {
+      setQuoteLoading(false);
+    }
+  }
+
+  async function handleConfirmDelivery() {
     setError(null);
 
     const validationError =
@@ -356,9 +615,37 @@ function CheckoutPageContent() {
       return;
     }
 
-    setDeliveryConfirmed(true);
+    const quoted = await createDeliveryQuote();
 
+    if (!quoted) return;
+
+    setDeliveryConfirmed(true);
     setActiveStep("PAYMENT");
+  }
+
+  async function selectAddressSuggestion(value: string) {
+    const ymaps = getYmapsSearchApi();
+
+    setDeliveryAddress(value);
+    setAddressOptions([]);
+    setAddressLat(null);
+    setAddressLon(null);
+    setDeliveryConfirmed(false);
+    setPaymentConfirmed(false);
+
+    if (!ymaps) return;
+
+    const result = await ymaps.geocode(value);
+    const geoObject = result.geoObjects.get(0);
+
+    if (!geoObject) return;
+
+    const [lat, lon] = geoObject.geometry.getCoordinates();
+    const fullAddress = geoObject.getAddressLine();
+
+    setDeliveryAddress(fullAddress || value);
+    setAddressLat(lat);
+    setAddressLon(lon);
   }
 
   function handleConfirmPayment() {
@@ -391,6 +678,46 @@ function CheckoutPageContent() {
     setActiveStep("PAYMENT");
   }
 
+  async function searchAddressSuggestions(query: string) {
+    if (!selectedCity || query.trim().length < 3) {
+      setAddressOptions([]);
+      return;
+    }
+
+    try {
+      setAddressLoading(true);
+
+      const response = await apiFetch(
+        `${API_URL}/api/delivery/address/search?query=${encodeURIComponent(
+          `${selectedCity.fullName}, ${query.trim()}`
+        )}`
+      );
+
+      if (!response.ok) {
+        setAddressOptions([]);
+        return;
+      }
+
+      const data = (await response.json()) as {
+        value: string;
+        displayName: string;
+        lat: number | null;
+        lon: number | null;
+      }[];
+
+      setAddressOptions(
+        Array.isArray(data)
+          ? data.map((item) => ({
+              value: item.value,
+              displayName: item.displayName || item.value,
+            }))
+          : []
+      );
+    } finally {
+      setAddressLoading(false);
+    }
+  }
+
   async function submitOrder() {
     if (submitLockRef.current || submitting) return;
 
@@ -421,13 +748,15 @@ function CheckoutPageContent() {
         recipientPhone: phone.trim(),
         recipientEmail: email.trim(),
         deliveryAddress: deliveryAddress.trim(),
-        deliveryMethod,
+        deliveryMethod:
+          deliveryMethod === "PICKUP" ? "PICKUP_POINT" : "COURIER",
         pickupPointId:
           deliveryMethod === "PICKUP"
             ? selectedAddressId || undefined
             : undefined,
+        deliveryOfferId: deliveryOfferId || deliveryQuoteToken || undefined,
         deliveryPriceAmount: deliveryPrice,
-        deliveryCurrency: "RUB",
+        deliveryCurrency,
         comment: comment.trim() || undefined,
       };
 
@@ -611,7 +940,10 @@ function CheckoutPageContent() {
               />
 
               <CheckoutDeliverySection
-                options={DELIVERY_OPTIONS}
+                options={deliveryOptions}
+                pickupLoading={pickupLoading}
+                quoteLoading={quoteLoading}
+                onPickupSearch={searchPickupPoints}
                 deliveryMethod={deliveryMethod}
                 selectedAddressId={
                   selectedAddressId
@@ -619,6 +951,47 @@ function CheckoutPageContent() {
                 deliveryAddress={
                   deliveryAddress
                 }
+                cityQuery={cityQuery}
+                cityOptions={cityOptions}
+                addressOptions={addressOptions}
+                addressLoading={addressLoading}
+                onAddressSelect={(value) => {
+                  void selectAddressSuggestion(value);
+                }}
+                selectedCity={selectedCity}
+                cityLoading={cityLoading}
+                onCityQueryChange={(value) => {
+                  setCityTouched(true);
+                  setCityQuery(value);
+
+                  if (selectedCity && value !== selectedCity.fullName) {
+                    setSelectedCity(null);
+                    setDeliveryOptions([]);
+                    setSelectedAddressId("");
+                    setDeliveryAddress("");
+                    setDeliveryPrice(0);
+                    setDeliveryCurrency("RUB");
+                    setDeliveryQuoteToken("");
+                    setDeliveryOfferId("");
+                    setDeliveryConfirmed(false);
+                    setPaymentConfirmed(false);
+                  }
+                }}
+                onCitySelect={(city) => {
+                  setSelectedCity(city);
+                  setCityQuery(city.fullName);
+                  setCityOptions([]);
+                  setCityTouched(false);
+                  setDeliveryOptions([]);
+                  setSelectedAddressId("");
+                  setDeliveryAddress("");
+                  setDeliveryPrice(0);
+                  setDeliveryCurrency("RUB");
+                  setDeliveryQuoteToken("");
+                  setDeliveryOfferId("");
+                  setDeliveryConfirmed(false);
+                  setPaymentConfirmed(false);
+                }}
                 comment={comment}
                 confirmed={deliveryConfirmed}
                 expanded={
@@ -632,18 +1005,29 @@ function CheckoutPageContent() {
                 }
                 onDeliveryMethodChange={(value) => {
                   setDeliveryMethod(value);
+                  setSelectedAddressId("");
+                  setDeliveryAddress("");
+                  setDeliveryOptions([]);
+                  setDeliveryPrice(0);
+                  setDeliveryCurrency("RUB");
+                  setDeliveryQuoteToken("");
+                  setDeliveryOfferId("");
                   setDeliveryConfirmed(false);
                   setPaymentConfirmed(false);
                 }}
-
                 onAddressChange={(value) => {
                   setSelectedAddressId(value);
                   setDeliveryConfirmed(false);
                   setPaymentConfirmed(false);
                 }}
-
                 onDeliveryAddressChange={(value) => {
                   setDeliveryAddress(value);
+                  setAddressLat(null);
+                  setAddressLon(null);
+                  setDeliveryPrice(0);
+                  setDeliveryCurrency("RUB");
+                  setDeliveryQuoteToken("");
+                  setDeliveryOfferId("");
                   setDeliveryConfirmed(false);
                   setPaymentConfirmed(false);
                 }}

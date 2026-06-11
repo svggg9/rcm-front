@@ -51,6 +51,17 @@ export type OrderItem = {
   lineTotal: number;
 };
 
+export type OrderDeliveryInfo = {
+  provider: string | null;
+  method: string | null;
+  requestId: string | null;
+  cdekNumber: string | null;
+  shipmentStatus: string | null;
+  trackingUrl: string | null;
+  priceAmount: number | null;
+  currency: string | null;
+};
+
 export type Order = {
   id: number;
   orderGroupId: string;
@@ -69,6 +80,7 @@ export type Order = {
   trackingNumber: string | null;
   createdAt: string;
   items: OrderItem[];
+  delivery: OrderDeliveryInfo | null;
 };
 
 export type OrderListItem = {

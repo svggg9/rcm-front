@@ -33,7 +33,7 @@ export function SellerOrderDetails({
   formatDeliveryStatus,
   buildSellerStatusLabel,
 }: Props) {
-  const labelHref = `/api/seller/orders/${order.id}/delivery-label`;
+  const labelHref = `${API_URL}/api/seller/orders/${order.id}/delivery-label`;
 
   return (
     <section className={styles.page}>
@@ -125,6 +125,18 @@ export function SellerOrderDetails({
               <InfoRow label="Способ доставки" value={order.deliveryMethod} />
               <InfoRow label="Адрес / ПВЗ" value={order.deliveryAddress} />
 
+              {order.delivery?.cdekNumber ? (
+                <InfoRow label="Номер СДЭК" value={order.delivery.cdekNumber} />
+              ) : null}
+
+              {order.delivery?.shipmentStatus ? (
+                <InfoRow label="Статус СДЭК" value={order.delivery.shipmentStatus} />
+              ) : null}
+
+              {order.delivery?.trackingUrl ? (
+                <InfoLink label="Трекинг" href={order.delivery.trackingUrl} />
+              ) : null}
+
               {order.trackingNumber ? (
                 <InfoRow label="Трек-номер" value={order.trackingNumber} />
               ) : null}
@@ -182,7 +194,7 @@ export function SellerOrderDetails({
                   target="_blank"
                   rel="noreferrer"
                 >
-                  Скачать ярлык
+                  Скачать накладную СДЭК
                 </a>
 
                 <Button
@@ -246,4 +258,15 @@ function getOrderTone(order: SellerOrder) {
   }
 
   return "default";
+}
+
+function InfoLink({ label, href }: { label: string; href: string }) {
+  return (
+    <div className={styles.infoRow}>
+      <span>{label}</span>
+      <a href={href} target="_blank" rel="noreferrer">
+        Открыть
+      </a>
+    </div>
+  );
 }
