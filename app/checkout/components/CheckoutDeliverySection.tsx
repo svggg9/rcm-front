@@ -1,7 +1,13 @@
 "use client";
 
-import type { DeliveryMethod, DeliveryOption } from "../types";
+import type {
+  DeliveryCityOption,
+  DeliveryMethod,
+  DeliveryOption,
+} from "../types";
+
 import styles from "../Checkout.module.css";
+import { PickupPointMap } from "./PickupPointMap";
 
 type Props = {
   options: DeliveryOption[];
@@ -12,6 +18,21 @@ type Props = {
   confirmed: boolean;
   expanded: boolean;
   enabled: boolean;
+  pickupLoading: boolean;
+  quoteLoading: boolean;
+  cityQuery: string;
+  cityOptions: DeliveryCityOption[];
+  selectedCity: DeliveryCityOption | null;
+  cityLoading: boolean;
+  addressOptions: {
+  value: string;
+  displayName: string;
+}[];
+addressLoading: boolean;
+onAddressSelect: (value: string) => void;
+  onCityQueryChange: (value: string) => void;
+  onCitySelect: (city: DeliveryCityOption) => void;
+  onPickupSearch: () => void;
   onEdit: () => void;
   onConfirm: () => void;
   onDeliveryMethodChange: (value: DeliveryMethod) => void;
@@ -29,6 +50,17 @@ export function CheckoutDeliverySection({
   confirmed,
   expanded,
   enabled,
+  pickupLoading,
+  quoteLoading,
+  cityQuery,
+  cityOptions,
+  selectedCity,
+  addressOptions,
+  addressLoading,
+  onAddressSelect,
+  onCityQueryChange,
+  onCitySelect,
+  onPickupSearch,
   onEdit,
   onConfirm,
   onDeliveryMethodChange,
@@ -45,9 +77,7 @@ export function CheckoutDeliverySection({
       : deliveryAddress || "Адрес не указан";
 
   const summaryHint =
-    deliveryMethod === "PICKUP"
-      ? selectedOption?.hint
-      : "Курьерская доставка";
+    deliveryMethod === "PICKUP" ? selectedOption?.hint : "Курьерская доставка";
 
   return (
     <section
@@ -60,11 +90,7 @@ export function CheckoutDeliverySection({
         </div>
 
         {confirmed ? (
-          <button
-            type="button"
-            onClick={onEdit}
-            className={styles.sectionEditBtn}
-          >
+          <button type="button" onClick={onEdit} className={styles.sectionEditBtn}>
             Изменить
           </button>
         ) : null}
@@ -72,13 +98,13 @@ export function CheckoutDeliverySection({
 
       {!expanded && confirmed ? (
         <div className={styles.sectionSummary}>
-          <div>
-            {deliveryMethod === "PICKUP" ? "Пункт выдачи" : "Курьер"}
-          </div>
+          <div>{deliveryMethod === "PICKUP" ? "Пункт выдачи" : "Курьер"}</div>
           <div className={styles.sectionSummaryMuted}>{summaryAddress}</div>
+
           {summaryHint ? (
             <div className={styles.sectionSummaryMuted}>{summaryHint}</div>
           ) : null}
+
           {comment.trim() ? (
             <div className={styles.sectionSummaryMuted}>
               Комментарий: {comment}
@@ -97,9 +123,7 @@ export function CheckoutDeliverySection({
               disabled={!enabled}
             >
               <div className={styles.paymentTitle}>Пункт выдачи</div>
-              <div className={styles.paymentText}>
-                Самовывоз из тестового ПВЗ
-              </div>
+              <div className={styles.paymentText}>Самовывоз из ПВЗ СДЭК</div>
             </button>
 
             <button
@@ -111,42 +135,129 @@ export function CheckoutDeliverySection({
               disabled={!enabled}
             >
               <div className={styles.paymentTitle}>Курьер</div>
-              <div className={styles.paymentText}>
-                Доставка по указанному адресу
-              </div>
+              <div className={styles.paymentText}>Доставка по адресу</div>
             </button>
           </div>
 
-          {deliveryMethod === "PICKUP" ? (
+          <div className={styles.cityPicker}>
             <label className={styles.field}>
-              <span className={styles.label}>Пункт выдачи</span>
-
-              <select
-                className={styles.input}
-                value={selectedAddressId}
-                onChange={(event) => onAddressChange(event.target.value)}
-                disabled={!enabled}
-              >
-                <option value="">Выберите пункт выдачи</option>
-
-                {options.map((option) => (
-                  <option key={option.id} value={option.id}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-            </label>
-          ) : (
-            <label className={styles.field}>
-              <span className={styles.label}>Адрес доставки</span>
+              <span className={styles.label}>Город</span>
               <input
                 className={styles.input}
-                value={deliveryAddress}
-                onChange={(event) => onDeliveryAddressChange(event.target.value)}
-                placeholder="Москва, ул. Тверская, 12, кв. 8"
+                value={cityQuery}
+                onChange={(event) => onCityQueryChange(event.target.value)}
+                placeholder="Москва"
                 disabled={!enabled}
               />
             </label>
+
+            {cityOptions.length > 0 ? (
+              <div className={styles.cityOptions}>
+                {cityOptions.map((city) => (
+                  <button
+                    key={`${city.code}-${city.cityUuid}`}
+                    type="button"
+                    className={`${styles.cityOption} ${
+                      selectedCity?.code === city.code
+                        ? styles.cityOptionActive
+                        : ""
+                    }`}
+                    onClick={() => onCitySelect(city)}
+                    disabled={!enabled}
+                  >
+                    {city.fullName}
+                  </button>
+                ))}
+              </div>
+            ) : null}
+          </div>
+
+          {deliveryMethod === "PICKUP" ? (
+            <div className={styles.pickupPicker}>
+              <button
+                type="button"
+                className={styles.pickupSearchButton}
+                onClick={onPickupSearch}
+                disabled={!enabled || pickupLoading || !selectedCity}
+              >
+                {pickupLoading ? "Ищем…" : "Показать ПВЗ"}
+              </button>
+
+              <div className={styles.pickupMapLayout}>
+                <div className={styles.pickupList}>
+                  {options.length === 0 ? (
+                    <div className={styles.deliveryHint}>
+                      Выберите город и нажмите «Показать ПВЗ»
+                    </div>
+                  ) : (
+                    options.map((option) => (
+                      <button
+                        key={option.id}
+                        type="button"
+                        className={`${styles.pickupPoint} ${
+                          selectedAddressId === option.id
+                            ? styles.pickupPointActive
+                            : ""
+                        }`}
+                        onClick={() => onAddressChange(option.id)}
+                        disabled={!enabled}
+                      >
+                        <span className={styles.pickupPointTitle}>
+                          {option.label}
+                        </span>
+
+                        {option.hint ? (
+                          <span className={styles.pickupPointHint}>
+                            {option.hint}
+                          </span>
+                        ) : null}
+                      </button>
+                    ))
+                  )}
+                </div>
+
+                <div className={styles.pickupMap}>
+                  <PickupPointMap
+                    points={options}
+                    selectedId={selectedAddressId}
+                    onSelect={onAddressChange}
+                  />
+                </div>
+              </div>
+            </div>
+          ) : (
+<div className={styles.addressSuggest}>
+  <label className={styles.field}>
+    <span className={styles.label}>Адрес доставки</span>
+    <input
+      className={styles.input}
+      value={deliveryAddress}
+      onChange={(event) => onDeliveryAddressChange(event.target.value)}
+      placeholder="ул. Тверская, 12, кв. 8"
+      disabled={!enabled || !selectedCity}
+    />
+  </label>
+
+  {addressOptions.length > 0 ? (
+    <div className={styles.cityOptions}>
+      {addressOptions.map((option) => (
+        <button
+          key={option.value}
+          type="button"
+          className={styles.cityOption}
+          onClick={() => onAddressSelect(option.value)}
+          disabled={!enabled}
+        >
+          {option.displayName || option.value}
+        </button>
+      ))}
+    </div>
+  ) : null}
+
+  {addressLoading ? (
+    <div className={styles.deliveryHint}>Ищем адрес…</div>
+  ) : null}
+</div>
           )}
 
           <label className={styles.field}>
@@ -161,17 +272,17 @@ export function CheckoutDeliverySection({
           </label>
 
           <div className={styles.deliveryHint}>
-            Пока это тестовый сценарий. Позже сюда подключим интеграцию с
-            сервисом доставки.
+            Доставка рассчитывается через СДЭК. Для самовывоза выберите пункт
+            выдачи.
           </div>
 
           <button
             type="button"
             onClick={onConfirm}
             className={styles.confirmBtn}
-            disabled={!enabled}
+            disabled={!enabled || pickupLoading || quoteLoading}
           >
-            Подтвердить доставку
+            {quoteLoading ? "Рассчитываем…" : "Подтвердить доставку"}
           </button>
         </div>
       )}

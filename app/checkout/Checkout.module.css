@@ -497,3 +497,144 @@
     grid-template-columns: 1fr;
   }
 }
+
+.inlineFields {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: end;
+}
+
+@media (max-width: 700px) {
+  .inlineFields {
+    grid-template-columns: 1fr;
+  }
+}
+
+.pickupPicker {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.pickupSearchRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: end;
+}
+
+.pickupSearchButton {
+  height: 42px;
+  padding: 0 18px;
+  border: 1px solid var(--black);
+  background: var(--black);
+  color: var(--white);
+  font-size: var(--font-sm);
+  cursor: pointer;
+}
+
+.pickupSearchButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.pickupMapLayout {
+  display: grid;
+  grid-template-columns: minmax(240px, 320px) minmax(0, 1fr);
+  border: 1px solid var(--line);
+  min-height: 420px;
+}
+
+.pickupList {
+  max-height: 420px;
+  overflow: auto;
+  border-right: 1px solid var(--line);
+  background: var(--white);
+}
+
+.pickupPoint {
+  width: 100%;
+  padding: 14px;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  background: var(--white);
+  text-align: left;
+  cursor: pointer;
+}
+
+.pickupPoint:hover,
+.pickupPointActive {
+  background: var(--soft);
+}
+
+.pickupPointTitle {
+  display: block;
+  color: var(--black);
+  font-size: var(--font-sm);
+  font-weight: 500;
+}
+
+.pickupPointHint {
+  display: block;
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: var(--font-xs);
+}
+
+.pickupMap {
+  min-height: 420px;
+  background: var(--soft);
+}
+
+@media (max-width: 900px) {
+  .pickupSearchRow,
+  .pickupMapLayout {
+    grid-template-columns: 1fr;
+  }
+
+  .pickupList {
+    max-height: 280px;
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+  }
+}
+
+.cityPicker {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.cityOptions {
+  border: 1px solid var(--line);
+  background: var(--white);
+}
+
+.cityOption {
+  width: 100%;
+  padding: 12px 14px;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  background: var(--white);
+  color: var(--black);
+  text-align: left;
+  font-size: var(--font-sm);
+  cursor: pointer;
+}
+
+.cityOption:last-child {
+  border-bottom: 0;
+}
+
+.cityOption:hover,
+.cityOptionActive {
+  background: var(--soft);
+}
+
+.addressSuggest {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}

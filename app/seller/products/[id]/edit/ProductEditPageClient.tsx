@@ -92,7 +92,7 @@ export function ProductEditPageClient({ productId }: Props) {
   const [uploading, setUploading] = useState(false);
   const [reordering, setReordering] = useState(false);
   const [publishing, setPublishing] = useState(false);
-  const [onboardingStatus, setOnboardingStatus] =
+  const [onboardingStatus] =
     useState<SellerOnboardingStatus | null>(null);
 
   const [error, setError] = useState<string | null>(null);
@@ -169,7 +169,6 @@ export function ProductEditPageClient({ productId }: Props) {
           brandsResponse,
           sizesResponse,
           colorsResponse,
-          onboardingResponse,
         ] = await Promise.all([
           apiFetch(`${API_URL}/api/seller/products/${productId}`),
           apiFetch(`${API_URL}/api/catalog/categories`),
@@ -205,9 +204,6 @@ export function ProductEditPageClient({ productId }: Props) {
         const brandsData: Option[] = await brandsResponse.json();
         const sizesData: Option[] = await sizesResponse.json();
         const colorsData: Option[] = await colorsResponse.json();
-        const onboardingData: SellerOnboardingStatus | null = onboardingResponse.ok
-          ? await onboardingResponse.json()
-          : null;
 
         if (cancelled) return;
 

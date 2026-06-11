@@ -8,7 +8,6 @@ import styles from "./ProductPage.module.css";
 import { ensureCartId } from "../../lib/auth";
 import { emitCartChanged } from "../../lib/cartEvents";
 import { useFavorites } from "../../lib/FavoritesContext";
-import { useUserRole } from "../../lib/useUserRole";
 import { ProductCarousel } from "../../components/ProductCarousel/ProductCarousel";
 
 import { ProductGallery } from "./components/ProductGallery";
