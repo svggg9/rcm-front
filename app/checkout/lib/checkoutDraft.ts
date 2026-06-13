@@ -1,86 +1,177 @@
+import type {
+  CountryCode,
+  DeliveryMethod,
+  FittingMode,
+  PaymentMethod,
+} from "../types";
+
 const CHECKOUT_DRAFT_KEY = "checkout_draft_v1";
+
+function getCheckoutDraftKey(): string {
+  if (typeof window === "undefined") return CHECKOUT_DRAFT_KEY;
+
+  const scopedCartId =
+    localStorage.getItem("user_cart_id") ||
+    localStorage.getItem("guest_cart_id") ||
+    "";
+
+  if (!scopedCartId) return CHECKOUT_DRAFT_KEY;
+
+  return `${CHECKOUT_DRAFT_KEY}:${scopedCartId}`;
+}
 
 export type CheckoutDraft = {
   email: string;
   fullName: string;
   phone: string;
-  deliveryMethod: "PICKUP" | "COURIER";
+  deliveryMethod: DeliveryMethod;
   selectedAddressId: string;
+  selectedPickupPointLabel: string;
   deliveryAddress: string;
-  countryCode: "RU" | "BY" | "KZ" | "AM";
+  countryCode: CountryCode;
+  selectedCityCode: number | null;
+  selectedCityName: string;
   apartment: string;
   floor: string;
   intercom: string;
-  fittingMode: "WITH_FITTING" | "WITHOUT_FITTING";
+  fittingMode: FittingMode;
   otherRecipientEnabled: boolean;
   otherRecipientName: string;
   otherRecipientPhone: string;
   comment: string;
-  paymentMethod: "SBP" | "CARD";
+  paymentMethod: PaymentMethod;
 };
 
 export function loadCheckoutDraft(): CheckoutDraft | null {
   if (typeof window === "undefined") return null;
 
   try {
-    const raw = localStorage.getItem(CHECKOUT_DRAFT_KEY);
+    localStorage.removeItem(CHECKOUT_DRAFT_KEY);
+
+    const raw = localStorage.getItem(getCheckoutDraftKey());
+
     if (!raw) return null;
 
     const parsed = JSON.parse(raw);
 
     if (!parsed || typeof parsed !== "object") return null;
 
+    const deliveryMethod: DeliveryMethod =
+      parsed.deliveryMethod === "COURIER"
+        ? "COURIER"
+        : "PICKUP";
+
+    const paymentMethod: PaymentMethod =
+      parsed.paymentMethod === "CARD" ||
+      parsed.paymentMethod === "SBP" ||
+      parsed.paymentMethod === "CASH_ON_DELIVERY"
+        ? parsed.paymentMethod
+        : "CASH_ON_DELIVERY";
+
     return {
-      email: typeof parsed.email === "string" ? parsed.email : "",
-      fullName: typeof parsed.fullName === "string" ? parsed.fullName : "",
-      phone: typeof parsed.phone === "string" ? parsed.phone : "",
-      deliveryMethod:
-        parsed.deliveryMethod === "COURIER" ? "COURIER" : "PICKUP",
+      email:
+        typeof parsed.email === "string"
+          ? parsed.email
+          : "",
+
+      fullName:
+        typeof parsed.fullName === "string"
+          ? parsed.fullName
+          : "",
+
+      phone:
+        typeof parsed.phone === "string"
+          ? parsed.phone
+          : "",
+
+      deliveryMethod,
+
       selectedAddressId:
         typeof parsed.selectedAddressId === "string"
           ? parsed.selectedAddressId
           : "",
-      deliveryAddress:
-        typeof parsed.deliveryAddress === "string" ? parsed.deliveryAddress : "",
-      comment: typeof parsed.comment === "string" ? parsed.comment : "",
-      paymentMethod: parsed.paymentMethod === "CARD" ? "CARD" : "SBP",
-      countryCode:
-        parsed.countryCode === "BY" ||
-        parsed.countryCode === "KZ" ||
-        parsed.countryCode === "AM"
-          ? parsed.countryCode
-          : "RU",
 
-      apartment: typeof parsed.apartment === "string" ? parsed.apartment : "",
-      floor: typeof parsed.floor === "string" ? parsed.floor : "",
-      intercom: typeof parsed.intercom === "string" ? parsed.intercom : "",
+      selectedPickupPointLabel:
+        typeof parsed.selectedPickupPointLabel === "string"
+          ? parsed.selectedPickupPointLabel
+          : "",
+
+      deliveryAddress:
+        typeof parsed.deliveryAddress === "string"
+          ? parsed.deliveryAddress
+          : "",
+
+      countryCode: "RU",
+
+      selectedCityCode:
+        typeof parsed.selectedCityCode === "number"
+          ? parsed.selectedCityCode
+          : null,
+
+      selectedCityName:
+        typeof parsed.selectedCityName === "string"
+          ? parsed.selectedCityName
+          : "",
+
+      apartment:
+        typeof parsed.apartment === "string"
+          ? parsed.apartment
+          : "",
+
+      floor:
+        typeof parsed.floor === "string"
+          ? parsed.floor
+          : "",
+
+      intercom:
+        typeof parsed.intercom === "string"
+          ? parsed.intercom
+          : "",
+
       fittingMode:
         parsed.fittingMode === "WITHOUT_FITTING"
           ? "WITHOUT_FITTING"
           : "WITH_FITTING",
 
-      otherRecipientEnabled: parsed.otherRecipientEnabled === true,
+      otherRecipientEnabled:
+        parsed.otherRecipientEnabled === true,
+
       otherRecipientName:
         typeof parsed.otherRecipientName === "string"
           ? parsed.otherRecipientName
           : "",
+
       otherRecipientPhone:
         typeof parsed.otherRecipientPhone === "string"
           ? parsed.otherRecipientPhone
           : "",
+
+      comment:
+        typeof parsed.comment === "string"
+          ? parsed.comment
+          : "",
+
+      paymentMethod,
     };
   } catch {
     return null;
   }
 }
 
-export function saveCheckoutDraft(draft: CheckoutDraft): void {
+export function saveCheckoutDraft(
+  draft: CheckoutDraft
+): void {
   if (typeof window === "undefined") return;
 
-  localStorage.setItem(CHECKOUT_DRAFT_KEY, JSON.stringify(draft));
+  localStorage.setItem(
+    getCheckoutDraftKey(),
+    JSON.stringify(draft)
+  );
 }
 
 export function clearCheckoutDraft(): void {
   if (typeof window === "undefined") return;
+
   localStorage.removeItem(CHECKOUT_DRAFT_KEY);
+  localStorage.removeItem(getCheckoutDraftKey());
 }

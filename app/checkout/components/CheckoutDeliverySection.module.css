@@ -40,28 +40,6 @@
   letter-spacing: -0.02em;
 }
 
-.editButton {
-  border: 0;
-  background: transparent;
-  color: var(--black);
-  font-size: var(--font-sm);
-  text-decoration: underline;
-  cursor: pointer;
-}
-
-.summary {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  color: var(--black);
-  font-size: var(--font-md);
-}
-
-.summaryMuted {
-  color: var(--muted);
-  font-size: var(--font-sm);
-}
-
 .deliveryContainer {
   display: flex;
   flex-direction: column;
@@ -81,12 +59,40 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 24px;
-  height: 24px;
-  border: 1px solid var(--line);
+  width: 20px;
+  height: 20px;
+  overflow: hidden;
+  border: 0;
   border-radius: 50%;
   transform: translateY(-50%);
-  font-size: 13px;
+  background: #f3f4f6;
+}
+
+.russiaFlag {
+  display: block;
+  width: 27px;
+  height: 19px;
+  background: linear-gradient(
+    to bottom,
+    #f3f4f6 0 33.333%,
+    #2457b8 33.333% 66.666%,
+    #d52b1e 66.666% 100%
+  );
+}
+
+.fieldLabel {
+  position: absolute;
+  left: 14px;
+  top: 7px;
+  z-index: 2;
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1;
+  pointer-events: none;
+}
+
+.fieldLabelWithIcon {
+  left: 48px;
 }
 
 .selectField,
@@ -103,12 +109,40 @@
 
 .selectField,
 .textField {
-  height: 44px;
-  padding: 0 14px;
+  height: 52px;
+  padding: 19px 14px 7px;
 }
 
 .fieldWithIcon {
   padding-left: 48px;
+}
+
+.fieldWithSearchIcon {
+  padding-right: 46px;
+}
+
+.searchIcon {
+  position: absolute;
+  right: 15px;
+  top: 50%;
+  width: 16px;
+  height: 16px;
+  border: 1.5px solid var(--muted);
+  border-radius: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+
+.searchIcon::after {
+  content: "";
+  position: absolute;
+  right: -4px;
+  bottom: -3px;
+  width: 6px;
+  height: 1.5px;
+  background: var(--muted);
+  transform: rotate(45deg);
+  transform-origin: center;
 }
 
 .selectField {
@@ -134,7 +168,7 @@
 
 .textareaField {
   min-height: 82px;
-  padding: 13px 14px;
+  padding: 24px 14px 13px;
   resize: vertical;
   line-height: 1.45;
 }
@@ -146,13 +180,13 @@
 }
 
 .choiceCard {
-  min-height: 66px;
+  min-height: 52px;
   padding: 13px 14px;
   border: 1px solid var(--line);
   background: var(--white);
   color: var(--black);
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
   gap: 14px;
   text-align: left;
@@ -170,9 +204,14 @@
   cursor: default;
 }
 
+.choiceLabel,
 .choiceTitle,
 .choiceText {
   display: block;
+}
+
+.choiceLabel {
+  min-width: 0;
 }
 
 .choiceTitle {
@@ -182,25 +221,18 @@
   line-height: 1.35;
 }
 
+.choiceMeta {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  gap: 8px;
+}
+
 .choiceText {
   margin-top: 4px;
   color: var(--muted);
   font-size: var(--font-xs);
   line-height: 1.4;
-}
-
-.choiceCheck {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  width: 18px;
-  height: 18px;
-  border: 1px solid var(--black);
-  border-radius: 50%;
-  color: var(--black);
-  font-size: 11px;
-  line-height: 1;
 }
 
 .compactGrid {
@@ -258,12 +290,23 @@
 }
 
 .infoBlock {
-  padding: 14px;
-  border: 1px solid var(--line);
-  background: var(--white);
-  color: var(--muted);
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 12px 14px;
+  border: 1px solid rgba(138, 106, 47, 0.18);
+  background: rgba(201, 162, 79, 0.07);
+  color: color-mix(in srgb, var(--warning) 74%, var(--black));
   font-size: var(--font-sm);
-  line-height: 1.55;
+  line-height: 1.45;
+}
+
+.infoBlock span {
+  display: block;
+}
+
+.infoBlockAccent {
+  font-weight: 700;
 }
 
 .inlineHint {
@@ -306,23 +349,6 @@
   background: var(--soft);
 }
 
-.confirmButton {
-  min-height: 44px;
-  align-self: flex-start;
-  padding: 0 18px;
-  border: 1px solid var(--black);
-  background: var(--black);
-  color: var(--white);
-  font-size: var(--font-sm);
-  font-weight: 500;
-  cursor: pointer;
-}
-
-.confirmButton:disabled {
-  opacity: 0.45;
-  cursor: default;
-}
-
 @media (max-width: 760px) {
   .section {
     max-width: none;
@@ -334,9 +360,6 @@
     grid-template-columns: 1fr;
   }
 
-  .confirmButton {
-    width: 100%;
-  }
 }
 
 .pickupSelected {
@@ -360,4 +383,84 @@
 .pickupSelectedLabel,
 .pickupSelectedValue {
   display: block;
+}
+
+.cityFieldWithEta {
+  padding-right: 132px;
+}
+
+.cityEtaBadge {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  z-index: 2;
+  transform: translateY(-50%);
+}
+
+.metaBadge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 54px;
+  min-height: 24px;
+  padding: 3px 7px;
+  border: 1px solid rgba(201, 162, 79, 0.18);
+  background: rgba(201, 162, 79, 0.08);
+  color: color-mix(in srgb, var(--black) 68%, #c9a24f);
+  font-size: var(--font-xs);
+  line-height: 1.2;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  animation: badgeIn 0.18s ease forwards;
+}
+
+.metaBadgeLoading {
+  border-color: rgba(201, 162, 79, 0.16);
+  background:
+    linear-gradient(
+      100deg,
+      rgba(201, 162, 79, 0.06) 0%,
+      rgba(201, 162, 79, 0.18) 45%,
+      rgba(201, 162, 79, 0.06) 90%
+    );
+  background-size: 220% 100%;
+  color: transparent;
+  animation:
+    badgeIn 0.18s ease forwards,
+    badgeShimmer 1.2s ease-in-out infinite;
+}
+
+@keyframes badgeIn {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes badgeShimmer {
+  from {
+    background-position: 120% 0;
+  }
+
+  to {
+    background-position: -120% 0;
+  }
+}
+
+@media (max-width: 520px) {
+  .cityFieldWithEta {
+    padding-right: 14px;
+  }
+
+  .cityEtaBadge {
+    position: static;
+    display: inline-flex;
+    width: fit-content;
+    margin-top: 6px;
+    transform: none;
+  }
 }

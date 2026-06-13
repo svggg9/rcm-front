@@ -9,13 +9,13 @@ export type CartItem = {
   imageUrl: string | null;
 };
 
-export type PaymentMethod = "SBP" | "CARD";
+export type PaymentMethod = "CARD" | "SBP" | "CASH_ON_DELIVERY";
 
 export type DeliveryMethod = "PICKUP" | "COURIER";
 
 export type CheckoutStep = "CONTACT" | "DELIVERY" | "PAYMENT";
 
-export type CountryCode = "RU" | "BY" | "KZ" | "AM";
+export type CountryCode = "RU";
 
 export type FittingMode = "WITH_FITTING" | "WITHOUT_FITTING";
 
@@ -69,9 +69,18 @@ export type CheckoutRequest = {
   deliveryMethod: "PICKUP_POINT" | "COURIER";
 
   pickupPointId?: string;
+  pickupPointLabel?: string;
+  deliveryCountryCode?: string;
+  deliveryCityCode?: number;
+  deliveryCityName?: string;
+  deliveryApartment?: string;
+  deliveryFloor?: string;
+  deliveryIntercom?: string;
+  fittingMode?: FittingMode;
   deliveryOfferId?: string;
   deliveryPriceAmount?: number;
   deliveryCurrency?: string;
+  paymentMethod?: PaymentMethod;
   comment?: string;
 };
 

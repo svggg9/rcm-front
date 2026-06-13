@@ -1,8 +1,6 @@
 "use client";
 
-import styles from "../Checkout.module.css";
-import { PhoneInput } from "../../components/ui/PhoneInput";
-import { TextInput } from "../../components/ui/TextInput";
+import styles from "./CheckoutContactSection.module.css";
 
 type Props = {
   email: string;
@@ -11,10 +9,6 @@ type Props = {
   otherRecipientEnabled: boolean;
   otherRecipientName: string;
   otherRecipientPhone: string;
-  confirmed: boolean;
-  expanded: boolean;
-  onEdit: () => void;
-  onConfirm: () => void;
   onEmailChange: (value: string) => void;
   onFullNameChange: (value: string) => void;
   onPhoneChange: (value: string) => void;
@@ -30,10 +24,6 @@ export function CheckoutContactSection({
   otherRecipientEnabled,
   otherRecipientName,
   otherRecipientPhone,
-  confirmed,
-  expanded,
-  onEdit,
-  onConfirm,
   onEmailChange,
   onFullNameChange,
   onPhoneChange,
@@ -43,101 +33,88 @@ export function CheckoutContactSection({
 }: Props) {
   return (
     <section className={styles.section}>
-      <div className={styles.sectionHeader}>
-        <div className={styles.sectionHeaderMain}>
+      <div className={styles.header}>
+        <div className={styles.headerMain}>
           <span className={styles.stepBadge}>2</span>
-          <h2 className={styles.sectionTitle}>Получатель</h2>
+          <h2 className={styles.title}>Получатель</h2>
         </div>
-
-        {confirmed ? (
-          <button
-            type="button"
-            onClick={onEdit}
-            className={styles.sectionEditBtn}
-          >
-            Изменить
-          </button>
-        ) : null}
       </div>
 
-      {!expanded && confirmed ? (
-        <div className={styles.sectionSummary}>
-          <div>{fullName}</div>
-          <div className={styles.sectionSummaryMuted}>{email}</div>
-          <div className={styles.sectionSummaryMuted}>{phone}</div>
-
-          {otherRecipientEnabled ? (
-            <div className={styles.sectionSummaryMuted}>
-              Заберет другой человек: {otherRecipientName}, {otherRecipientPhone}
-            </div>
-          ) : null}
+      <div className={styles.body}>
+        <div className={styles.fieldWrap}>
+          <span className={styles.fieldLabel}>Телефон</span>
+          <input
+            className={styles.textField}
+            value={phone}
+            onChange={(event) => onPhoneChange(event.target.value)}
+            inputMode="tel"
+            autoComplete="tel"
+          />
         </div>
-      ) : (
-        <div className={styles.sectionBody}>
-          <div className={styles.formGrid}>
-            <PhoneInput
-              required
-              value={phone}
-              onChange={(event) => onPhoneChange(event.target.value)}
-            />
 
-            <TextInput
-              label="Электронная почта"
-              type="email"
-              value={email}
-              onChange={(event) => onEmailChange(event.target.value)}
-              placeholder="example@mail.com"
-            />
+        <div className={styles.fieldWrap}>
+          <span className={styles.fieldLabel}>Электронная почта</span>
+          <input
+            className={styles.textField}
+            value={email}
+            onChange={(event) => onEmailChange(event.target.value)}
+            type="email"
+            inputMode="email"
+            autoComplete="email"
+          />
+        </div>
 
-            <TextInput
-              label="Фамилия, имя и отчество"
-              value={fullName}
-              onChange={(event) => onFullNameChange(event.target.value)}
-              placeholder="Иванов Иван Иванович"
-            />
-          </div>
+        <div className={styles.fieldWrap}>
+          <span className={styles.fieldLabel}>Фамилия, имя и отчество</span>
+          <input
+            className={styles.textField}
+            value={fullName}
+            onChange={(event) => onFullNameChange(event.target.value)}
+            autoComplete="name"
+          />
+        </div>
 
-          <label className={styles.checkRow}>
-            <input
-              type="checkbox"
-              checked={otherRecipientEnabled}
-              onChange={(event) =>
-                onOtherRecipientEnabledChange(event.target.checked)
-              }
-            />
-            <span>Заказ заберет другой человек</span>
-          </label>
+        <label className={styles.checkbox}>
+          <input
+            type="checkbox"
+            checked={otherRecipientEnabled}
+            onChange={(event) =>
+              onOtherRecipientEnabledChange(event.target.checked)
+            }
+          />
+          <span className={styles.checkboxMark} aria-hidden="true" />
+          <span className={styles.checkboxText}>Заберет другой человек</span>
+        </label>
 
-          {otherRecipientEnabled ? (
-            <div className={styles.formGrid}>
-              <TextInput
-                label="ФИО получателя"
+        {otherRecipientEnabled ? (
+          <div className={styles.recipientFields}>
+            <div className={styles.fieldWrap}>
+              <span className={styles.fieldLabel}>ФИО получателя</span>
+              <input
+                className={styles.textField}
                 value={otherRecipientName}
                 onChange={(event) =>
                   onOtherRecipientNameChange(event.target.value)
                 }
-                placeholder="Иванов Иван Иванович"
+                autoComplete="name"
               />
+            </div>
 
-              <PhoneInput
-                label="Телефон получателя"
+            <div className={styles.fieldWrap}>
+              <span className={styles.fieldLabel}>Телефон получателя</span>
+              <input
+                className={styles.textField}
                 value={otherRecipientPhone}
                 onChange={(event) =>
                   onOtherRecipientPhoneChange(event.target.value)
                 }
+                inputMode="tel"
+                autoComplete="tel"
               />
             </div>
-          ) : null}
-
-          <button
-            type="button"
-            onClick={onConfirm}
-            className={styles.confirmBtn}
-          >
-            Подтвердить получателя
-          </button>
-        </div>
-      )}
+          </div>
+        ) : null}
+      </div>
     </section>
   );
 }

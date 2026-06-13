@@ -5,31 +5,34 @@ type Props = {
   value: number | "";
   invalid?: boolean;
   onChange: (value: number | "") => void;
-  step?: string;
 };
+
+function digitsOnly(value: string) {
+  return value.replace(/\D/g, "");
+}
 
 export function NumberField({
   label,
   value,
   invalid = false,
   onChange,
-  step = "1",
 }: Props) {
   return (
     <label className={styles.field}>
-      <span>{label}</span>
+      <span className={styles.required}>{label}</span>
 
       <input
-        type="number"
-        min={0}
-        step={step}
+        type="text"
+        inputMode="numeric"
+        pattern="[0-9]*"
         value={value}
-        onChange={(event) =>
-          onChange(event.target.value === "" ? "" : Number(event.target.value))
-        }
+        onChange={(event) => {
+          const nextValue = digitsOnly(event.target.value);
+          onChange(nextValue === "" ? "" : Number(nextValue));
+        }}
         className={`${styles.input} ${
           invalid ? styles.inputInvalid : ""
-        }`}
+        } ${value === "" ? styles.requiredEmpty : ""}`}
       />
     </label>
   );

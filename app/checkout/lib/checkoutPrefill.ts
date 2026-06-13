@@ -1,3 +1,10 @@
+import type {
+  CountryCode,
+  DeliveryCityOption,
+  DeliveryMethod,
+  FittingMode,
+} from "../types";
+
 export type Me = {
   id: number;
   username: string;
@@ -8,16 +15,61 @@ export type Me = {
   phone: string | null;
   defaultDeliveryAddress: string | null;
   defaultDeliveryMethod: string | null;
+  defaultDeliveryCountryCode: string | null;
+  defaultDeliveryCityCode: number | null;
+  defaultDeliveryCityName: string | null;
+  defaultDeliveryApartment: string | null;
+  defaultDeliveryFloor: string | null;
+  defaultDeliveryIntercom: string | null;
+  defaultPickupPointId: string | null;
+  defaultPickupPointLabel: string | null;
+  defaultFittingMode: string | null;
 };
 
 export type CheckoutPrefill = {
   email: string;
   fullName: string;
   phone: string;
-  deliveryMethod: "PICKUP" | "COURIER";
+  deliveryMethod: DeliveryMethod;
   deliveryAddress: string;
+  countryCode: CountryCode;
+  selectedCity: DeliveryCityOption | null;
+  selectedAddressId: string;
+  pickupPointLabel: string;
+  apartment: string;
+  floor: string;
+  intercom: string;
+  fittingMode: FittingMode;
   comment: string;
 };
+
+function normalizeCountryCode(value?: string | null): CountryCode {
+  return value === "RU" ? "RU" : "RU";
+}
+
+function normalizeDeliveryMethod(value?: string | null): DeliveryMethod | null {
+  if (value === "COURIER") return "COURIER";
+  if (value === "PICKUP" || value === "PICKUP_POINT") return "PICKUP";
+  return null;
+}
+
+function normalizeFittingMode(value?: string | null): FittingMode | null {
+  if (value === "WITH_FITTING" || value === "WITHOUT_FITTING") return value;
+  return null;
+}
+
+function buildCityOption(me: Me | null): DeliveryCityOption | null {
+  if (!me?.defaultDeliveryCityCode || !me.defaultDeliveryCityName?.trim()) {
+    return null;
+  }
+
+  return {
+    code: me.defaultDeliveryCityCode,
+    cityUuid: String(me.defaultDeliveryCityCode),
+    fullName: me.defaultDeliveryCityName.trim(),
+    countryCode: normalizeCountryCode(me.defaultDeliveryCountryCode),
+  };
+}
 
 export function buildCheckoutPrefill(params: {
   me?: Me | null;
@@ -28,7 +80,8 @@ export function buildCheckoutPrefill(params: {
 
   const resolvedDeliveryMethod =
     existing.deliveryMethod ||
-    (me?.defaultDeliveryMethod === "COURIER" ? "COURIER" : "PICKUP");
+    normalizeDeliveryMethod(me?.defaultDeliveryMethod) ||
+    "PICKUP";
 
   return {
     email:
@@ -55,6 +108,36 @@ export function buildCheckoutPrefill(params: {
       (existing.deliveryAddress ?? "").trim() ||
       me?.defaultDeliveryAddress?.trim() ||
       "",
+
+    countryCode:
+      existing.countryCode || normalizeCountryCode(me?.defaultDeliveryCountryCode),
+
+    selectedCity:
+      existing.selectedCity ?? buildCityOption(me),
+
+    selectedAddressId: "",
+
+    pickupPointLabel: "",
+
+    apartment:
+      (existing.apartment ?? "").trim() ||
+      me?.defaultDeliveryApartment?.trim() ||
+      "",
+
+    floor:
+      (existing.floor ?? "").trim() ||
+      me?.defaultDeliveryFloor?.trim() ||
+      "",
+
+    intercom:
+      (existing.intercom ?? "").trim() ||
+      me?.defaultDeliveryIntercom?.trim() ||
+      "",
+
+    fittingMode:
+      existing.fittingMode ||
+      normalizeFittingMode(me?.defaultFittingMode) ||
+      "WITH_FITTING",
 
     comment:
       (existing.comment ?? "").trim() || "",
