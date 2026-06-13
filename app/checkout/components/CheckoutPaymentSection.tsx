@@ -1,87 +1,71 @@
 "use client";
 
 import type { PaymentMethod } from "../types";
-import styles from "../Checkout.module.css";
+import { ChoiceMark } from "../../components/ui/ChoiceMark";
+import styles from "./CheckoutPaymentSection.module.css";
 
 type Props = {
   paymentMethod: PaymentMethod;
-  confirmed: boolean;
-  expanded: boolean;
   enabled: boolean;
-  onEdit: () => void;
-  onConfirm: () => void;
   onPaymentMethodChange: (method: PaymentMethod) => void;
 };
 
+const paymentOptions: {
+  value: PaymentMethod;
+  title: string;
+  text: string;
+}[] = [
+  {
+    value: "CASH_ON_DELIVERY",
+    title: "Оплатить при получении",
+    text: "Оплата после получения заказа.",
+  },
+  {
+    value: "SBP",
+    title: "СБП",
+    text: "Оплата через систему быстрых платежей.",
+  },
+  {
+    value: "CARD",
+    title: "Банковская карта",
+    text: "Оплата картой на защищенной странице.",
+  },
+];
+
 export function CheckoutPaymentSection({
   paymentMethod,
-  confirmed,
-  expanded,
   enabled,
-  onEdit,
-  onConfirm,
   onPaymentMethodChange,
 }: Props) {
   return (
-    <section className={`${styles.section} ${!enabled ? styles.sectionDisabled : ""}`}>
-      <div className={styles.sectionHeader}>
-        <div className={styles.sectionHeaderMain}>
+    <section className={`${styles.section} ${!enabled ? styles.disabled : ""}`}>
+      <div className={styles.header}>
+        <div className={styles.headerMain}>
           <span className={styles.stepBadge}>3</span>
-          <h2 className={styles.sectionTitle}>Оплата</h2>
+          <h2 className={styles.title}>Оплата</h2>
         </div>
-
-        {confirmed ? (
-          <button type="button" onClick={onEdit} className={styles.sectionEditBtn}>
-            Изменить
-          </button>
-        ) : null}
       </div>
 
-      {!expanded && confirmed ? (
-        <div className={styles.sectionSummary}>
-          <div>{paymentMethod === "SBP" ? "СБП" : "Банковская карта"}</div>
-          <div className={styles.sectionSummaryMuted}>Mock-оплата для тестирования</div>
-        </div>
-      ) : (
-        <div className={styles.sectionBody}>
-          <div className={styles.paymentMethods}>
-            <button
-              type="button"
-              className={`${styles.paymentOption} ${
-                paymentMethod === "SBP" ? styles.paymentOptionActive : ""
-              }`}
-              onClick={() => onPaymentMethodChange("SBP")}
-              disabled={!enabled}
-            >
-              <div className={styles.paymentTitle}>СБП</div>
-              <div className={styles.paymentText}>
-                Mock-оплата через систему быстрых платежей
-              </div>
-            </button>
-
-            <button
-              type="button"
-              className={`${styles.paymentOption} ${
-                paymentMethod === "CARD" ? styles.paymentOptionActive : ""
-              }`}
-              onClick={() => onPaymentMethodChange("CARD")}
-              disabled={!enabled}
-            >
-              <div className={styles.paymentTitle}>Банковская карта</div>
-              <div className={styles.paymentText}>Mock-оплата банковской картой</div>
-            </button>
-          </div>
-
+      <div className={styles.body}>
+        {paymentOptions.map((option) => (
           <button
+            key={option.value}
             type="button"
-            onClick={onConfirm}
-            className={styles.confirmBtn}
+            className={`${styles.choiceCard} ${
+              paymentMethod === option.value ? styles.choiceCardActive : ""
+            }`}
+            onClick={() => onPaymentMethodChange(option.value)}
             disabled={!enabled}
           >
-            Подтвердить способ оплаты
+            <span className={styles.choiceLabel}>
+              <span className={styles.choiceTitle}>{option.title}</span>
+              <span className={styles.choiceText}>{option.text}</span>
+            </span>
+
+            <ChoiceMark checked={paymentMethod === option.value} />
           </button>
-        </div>
-      )}
+        ))}
+      </div>
     </section>
   );
 }

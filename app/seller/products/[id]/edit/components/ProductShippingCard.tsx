@@ -65,7 +65,6 @@ export function ProductShippingCard({
           label="Вес, кг"
           value={packageWeightKg}
           invalid={validationErrors.packageWeightKg}
-          step="0.01"
           onChange={onPackageWeightKgChange}
         />
       </div>

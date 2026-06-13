@@ -53,6 +53,10 @@ function generateSku(
   return `RCM-${normalizeSkuPart(sizeName)}-${normalizeSkuPart(colorName)}-${index + 1}-${random}`;
 }
 
+function digitsOnly(value: string) {
+  return value.replace(/\D/g, "");
+}
+
 export function ProductVariantsCard({
   variants,
   sizes,
@@ -101,7 +105,7 @@ export function ProductVariantsCard({
                     }
                     className={`${styles.select} ${
                       errors.sizeId ? styles.fieldInvalid : ""
-                    }`}
+                    } ${variant.sizeId ? "" : styles.requiredEmpty}`}
                   >
                     <option value="">Выбери размер</option>
                     {sizes.map((size) => (
@@ -123,7 +127,7 @@ export function ProductVariantsCard({
                     }
                     className={`${styles.select} ${
                       errors.colorId ? styles.fieldInvalid : ""
-                    }`}
+                    } ${variant.colorId ? "" : styles.requiredEmpty}`}
                   >
                     <option value="">Выбери цвет</option>
                     {colors.map((color) => (
@@ -137,18 +141,20 @@ export function ProductVariantsCard({
                 <label className={styles.field}>
                   <span className={styles.required}>Цена, ₽</span>
                   <input
-                    type="number"
-                    min={0}
-                    step={10}
+                    type="text"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
                     value={variant.price || ""}
                     onChange={(event) =>
                       onUpdateVariant(index, {
-                        price: event.target.value === "" ? 0 : Number(event.target.value),
+                        price: digitsOnly(event.target.value) === ""
+                          ? 0
+                          : Number(digitsOnly(event.target.value)),
                       })
                     }
                     className={`${styles.input} ${
                       errors.price ? styles.fieldInvalid : ""
-                    }`}
+                    } ${variant.price > 0 ? "" : styles.requiredEmpty}`}
                   />
                 </label>
 
@@ -163,7 +169,7 @@ export function ProductVariantsCard({
                       }
                       className={`${styles.input} ${
                         errors.sku ? styles.fieldInvalid : ""
-                      }`}
+                      } ${variant.sku.trim() ? "" : styles.requiredEmpty}`}
                     />
 
                     <button
@@ -203,18 +209,24 @@ export function ProductVariantsCard({
                   <label className={styles.field}>
                     <span>Количество</span>
                     <input
-                      type="number"
-                      min={0}
-                      step={1}
+                      type="text"
+                      inputMode="numeric"
+                      pattern="[0-9]*"
                       value={variant.availableQuantity ?? ""}
                       onChange={(event) =>
                         onUpdateVariant(index, {
                           availableQuantity:
-                            event.target.value === "" ? null : Math.max(0, Number(event.target.value)),
+                            digitsOnly(event.target.value) === ""
+                              ? null
+                              : Number(digitsOnly(event.target.value)),
                         })
                       }
                       className={`${styles.input} ${
                         errors.availableQuantity ? styles.fieldInvalid : ""
+                      } ${
+                        variant.availableQuantity === null
+                          ? styles.requiredEmpty
+                          : ""
                       }`}
                     />
                   </label>
@@ -224,6 +236,7 @@ export function ProductVariantsCard({
                     <div className={styles.readonlyBox}>∞ Без учета остатков</div>
                   </div>
                 )}
+
               </div>
             </div>
           );
@@ -231,7 +244,7 @@ export function ProductVariantsCard({
       </div>
 
       <button type="button" onClick={onAddVariant} className={styles.secondaryBtn}>
-        Добавить вариант
+        Добавить еще один вариант
       </button>
     </section>
   );

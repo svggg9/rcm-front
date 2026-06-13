@@ -357,7 +357,7 @@ function ProductRow({
 
       <div className={styles.productMain}>
         <div className={styles.productTitleRow}>
-          <h2>{product.title || "Новый товар"}</h2>
+          <h2>{product.title || "Без названия"}</h2>
           <StatusBadge tone={getProductStatusTone(product.status)}>
             {formatProductStatus(product.status)}
           </StatusBadge>

@@ -9,9 +9,6 @@ type Props = {
   subtotal: number;
   deliveryPrice: number;
   total: number;
-  submitting: boolean;
-  checkoutReady: boolean;
-  onSubmit: () => void;
 };
 
 export function CheckoutSummary({
@@ -19,9 +16,6 @@ export function CheckoutSummary({
   subtotal,
   deliveryPrice,
   total,
-  submitting,
-  checkoutReady,
-  onSubmit,
 }: Props) {
   return (
     <aside className={styles.summary}>
@@ -33,27 +27,11 @@ export function CheckoutSummary({
           </span>
         </div>
 
-        <button
-          type="button"
-          onClick={onSubmit}
-          disabled={submitting || !checkoutReady}
-          className="buttonPrimary wFull"
-        >
-          {submitting ? "Оформляем…" : "Подтвердить заказ"}
-        </button>
-
-          <div className={styles.disclaimer}>
-            Нажимая «Подтвердить заказ», вы соглашаетесь с публичной офертой,
-            политикой конфиденциальности, условиями обработки персональных данных и
-            условиями доставки и возврата.
-          </div>
       </div>
 
       <div className={styles.summaryDivider} />
 
       <div className={styles.summaryBlock}>
-        <h2 className={styles.summaryTitle}>Сумма заказа</h2>
-
         <div className={styles.summaryItems}>
           {items.map((item) => (
             <div key={item.variantId} className={styles.summaryItem}>
@@ -91,35 +69,6 @@ export function CheckoutSummary({
               {deliveryPrice === 0 ? "Бесплатно" : `${deliveryPrice.toLocaleString()} ₽`}
             </span>
           </div>
-        </div>
-
-        <div className={styles.summaryBottom}>
-          <div className={styles.summaryBottomRow}>
-            <span className={styles.summaryBottomLabel}>Итого</span>
-            <div className={styles.summaryBottomPrice}>
-              <div>{total.toLocaleString()} ₽</div>
-              <div className={styles.summaryBottomNote}>Доставка включена</div>
-            </div>
-          </div>
-        </div>
-
-        <div className={styles.promoBlock}>
-          <label className={styles.label}>Промокод</label>
-          <div className={styles.promoRow}>
-            <input
-              className={styles.input}
-              placeholder="Введите промокод"
-              disabled
-            />
-            <button type="button" className={styles.promoBtn} disabled>
-              Применить
-            </button>
-          </div>
-        </div>
-
-        <div className={styles.returnInfo}>
-          <strong>Возврат в течение 30 дней</strong>
-          <div className={styles.returnInfoFree}>Бесплатно</div>
         </div>
       </div>
     </aside>

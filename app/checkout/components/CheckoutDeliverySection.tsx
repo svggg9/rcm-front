@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import type {
   DeliveryCityOption,
@@ -8,11 +8,25 @@ import type {
   DeliveryOption,
 } from "../types";
 
+import { ChoiceMark } from "../../components/ui/ChoiceMark";
 import { PickupPointModal } from "./PickupPointModal";
 import styles from "./CheckoutDeliverySection.module.css";
 
-type CountryCode = "RU" | "BY" | "KZ" | "AM";
+type CountryCode = "RU";
 type FittingMode = "WITH_FITTING" | "WITHOUT_FITTING";
+
+function formatCityDisplayName(fullName: string): string {
+  const cityName = fullName.split(",")[0]?.trim() ?? "";
+
+  return fullName
+    .split(",")
+    .map((part) => part.trim())
+    .filter(Boolean)
+    .filter((part) => part !== "Россия")
+    .filter((part) => part !== `городской округ ${cityName}`)
+    .filter((part) => part !== `муниципальный округ ${cityName}`)
+    .join(", ");
+}
 
 type Props = {
   options: DeliveryOption[];
@@ -24,8 +38,6 @@ type Props = {
   intercom: string;
   fittingMode: FittingMode;
   comment: string;
-  confirmed: boolean;
-  expanded: boolean;
   enabled: boolean;
   pickupLoading: boolean;
   quoteLoading: boolean;
@@ -33,23 +45,22 @@ type Props = {
   cityQuery: string;
   cityOptions: DeliveryCityOption[];
   selectedCity: DeliveryCityOption | null;
-  cityLoading: boolean;
   addressOptions: {
     value: string;
     displayName: string;
   }[];
-  addressLoading: boolean;
   deliveryPrice: number;
   deliveryDateText: string;
   onCountryChange: (value: CountryCode) => void;
   onCityQueryChange: (value: string) => void;
+  onCitySuggestionsClose: () => void;
   onCitySelect: (city: DeliveryCityOption) => void;
   onPickupSearch: () => void;
-  onEdit: () => void;
-  onConfirm: () => void;
   onDeliveryMethodChange: (value: DeliveryMethod) => void;
   onAddressChange: (value: string) => void;
+  onDeliveryAddressFocus: () => void;
   onDeliveryAddressChange: (value: string) => void;
+  onAddressSuggestionsClose: () => void;
   onAddressSelect: (value: string) => void;
   onApartmentChange: (value: string) => void;
   onFloorChange: (value: string) => void;
@@ -58,11 +69,8 @@ type Props = {
   onCommentChange: (value: string) => void;
 };
 
-const countries: Record<CountryCode, { label: string; flag: string }> = {
-  RU: { label: "Россия", flag: "🇷🇺" },
-  BY: { label: "Беларусь", flag: "🇧🇾" },
-  KZ: { label: "Казахстан", flag: "🇰🇿" },
-  AM: { label: "Армения", flag: "🇦🇲" },
+const countries: Record<CountryCode, { label: string }> = {
+  RU: { label: "Россия" },
 };
 
 export function CheckoutDeliverySection({
@@ -75,8 +83,6 @@ export function CheckoutDeliverySection({
   intercom,
   fittingMode,
   comment,
-  confirmed,
-  expanded,
   enabled,
   pickupLoading,
   quoteLoading,
@@ -84,20 +90,19 @@ export function CheckoutDeliverySection({
   cityQuery,
   cityOptions,
   selectedCity,
-  cityLoading,
   addressOptions,
-  addressLoading,
   deliveryPrice,
   deliveryDateText,
   onCountryChange,
   onCityQueryChange,
+  onCitySuggestionsClose,
   onCitySelect,
   onPickupSearch,
-  onEdit,
-  onConfirm,
   onDeliveryMethodChange,
   onAddressChange,
+  onDeliveryAddressFocus,
   onDeliveryAddressChange,
+  onAddressSuggestionsClose,
   onAddressSelect,
   onApartmentChange,
   onFloorChange,
@@ -106,34 +111,59 @@ export function CheckoutDeliverySection({
   onCommentChange,
 }: Props) {
   const [pickupModalOpen, setPickupModalOpen] = useState(false);
+  const citySuggestRef = useRef<HTMLDivElement | null>(null);
+  const addressSuggestRef = useRef<HTMLDivElement | null>(null);
 
   const selectedPickupPoint =
     options.find((option) => option.id === selectedAddressId) ?? null;
 
   const deliveryPriceText =
-    deliveryPrice > 0 ? `${deliveryPrice.toLocaleString()} ₽` : "рассчитается";
+    deliveryPrice > 0 ? `${deliveryPrice.toLocaleString()} ₽` : "";
+  const showDeliveryMetaLoading = quoteLoading && !deliveryPriceText;
 
-  const deliveryDateLabel = deliveryDateText
-    ? `от ${deliveryDateText}`
-    : "срок рассчитается";
+  const deliveryDateInfo = deliveryDateText
+    ? `Ближайшая доставка — ${deliveryDateText}.`
+    : "";
 
-  const fittingInfo =
+  const fittingInfoLines =
     fittingMode === "WITH_FITTING"
-      ? `Вы можете заказать до 8 товаров и оплатить только то, что понравится. ${
-          deliveryDateText
-            ? `Ближайшая доставка — от ${deliveryDateText}.`
-            : "Срок доставки рассчитается автоматически."
-        } Удобный день и время доставки можно выбрать заранее в приложении СДЭК. Курьер позвонит за 30 минут до приезда.`
-      : `Без возможности отказаться от части товаров при получении. Бесплатная доставка от 10000₽. ${
-          deliveryDateText
-            ? `Ближайшая доставка — от ${deliveryDateText}.`
-            : "Срок доставки рассчитается автоматически."
-        } Удобный день и время доставки можно выбрать заранее в приложении СДЭК. Курьер позвонит за 30 минут до приезда.`;
+      ? [
+          "Можно заказать до 8 товаров и оплатить только то, что понравится.",
+          deliveryDateInfo,
+          "День и время доставки можно выбрать заранее в приложении СДЭК.",
+          "Курьер позвонит за 30 минут до приезда.",
+        ]
+      : [
+          "Без возможности отказаться от части товаров при получении.",
+          deliveryDateInfo,
+          "День и время доставки можно выбрать заранее в приложении СДЭК.",
+          "Курьер позвонит за 30 минут до приезда.",
+        ];
 
-  const summaryAddress =
-    deliveryMethod === "PICKUP"
-      ? selectedPickupPoint?.label ?? "Пункт самовывоза не выбран"
-      : deliveryAddress || "Адрес не указан";
+  useEffect(() => {
+    function onPointerDown(event: PointerEvent) {
+      const target = event.target;
+
+      if (!(target instanceof Node)) return;
+
+      if (citySuggestRef.current && !citySuggestRef.current.contains(target)) {
+        onCitySuggestionsClose();
+      }
+
+      if (
+        addressSuggestRef.current &&
+        !addressSuggestRef.current.contains(target)
+      ) {
+        onAddressSuggestionsClose();
+      }
+    }
+
+    document.addEventListener("pointerdown", onPointerDown);
+
+    return () => {
+      document.removeEventListener("pointerdown", onPointerDown);
+    };
+  }, [onAddressSuggestionsClose, onCitySuggestionsClose]);
 
   return (
     <section className={styles.section}>
@@ -143,25 +173,19 @@ export function CheckoutDeliverySection({
           <h2 className={styles.title}>Условия и способ получения</h2>
         </div>
 
-        {confirmed ? (
-          <button type="button" onClick={onEdit} className={styles.editButton}>
-            Изменить
-          </button>
-        ) : null}
       </div>
 
-      {!expanded && confirmed ? (
-        <div className={styles.summary}>
-          <div>{deliveryMethod === "PICKUP" ? "Самовывоз" : "Курьером"}</div>
-          <div className={styles.summaryMuted}>{summaryAddress}</div>
-          <div className={styles.summaryMuted}>
-            {fittingMode === "WITH_FITTING" ? "С примеркой" : "Без примерки"}
-          </div>
-        </div>
-      ) : (
         <div className={styles.deliveryContainer}>
           <div className={styles.fieldWrap}>
-            <span className={styles.flagBadge}>{countries[countryCode].flag}</span>
+            <span
+              className={styles.flagBadge}
+              aria-label={`Флаг: ${countries[countryCode].label}`}
+            >
+              <span className={styles.russiaFlag} aria-hidden="true" />
+            </span>
+            <span className={`${styles.fieldLabel} ${styles.fieldLabelWithIcon}`}>
+              Страна
+            </span>
 
             <select
               className={`${styles.selectField} ${styles.fieldWithIcon}`}
@@ -172,23 +196,28 @@ export function CheckoutDeliverySection({
               disabled={!enabled}
             >
               <option value="RU">Россия</option>
-              <option value="BY">Беларусь</option>
-              <option value="KZ">Казахстан</option>
-              <option value="AM">Армения</option>
             </select>
           </div>
 
-          <div className={styles.suggestWrap}>
+          <div className={styles.suggestWrap} ref={citySuggestRef}>
+            <span className={styles.fieldLabel}>Населённый пункт</span>
             <input
-              className={styles.textField}
+              className={`${styles.textField} ${
+                deliveryDateText && selectedCity ? styles.cityFieldWithEta : ""
+              }`}
               value={cityQuery}
               onChange={(event) => onCityQueryChange(event.target.value)}
-              placeholder="Населённый пункт"
               disabled={!enabled}
             />
 
-            {cityLoading ? (
-              <div className={styles.inlineHint}>Ищем город…</div>
+            {selectedCity && (deliveryDateText || quoteLoading) ? (
+              <span
+                className={`${styles.metaBadge} ${styles.cityEtaBadge} ${
+                  !deliveryDateText ? styles.metaBadgeLoading : ""
+                }`}
+              >
+                {deliveryDateText || ""}
+              </span>
             ) : null}
 
             {cityOptions.length > 0 ? (
@@ -202,10 +231,11 @@ export function CheckoutDeliverySection({
                         ? styles.suggestItemActive
                         : ""
                     }`}
+                    onMouseDown={(event) => event.preventDefault()}
                     onClick={() => onCitySelect(city)}
                     disabled={!enabled}
                   >
-                    {city.fullName}
+                    {formatCityDisplayName(city.fullName)}
                   </button>
                 ))}
               </div>
@@ -221,14 +251,11 @@ export function CheckoutDeliverySection({
     onClick={() => onDeliveryMethodChange("COURIER")}
     disabled={!enabled}
   >
-    <span>
+    <span className={styles.choiceLabel}>
       <span className={styles.choiceTitle}>Курьером</span>
-      <span className={styles.choiceText}>По адресу</span>
     </span>
 
-    <span className={styles.choiceCheck}>
-      {deliveryMethod === "COURIER" ? "✓" : ""}
-    </span>
+    <ChoiceMark checked={deliveryMethod === "COURIER"} />
   </button>
 
   <button
@@ -241,29 +268,28 @@ export function CheckoutDeliverySection({
     }}
     disabled={!enabled}
   >
-    <span>
+    <span className={styles.choiceLabel}>
       <span className={styles.choiceTitle}>Самовывоз</span>
-      <span className={styles.choiceText}>ПВЗ СДЭК</span>
     </span>
 
-    <span className={styles.choiceCheck}>
-      {deliveryMethod === "PICKUP" ? "✓" : ""}
-    </span>
+    <ChoiceMark checked={deliveryMethod === "PICKUP"} />
   </button>
           </div>
 
           {deliveryMethod === "COURIER" ? (
             <>
-              <div className={styles.suggestWrap}>
+              <div className={styles.suggestWrap} ref={addressSuggestRef}>
+                <span className={styles.fieldLabel}>Адрес</span>
                 <input
-                  className={styles.textField}
+                  className={`${styles.textField} ${styles.fieldWithSearchIcon}`}
                   value={deliveryAddress}
+                  onFocus={onDeliveryAddressFocus}
                   onChange={(event) =>
                     onDeliveryAddressChange(event.target.value)
                   }
-                  placeholder="Адрес"
                   disabled={!enabled || !selectedCity}
                 />
+                <span className={styles.searchIcon} aria-hidden="true" />
 
                 {addressOptions.length > 0 ? (
                   <div className={styles.suggestList}>
@@ -272,6 +298,7 @@ export function CheckoutDeliverySection({
                         key={option.value}
                         type="button"
                         className={styles.suggestItem}
+                        onMouseDown={(event) => event.preventDefault()}
                         onClick={() => onAddressSelect(option.value)}
                         disabled={!enabled}
                       >
@@ -281,35 +308,38 @@ export function CheckoutDeliverySection({
                   </div>
                 ) : null}
 
-                {addressLoading ? (
-                  <div className={styles.inlineHint}>Ищем адрес…</div>
-                ) : null}
               </div>
 
               <div className={styles.compactGrid}>
-                <input
-                  className={styles.textField}
-                  value={apartment}
-                  onChange={(event) => onApartmentChange(event.target.value)}
-                  placeholder="Квартира/офис"
-                  disabled={!enabled}
-                />
+                <div className={styles.fieldWrap}>
+                  <span className={styles.fieldLabel}>Квартира/офис</span>
+                  <input
+                    className={styles.textField}
+                    value={apartment}
+                    onChange={(event) => onApartmentChange(event.target.value)}
+                    disabled={!enabled}
+                  />
+                </div>
 
-                <input
-                  className={styles.textField}
-                  value={floor}
-                  onChange={(event) => onFloorChange(event.target.value)}
-                  placeholder="Этаж"
-                  disabled={!enabled}
-                />
+                <div className={styles.fieldWrap}>
+                  <span className={styles.fieldLabel}>Этаж</span>
+                  <input
+                    className={styles.textField}
+                    value={floor}
+                    onChange={(event) => onFloorChange(event.target.value)}
+                    disabled={!enabled}
+                  />
+                </div>
 
-                <input
-                  className={styles.textField}
-                  value={intercom}
-                  onChange={(event) => onIntercomChange(event.target.value)}
-                  placeholder="Домофон"
-                  disabled={!enabled}
-                />
+                <div className={styles.fieldWrap}>
+                  <span className={styles.fieldLabel}>Домофон</span>
+                  <input
+                    className={styles.textField}
+                    value={intercom}
+                    onChange={(event) => onIntercomChange(event.target.value)}
+                    disabled={!enabled}
+                  />
+                </div>
               </div>
 
               <div className={styles.choiceGrid}>
@@ -321,14 +351,20 @@ export function CheckoutDeliverySection({
     onClick={() => onFittingModeChange("WITH_FITTING")}
     disabled={!enabled}
   >
-    <span>
+    <span className={styles.choiceLabel}>
       <span className={styles.choiceTitle}>С примеркой</span>
-      <span className={styles.choiceText}>
-        Доставка {deliveryPriceText} · {deliveryDateLabel}
-      </span>
     </span>
-    <span className={styles.choiceCheck}>
-      {fittingMode === "WITH_FITTING" ? "✓" : ""}
+    <span className={styles.choiceMeta}>
+      {deliveryPriceText || showDeliveryMetaLoading ? (
+        <span
+          className={`${styles.metaBadge} ${
+            !deliveryPriceText ? styles.metaBadgeLoading : ""
+          }`}
+        >
+          {deliveryPriceText}
+        </span>
+      ) : null}
+      <ChoiceMark checked={fittingMode === "WITH_FITTING"} />
     </span>
   </button>
 
@@ -340,19 +376,34 @@ export function CheckoutDeliverySection({
     onClick={() => onFittingModeChange("WITHOUT_FITTING")}
     disabled={!enabled}
   >
-    <span>
+    <span className={styles.choiceLabel}>
       <span className={styles.choiceTitle}>Без примерки</span>
-      <span className={styles.choiceText}>
-        Доставка {deliveryPriceText}
-      </span>
     </span>
-    <span className={styles.choiceCheck}>
-      {fittingMode === "WITHOUT_FITTING" ? "✓" : ""}
+    <span className={styles.choiceMeta}>
+      {deliveryPriceText || showDeliveryMetaLoading ? (
+        <span
+          className={`${styles.metaBadge} ${
+            !deliveryPriceText ? styles.metaBadgeLoading : ""
+          }`}
+        >
+          {deliveryPriceText}
+        </span>
+      ) : null}
+      <ChoiceMark checked={fittingMode === "WITHOUT_FITTING"} />
     </span>
   </button>
               </div>
 
-              <div className={styles.infoBlock}>{fittingInfo}</div>
+              <div className={styles.infoBlock}>
+                {fittingInfoLines.filter(Boolean).map((line, index) => (
+                  <span
+                    key={line}
+                    className={index < 2 ? styles.infoBlockAccent : undefined}
+                  >
+                    {line}
+                  </span>
+                ))}
+              </div>
             </>
           ) : (
               <div className={styles.pickupBlock}>
@@ -370,9 +421,7 @@ export function CheckoutDeliverySection({
                   <span className={styles.pickupSelectedLabel}>Пункт самовывоза</span>
 
                   <span className={styles.pickupSelectedValue}>
-                    {pickupLoading
-                      ? "Ищем пункты выдачи…"
-                      : selectedPickupPoint
+                    {selectedPickupPoint
                         ? `СДЭК • ${selectedPickupPoint.label}`
                         : "Выберите пункт выдачи"}
                   </span>
@@ -396,24 +445,16 @@ export function CheckoutDeliverySection({
               </div>
           )}
 
-          <textarea
-            className={styles.textareaField}
-            value={comment}
-            onChange={(event) => onCommentChange(event.target.value)}
-            placeholder="Пожелания к заказу"
-            disabled={!enabled}
-          />
-
-          <button
-            type="button"
-            onClick={onConfirm}
-            className={styles.confirmButton}
-            disabled={!enabled || pickupLoading || quoteLoading}
-          >
-            {quoteLoading ? "Рассчитываем…" : "Подтвердить условия получения"}
-          </button>
+          <div className={styles.fieldWrap}>
+            <span className={styles.fieldLabel}>Пожелания к заказу</span>
+            <textarea
+              className={styles.textareaField}
+              value={comment}
+              onChange={(event) => onCommentChange(event.target.value)}
+              disabled={!enabled}
+            />
+          </div>
         </div>
-      )}
     </section>
   );
 }

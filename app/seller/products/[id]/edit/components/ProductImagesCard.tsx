@@ -121,8 +121,6 @@ export function ProductImagesCard({
         </div>
       ) : null}
 
-      {reordering ? <span className={styles.muted}>Сохраняем порядок…</span> : null}
-
       {invalid && images.length === 0 ? (
         <div className={styles.fieldErrorText}>
           Добавьте хотя бы одно фото товара.

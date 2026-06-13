@@ -53,7 +53,8 @@ export function ProductGeneralCard({
   const brandsEmpty = brands.length === 0;
 
   return (
-    <section className={styles.card}>
+    <>
+      <section className={styles.card}>
       <SectionHeader
         title="Основные данные"
         hint="Название, категория и аудитория товара."
@@ -68,7 +69,7 @@ export function ProductGeneralCard({
             onChange={(event) => onTitleChange(event.target.value)}
             className={`${styles.input} ${
               validationErrors.title ? styles.fieldInvalid : ""
-            }`}
+            } ${title.trim() ? "" : styles.requiredEmpty}`}
             placeholder="Например: хлопковая рубашка oversize"
           />
 
@@ -95,7 +96,7 @@ export function ProductGeneralCard({
             }
             className={`${styles.select} ${
               validationErrors.categoryId ? styles.fieldInvalid : ""
-            }`}
+            } ${categoryId ? "" : styles.requiredEmpty}`}
             disabled={categoriesEmpty}
           >
             <option value="">
@@ -137,10 +138,13 @@ export function ProductGeneralCard({
         </label>
       </div>
 
-      <SectionHeader
-        title="Производитель"
-        hint="Укажите производителя товара."
-      />
+      </section>
+
+      <section className={styles.card}>
+        <SectionHeader
+          title="Производитель"
+          hint="Укажите производителя товара."
+        />
 
       <div className={styles.formGrid}>
         <label className={styles.fieldFull}>
@@ -155,7 +159,7 @@ export function ProductGeneralCard({
               }
               className={`${styles.select} ${
                 validationErrors.brandId ? styles.fieldInvalid : ""
-              }`}
+              } ${brandId ? "" : styles.requiredEmpty}`}
               disabled={brandsEmpty || brands.length === 1}
             >
             <option value="">
@@ -186,11 +190,13 @@ export function ProductGeneralCard({
           ) : null}
         </label>
       </div>
+      </section>
 
-      <SectionHeader
-        title="Описание"
-        hint="Материалы, особенности и комплектация товара."
-      />
+      <section className={styles.card}>
+        <SectionHeader
+          title="Описание"
+          hint="Материалы, особенности и комплектация товара."
+        />
 
       <div className={styles.formGrid}>
         <label className={styles.fieldFull}>
@@ -201,7 +207,7 @@ export function ProductGeneralCard({
             onChange={(event) => onDescriptionChange(event.target.value)}
             className={`${styles.textarea} ${
               validationErrors.description ? styles.fieldInvalid : ""
-            }`}
+            } ${description.trim() ? "" : styles.requiredEmpty}`}
             rows={8}
             maxLength={6000}
             placeholder="Материал, особенности, назначение, комплектация и важные характеристики."
@@ -231,6 +237,7 @@ export function ProductGeneralCard({
           <small>{composition.length}/1000</small>
         </label>
       </div>
-    </section>
+      </section>
+    </>
   );
 }

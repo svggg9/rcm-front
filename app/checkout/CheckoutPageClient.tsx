@@ -18,9 +18,10 @@ import { Loader } from "../components/ui/Loader";
 import type {
   CartItem,
   CheckoutRequest,
-  CheckoutStep,
+  CountryCode,
   DeliveryMethod,
   DeliveryOption,
+  FittingMode,
   OrderResponse,
   PaymentInitResponse,
   PaymentMethod,
@@ -96,6 +97,19 @@ function getYmapsSearchApi(): YandexMapsSearchApi | null {
   return maybeWindow.ymaps as YandexMapsSearchApi;
 }
 
+function formatCityDisplayName(fullName: string): string {
+  const cityName = fullName.split(",")[0]?.trim() ?? "";
+
+  return fullName
+    .split(",")
+    .map((part) => part.trim())
+    .filter(Boolean)
+    .filter((part) => part !== "Россия")
+    .filter((part) => part !== `городской округ ${cityName}`)
+    .filter((part) => part !== `муниципальный округ ${cityName}`)
+    .join(", ");
+}
+
 function CheckoutPageContent() {
   const router = useRouter();
 
@@ -108,6 +122,9 @@ function CheckoutPageContent() {
   const [error, setError] = useState<string | null>(null);
 
   const submitLockRef = useRef(false);
+  const defaultCitySelectedRef = useRef(false);
+  const quoteRequestKeyRef = useRef("");
+
   const [draftHydrated, setDraftHydrated] = useState(false);
 
   const checkoutSnapshotRef = useRef({
@@ -116,27 +133,27 @@ function CheckoutPageContent() {
     phone: "",
     deliveryMethod: "PICKUP" as DeliveryMethod,
     selectedAddressId: "",
+    selectedPickupPointLabel: "",
     deliveryAddress: "",
+    countryCode: "RU" as CountryCode,
+    selectedCity: null as DeliveryCityOption | null,
+    apartment: "",
+    floor: "",
+    intercom: "",
+    fittingMode: "WITH_FITTING" as FittingMode,
     comment: "",
   });
 
-  const [contactConfirmed, setContactConfirmed] = useState(false);
-  const [deliveryConfirmed, setDeliveryConfirmed] = useState(false);
-  const [paymentConfirmed, setPaymentConfirmed] = useState(false);
-
-  const [countryCode, setCountryCode] = useState<"RU" | "BY" | "KZ" | "AM">("RU");
+  const [countryCode, setCountryCode] = useState<CountryCode>("RU");
   const [apartment, setApartment] = useState("");
   const [floor, setFloor] = useState("");
   const [intercom, setIntercom] = useState("");
   const [fittingMode, setFittingMode] =
-    useState<"WITH_FITTING" | "WITHOUT_FITTING">("WITH_FITTING");
+    useState<FittingMode>("WITH_FITTING");
 
   const [otherRecipientEnabled, setOtherRecipientEnabled] = useState(false);
   const [otherRecipientName, setOtherRecipientName] = useState("");
   const [otherRecipientPhone, setOtherRecipientPhone] = useState("");
-
-  const [activeStep, setActiveStep] =
-    useState<CheckoutStep>("DELIVERY");
 
   const [email, setEmail] = useState("");
   const [fullName, setFullName] = useState("");
@@ -153,10 +170,11 @@ function CheckoutPageContent() {
   const [cityOptions, setCityOptions] = useState<DeliveryCityOption[]>([]);
   const [selectedCity, setSelectedCity] =
     useState<DeliveryCityOption | null>(null);
-  const [cityLoading, setCityLoading] = useState(false);
+  const [, setCityLoading] = useState(false);
   const [cityTouched, setCityTouched] = useState(false);
   const [pickupLoading, setPickupLoading] = useState(false);
   const [quoteLoading, setQuoteLoading] = useState(false);
+  const [quotePending, setQuotePending] = useState(false);
   const [deliveryQuoteToken, setDeliveryQuoteToken] = useState("");
   const [deliveryOfferId, setDeliveryOfferId] = useState("");
   const [deliveryPrice, setDeliveryPrice] = useState(0);
@@ -164,13 +182,14 @@ function CheckoutPageContent() {
   const [deliveryPeriodMinDays, setDeliveryPeriodMinDays] =
     useState<number | null>(null);
 
-  const [_deliveryPeriodMaxDays, setDeliveryPeriodMaxDays] =
+  const [, setDeliveryPeriodMaxDays] =
     useState<number | null>(null);
 
   const [addressOptions, setAddressOptions] = useState<
     { value: string; displayName: string }[]
   >([]);
-  const [addressLoading, setAddressLoading] = useState(false);
+  const [, setAddressLoading] = useState(false);
+  const [addressSearchEnabled, setAddressSearchEnabled] = useState(false);
   const [addressLat, setAddressLat] = useState<number | null>(null);
   const [addressLon, setAddressLon] = useState<number | null>(null);
 
@@ -180,7 +199,12 @@ function CheckoutPageContent() {
   const [comment, setComment] = useState("");
 
   const [paymentMethod, setPaymentMethod] =
-    useState<PaymentMethod>("SBP");
+    useState<PaymentMethod>("CASH_ON_DELIVERY");
+
+  const selectedPickupPoint = useMemo(
+    () => deliveryOptions.find((option) => option.id === selectedAddressId) ?? null,
+    [deliveryOptions, selectedAddressId]
+  );
 
   useEffect(() => {
     checkoutSnapshotRef.current = {
@@ -189,7 +213,14 @@ function CheckoutPageContent() {
       phone,
       deliveryMethod,
       selectedAddressId,
+      selectedPickupPointLabel: selectedPickupPoint?.label ?? "",
       deliveryAddress,
+      countryCode,
+      selectedCity,
+      apartment,
+      floor,
+      intercom,
+      fittingMode,
       comment,
     };
   }, [
@@ -198,7 +229,14 @@ function CheckoutPageContent() {
     phone,
     deliveryMethod,
     selectedAddressId,
+    selectedPickupPoint,
     deliveryAddress,
+    countryCode,
+    selectedCity,
+    apartment,
+    floor,
+    intercom,
+    fittingMode,
     comment,
   ]);
 
@@ -215,6 +253,17 @@ function CheckoutPageContent() {
       setComment(draft.comment);
       setPaymentMethod(draft.paymentMethod);
       setCountryCode(draft.countryCode);
+      if (draft.selectedCityCode && draft.selectedCityName) {
+        const draftCity: DeliveryCityOption = {
+          code: draft.selectedCityCode,
+          cityUuid: String(draft.selectedCityCode),
+          fullName: draft.selectedCityName,
+          countryCode: draft.countryCode,
+        };
+
+        setSelectedCity(draftCity);
+        setCityQuery(formatCityDisplayName(draftCity.fullName));
+      }
       setApartment(draft.apartment);
       setFloor(draft.floor);
       setIntercom(draft.intercom);
@@ -236,8 +285,11 @@ function CheckoutPageContent() {
       phone,
       deliveryMethod,
       selectedAddressId,
+      selectedPickupPointLabel: selectedPickupPoint?.label ?? "",
       deliveryAddress,
       countryCode,
+      selectedCityCode: selectedCity?.code ?? null,
+      selectedCityName: selectedCity?.fullName ?? "",
       apartment,
       floor,
       intercom,
@@ -255,8 +307,10 @@ function CheckoutPageContent() {
     phone,
     deliveryMethod,
     selectedAddressId,
+    selectedPickupPoint,
     deliveryAddress,
     countryCode,
+    selectedCity,
     apartment,
     floor,
     intercom,
@@ -311,6 +365,14 @@ function CheckoutPageContent() {
             phone: existing.phone,
             deliveryMethod: existing.deliveryMethod,
             deliveryAddress: existing.deliveryAddress,
+            countryCode: existing.countryCode,
+            selectedCity: existing.selectedCity,
+            selectedAddressId: existing.selectedAddressId,
+            pickupPointLabel: existing.selectedPickupPointLabel,
+            apartment: existing.apartment,
+            floor: existing.floor,
+            intercom: existing.intercom,
+            fittingMode: existing.fittingMode,
             comment: existing.comment,
           },
         });
@@ -337,6 +399,28 @@ function CheckoutPageContent() {
         if (!existing.comment.trim() && prefill.comment) {
           setComment(prefill.comment);
         }
+
+        setCountryCode(prefill.countryCode);
+
+        if (!existing.selectedCity && prefill.selectedCity) {
+          setSelectedCity(prefill.selectedCity);
+          setCityQuery(formatCityDisplayName(prefill.selectedCity.fullName));
+          setCityOptions([]);
+        }
+
+        if (!existing.apartment.trim() && prefill.apartment) {
+          setApartment(prefill.apartment);
+        }
+
+        if (!existing.floor.trim() && prefill.floor) {
+          setFloor(prefill.floor);
+        }
+
+        if (!existing.intercom.trim() && prefill.intercom) {
+          setIntercom(prefill.intercom);
+        }
+
+        setFittingMode(prefill.fittingMode);
 
         if (
           !existing.deliveryAddress.trim() &&
@@ -396,31 +480,15 @@ function CheckoutPageContent() {
 }, [cityQuery, cityTouched]);
 
   useEffect(() => {
-    if (deliveryMethod === "PICKUP") {
-      const selectedOption =
-        deliveryOptions.find((option) => option.id === selectedAddressId) ?? null;
-
-      if (selectedOption) {
-        setDeliveryAddress(selectedOption.label);
-      }
-
-      return;
-    }
-
-    if (selectedAddressId) {
-      setSelectedAddressId("");
-    }
-  }, [deliveryMethod, selectedAddressId, deliveryOptions]);
-
-  useEffect(() => {
   if (deliveryMethod !== "COURIER") return;
+  if (!addressSearchEnabled) return;
 
   const timeoutId = window.setTimeout(() => {
     void searchAddressSuggestions(deliveryAddress);
   }, 350);
 
   return () => window.clearTimeout(timeoutId);
-}, [deliveryAddress, deliveryMethod, selectedCity]);
+}, [addressSearchEnabled, deliveryAddress, deliveryMethod, selectedCity]);
 
   const subtotal = useMemo(() => {
     return items.reduce(
@@ -432,41 +500,23 @@ function CheckoutPageContent() {
   const total = subtotal + deliveryPrice;
 
   const deliveryDateText = useMemo(() => {
-  if (deliveryPeriodMinDays == null) return "";
+    if (deliveryPeriodMinDays == null) return "";
 
-  const date = new Date();
-  date.setDate(date.getDate() + deliveryPeriodMinDays);
+    const date = new Date();
+    date.setDate(date.getDate() + deliveryPeriodMinDays);
 
-  return new Intl.DateTimeFormat("ru-RU", {
-    day: "numeric",
-    month: "long",
-  }).format(date);
+    const formatted = new Intl.DateTimeFormat("ru-RU", {
+      day: "2-digit",
+      month: "2-digit",
+    }).format(date);
+
+    return `${formatted} или позже`;
   }, [deliveryPeriodMinDays]);
 
   function showError(message: string) {
     setError(message);
 
     toast.error(message);
-  }
-
-  function handleConfirmContact() {
-    setError(null);
-
-    const validationError =
-      validateContactDetails({
-        email,
-        fullName,
-        phone,
-      });
-
-    if (validationError) {
-      showError(validationError);
-      return;
-    }
-
-    setContactConfirmed(true);
-
-    setActiveStep("DELIVERY");
   }
 
   async function searchPickupPoints() {
@@ -557,6 +607,9 @@ function CheckoutPageContent() {
     let active = true;
 
     async function selectDefaultCity() {
+      if (!draftHydrated) return;
+      if (loading) return;
+      if (defaultCitySelectedRef.current) return;
       if (selectedCity || cityQuery.trim()) return;
 
       try {
@@ -578,10 +631,14 @@ function CheckoutPageContent() {
 
         if (!active || !city) return;
 
+        defaultCitySelectedRef.current = true;
+
         setSelectedCity(city);
-        setCityQuery(city.fullName);
+        setCityQuery(formatCityDisplayName(city.fullName));
         setCityOptions([]);
         setCityTouched(false);
+      } catch {
+        defaultCitySelectedRef.current = false;
       } finally {
         if (active) {
           setCityLoading(false);
@@ -594,12 +651,9 @@ function CheckoutPageContent() {
     return () => {
       active = false;
     };
-  }, [selectedCity, cityQuery]);
+  }, [draftHydrated, loading, selectedCity, cityQuery]);
 
-  async function createDeliveryQuote() {
-    const selectedPickupPoint =
-      deliveryOptions.find((option) => option.id === selectedAddressId) ?? null;
-
+  async function createDeliveryQuote(options?: { silent?: boolean }) {
     try {
       setQuoteLoading(true);
       setError(null);
@@ -615,14 +669,20 @@ function CheckoutPageContent() {
           address:
             deliveryMethod === "PICKUP"
               ? {
-                  fullText: selectedPickupPoint?.label ?? "",
+                  fullText:
+                    selectedPickupPoint?.label ??
+                    selectedCity?.fullName ??
+                    "",
                   cityCode:
                     selectedPickupPoint?.cityCode ??
                     selectedCity?.code ??
                     undefined,
                 }
               : {
-                  fullText: deliveryAddress.trim(),
+                  fullText:
+                    deliveryAddress.trim() ||
+                    selectedCity?.fullName ||
+                    "",
                   cityCode: selectedCity?.code ?? undefined,
                   lat: addressLat ?? undefined,
                   lon: addressLon ?? undefined,
@@ -650,46 +710,63 @@ function CheckoutPageContent() {
       const message =
         e instanceof Error ? e.message : "Не удалось рассчитать доставку";
 
-      showError(message);
+      if (!options?.silent) {
+        showError(message);
+      }
       return false;
     } finally {
       setQuoteLoading(false);
     }
   }
 
-  async function handleConfirmDelivery() {
-    setError(null);
-
-    const validationError =
-      validateDeliveryDetails({
-        deliveryMethod,
-        selectedAddressId,
-        deliveryAddress,
-      });
-
-    if (validationError) {
-      showError(validationError);
+  useEffect(() => {
+    if (!selectedCity || items.length === 0) {
+      setQuotePending(false);
       return;
     }
 
-    const quoted = await createDeliveryQuote();
+    const requestKey = JSON.stringify({
+      method: deliveryMethod,
+      cityCode: selectedCity.code,
+      pickupPointId: selectedAddressId,
+      address: deliveryMethod === "COURIER" ? deliveryAddress.trim() : "",
+      lat: addressLat,
+      lon: addressLon,
+    });
 
-    if (!quoted) return;
+    if (quoteRequestKeyRef.current === requestKey) return;
 
-    setDeliveryConfirmed(true);
-    setActiveStep("CONTACT");
-  }
+    quoteRequestKeyRef.current = requestKey;
+    setQuotePending(true);
+
+    const timeoutId = window.setTimeout(() => {
+      void createDeliveryQuote({ silent: true }).finally(() => {
+        setQuotePending(false);
+      });
+    }, 500);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
+  }, [
+    selectedCity,
+    items.length,
+    deliveryMethod,
+    selectedAddressId,
+    deliveryOptions,
+    deliveryAddress,
+    addressLat,
+    addressLon,
+  ]);
 
   async function selectAddressSuggestion(value: string) {
     const ymaps = getYmapsSearchApi();
 
     setDeliveryAddress(value);
+    setAddressSearchEnabled(false);
     setAddressOptions([]);
     setAddressLat(null);
     setAddressLon(null);
-    setDeliveryConfirmed(false);
-    setPaymentConfirmed(false);
-
     if (!ymaps) return;
 
     const result = await ymaps.geocode(value);
@@ -703,36 +780,6 @@ function CheckoutPageContent() {
     setDeliveryAddress(fullAddress || value);
     setAddressLat(lat);
     setAddressLon(lon);
-  }
-
-  function handleConfirmPayment() {
-    setError(null);
-
-    setPaymentConfirmed(true);
-  }
-
-  function editContact() {
-    setContactConfirmed(false);
-
-    setDeliveryConfirmed(false);
-
-    setPaymentConfirmed(false);
-
-    setActiveStep("CONTACT");
-  }
-
-  function editDelivery() {
-    setDeliveryConfirmed(false);
-
-    setPaymentConfirmed(false);
-
-    setActiveStep("DELIVERY");
-  }
-
-  function editPayment() {
-    setPaymentConfirmed(false);
-
-    setActiveStep("PAYMENT");
   }
 
   async function searchAddressSuggestions(query: string) {
@@ -780,8 +827,20 @@ function CheckoutPageContent() {
 
     if (!cartId || items.length === 0) return;
 
-    if (!deliveryConfirmed || !contactConfirmed || !paymentConfirmed) {
-      showError("Подтвердите все этапы оформления заказа");
+    const contactValidationError =
+      validateContactDetails({
+        email,
+        fullName,
+        phone,
+      });
+
+    if (contactValidationError) {
+      showError(contactValidationError);
+      return;
+    }
+
+    if (!selectedCity) {
+      showError("Выберите город из списка");
       return;
     }
 
@@ -805,17 +864,31 @@ function CheckoutPageContent() {
       }
     }
 
+    const deliveryValidationError =
+      validateDeliveryDetails({
+        deliveryMethod,
+        selectedAddressId,
+        deliveryAddress,
+      });
+
+    if (deliveryValidationError) {
+      showError(deliveryValidationError);
+      return;
+    }
+
+    if (!deliveryQuoteToken && !deliveryOfferId) {
+      const quoted = await createDeliveryQuote();
+
+      if (!quoted) return;
+    }
+
+    const pickupPointLabel =
+      deliveryMethod === "PICKUP" ? selectedPickupPoint?.label ?? "" : "";
+
     const addressDetails =
       deliveryMethod === "COURIER"
-        ? [
-            deliveryAddress.trim(),
-            apartment.trim() ? `кв. ${apartment.trim()}` : "",
-            floor.trim() ? `этаж ${floor.trim()}` : "",
-            intercom.trim() ? `домофон ${intercom.trim()}` : "",
-          ]
-            .filter(Boolean)
-            .join(", ")
-        : deliveryAddress.trim();
+        ? deliveryAddress.trim()
+        : pickupPointLabel;
 
     submitLockRef.current = true;
     setSubmitting(true);
@@ -834,9 +907,24 @@ function CheckoutPageContent() {
           deliveryMethod === "PICKUP"
             ? selectedAddressId || undefined
             : undefined,
+        pickupPointLabel:
+          deliveryMethod === "PICKUP"
+            ? pickupPointLabel || undefined
+            : undefined,
+        deliveryCountryCode: countryCode,
+        deliveryCityCode: selectedCity?.code,
+        deliveryCityName: selectedCity?.fullName,
+        deliveryApartment:
+          deliveryMethod === "COURIER" ? apartment.trim() || undefined : undefined,
+        deliveryFloor:
+          deliveryMethod === "COURIER" ? floor.trim() || undefined : undefined,
+        deliveryIntercom:
+          deliveryMethod === "COURIER" ? intercom.trim() || undefined : undefined,
+        fittingMode,
         deliveryOfferId: deliveryOfferId || deliveryQuoteToken || undefined,
         deliveryPriceAmount: deliveryPrice,
         deliveryCurrency,
+        paymentMethod,
         comment:
           [
             comment.trim(),
@@ -873,6 +961,21 @@ function CheckoutPageContent() {
 
       const orderGroupId = orders[0]?.orderGroupId;
 
+      clearCheckoutDraft();
+      emitCartChanged();
+
+      if (paymentMethod === "CASH_ON_DELIVERY") {
+        toast.success("Заказ оформлен");
+
+        router.push(
+          orderGroupId
+            ? `/checkout/result?orderGroupId=${encodeURIComponent(orderGroupId)}`
+            : "/account?tab=orders"
+        );
+
+        return;
+      }
+
       if (!orderGroupId) {
         throw new Error("Не найден orderGroupId для оплаты");
       }
@@ -897,9 +1000,6 @@ function CheckoutPageContent() {
       if (!payment.confirmationUrl) {
         throw new Error("Не пришла ссылка на оплату");
       }
-
-      clearCheckoutDraft();
-      emitCartChanged();
 
       toast.success("Переходим к оплате");
 
@@ -940,12 +1040,6 @@ function CheckoutPageContent() {
   return (
     <div className="pageContainer">
       <div className={styles.page}>
-        <div className={styles.header}>
-          <h1 className={styles.title}>
-            Оформление заказа
-          </h1>
-        </div>
-
         {items.length === 0 ? (
           <div className="emptyState">
             <h2 className="emptyStateTitle">
@@ -976,7 +1070,7 @@ function CheckoutPageContent() {
                 options={deliveryOptions}
                 deliveryPrice={deliveryPrice}
                 pickupLoading={pickupLoading}
-                quoteLoading={quoteLoading}
+                quoteLoading={quoteLoading || quotePending}
                 onPickupSearch={searchPickupPoints}
                 countryCode={countryCode}
                 deliveryMethod={deliveryMethod}
@@ -989,13 +1083,11 @@ function CheckoutPageContent() {
                 cityQuery={cityQuery}
                 cityOptions={cityOptions}
                 addressOptions={addressOptions}
-                addressLoading={addressLoading}
                 deliveryDateText={deliveryDateText}
                 onAddressSelect={(value) => {
                   void selectAddressSuggestion(value);
                 }}
                 selectedCity={selectedCity}
-                cityLoading={cityLoading}
                 onCountryChange={(value) => {
                   setCountryCode(value);
                   setSelectedCity(null);
@@ -1004,77 +1096,87 @@ function CheckoutPageContent() {
                   setDeliveryOptions([]);
                   setSelectedAddressId("");
                   setDeliveryAddress("");
+                  setApartment("");
+                  setFloor("");
+                  setIntercom("");
+                  setAddressSearchEnabled(false);
+                  setAddressOptions([]);
                   setDeliveryPrice(0);
                   setDeliveryCurrency("RUB");
                   setDeliveryQuoteToken("");
                   setDeliveryOfferId("");
                   setDeliveryPeriodMinDays(null);
                   setDeliveryPeriodMaxDays(null);
-                  setDeliveryConfirmed(false);
-                  setPaymentConfirmed(false);
                 }}
                 onCityQueryChange={(value) => {
                   setCityTouched(true);
                   setCityQuery(value);
 
-                  if (selectedCity && value !== selectedCity.fullName) {
+                  if (
+                      selectedCity &&
+                      value !== formatCityDisplayName(selectedCity.fullName)
+                    ) {
                     setSelectedCity(null);
                     setDeliveryOptions([]);
                     setSelectedAddressId("");
                     setDeliveryAddress("");
+                    setApartment("");
+                    setFloor("");
+                    setIntercom("");
+                    setAddressSearchEnabled(false);
+                    setAddressOptions([]);
                     setDeliveryPrice(0);
                     setDeliveryCurrency("RUB");
                     setDeliveryQuoteToken("");
                     setDeliveryOfferId("");
                     setDeliveryPeriodMinDays(null);
                     setDeliveryPeriodMaxDays(null);
-                    setDeliveryConfirmed(false);
-                    setPaymentConfirmed(false);
                   }
+                }}
+                onCitySuggestionsClose={() => {
+                  setCityOptions([]);
                 }}
                 onCitySelect={(city) => {
                   setSelectedCity(city);
-                  setCityQuery(city.fullName);
+                  setCityQuery(formatCityDisplayName(city.fullName));
                   setCityOptions([]);
                   setCityTouched(false);
                   setDeliveryOptions([]);
                   setSelectedAddressId("");
                   setDeliveryAddress("");
+                  setApartment("");
+                  setFloor("");
+                  setIntercom("");
+                  setAddressSearchEnabled(false);
+                  setAddressOptions([]);
                   setDeliveryPrice(0);
                   setDeliveryCurrency("RUB");
                   setDeliveryQuoteToken("");
                   setDeliveryOfferId("");
                   setDeliveryPeriodMinDays(null);
                   setDeliveryPeriodMaxDays(null);
-                  setDeliveryConfirmed(false);
-                  setPaymentConfirmed(false);
                 }}
                 comment={comment}
-                confirmed={deliveryConfirmed}
-                expanded={activeStep === "DELIVERY" || !deliveryConfirmed}
                 enabled={true}
-                onEdit={editDelivery}
-                onConfirm={handleConfirmDelivery}
                 onDeliveryMethodChange={(value) => {
                   setDeliveryMethod(value);
-                  setSelectedAddressId("");
-                  setDeliveryAddress("");
-                  setDeliveryOptions([]);
+                  setAddressSearchEnabled(false);
+                  setAddressOptions([]);
                   setDeliveryPrice(0);
                   setDeliveryCurrency("RUB");
                   setDeliveryQuoteToken("");
                   setDeliveryOfferId("");
                   setDeliveryPeriodMinDays(null);
                   setDeliveryPeriodMaxDays(null);
-                  setDeliveryConfirmed(false);
-                  setPaymentConfirmed(false);
                 }}
                 onAddressChange={(value) => {
                   setSelectedAddressId(value);
-                  setDeliveryConfirmed(false);
-                  setPaymentConfirmed(false);
+                }}
+                onDeliveryAddressFocus={() => {
+                  setAddressSearchEnabled(true);
                 }}
                 onDeliveryAddressChange={(value) => {
+                  setAddressSearchEnabled(true);
                   setDeliveryAddress(value);
                   setAddressLat(null);
                   setAddressLon(null);
@@ -1084,28 +1186,21 @@ function CheckoutPageContent() {
                   setDeliveryOfferId("");
                   setDeliveryPeriodMinDays(null);
                   setDeliveryPeriodMaxDays(null);
-                  setDeliveryConfirmed(false);
-                  setPaymentConfirmed(false);
+                }}
+                onAddressSuggestionsClose={() => {
+                  setAddressOptions([]);
                 }}
                 onApartmentChange={(value) => {
                   setApartment(value);
-                  setDeliveryConfirmed(false);
-                  setPaymentConfirmed(false);
                 }}
                 onFloorChange={(value) => {
                   setFloor(value);
-                  setDeliveryConfirmed(false);
-                  setPaymentConfirmed(false);
                 }}
                 onIntercomChange={(value) => {
                   setIntercom(value);
-                  setDeliveryConfirmed(false);
-                  setPaymentConfirmed(false);
                 }}
                 onFittingModeChange={(value) => {
                   setFittingMode(value);
-                  setDeliveryConfirmed(false);
-                  setPaymentConfirmed(false);
                 }}
                 onCommentChange={setComment}
               />
@@ -1117,45 +1212,23 @@ function CheckoutPageContent() {
                 otherRecipientEnabled={otherRecipientEnabled}
                 otherRecipientName={otherRecipientName}
                 otherRecipientPhone={otherRecipientPhone}
-                confirmed={contactConfirmed}
-                expanded={activeStep === "CONTACT" || !contactConfirmed}
-                onEdit={editContact}
-                onConfirm={handleConfirmContact}
                 onEmailChange={(value) => {
                   setEmail(value);
-                  setContactConfirmed(false);
-                  setDeliveryConfirmed(false);
-                  setPaymentConfirmed(false);
                 }}
                 onFullNameChange={(value) => {
                   setFullName(value);
-                  setContactConfirmed(false);
-                  setDeliveryConfirmed(false);
-                  setPaymentConfirmed(false);
                 }}
                 onPhoneChange={(value) => {
                   setPhone(value);
-                  setContactConfirmed(false);
-                  setDeliveryConfirmed(false);
-                  setPaymentConfirmed(false);
                 }}
                 onOtherRecipientEnabledChange={(value) => {
                   setOtherRecipientEnabled(value);
-                  setContactConfirmed(false);
-                  setDeliveryConfirmed(false);
-                  setPaymentConfirmed(false);
                 }}
                 onOtherRecipientNameChange={(value) => {
                   setOtherRecipientName(value);
-                  setContactConfirmed(false);
-                  setDeliveryConfirmed(false);
-                  setPaymentConfirmed(false);
                 }}
                 onOtherRecipientPhoneChange={(value) => {
                   setOtherRecipientPhone(value);
-                  setContactConfirmed(false);
-                  setDeliveryConfirmed(false);
-                  setPaymentConfirmed(false);
                 }}
               />
 
@@ -1163,22 +1236,9 @@ function CheckoutPageContent() {
 
               <CheckoutPaymentSection
                 paymentMethod={paymentMethod}
-                confirmed={paymentConfirmed}
-                expanded={
-                  activeStep === "PAYMENT" ||
-                  !paymentConfirmed
-                }
-                enabled={
-                  contactConfirmed &&
-                  deliveryConfirmed
-                }
-                onEdit={editPayment}
-                onConfirm={
-                  handleConfirmPayment
-                }
+                enabled={true}
                 onPaymentMethodChange={(value) => {
                   setPaymentMethod(value);
-                  setPaymentConfirmed(false);
                 }}
               />
 
@@ -1187,6 +1247,27 @@ function CheckoutPageContent() {
                   {error}
                 </div>
               ) : null}
+
+              <div className={styles.checkoutActions}>
+                <button
+                  type="button"
+                  onClick={submitOrder}
+                  disabled={submitting || quoteLoading || quotePending}
+                  className={`${styles.finalSubmitButton} buttonPrimary`}
+                >
+                  {submitting
+                    ? paymentMethod === "CASH_ON_DELIVERY"
+                      ? "Оформляем заказ..."
+                      : "Переходим к оплате..."
+                    : "Подтвердить заказ"}
+                </button>
+
+                <div className={styles.disclaimer}>
+                  Нажимая «Подтвердить заказ», вы соглашаетесь с публичной офертой,
+                  политикой конфиденциальности, условиями обработки персональных данных
+                  и условиями доставки и возврата.
+                </div>
+              </div>
             </div>
 
             <CheckoutSummary
@@ -1194,13 +1275,6 @@ function CheckoutPageContent() {
               subtotal={subtotal}
               deliveryPrice={deliveryPrice}
               total={total}
-              submitting={submitting}
-              checkoutReady={
-                contactConfirmed &&
-                deliveryConfirmed &&
-                paymentConfirmed
-              }
-              onSubmit={submitOrder}
             />
           </div>
         )}
