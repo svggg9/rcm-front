@@ -49,6 +49,7 @@ const STEPS: Step[] = [
 export function SellerOnboardingStatus() {
   const [status, setStatus] = useState<SellerOnboardingStatusType | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [dismissed, setDismissed] = useState(false);
 
   async function loadStatus() {
     setError(null);
@@ -85,8 +86,23 @@ export function SellerOnboardingStatus() {
     return <div className={styles.state}>Загрузка готовности магазина…</div>;
   }
 
+  if (status.progress === 100 && dismissed) {
+    return null;
+  }
+
   return (
-    <section className={styles.card}>
+    <section className={`${styles.card} ${status.progress === 100 ? styles.cardReady : ""}`}>
+      {status.progress === 100 ? (
+        <button
+          type="button"
+          className={styles.closeButton}
+          onClick={() => setDismissed(true)}
+          aria-label="Скрыть онбординг"
+        >
+          ×
+        </button>
+      ) : null}
+
       <div className={styles.head}>
         <div>
           <div className={styles.kicker}>Онбординг</div>
@@ -103,7 +119,8 @@ export function SellerOnboardingStatus() {
         />
       </div>
 
-      <div className={styles.steps}>
+      {status.progress < 100 ? (
+        <div className={styles.steps}>
         {STEPS.map((step) => {
           const done = Boolean(status[step.key]);
 
@@ -116,7 +133,8 @@ export function SellerOnboardingStatus() {
             </Link>
           );
         })}
-      </div>
+        </div>
+      ) : null}
 
       {status.progress < 100 ? (
         <p className={styles.hint}>

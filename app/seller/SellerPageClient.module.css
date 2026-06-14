@@ -1,18 +1,24 @@
 .page {
   width: 100%;
-  margin: 32px 0 48px;
+  margin: 24px 0 48px;
   color: var(--black);
 }
 
 .layout {
+  width: min(1180px, 100%);
+  margin: 0 auto;
   display: grid;
-  grid-template-columns: 220px minmax(0, 1fr);
+  grid-template-columns: 240px minmax(0, 860px);
   gap: 40px;
   align-items: start;
+  justify-content: center;
 }
 
 .content {
   min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
 }
 
 @media (max-width: 900px) {
@@ -23,24 +29,19 @@
 }
 
 .error {
-  padding: 14px 0;
-  margin-bottom: 18px;
-
-  border-bottom: 1px solid var(--line);
-
-  color: #9b2c2c;
-  font-size: 14px;
+  padding: 12px 14px;
+  border: 1px solid rgba(155, 44, 44, 0.2);
+  background: rgba(155, 44, 44, 0.04);
+  color: var(--danger);
+  font-size: var(--font-sm);
   line-height: 1.5;
 }
 
 .sectionTitle {
-  margin-bottom: 24px;
-
   color: var(--black);
-
-  font-size: 28px;
+  font-size: var(--font-xl);
   line-height: 1.1;
-  font-weight: 600;
+  font-weight: 500;
   letter-spacing: -0.03em;
 }
 

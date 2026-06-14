@@ -1,58 +1,69 @@
 .sidebar {
   position: sticky;
   top: calc(var(--site-header-height) + 24px);
-
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: 16px;
+  padding: 16px;
+  border: 1px solid var(--line);
+  background: var(--white);
 }
 
 .head {
-  padding-bottom: 18px;
-  border-bottom: 1px solid var(--line);
+  padding-bottom: 4px;
 }
 
 .subtitle {
-  margin-bottom: 8px;
+  margin-bottom: 6px;
   color: var(--gold);
   font-size: var(--font-xs);
-  font-weight: 600;
-  letter-spacing: 0.14em;
+  font-weight: 500;
+  letter-spacing: 0;
   text-transform: uppercase;
 }
 
 .title {
   color: var(--black);
-  font-size: var(--font-lg);
+  font-size: var(--font-2xl);
   font-weight: 500;
+  line-height: 1.15;
 }
 
 .nav {
+  width: 100%;
   display: flex;
   flex-direction: column;
-  border-top: 1px solid var(--line);
+  gap: 8px;
+  border-top: 0;
 }
 
 .item {
-  min-height: 48px;
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 42px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-
-  border-bottom: 1px solid var(--line);
-
-  color: var(--muted);
+  padding: 0 12px;
+  border: 1px solid var(--line);
+  background: var(--white);
+  color: var(--black);
   font-size: var(--font-sm);
   text-decoration: none;
+  transition: border-color 0.15s ease, background 0.15s ease, color 0.15s ease;
 }
 
 .item:hover,
 .itemActive {
+  border-color: rgba(201, 162, 79, 0.24);
+  background: var(--soft);
   color: var(--black);
 }
 
 .itemActive {
+  border-color: rgba(201, 162, 79, 0.2);
+  background: rgba(201, 162, 79, 0.07);
   font-weight: 500;
 }
 
@@ -61,7 +72,8 @@
   height: 22px;
   padding: 0 7px;
 
-  border: 1px solid var(--line);
+  border: 1px solid rgba(201, 162, 79, 0.2);
+  background: var(--white);
 
   display: inline-flex;
   align-items: center;
@@ -78,14 +90,15 @@
 @media (max-width: 900px) {
   .sidebar {
     position: static;
+    padding: 14px;
   }
 
   .nav {
-    flex-direction: row;
-    gap: 22px;
+    flex-direction: column;
+    gap: 8px;
     overflow-x: auto;
     border-top: 0;
-    border-bottom: 1px solid var(--line);
+    border-bottom: 0;
     scrollbar-width: none;
   }
 
@@ -96,10 +109,5 @@
   .item {
     flex-shrink: 0;
     min-height: 44px;
-    border-bottom: 1px solid transparent;
-  }
-
-  .itemActive {
-    border-bottom-color: var(--black);
   }
 }
