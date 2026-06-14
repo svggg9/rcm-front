@@ -92,6 +92,26 @@ function normalizeGender(value: Me["gender"]): "men" | "women" | "" {
   return value === "men" || value === "women" ? value : "";
 }
 
+type ProfileForm = {
+  lastName: string;
+  firstName: string;
+  middleName: string;
+  birthDate: string;
+  gender: "men" | "women" | "";
+  phone: string;
+};
+
+function buildProfileForm(me: Me): ProfileForm {
+  return {
+    lastName: me.lastName ?? "",
+    firstName: me.firstName ?? "",
+    middleName: me.middleName ?? "",
+    birthDate: me.birthDate ?? "",
+    gender: normalizeGender(me.gender),
+    phone: me.phone ?? "",
+  };
+}
+
 type Props = {
   initialMe: Me;
   initialOrders: OrderListItem[];
@@ -113,15 +133,21 @@ function AccountPageContent({ initialMe, initialOrders }: Props) {
     searchParams.get("tab") === "profile" ? "profile" : "orders";
 
   const selectedOrderId = searchParams.get("orderId");
+  const initialProfileForm = useMemo(() => buildProfileForm(initialMe), [initialMe]);
 
-  const [lastName, setLastName] = useState(initialMe.lastName ?? "");
-  const [firstName, setFirstName] = useState(initialMe.firstName ?? "");
-  const [middleName, setMiddleName] = useState(initialMe.middleName ?? "");
-  const [birthDate, setBirthDate] = useState(initialMe.birthDate ?? "");
+  const [lastName, setLastName] = useState(initialProfileForm.lastName);
+  const [firstName, setFirstName] = useState(initialProfileForm.firstName);
+  const [middleName, setMiddleName] = useState(initialProfileForm.middleName);
+  const [birthDate, setBirthDate] = useState(initialProfileForm.birthDate);
   const [gender, setGender] = useState<"men" | "women" | "">(
-    normalizeGender(initialMe.gender)
+    initialProfileForm.gender
   );
-  const [phone, setPhone] = useState(initialMe.phone ?? "");
+  const [phone, setPhone] = useState(initialProfileForm.phone);
+  const [savedProfileForm, setSavedProfileForm] =
+    useState<ProfileForm>(initialProfileForm);
+  const [profileSavedMessage, setProfileSavedMessage] = useState<string | null>(
+    null
+  );
 
   useEffect(() => {
     if (currentTab !== "orders" || !selectedOrderId) {
@@ -168,13 +194,15 @@ function AccountPageContent({ initialMe, initialOrders }: Props) {
 
   useEffect(() => {
     setMe(initialMe);
-    setLastName(initialMe.lastName ?? "");
-    setFirstName(initialMe.firstName ?? "");
-    setMiddleName(initialMe.middleName ?? "");
-    setBirthDate(initialMe.birthDate ?? "");
-    setGender(normalizeGender(initialMe.gender));
-    setPhone(initialMe.phone ?? "");
-  }, [initialMe]);
+    setLastName(initialProfileForm.lastName);
+    setFirstName(initialProfileForm.firstName);
+    setMiddleName(initialProfileForm.middleName);
+    setBirthDate(initialProfileForm.birthDate);
+    setGender(initialProfileForm.gender);
+    setPhone(initialProfileForm.phone);
+    setSavedProfileForm(initialProfileForm);
+    setProfileSavedMessage(null);
+  }, [initialMe, initialProfileForm]);
 
   useEffect(() => {
     setOrders(initialOrders);
@@ -205,16 +233,18 @@ function AccountPageContent({ initialMe, initialOrders }: Props) {
       }
 
       const updated: Me = await response.json();
+      const updatedProfileForm = buildProfileForm(updated);
 
       setMe(updated);
-      setLastName(updated.lastName ?? "");
-      setFirstName(updated.firstName ?? "");
-      setMiddleName(updated.middleName ?? "");
-      setBirthDate(updated.birthDate ?? "");
-      setGender(normalizeGender(updated.gender));
-      setPhone(updated.phone ?? "");
+      setLastName(updatedProfileForm.lastName);
+      setFirstName(updatedProfileForm.firstName);
+      setMiddleName(updatedProfileForm.middleName);
+      setBirthDate(updatedProfileForm.birthDate);
+      setGender(updatedProfileForm.gender);
+      setPhone(updatedProfileForm.phone);
+      setSavedProfileForm(updatedProfileForm);
+      setProfileSavedMessage("Профиль сохранён");
 
-      toast.success("Профиль сохранён");
       router.refresh();
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Не удалось сохранить профиль");
@@ -249,6 +279,42 @@ function AccountPageContent({ initialMe, initialOrders }: Props) {
     fullName || me?.displayName?.trim() || me?.username || "Профиль";
 
   const initials = getInitials(displayName);
+  const profileForm = useMemo(
+    () => ({ lastName, firstName, middleName, birthDate, gender, phone }),
+    [lastName, firstName, middleName, birthDate, gender, phone]
+  );
+  const profileChanged =
+    JSON.stringify(profileForm) !== JSON.stringify(savedProfileForm);
+
+  function updateLastName(value: string) {
+    setLastName(value);
+    setProfileSavedMessage(null);
+  }
+
+  function updateFirstName(value: string) {
+    setFirstName(value);
+    setProfileSavedMessage(null);
+  }
+
+  function updateMiddleName(value: string) {
+    setMiddleName(value);
+    setProfileSavedMessage(null);
+  }
+
+  function updateBirthDate(value: string) {
+    setBirthDate(value);
+    setProfileSavedMessage(null);
+  }
+
+  function updateGender(value: "men" | "women") {
+    setGender(value);
+    setProfileSavedMessage(null);
+  }
+
+  function updatePhone(value: string) {
+    setPhone(value);
+    setProfileSavedMessage(null);
+  }
 
   if (error && !selectedOrderId) {
     return (
@@ -285,12 +351,14 @@ function AccountPageContent({ initialMe, initialOrders }: Props) {
                 gender={gender}
                 phone={phone}
                 saving={profileSaving}
-                onLastNameChange={setLastName}
-                onFirstNameChange={setFirstName}
-                onMiddleNameChange={setMiddleName}
-                onBirthDateChange={setBirthDate}
-                onGenderChange={setGender}
-                onPhoneChange={setPhone}
+                changed={profileChanged}
+                savedMessage={profileSavedMessage}
+                onLastNameChange={updateLastName}
+                onFirstNameChange={updateFirstName}
+                onMiddleNameChange={updateMiddleName}
+                onBirthDateChange={updateBirthDate}
+                onGenderChange={updateGender}
+                onPhoneChange={updatePhone}
                 onSave={() => void saveProfile()}
               />
             ) : detailsLoading ? (

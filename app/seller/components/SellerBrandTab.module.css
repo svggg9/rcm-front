@@ -1,191 +1,176 @@
 .page {
   display: flex;
   flex-direction: column;
+  gap: 16px;
 }
 
 .header {
-  display: flex;
-  justify-content: space-between;
-  gap: 20px;
-  align-items: flex-start;
-  margin-bottom: 28px;
-  flex-wrap: wrap;
+  padding: 20px;
+  border: 1px solid var(--line);
+  background: var(--white);
 }
 
 .kicker {
   margin-bottom: 8px;
-
   color: var(--gold);
-
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.12em;
+  font-size: var(--font-xs);
+  font-weight: 500;
+  letter-spacing: 0;
   text-transform: uppercase;
 }
 
 .title {
   margin: 0;
-
   color: var(--black);
-
-  font-size: 28px;
+  font-size: var(--font-2xl);
   line-height: 1.1;
-  font-weight: 600;
-  letter-spacing: -0.03em;
+  font-weight: 500;
 }
 
 .hint {
   margin: 8px 0 0;
-
   color: var(--muted);
-
-  font-size: 13px;
+  font-size: var(--font-sm);
   line-height: 1.5;
 }
 
 .error {
-  padding: 14px 0;
-
-  border-bottom: 1px solid var(--line);
-
-  color: #9b2c2c;
-  font-size: 14px;
+  padding: 14px;
+  border: 1px solid rgba(155, 44, 44, 0.18);
+  background: rgba(155, 44, 44, 0.05);
+  color: var(--danger);
+  font-size: var(--font-sm);
 }
 
 .success {
-  color: var(--gold);
-  font-size: 12px;
+  padding: 14px;
+  border: 1px solid rgba(33, 106, 67, 0.18);
+  background: rgba(33, 106, 67, 0.05);
+  color: var(--success);
+  font-size: var(--font-sm);
   font-weight: 500;
 }
 
-.layout {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 320px;
-  gap: 40px;
-  align-items: start;
-}
-
-.main,
-.aside {
+.main {
   min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
 }
 
 .card {
-  background: #fff;
-  border-bottom: 1px solid var(--line);
-  padding: 32px 0;
-}
-
-.card:first-child {
-  padding-top: 0;
+  padding: 20px;
+  border: 1px solid var(--line);
+  background: var(--white);
 }
 
 .cardHeader {
-  margin-bottom: 22px;
+  margin-bottom: 16px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--line);
 }
 
 .cardHeader h2 {
   margin: 0 0 4px;
-
   color: var(--black);
-
-  font-size: 18px;
-  font-weight: 600;
-  letter-spacing: -0.02em;
+  font-size: var(--font-lg);
+  font-weight: 500;
+  line-height: 1.2;
 }
 
 .cardHeader p {
   margin: 0;
-
   color: var(--muted);
-
-  font-size: 13px;
+  font-size: var(--font-sm);
   line-height: 1.5;
 }
 
 .formGrid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 18px 20px;
+  gap: 12px;
+}
+
+.fieldWrap {
+  position: relative;
+  display: block;
 }
 
 .input,
+.selectField,
 .textarea {
   font: inherit;
-
   width: 100%;
-
   border: 1px solid #d8d8d8;
-  background: #fff;
+  background: var(--white);
   color: var(--black);
-
-  padding: 12px 14px;
-
-  font-size: 14px;
+  font-size: var(--font-sm);
   outline: none;
-
-  transition:
-    border-color 0.15s ease,
-    background 0.15s ease;
+  transition: border-color 0.15s ease, background 0.15s ease;
 }
 
 .input:focus,
+.selectField:focus,
 .textarea:focus {
   border-color: var(--black);
 }
 
+.input,
+.selectField {
+  height: 52px;
+  padding: 19px 14px 7px;
+}
+
+.selectField {
+  appearance: none;
+  cursor: pointer;
+}
+
+.fieldLabel {
+  position: absolute;
+  left: 14px;
+  top: 7px;
+  z-index: 2;
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1;
+  pointer-events: none;
+}
+
 .textarea {
+  min-height: 112px;
+  padding: 24px 14px 13px;
   resize: vertical;
-  line-height: 1.6;
+  line-height: 1.45;
 }
 
-.sideCard {
-  position: sticky;
-  top: calc(var(--site-header-height) + 24px);
-
-  border-top: 1px solid var(--line);
-  background: #fff;
-
-  padding-top: 16px;
+.actionsBar {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  padding: 20px;
+  border: 1px solid var(--line);
+  background: var(--white);
 }
 
-.sideTitle {
-  margin-bottom: 8px;
-
-  color: var(--gold);
-
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-}
-
-.previewName {
-  color: var(--black);
-
-  font-size: 24px;
-  line-height: 1.1;
-  font-weight: 600;
-  letter-spacing: -0.03em;
+.actionsBar > * {
+  width: 100%;
+  height: 44px;
+  min-height: 44px;
 }
 
 .openLink {
-  width: 100%;
-  height: 38px;
-  margin-top: 18px;
+  height: 44px;
+  min-height: 44px;
   padding: 0 14px;
-
   border: 1px solid var(--black);
-  background: #fff;
+  background: var(--white);
   color: var(--black);
-
   display: inline-flex;
   align-items: center;
   justify-content: center;
-
   cursor: pointer;
-
-  font-size: 13px;
+  font-size: var(--font-sm);
   font-weight: 500;
   text-decoration: none;
   white-space: nowrap;
@@ -196,41 +181,58 @@
   background: var(--soft);
 }
 
-.fieldHint {
-  margin-top: 8px;
-
-  color: var(--muted);
-
-  font-size: 13px;
-  line-height: 1.4;
+.skeletonHeader,
+.skeletonCard {
+  border: 1px solid var(--line);
+  background: var(--white);
+  overflow: hidden;
+  position: relative;
 }
 
-@media (max-width: 1024px) {
-  .layout {
-    grid-template-columns: 1fr;
-    gap: 28px;
-  }
+.skeletonHeader {
+  height: 116px;
+}
 
-  .sideCard {
-    position: static;
-  }
+.skeletonCard {
+  padding: 20px;
+}
+
+.skeletonLine,
+.skeletonGrid {
+  position: relative;
+  z-index: 1;
+}
+
+.skeletonLine {
+  width: 220px;
+  height: 18px;
+  border: 1px solid var(--line);
+  background: var(--white);
+}
+
+.skeletonGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-top: 18px;
+}
+
+.skeletonGrid div {
+  height: 52px;
+  border: 1px solid var(--line);
+  background: var(--white);
 }
 
 @media (max-width: 768px) {
-  .header {
-    flex-direction: column;
-    align-items: stretch;
-  }
-
-  .header button {
-    width: 100%;
-  }
-
   .title {
-    font-size: 24px;
+    font-size: var(--font-xl);
   }
 
   .formGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .actionsBar {
     grid-template-columns: 1fr;
   }
 }

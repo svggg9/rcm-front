@@ -192,66 +192,59 @@ export function SellerProductsTab({ products, loading }: Props) {
 
   return (
     <div className={styles.productsPage}>
-      <div className={styles.productsHeader}>
-        <div>
-          <h1 className={styles.sectionTitleNoMargin}>Товары</h1>
-          <p className={styles.productsHint}>
-            Управляй карточками, ценами, остатками и публикацией товаров.
-          </p>
+      <div className={styles.productsToolbar}>
+        <div className={styles.productsFilters}>
+          <FilterButton
+            active={filter === "ALL"}
+            label="Всего товаров"
+            value={items.length}
+            onClick={() => setFilter("ALL")}
+          />
+
+          <FilterButton
+            active={filter === "ACTIVE"}
+            label="Активные"
+            value={activeCount}
+            onClick={() => setFilter("ACTIVE")}
+          />
+
+          <FilterButton
+            active={filter === "MODERATION"}
+            label="На модерации"
+            value={moderationCount}
+            onClick={() => setFilter("MODERATION")}
+          />
+
+          <FilterButton
+            active={filter === "NEEDS_REVISION"}
+            label="На доработке"
+            value={revisionCount}
+            onClick={() => setFilter("NEEDS_REVISION")}
+          />
+
+          <FilterButton
+            active={filter === "DRAFT"}
+            label="Черновики"
+            value={draftCount}
+            onClick={() => setFilter("DRAFT")}
+          />
+
+          <FilterButton
+            active={filter === "ARCHIVED"}
+            label="Архив"
+            value={archivedCount}
+            onClick={() => setFilter("ARCHIVED")}
+          />
+
+          <button
+            type="button"
+            onClick={createDraftProduct}
+            disabled={creating}
+            className={styles.createProductLink}
+          >
+            Добавить товар
+          </button>
         </div>
-
-        <button
-          type="button"
-          onClick={createDraftProduct}
-          disabled={creating}
-          className={styles.createProductLink}
-        >
-          {creating ? "Создаём…" : "Добавить товар"}
-        </button>
-      </div>
-
-      <div className={styles.productsFilters}>
-        <FilterButton
-          active={filter === "ALL"}
-          label="Всего товаров"
-          value={items.length}
-          onClick={() => setFilter("ALL")}
-        />
-
-        <FilterButton
-          active={filter === "ACTIVE"}
-          label="Активные"
-          value={activeCount}
-          onClick={() => setFilter("ACTIVE")}
-        />
-
-        <FilterButton
-          active={filter === "MODERATION"}
-          label="На модерации"
-          value={moderationCount}
-          onClick={() => setFilter("MODERATION")}
-        />
-
-        <FilterButton
-          active={filter === "NEEDS_REVISION"}
-          label="На доработке"
-          value={revisionCount}
-          onClick={() => setFilter("NEEDS_REVISION")}
-        />
-
-        <FilterButton
-          active={filter === "DRAFT"}
-          label="Черновики"
-          value={draftCount}
-          onClick={() => setFilter("DRAFT")}
-        />
-
-        <FilterButton
-          active={filter === "ARCHIVED"}
-          label="Архив"
-          value={archivedCount}
-          onClick={() => setFilter("ARCHIVED")}
-        />
       </div>
 
       {loading ? (
@@ -267,7 +260,7 @@ export function SellerProductsTab({ products, loading }: Props) {
               disabled={creating}
               className={styles.createProductLink}
             >
-              {creating ? "Создаём…" : "Добавить товар"}
+              Добавить товар
             </button>
           }
         />
@@ -329,6 +322,7 @@ function ProductRow({
     onCopy: (productId: number) => Promise<void>;
     onDelete: (productId: number) => Promise<void>;
   }) {
+  const router = useRouter();
   const [menuOpen, setMenuOpen] = useState(false);
 
   const mainImage = product.coverImage;
@@ -336,9 +330,25 @@ function ProductRow({
   const totalStock = product.totalStock ?? 0;
   const variantsCount = product.variantsCount ?? 0;
   const archived = product.status === "ARCHIVED";
+  const editHref = `/seller/products/${product.id}/edit`;
+
+  function openProductEdit() {
+    router.push(editHref);
+  }
 
   return (
-    <article className={styles.productRow}>
+    <article
+      className={styles.productRow}
+      role="button"
+      tabIndex={0}
+      onClick={openProductEdit}
+      onKeyDown={(event) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          openProductEdit();
+        }
+      }}
+    >
       <div className={styles.productImageBox}>
         {mainImage ? (
           <Image
@@ -395,41 +405,38 @@ function ProductRow({
         </div>
 
         <div className={styles.productActions}>
-          {product.status === "ACTIVE" ? (
-            <Link
-              href={`/product/${product.id}`}
-              target="_blank"
-              className={styles.openProductLink}
-            >
-              Открыть
-            </Link>
-          ) : (
-            <Link
-              href={`/seller/products/${product.id}/edit`}
-              className={styles.openProductLink}
-            >
-              Редактировать
-            </Link>
-          )}
-
           <div className={styles.productMenuWrap}>
             <button
               type="button"
               className={styles.productMenuBtn}
-              onClick={() => setMenuOpen((value) => !value)}
+              onClick={(event) => {
+                event.stopPropagation();
+                setMenuOpen((value) => !value);
+              }}
               aria-label="Действия с товаром"
             >
               ⋯
             </button>
 
             {menuOpen ? (
-              <div className={styles.productMenu}>
+              <div
+                className={styles.productMenu}
+                onClick={(event) => event.stopPropagation()}
+              >
+                <Link
+                  href={editHref}
+                  className={styles.productMenuLink}
+                >
+                  Редактировать
+                </Link>
+
                 {product.status === "ACTIVE" ? (
                   <Link
-                    href={`/seller/products/${product.id}/edit`}
-                    className={styles.openProductLink}
+                    href={`/product/${product.id}`}
+                    target="_blank"
+                    className={styles.productMenuLink}
                   >
-                    Редактировать
+                    Открыть на сайте
                   </Link>
                 ) : null}
 

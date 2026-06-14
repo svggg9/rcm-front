@@ -7,14 +7,15 @@ import type { SellerTab } from "../types";
 type Props = {
   currentTab: SellerTab;
   ordersCount: number;
+  storeName: string;
 };
 
-export function SellerSidebar({ currentTab, ordersCount }: Props) {
+export function SellerSidebar({ currentTab, ordersCount, storeName }: Props) {
   return (
     <CabinetSidebar
       ariaLabel="Меню продавца"
-      subtitle="Кабинет"
-      title="Продавец"
+      subtitle="Кабинет продавца"
+      title={storeName}
       items={[
         {
           href: "/seller?tab=orders",

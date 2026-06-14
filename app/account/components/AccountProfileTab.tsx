@@ -1,8 +1,9 @@
 "use client";
 
+import type { InputHTMLAttributes } from "react";
+
 import { Button } from "../../components/ui/Button";
-import { PhoneInput } from "../../components/ui/PhoneInput";
-import { TextInput } from "../../components/ui/TextInput";
+import { ChoiceMark } from "../../components/ui/ChoiceMark";
 
 import styles from "./AccountProfileTab.module.css";
 
@@ -18,6 +19,8 @@ type Props = {
   gender: "men" | "women" | "";
   phone: string;
   saving: boolean;
+  changed: boolean;
+  savedMessage: string | null;
   onSave: () => void;
   onLastNameChange: (value: string) => void;
   onFirstNameChange: (value: string) => void;
@@ -26,6 +29,50 @@ type Props = {
   onGenderChange: (value: "men" | "women") => void;
   onPhoneChange: (value: string) => void;
 };
+
+type ProfileFieldProps = {
+  label: string;
+};
+
+function getRussianPhoneDigits(value: string): string {
+  let digits = value.replace(/\D/g, "");
+
+  if (digits.startsWith("8")) {
+    digits = `7${digits.slice(1)}`;
+  }
+
+  if (digits.startsWith("7")) {
+    digits = digits.slice(1);
+  }
+
+  return digits.slice(0, 10);
+}
+
+function formatRussianPhone(value: string): string {
+  const digits = getRussianPhoneDigits(value);
+
+  let result = "+7";
+
+  if (digits.length > 0) result += ` ${digits.slice(0, 3)}`;
+  if (digits.length > 3) result += ` ${digits.slice(3, 6)}`;
+  if (digits.length > 6) result += `-${digits.slice(6, 8)}`;
+  if (digits.length > 8) result += `-${digits.slice(8, 10)}`;
+
+  return result;
+}
+
+function ProfileTextField({
+  label,
+  className = "",
+  ...props
+}: ProfileFieldProps & InputHTMLAttributes<HTMLInputElement>) {
+  return (
+    <label className={styles.fieldWrap}>
+      <span className={styles.fieldLabel}>{label}</span>
+      <input className={`${styles.input} ${className}`.trim()} {...props} />
+    </label>
+  );
+}
 
 export function AccountProfileTab({
   displayName,
@@ -39,6 +86,8 @@ export function AccountProfileTab({
   gender,
   phone,
   saving,
+  changed,
+  savedMessage,
   onSave,
   onLastNameChange,
   onFirstNameChange,
@@ -47,18 +96,10 @@ export function AccountProfileTab({
   onGenderChange,
   onPhoneChange,
 }: Props) {
+  const saveButtonText = savedMessage && !changed ? savedMessage : "Сохранить";
+
   return (
     <section className={styles.page}>
-      <div className={styles.header}>
-        <div>
-          <div className={styles.kicker}>Профиль</div>
-          <h1 className={styles.title}>Мои данные</h1>
-          <p className={styles.hint}>
-            Контактная информация для заказов, доставки и уведомлений.
-          </p>
-        </div>
-      </div>
-
       <section className={styles.profileCard}>
         <div className={styles.profileHead}>
           <div className={styles.avatar}>{initials}</div>
@@ -73,61 +114,64 @@ export function AccountProfileTab({
       <section className={styles.card}>
         <div className={styles.cardHeader}>
           <h2>Основная информация</h2>
-          <p>ФИО и базовые данные покупателя.</p>
         </div>
 
         <div className={styles.formGrid}>
-          <TextInput
+          <ProfileTextField
             label="Фамилия"
             value={lastName}
             onChange={(event) => onLastNameChange(event.target.value)}
           />
 
-          <TextInput
+          <ProfileTextField
             label="Имя"
             value={firstName}
             onChange={(event) => onFirstNameChange(event.target.value)}
           />
 
-          <TextInput
+          <ProfileTextField
             label="Отчество"
             value={middleName}
             onChange={(event) => onMiddleNameChange(event.target.value)}
           />
 
-          <TextInput
+          <ProfileTextField
             label="Дата рождения"
             value={birthDate}
-            onChange={(event) => onBirthDateChange(event.target.value)}
             placeholder="дд.мм.гггг"
+            onChange={(event) => onBirthDateChange(event.target.value)}
           />
         </div>
 
         <div className={styles.subSection}>
           <div className={styles.subSectionTitle}>Пол</div>
 
-          <div className={styles.radioRow}>
-            <label className={styles.radioOption}>
-              <input
-                type="radio"
-                name="gender"
-                value="men"
-                checked={gender === "men"}
-                onChange={() => onGenderChange("men")}
-              />
-              <span>Мужской</span>
-            </label>
+          <div className={styles.choiceGrid}>
+            {[
+              { value: "men" as const, label: "Мужской" },
+              { value: "women" as const, label: "Женский" },
+            ].map((option) => {
+              const checked = gender === option.value;
 
-            <label className={styles.radioOption}>
-              <input
-                type="radio"
-                name="gender"
-                value="women"
-                checked={gender === "women"}
-                onChange={() => onGenderChange("women")}
-              />
-              <span>Женский</span>
-            </label>
+              return (
+                <label
+                  key={option.value}
+                  className={`${styles.choiceOption} ${
+                    checked ? styles.choiceOptionActive : ""
+                  }`.trim()}
+                >
+                  <input
+                    type="radio"
+                    name="gender"
+                    value={option.value}
+                    checked={checked}
+                    onChange={() => onGenderChange(option.value)}
+                  />
+                  <span>{option.label}</span>
+                  <ChoiceMark checked={checked} />
+                </label>
+              );
+            })}
           </div>
         </div>
       </section>
@@ -135,26 +179,45 @@ export function AccountProfileTab({
       <section className={styles.card}>
         <div className={styles.cardHeader}>
           <h2>Контакты</h2>
-          <p>E-mail и телефон для связи по заказам.</p>
         </div>
 
         <div className={styles.formGrid}>
-          <TextInput label="E-mail" value={email} disabled />
+          <ProfileTextField label="E-mail" value={email} disabled />
 
-          <TextInput label="Роль" value={role} disabled />
+          <ProfileTextField label="Роль" value={role} disabled />
 
-          <PhoneInput
+          <ProfileTextField
+            label="Телефон"
+            type="tel"
+            inputMode="tel"
+            autoComplete="tel"
             value={phone}
-            onChange={(event) => onPhoneChange(event.target.value)}
+            placeholder="+7 999 123-45-67"
+            onChange={(event) => onPhoneChange(formatRussianPhone(event.target.value))}
+            onFocus={() => {
+              if (!phone) {
+                onPhoneChange("+7");
+              }
+            }}
+            onBlur={() => {
+              if (phone === "+7" || phone === "+7 ") {
+                onPhoneChange("");
+              }
+            }}
           />
         </div>
-
-        <div className={styles.actions}>
-          <Button type="button" variant="primary" onClick={onSave} disabled={saving}>
-            {saving ? "Сохраняем…" : "Сохранить"}
-          </Button>
-        </div>
       </section>
+
+      <div className={styles.actions}>
+        <Button
+          type="button"
+          variant="primary"
+          onClick={onSave}
+          disabled={saving || !changed}
+        >
+          {saveButtonText}
+        </Button>
+      </div>
     </section>
   );
 }

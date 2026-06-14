@@ -1,8 +1,33 @@
 .card {
-  margin-bottom: 28px;
-  padding: 24px;
+  position: relative;
+  padding: 18px;
   border: 1px solid var(--line);
   background: var(--white);
+}
+
+.cardReady {
+  border-color: rgba(33, 106, 67, 0.16);
+  background: rgba(33, 106, 67, 0.035);
+  padding-right: 48px;
+}
+
+.closeButton {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 28px;
+  height: 28px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--muted);
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.closeButton:hover {
+  border-color: var(--line);
+  color: var(--black);
 }
 
 .head {
@@ -13,11 +38,11 @@
 }
 
 .kicker {
-  margin-bottom: 8px;
-  color: var(--gold);
+  margin-bottom: 6px;
+  color: var(--muted);
   font-size: var(--font-xs);
-  font-weight: 600;
-  letter-spacing: 0.14em;
+  font-weight: 500;
+  letter-spacing: 0;
   text-transform: uppercase;
 }
 
@@ -26,32 +51,32 @@
   color: var(--black);
   font-size: var(--font-xl);
   font-weight: 500;
-  letter-spacing: -0.03em;
+  letter-spacing: -0.02em;
 }
 
 .progressValue {
-  color: var(--black);
-  font-size: var(--font-2xl);
+  color: color-mix(in srgb, var(--success) 72%, var(--black));
+  font-size: var(--font-xl);
   font-weight: 500;
-  letter-spacing: -0.04em;
+  letter-spacing: -0.02em;
 }
 
 .progressTrack {
   height: 2px;
-  margin-top: 20px;
+  margin-top: 14px;
   background: var(--line);
 }
 
 .progressBar {
   height: 100%;
-  background: var(--black);
+  background: var(--success);
 }
 
 .steps {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 1px;
-  margin-top: 20px;
+  margin-top: 14px;
   border: 1px solid var(--line);
   background: var(--line);
 }
@@ -81,10 +106,10 @@
 }
 
 .hint {
-  margin: 18px 0 0;
+  margin: 12px 0 0;
   color: var(--muted);
   font-size: var(--font-sm);
-  line-height: 1.6;
+  line-height: 1.45;
 }
 
 .state,
@@ -104,6 +129,6 @@
   }
 
   .card {
-    padding: 20px;
+    padding: 16px;
   }
 }

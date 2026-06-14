@@ -1,22 +1,21 @@
-
 .page {
   display: flex;
   flex-direction: column;
-  gap: 28px;
+  gap: 16px;
 }
 
 .header {
-  display: flex;
-  justify-content: space-between;
-  gap: 24px;
+  padding: 20px;
+  border: 1px solid var(--line);
+  background: var(--white);
 }
 
 .kicker {
-  margin-bottom: 12px;
+  margin-bottom: 8px;
   color: var(--gold);
   font-size: var(--font-xs);
-  font-weight: 600;
-  letter-spacing: 0.14em;
+  font-weight: 500;
+  letter-spacing: 0;
   text-transform: uppercase;
 }
 
@@ -24,88 +23,162 @@
   margin: 0;
   color: var(--black);
   font-size: var(--font-2xl);
+  line-height: 1.1;
   font-weight: 500;
-  letter-spacing: -0.04em;
 }
 
 .hint {
   max-width: 720px;
-  margin: 12px 0 0;
+  margin: 8px 0 0;
   color: var(--muted);
-  font-size: var(--font-md);
-  line-height: 1.6;
+  font-size: var(--font-sm);
+  line-height: 1.5;
 }
 
 .form {
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: 16px;
 }
 
 .card {
-  padding: 28px;
+  padding: 20px;
   border: 1px solid var(--line);
   background: var(--white);
 }
 
 .cardHeader {
-  margin-bottom: 24px;
+  margin-bottom: 16px;
 }
 
 .cardHeader h2 {
-  margin: 0;
+  margin: 0 0 4px;
   color: var(--black);
-  font-size: var(--font-xl);
+  font-size: var(--font-lg);
   font-weight: 500;
-  letter-spacing: -0.03em;
+  line-height: 1.2;
 }
 
 .cardHeader p {
   max-width: 640px;
-  margin: 10px 0 0;
+  margin: 0;
   color: var(--muted);
   font-size: var(--font-sm);
-  line-height: 1.6;
+  line-height: 1.5;
 }
 
 .grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 24px 28px;
+  gap: 12px;
 }
 
 .typeGrid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  border-top: 1px solid var(--line);
-  border-left: 1px solid var(--line);
+  gap: 10px;
 }
 
 .typeOption {
-  min-height: 72px;
+  min-height: 52px;
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 10px;
-  padding: 18px;
-  border-right: 1px solid var(--line);
-  border-bottom: 1px solid var(--line);
+  padding: 13px 14px;
+  border: 1px solid var(--line);
+  background: var(--white);
   color: var(--muted);
   cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease, color 0.15s ease;
 }
 
 .typeOption input {
-  margin: 0;
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
 }
 
+.typeOption span:not(:last-child) {
+  min-width: 0;
+}
+
+.typeOption:hover,
 .typeOptionActive {
+  border-color: var(--black);
+  background: var(--white);
   color: var(--black);
-  background: var(--soft);
+}
+
+.fieldWrap {
+  position: relative;
+  display: block;
+}
+
+.input,
+.textarea {
+  font: inherit;
+  width: 100%;
+  border: 1px solid var(--line);
+  background: var(--white);
+  color: var(--black);
+  font-size: var(--font-sm);
+  outline: none;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.input {
+  height: 52px;
+  padding: 19px 14px 7px;
+}
+
+.textarea {
+  min-height: 92px;
+  padding: 24px 14px 13px;
+  resize: vertical;
+  line-height: 1.45;
+}
+
+.input:hover,
+.textarea:hover,
+.input:focus,
+.textarea:focus {
+  border-color: var(--black);
+}
+
+.requiredEmpty {
+  border-color: rgba(201, 162, 79, 0.2);
+  background: rgba(201, 162, 79, 0.07);
+}
+
+.inputError {
+  border-color: var(--danger);
+}
+
+.fieldLabel {
+  position: absolute;
+  left: 14px;
+  top: 7px;
+  z-index: 2;
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1;
+  pointer-events: none;
 }
 
 .agreementRow {
   display: flex;
   flex-direction: column;
   gap: 10px;
+}
+
+.plainSection {
+  padding: 0;
+  background: transparent;
+}
+
+.addressField {
+  margin-top: 12px;
 }
 
 .checkbox {
@@ -118,7 +191,9 @@
 }
 
 .checkbox input {
-  margin-top: 2px;
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
 }
 
 .checkbox a {
@@ -127,36 +202,110 @@
   text-underline-offset: 3px;
 }
 
+.checkboxMark {
+  position: relative;
+  width: 16px;
+  height: 16px;
+  margin-top: 2px;
+  flex-shrink: 0;
+  border: 1px solid var(--black);
+  background: var(--white);
+}
+
+.checkbox input:checked + .checkboxMark {
+  background: var(--black);
+}
+
+.checkbox input:checked + .checkboxMark::after {
+  content: "";
+  position: absolute;
+  left: 4px;
+  top: 1px;
+  width: 5px;
+  height: 9px;
+  border: solid var(--white);
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+
+.checkboxText {
+  min-width: 0;
+}
+
 .fieldError {
+  margin-top: 6px;
+  color: var(--danger);
+  font-size: var(--font-xs);
+}
+
+.error {
+  padding: 14px;
+  border: 1px solid rgba(155, 44, 44, 0.18);
+  background: rgba(155, 44, 44, 0.05);
   color: var(--danger);
   font-size: var(--font-sm);
 }
 
-.success {
-  padding: 14px 0;
-  border-top: 1px solid var(--success);
-  border-bottom: 1px solid var(--success);
-  color: var(--success);
-  font-size: var(--font-sm);
-}
-
 .actions {
-  display: flex;
-  justify-content: flex-start;
+  padding: 0;
 }
 
-.state {
-  color: var(--muted);
-  font-size: var(--font-md);
+.actions button {
+  width: 100%;
+  height: 44px;
+  min-height: 44px;
+}
+
+.skeletonHeader,
+.skeletonCard {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  background: var(--white);
+}
+
+.skeletonHeader {
+  height: 116px;
+}
+
+.skeletonCard {
+  padding: 20px;
+}
+
+.skeletonLine,
+.skeletonGrid {
+  position: relative;
+  z-index: 1;
+}
+
+.skeletonLine {
+  width: 220px;
+  height: 18px;
+  border: 1px solid var(--line);
+  background: var(--white);
+}
+
+.skeletonGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-top: 18px;
+}
+
+.skeletonGrid div {
+  height: 52px;
+  border: 1px solid var(--line);
+  background: var(--white);
 }
 
 @media (max-width: 900px) {
   .grid,
-  .typeGrid {
+  .typeGrid,
+  .skeletonGrid {
     grid-template-columns: 1fr;
   }
 
-  .card {
-    padding: 24px 20px;
+  .title {
+    font-size: var(--font-xl);
   }
 }

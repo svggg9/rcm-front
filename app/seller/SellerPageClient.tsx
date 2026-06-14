@@ -12,6 +12,7 @@ import { SellerProductsTab } from "./components/SellerProductsTab";
 import { SellerBrandTab } from "./components/SellerBrandTab";
 import { SellerLegalTab } from "./components/SellerLegalTab";
 import { SellerOnboardingStatus } from "./components/SellerOnboardingStatus";
+import { getSellerBrands } from "./lib/sellerBrandApi";
 
 import type {
   PageResponse,
@@ -20,6 +21,7 @@ import type {
   SellerOrderListItem,
   SellerOrderStatus,
   SellerPaymentStatus,
+  SellerBrand,
   SellerProductListItem,
   SellerTab,
 } from "./types";
@@ -118,11 +120,11 @@ function SellerPageContent({ initialProducts, initialOrders }: Props) {
 
   const [orders, setOrders] = useState<SellerOrderListItem[]>(initialOrders);
   const [products, setProducts] = useState<SellerProductListItem[]>(initialProducts);
+  const [storeName, setStoreName] = useState("Магазин");
 
   const [selectedOrder, setSelectedOrder] = useState<SellerOrder | null>(null);
   const [detailsLoading, setDetailsLoading] = useState(false);
 
-  const [refreshing, setRefreshing] = useState(false);
   const [shippingId, setShippingId] = useState<number | null>(null);
 
   const [error, setError] = useState<string | null>(null);
@@ -135,13 +137,25 @@ function SellerPageContent({ initialProducts, initialOrders }: Props) {
     setOrders(initialOrders);
   }, [initialOrders]);
 
-  async function loadOrders(options?: { silent?: boolean }) {
-    const silent = options?.silent ?? false;
+  useEffect(() => {
+    let cancelled = false;
 
-    if (silent) {
-      setRefreshing(true);
-    }
+    getSellerBrands()
+      .then((brands: SellerBrand[]) => {
+        if (cancelled) return;
+        setStoreName(brands[0]?.name?.trim() || "Магазин");
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setStoreName("Магазин");
+      });
 
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  async function loadOrders() {
     setError(null);
 
     try {
@@ -153,8 +167,6 @@ function SellerPageContent({ initialProducts, initialOrders }: Props) {
       setOrders(Array.isArray(data.content) ? data.content : []);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Не удалось загрузить заказы");
-    } finally {
-      setRefreshing(false);
     }
   }
 
@@ -218,7 +230,7 @@ function SellerPageContent({ initialProducts, initialOrders }: Props) {
         setSelectedOrder(updated);
       }
 
-      await loadOrders({ silent: true });
+      await loadOrders();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Не удалось отметить отправку");
     } finally {
@@ -238,7 +250,11 @@ function SellerPageContent({ initialProducts, initialOrders }: Props) {
     <div className="pageContainer">
       <div className={styles.page}>
         <div className={styles.layout}>
-          <SellerSidebar currentTab={currentTab} ordersCount={orders.length} />
+          <SellerSidebar
+            currentTab={currentTab}
+            ordersCount={orders.length}
+            storeName={storeName}
+          />
 
           <div className={styles.content}>
             <SellerOnboardingStatus />
@@ -268,12 +284,7 @@ function SellerPageContent({ initialProducts, initialOrders }: Props) {
             ) : (
               <SellerOrdersTab
                 orders={orders}
-                refreshing={refreshing}
-                shippingId={shippingId}
                 buildSellerStatusLabel={buildSellerStatusLabel}
-                canShipOrder={canShipOrder}
-                onRefresh={() => void loadOrders({ silent: true })}
-                onShip={(orderId) => void ship(orderId)}
                 onOpenOrder={openOrder}
               />
             )}

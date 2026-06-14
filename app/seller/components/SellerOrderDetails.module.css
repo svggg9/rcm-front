@@ -1,73 +1,90 @@
 .page {
   display: flex;
   flex-direction: column;
+  gap: 16px;
 }
 
 .header {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 16px;
+  align-items: stretch;
+  padding: 16px;
+  border: 1px solid var(--line);
+  background: var(--white);
+}
+
+.header > button {
+  align-self: start;
+}
+
+.headerContent {
+  min-width: 0;
+}
+
+.titleRow {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 16px;
-  margin-bottom: 28px;
 }
 
 .title {
   margin: 0;
   color: var(--black);
-  font-size: 28px;
+  font-size: var(--font-2xl);
   line-height: 1.1;
-  font-weight: 600;
-  letter-spacing: -0.03em;
+  font-weight: 500;
 }
 
 .meta {
-  margin-top: 8px;
-
+  margin-top: 10px;
   display: flex;
   align-items: center;
   gap: 8px;
   flex-wrap: wrap;
-
   color: var(--muted);
-  font-size: 13px;
+  font-size: var(--font-xs);
 }
 
 .summary {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-
-  margin-bottom: 34px;
-
-  border-top: 1px solid var(--line);
-  border-bottom: 1px solid var(--line);
+  gap: 12px;
 }
 
 .summaryItem {
-  padding: 18px 24px 18px 0;
-  border-right: 1px solid var(--line);
-}
-
-.summaryItem:last-child {
-  border-right: 0;
+  min-height: 86px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  background: var(--white);
+  display: grid;
+  grid-template-rows: 1fr auto;
+  gap: 8px;
+  text-align: center;
 }
 
 .summaryItem strong {
-  display: block;
+  align-self: end;
+  justify-self: center;
   color: var(--black);
-  font-size: 15px;
-  font-weight: 600;
+  font-size: var(--font-md);
+  line-height: 1.2;
+  font-weight: 500;
 }
 
 .summaryItem span {
   display: block;
-  margin-top: 6px;
+  justify-self: center;
   color: var(--muted);
-  font-size: 12px;
+  font-size: var(--font-xs);
+  line-height: 1.2;
 }
 
 .layout {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 360px;
-  gap: 40px;
+  grid-template-columns: minmax(0, 1fr) 340px;
+  gap: 24px;
   align-items: start;
 }
 
@@ -75,20 +92,26 @@
   min-width: 0;
   display: flex;
   flex-direction: column;
+  gap: 16px;
+}
+
+.section,
+.stickyPanel {
+  border: 1px solid var(--line);
+  background: var(--white);
 }
 
 .section {
-  padding: 0 0 32px;
-  margin-bottom: 32px;
-  border-bottom: 1px solid var(--line);
+  padding: 18px;
 }
 
-.sectionTitle {
-  margin: 0 0 18px;
+.sectionTitle,
+.panelSection h2 {
+  margin: 0 0 16px;
   color: var(--black);
-  font-size: 18px;
-  font-weight: 600;
-  letter-spacing: -0.02em;
+  font-size: var(--font-lg);
+  font-weight: 500;
+  line-height: 1.2;
 }
 
 .itemsList,
@@ -100,12 +123,10 @@
 
 .itemRow {
   display: grid;
-  grid-template-columns: 88px minmax(0, 1fr) auto;
-  gap: 18px;
+  grid-template-columns: 76px minmax(0, 1fr) auto;
+  gap: 16px;
   align-items: start;
-
-  padding: 18px 0;
-
+  padding: 14px 0;
   border-bottom: 1px solid var(--line);
 }
 
@@ -120,10 +141,8 @@
 
 .itemImageWrap {
   position: relative;
-
-  width: 88px;
-  height: 112px;
-
+  width: 76px;
+  height: 96px;
   overflow: hidden;
   border: 1px solid var(--line);
   background: var(--soft);
@@ -141,7 +160,6 @@
 
 .itemMain {
   min-width: 0;
-
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -149,23 +167,24 @@
 
 .itemTitle {
   color: var(--black);
-  font-size: 15px;
-  font-weight: 600;
+  font-size: var(--font-sm);
+  font-weight: 500;
+  line-height: 1.35;
 }
 
 .itemMeta {
   display: flex;
   gap: 7px;
   flex-wrap: wrap;
-
   color: var(--muted);
-  font-size: 12px;
+  font-size: var(--font-xs);
+  line-height: 1.4;
 }
 
 .itemTotal {
   color: var(--black);
-  font-size: 15px;
-  font-weight: 600;
+  font-size: var(--font-sm);
+  font-weight: 500;
   white-space: nowrap;
 }
 
@@ -176,31 +195,24 @@
 .stickyPanel {
   position: sticky;
   top: calc(var(--site-header-height) + 24px);
-
   display: flex;
   flex-direction: column;
 }
 
 .panelSection {
-  padding-bottom: 24px;
-  margin-bottom: 24px;
+  padding: 18px;
   border-bottom: 1px solid var(--line);
 }
 
-.panelSection h2 {
-  margin: 0 0 18px;
-  color: var(--black);
-  font-size: 16px;
-  font-weight: 600;
+.panelSection:last-child {
+  border-bottom: 0;
 }
 
 .infoRow {
   display: flex;
   justify-content: space-between;
   gap: 16px;
-
-  padding: 12px 0;
-
+  padding: 10px 0;
   border-bottom: 1px solid var(--line);
 }
 
@@ -215,37 +227,47 @@
 
 .infoRow span {
   color: var(--muted);
-  font-size: 13px;
+  font-size: var(--font-xs);
+  line-height: 1.35;
 }
 
-.infoRow strong {
+.infoRow strong,
+.infoRow a {
   color: var(--black);
-  font-size: 13px;
+  font-size: var(--font-xs);
   font-weight: 500;
+  line-height: 1.35;
   text-align: right;
+}
+
+.infoRow a {
+  text-decoration: none;
+}
+
+.infoRow a:hover {
+  text-decoration: underline;
 }
 
 .totalFinal {
   display: flex;
   justify-content: space-between;
   gap: 16px;
-
-  padding-top: 16px;
-  margin-top: 16px;
-
+  padding-top: 14px;
+  margin-top: 14px;
   border-top: 1px solid var(--black);
 }
 
 .totalFinal span {
   color: var(--black);
-  font-size: 14px;
-  font-weight: 600;
+  font-size: var(--font-sm);
+  font-weight: 500;
 }
 
 .totalFinal strong {
   color: var(--black);
-  font-size: 18px;
-  font-weight: 600;
+  font-size: var(--font-xl);
+  font-weight: 500;
+  white-space: nowrap;
 }
 
 .actions {
@@ -259,15 +281,17 @@
 }
 
 .muted {
-  color: var(--muted);
-  font-size: 13px;
-  line-height: 1.5;
+  padding: 12px;
+  border: 1px solid rgba(201, 162, 79, 0.2);
+  background: rgba(201, 162, 79, 0.06);
+  color: var(--warning);
+  font-size: var(--font-xs);
+  line-height: 1.45;
 }
 
 @media (max-width: 1024px) {
   .layout {
     grid-template-columns: 1fr;
-    gap: 28px;
   }
 
   .stickyPanel {
@@ -279,20 +303,21 @@
   .summary {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
-
-  .summaryItem {
-    border-bottom: 1px solid var(--line);
-  }
 }
 
 @media (max-width: 768px) {
   .header {
-    flex-direction: column;
+    grid-template-columns: 1fr;
+  }
+
+  .titleRow {
     align-items: flex-start;
+    flex-direction: column;
+    gap: 10px;
   }
 
   .title {
-    font-size: 24px;
+    font-size: var(--font-xl);
   }
 
   .itemRow {
@@ -314,7 +339,8 @@
     gap: 4px;
   }
 
-  .infoRow strong {
+  .infoRow strong,
+  .infoRow a {
     text-align: left;
   }
 }
@@ -322,9 +348,5 @@
 @media (max-width: 560px) {
   .summary {
     grid-template-columns: 1fr;
-  }
-
-  .summaryItem {
-    border-right: 0;
   }
 }

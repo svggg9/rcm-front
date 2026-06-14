@@ -42,14 +42,15 @@ export function SellerOrderDetails({
           ← Назад
         </Button>
 
-        <div>
-          <h1 className={styles.title}>Заказ #{order.id}</h1>
-
-          <div className={styles.meta}>
+        <div className={styles.headerContent}>
+          <div className={styles.titleRow}>
+            <h1 className={styles.title}>Заказ #{order.id}</h1>
             <StatusBadge tone={getOrderTone(order)}>
               {buildSellerStatusLabel(order)}
             </StatusBadge>
-            <span>•</span>
+          </div>
+
+          <div className={styles.meta}>
             <span>{new Date(order.createdAt).toLocaleString("ru-RU")}</span>
             <span>•</span>
             <span>{order.totalAmount.toLocaleString()} ₽</span>
@@ -246,15 +247,33 @@ function InfoRow({
 }
 
 function getOrderTone(order: SellerOrder) {
-  if (order.paymentStatus === "FAILED") return "danger";
+  if (
+    order.status === "CANCELED" ||
+    order.paymentStatus === "FAILED" ||
+    order.paymentStatus === "CANCELED" ||
+    order.deliveryStatus === "RETURNED" ||
+    order.deliveryStatus === "CANCELLED"
+  ) {
+    return "danger";
+  }
+
+  if (order.paymentStatus === "PENDING") return "warning";
+
+  if (
+    order.deliveryStatus === "READY_FOR_SHIPMENT" ||
+    order.deliveryStatus === "READY_FOR_PICKUP"
+  ) {
+    return "warning";
+  }
+
   if (order.deliveryStatus === "DELIVERED") return "success";
 
   if (
-    order.paymentStatus === "PAID" ||
-    order.deliveryStatus === "READY_FOR_SHIPMENT" ||
-    order.deliveryStatus === "IN_TRANSIT"
+    order.status === "CONFIRMED" ||
+    order.status === "COMPLETED" ||
+    order.paymentStatus === "PAID"
   ) {
-    return "warning";
+    return "success";
   }
 
   return "default";

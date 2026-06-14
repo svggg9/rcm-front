@@ -3,7 +3,6 @@
 import { useEffect, useMemo, useState } from "react";
 
 import { Button } from "../../components/ui/Button";
-import { Field } from "../../components/ui/Field";
 
 import type { SellerBrand, SellerBrandProfileRequest } from "../types";
 import { emitSellerOnboardingChanged } from "../lib/sellerOnboardingEvents";
@@ -138,7 +137,20 @@ export function SellerBrandTab() {
   }
 
   if (loading) {
-    return <div className={styles.title}>Загрузка производителя…</div>;
+    return (
+      <section className={styles.page}>
+        <div className={styles.skeletonHeader} />
+        <div className={styles.skeletonCard}>
+          <div className={styles.skeletonLine} />
+          <div className={styles.skeletonGrid}>
+            <div />
+            <div />
+            <div />
+            <div />
+          </div>
+        </div>
+      </section>
+    );
   }
 
   if (brands.length === 0) {
@@ -172,144 +184,144 @@ export function SellerBrandTab() {
           </p>
         </div>
 
-        <Button variant="primary" onClick={() => void save()} disabled={saving}>
-          {saving ? "Сохраняем…" : "Сохранить"}
-        </Button>
       </div>
 
       {error ? <div className={styles.error}>{error}</div> : null}
       {saved ? <div className={styles.success}>Профиль сохранён</div> : null}
 
-      <div className={styles.layout}>
-        <div className={styles.main}>
-          <div className={styles.card}>
-            <div className={styles.cardHeader}>
-              <h2>Основная информация</h2>
-              <p>Кратко расскажите о производителе и его происхождении.</p>
-            </div>
-
-            <div className={styles.formGrid}>
-              <Field label="Бренд">
-                <select
-                  className={styles.input}
-                  value={selectedBrand.id}
-                  onChange={(event) => selectBrand(Number(event.target.value))}
-                >
-                  {brands.map((brand) => (
-                    <option key={brand.id} value={brand.id}>
-                      {brand.name}
-                    </option>
-                  ))}
-                </select>
-              </Field>
-
-              <Field label="Страна">
-                <input
-                  className={styles.input}
-                  value={form.country}
-                  onChange={(event) => updateField("country", event.target.value)}
-                  placeholder="Россия"
-                />
-              </Field>
-
-              <Field label="Год основания">
-                <input
-                  className={styles.input}
-                  value={form.foundationYear}
-                  onChange={(event) =>
-                    updateField("foundationYear", event.target.value)
-                  }
-                  inputMode="numeric"
-                  placeholder="2024"
-                />
-              </Field>
-
-              <Field
-                label="Логотип"
-                hint="Пока можно указать URL изображения. Загрузку файла добавим отдельно."
-              >
-                <input
-                  className={styles.input}
-                  value={form.logoUrl}
-                  onChange={(event) => updateField("logoUrl", event.target.value)}
-                  placeholder="https://..."
-                />
-              </Field>
-
-              <Field label="Описание">
-                <textarea
-                  className={styles.textarea}
-                  value={form.description}
-                  onChange={(event) =>
-                    updateField("description", event.target.value)
-                  }
-                  rows={7}
-                  placeholder="Расскажите о бренде, производстве, материалах и ценностях."
-                />
-              </Field>
-            </div>
+      <div className={styles.main}>
+        <div className={styles.card}>
+          <div className={styles.cardHeader}>
+            <h2>Основная информация</h2>
+            <p>Кратко расскажите о производителе и его происхождении.</p>
           </div>
 
-          <div className={styles.card}>
-            <div className={styles.cardHeader}>
-              <h2>Ссылки</h2>
-              <p>Официальные каналы производителя.</p>
-            </div>
+          <div className={styles.formGrid}>
+            <BrandField label="Бренд">
+              <select
+                className={styles.selectField}
+                value={selectedBrand.id}
+                onChange={(event) => selectBrand(Number(event.target.value))}
+              >
+                {brands.map((brand) => (
+                  <option key={brand.id} value={brand.id}>
+                    {brand.name}
+                  </option>
+                ))}
+              </select>
+            </BrandField>
 
-            <div className={styles.formGrid}>
-              <Field label="Сайт">
-                <input
-                  className={styles.input}
-                  value={form.website}
-                  onChange={(event) => updateField("website", event.target.value)}
-                  placeholder="https://brand.ru"
-                />
-              </Field>
+            <BrandField label="Страна">
+              <input
+                className={styles.input}
+                value={form.country}
+                onChange={(event) => updateField("country", event.target.value)}
+                placeholder="Россия"
+              />
+            </BrandField>
 
-              <Field label="Telegram">
-                <input
-                  className={styles.input}
-                  value={form.telegram}
-                  onChange={(event) => updateField("telegram", event.target.value)}
-                  placeholder="https://t.me/brand"
-                />
-              </Field>
+            <BrandField label="Год основания">
+              <input
+                className={styles.input}
+                value={form.foundationYear}
+                onChange={(event) =>
+                  updateField("foundationYear", event.target.value)
+                }
+                inputMode="numeric"
+                placeholder="2024"
+              />
+            </BrandField>
 
-              <Field label="VK">
-                <input
-                  className={styles.input}
-                  value={form.vk}
-                  onChange={(event) => updateField("vk", event.target.value)}
-                  placeholder="https://vk.com/brand"
-                />
-              </Field>
-            </div>
+            <BrandField label="Логотип">
+              <input
+                className={styles.input}
+                value={form.logoUrl}
+                onChange={(event) => updateField("logoUrl", event.target.value)}
+                placeholder="https://..."
+              />
+            </BrandField>
+
+            <BrandField label="Описание">
+              <textarea
+                className={styles.textarea}
+                value={form.description}
+                onChange={(event) =>
+                  updateField("description", event.target.value)
+                }
+                rows={7}
+                placeholder="Расскажите о бренде, производстве, материалах и ценностях."
+              />
+            </BrandField>
           </div>
         </div>
 
-        <aside className={styles.aside}>
-          <div className={styles.sideCard}>
-            <div className={styles.sideTitle}>Публичная страница</div>
-
-            <div className={styles.previewName}>{selectedBrand.name}</div>
-
-            {selectedBrand.slug ? (
-              <a
-                href={`/brand/${selectedBrand.slug}`}
-                className={styles.openLink}
-                target="_blank"
-              >
-                Открыть страницу
-              </a>
-            ) : null}
-
-            <p className={styles.fieldHint}>
-              После сохранения данные можно будет вывести на странице
-              производителя.
-            </p>
+        <div className={styles.card}>
+          <div className={styles.cardHeader}>
+            <h2>Ссылки</h2>
+            <p>Официальные каналы производителя.</p>
           </div>
-        </aside>
+
+          <div className={styles.formGrid}>
+            <BrandField label="Сайт">
+              <input
+                className={styles.input}
+                value={form.website}
+                onChange={(event) => updateField("website", event.target.value)}
+                placeholder="https://brand.ru"
+              />
+            </BrandField>
+
+            <BrandField label="Telegram">
+              <input
+                className={styles.input}
+                value={form.telegram}
+                onChange={(event) => updateField("telegram", event.target.value)}
+                placeholder="https://t.me/brand"
+              />
+            </BrandField>
+
+            <BrandField label="VK">
+              <input
+                className={styles.input}
+                value={form.vk}
+                onChange={(event) => updateField("vk", event.target.value)}
+                placeholder="https://vk.com/brand"
+              />
+            </BrandField>
+          </div>
+        </div>
+
+        <div className={styles.actionsBar}>
+          {selectedBrand.slug ? (
+            <a
+              href={`/brand/${selectedBrand.slug}`}
+              className={styles.openLink}
+              target="_blank"
+            >
+              Открыть страницу
+            </a>
+          ) : null}
+
+          <Button variant="primary" onClick={() => void save()} disabled={saving}>
+            Сохранить
+          </Button>
+        </div>
       </div>
     </section>
+  );
+}
+
+function BrandField({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <label className={styles.fieldWrap}>
+      <span className={styles.fieldLabel}>{label}</span>
+      {children}
+    </label>
   );
 }

@@ -5,60 +5,100 @@ import Image from "next/image";
 import { StatusBadge } from "../../components/ui/StatusBadge";
 import styles from "./AccountOrderCard.module.css";
 
+import type { OrderListItem } from "../types";
+
 type Props = {
-  id: number;
+  order: OrderListItem;
   statusLabel: string;
-  dateLabel: string;
-  amountLabel: string;
-  firstImageUrl: string | null;
-  itemsCount: number;
   onClick: () => void;
 };
 
 export function AccountOrderCard({
-  id,
+  order,
   statusLabel,
-  dateLabel,
-  amountLabel,
-  firstImageUrl,
-  itemsCount,
   onClick,
 }: Props) {
+  const extraItemsCount = Math.max(order.itemsCount - 1, 0);
+
   return (
-    <button type="button" className={styles.card} onClick={onClick}>
-      <div className={styles.main}>
-        <div className={styles.statusLine}>
-          <StatusBadge>{statusLabel}</StatusBadge>
-          <span className={styles.date}>{dateLabel}</span>
-        </div>
+    <article
+      className={styles.orderRow}
+      role="button"
+      tabIndex={0}
+      onClick={onClick}
+      onKeyDown={(event) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          onClick();
+        }
+      }}
+    >
+      <div className={styles.orderPreview}>
+        {order.firstImageUrl ? (
+          <Image
+            src={order.firstImageUrl}
+            alt=""
+            width={48}
+            height={64}
+            className={styles.orderImage}
+          />
+        ) : (
+          <div className={styles.orderImagePlaceholder} />
+        )}
 
-        <div className={styles.number}>Заказ #{id}</div>
-      </div>
-
-      <div className={styles.images}>
-        <div className={styles.imageWrap}>
-          {firstImageUrl ? (
-            <Image
-              src={firstImageUrl}
-              alt=""
-              width={52}
-              height={68}
-              className={styles.image}
-            />
-          ) : (
-            <div className={styles.imagePlaceholder} />
-          )}
-        </div>
-
-        {itemsCount > 1 ? (
-          <div className={styles.moreItems}>+{itemsCount - 1}</div>
+        {extraItemsCount > 0 ? (
+          <span className={styles.extraItems}>+{extraItemsCount}</span>
         ) : null}
       </div>
 
-      <div className={styles.meta}>
-        <div className={styles.amount}>{amountLabel}</div>
-        <div className={styles.openLabel}>Открыть</div>
+      <div className={styles.orderMain}>
+        <div className={styles.orderTitle}>Заказ #{order.id}</div>
+        <div className={styles.orderMeta}>
+          <span>{new Date(order.createdAt).toLocaleString("ru-RU")}</span>
+          <span>•</span>
+          <span>{order.orderGroupId}</span>
+        </div>
       </div>
-    </button>
+
+      <div className={styles.orderProducts}>
+        {order.firstProductTitle ? (
+          <div className={styles.orderProductLine}>{order.firstProductTitle}</div>
+        ) : null}
+
+        <div className={styles.orderItemsCount}>
+          {order.itemsCount} шт. в заказе
+        </div>
+      </div>
+
+      <div className={styles.orderAmount}>
+        {order.totalAmount.toLocaleString()} ₽
+      </div>
+
+      <div className={styles.orderStatus}>
+        <StatusBadge tone={getOrderTone(order)}>{statusLabel}</StatusBadge>
+      </div>
+    </article>
   );
+}
+
+function getOrderTone(order: OrderListItem) {
+  if (
+    order.status === "CANCELED" ||
+    order.paymentStatus === "FAILED" ||
+    order.paymentStatus === "CANCELED"
+  ) {
+    return "danger";
+  }
+
+  if (order.paymentStatus === "PENDING") return "warning";
+  if (order.deliveryStatus === "DELIVERED") return "success";
+  if (
+    order.status === "CONFIRMED" ||
+    order.status === "COMPLETED" ||
+    order.paymentStatus === "PAID"
+  ) {
+    return "success";
+  }
+
+  return "default";
 }

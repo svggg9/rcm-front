@@ -1,12 +1,15 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import type {
+  FormEvent,
+  InputHTMLAttributes,
+  TextareaHTMLAttributes,
+} from "react";
 import Link from "next/link";
 
 import { Button } from "../../components/ui/Button";
-import { FormError } from "../../components/ui/FormError";
-import { TextInput } from "../../components/ui/TextInput";
-import { Textarea } from "../../components/ui/Textarea";
+import { ChoiceMark } from "../../components/ui/ChoiceMark";
 import { isNonEmpty } from "../../lib/validation";
 import { emitSellerOnboardingChanged } from "../lib/sellerOnboardingEvents";
 
@@ -69,6 +72,7 @@ function formatSellerType(type: SellerType) {
 
 export function SellerLegalTab() {
   const [form, setForm] = useState<SellerLegalInfoForm>(INITIAL_FORM);
+  const [savedForm, setSavedForm] = useState<SellerLegalInfoForm>(INITIAL_FORM);
   const [errors, setErrors] = useState<FormErrors>({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -87,7 +91,13 @@ export function SellerLegalTab() {
         const info = await getSellerLegalInfo();
 
         if (!cancelled && info) {
-          setForm(mapLegalInfoToForm(info));
+          const nextForm = mapLegalInfoToForm(info);
+          setForm(nextForm);
+          setSavedForm(nextForm);
+        }
+
+        if (!cancelled && !info) {
+          setSavedForm(INITIAL_FORM);
         }
       } catch (e) {
         if (!cancelled) {
@@ -123,6 +133,8 @@ export function SellerLegalTab() {
 
     setSavedMessage(null);
   }
+
+  const formChanged = JSON.stringify(form) !== JSON.stringify(savedForm);
 
   function validate(): FormErrors {
     const nextErrors: FormErrors = {};
@@ -169,7 +181,7 @@ export function SellerLegalTab() {
     return nextErrors;
   }
 
-  async function submit(event: React.FormEvent<HTMLFormElement>) {
+  async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
     const nextErrors = validate();
@@ -186,6 +198,7 @@ export function SellerLegalTab() {
 
     try {
       await saveSellerLegalInfo(form);
+      setSavedForm(form);
       setSavedMessage("Реквизиты сохранены");
       emitSellerOnboardingChanged();
     } catch (e) {
@@ -196,7 +209,20 @@ export function SellerLegalTab() {
   }
 
   if (loading) {
-    return <div className={styles.state}>Загрузка реквизитов…</div>;
+    return (
+      <section className={styles.page}>
+        <div className={styles.skeletonHeader} />
+        <div className={styles.skeletonCard}>
+          <div className={styles.skeletonLine} />
+          <div className={styles.skeletonGrid}>
+            <div />
+            <div />
+            <div />
+            <div />
+          </div>
+        </div>
+      </section>
+    );
   }
 
   return (
@@ -213,9 +239,7 @@ export function SellerLegalTab() {
       </div>
 
       <form className={styles.form} onSubmit={submit}>
-        <FormError message={error} />
-
-        {savedMessage ? <div className={styles.success}>{savedMessage}</div> : null}
+        {error ? <div className={styles.error}>{error}</div> : null}
 
         <section className={styles.card}>
           <div className={styles.cardHeader}>
@@ -239,6 +263,7 @@ export function SellerLegalTab() {
                   onChange={() => updateField("sellerType", type)}
                 />
                 <span>{formatSellerType(type)}</span>
+                <ChoiceMark checked={form.sellerType === type} />
               </label>
             ))}
           </div>
@@ -251,8 +276,9 @@ export function SellerLegalTab() {
           </div>
 
           <div className={styles.grid}>
-            <TextInput
+            <LegalTextField
               label="ИНН"
+              numeric
               required
               value={form.inn}
               error={errors.inn}
@@ -260,8 +286,9 @@ export function SellerLegalTab() {
             />
 
             {form.sellerType === "IP" ? (
-              <TextInput
+              <LegalTextField
                 label="ОГРНИП"
+                numeric
                 required
                 value={form.ogrnip}
                 error={errors.ogrnip}
@@ -271,7 +298,7 @@ export function SellerLegalTab() {
 
             {form.sellerType === "OOO" ? (
               <>
-                <TextInput
+                <LegalTextField
                   label="Название компании"
                   required
                   value={form.companyName}
@@ -281,8 +308,9 @@ export function SellerLegalTab() {
                   }
                 />
 
-                <TextInput
+                <LegalTextField
                   label="ОГРН"
+                  numeric
                   required
                   value={form.ogrn}
                   error={errors.ogrn}
@@ -291,7 +319,7 @@ export function SellerLegalTab() {
               </>
             ) : null}
 
-            <TextInput
+            <LegalTextField
               label={form.sellerType === "OOO" ? "Юридическое название" : "ФИО"}
               required
               value={form.legalName}
@@ -300,11 +328,13 @@ export function SellerLegalTab() {
             />
           </div>
 
-          <Textarea
-            label="Юридический адрес"
-            value={form.legalAddress}
-            onChange={(event) => updateField("legalAddress", event.target.value)}
-          />
+          <div className={styles.addressField}>
+            <LegalTextarea
+              label="Юридический адрес"
+              value={form.legalAddress}
+              onChange={(event) => updateField("legalAddress", event.target.value)}
+            />
+          </div>
         </section>
 
         <section className={styles.card}>
@@ -314,7 +344,7 @@ export function SellerLegalTab() {
           </div>
 
           <div className={styles.grid}>
-            <TextInput
+            <LegalTextField
               label="Банк"
               required
               value={form.bankName}
@@ -322,16 +352,18 @@ export function SellerLegalTab() {
               onChange={(event) => updateField("bankName", event.target.value)}
             />
 
-            <TextInput
+            <LegalTextField
               label="БИК"
+              numeric
               required
               value={form.bik}
               error={errors.bik}
               onChange={(event) => updateField("bik", event.target.value)}
             />
 
-            <TextInput
+            <LegalTextField
               label="Расчетный счет"
+              numeric
               required
               value={form.checkingAccount}
               error={errors.checkingAccount}
@@ -340,8 +372,9 @@ export function SellerLegalTab() {
               }
             />
 
-            <TextInput
+            <LegalTextField
               label="Корреспондентский счет"
+              numeric
               value={form.correspondentAccount}
               onChange={(event) =>
                 updateField("correspondentAccount", event.target.value)
@@ -350,7 +383,7 @@ export function SellerLegalTab() {
           </div>
         </section>
 
-        <section className={styles.card}>
+        <section className={styles.plainSection}>
           <div className={styles.agreementRow}>
             <label className={styles.checkbox}>
               <input
@@ -360,7 +393,8 @@ export function SellerLegalTab() {
                   updateField("agreementAccepted", event.target.checked)
                 }
               />
-              <span>
+              <span className={styles.checkboxMark} />
+              <span className={styles.checkboxText}>
                 Я принимаю{" "}
                 <Link href="/terms/seller" target="_blank">
                   оферту продавца
@@ -375,11 +409,78 @@ export function SellerLegalTab() {
         </section>
 
         <div className={styles.actions}>
-          <Button type="submit" variant="primary" disabled={saving}>
-            {saving ? "Сохраняем…" : "Сохранить реквизиты"}
+          <Button type="submit" variant="primary" disabled={saving || !formChanged}>
+            {savedMessage && !formChanged ? "Реквизиты сохранены" : "Сохранить реквизиты"}
           </Button>
         </div>
       </form>
     </section>
+  );
+}
+
+type LegalFieldProps = {
+  label: string;
+  required?: boolean;
+  error?: string;
+  numeric?: boolean;
+};
+
+function LegalTextField({
+  label,
+  required,
+  error,
+  numeric,
+  className = "",
+  onChange,
+  ...props
+}: LegalFieldProps & InputHTMLAttributes<HTMLInputElement>) {
+  const requiredEmpty =
+    required && !String(props.value ?? "").trim();
+
+  return (
+    <label className={styles.fieldWrap}>
+      <span className={styles.fieldLabel}>
+        {label}
+        {required ? "" : ""}
+      </span>
+      <input
+        {...props}
+        className={`${styles.input} ${requiredEmpty ? styles.requiredEmpty : ""} ${
+          error ? styles.inputError : ""
+        } ${className}`.trim()}
+        inputMode={numeric ? "numeric" : props.inputMode}
+        pattern={numeric ? "[0-9]*" : props.pattern}
+        aria-invalid={error ? "true" : undefined}
+        onChange={(event) => {
+          if (numeric) {
+            event.target.value = event.target.value.replace(/\D/g, "");
+          }
+
+          onChange?.(event);
+        }}
+      />
+    </label>
+  );
+}
+
+function LegalTextarea({
+  label,
+  required,
+  error,
+  className = "",
+  ...props
+}: LegalFieldProps & TextareaHTMLAttributes<HTMLTextAreaElement>) {
+  return (
+    <label className={styles.fieldWrap}>
+      <span className={styles.fieldLabel}>
+        {label}
+        {required ? "" : ""}
+      </span>
+      <textarea
+        className={`${styles.textarea} ${error ? styles.inputError : ""} ${className}`.trim()}
+        aria-invalid={error ? "true" : undefined}
+        {...props}
+      />
+    </label>
   );
 }
