@@ -43,6 +43,7 @@ export function ProductShippingCard({
         <NumberField
           label="Ширина, см"
           value={packageWidthCm}
+          decimal
           invalid={validationErrors.packageWidthCm}
           onChange={onPackageWidthCmChange}
         />
@@ -50,6 +51,7 @@ export function ProductShippingCard({
         <NumberField
           label="Высота, см"
           value={packageHeightCm}
+          decimal
           invalid={validationErrors.packageHeightCm}
           onChange={onPackageHeightCmChange}
         />
@@ -57,6 +59,7 @@ export function ProductShippingCard({
         <NumberField
           label="Длина, см"
           value={packageLengthCm}
+          decimal
           invalid={validationErrors.packageLengthCm}
           onChange={onPackageLengthCmChange}
         />
@@ -64,6 +67,7 @@ export function ProductShippingCard({
         <NumberField
           label="Вес, кг"
           value={packageWeightKg}
+          decimal
           invalid={validationErrors.packageWeightKg}
           onChange={onPackageWeightKgChange}
         />

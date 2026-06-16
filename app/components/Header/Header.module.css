@@ -177,12 +177,6 @@
   font-weight: 500;
 }
 
-.loading {
-  font-size: 13px;
-  color: var(--muted);
-  white-space: nowrap;
-}
-
 .search {
   display: flex;
   align-items: center;

@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import styles from "../ProductPage.module.css";
 
 import type { Product, Variant } from "../lib/types";
@@ -8,90 +7,61 @@ import type { Product, Variant } from "../lib/types";
 type Props = {
   product: Product;
   selectedVariant: Variant | null;
-  sizesText: string;
-  openFit: boolean;
+  openDescription: boolean;
   openShipping: boolean;
-  onToggleFit: () => void;
+  onToggleDescription: () => void;
   onToggleShipping: () => void;
 };
 
 export function ProductDetailsAccordion({
   product,
   selectedVariant,
-  sizesText,
-  openFit,
+  openDescription,
   openShipping,
-  onToggleFit,
+  onToggleDescription,
   onToggleShipping,
 }: Props) {
   return (
     <div className={styles.accordion}>
       <section className={styles.accItem}>
-        <button type="button" className={styles.accBtn} aria-expanded="true">
+        <button
+          type="button"
+          className={styles.accBtn}
+          onClick={onToggleDescription}
+          aria-expanded={openDescription}
+        >
           <span>Описание</span>
-          <span className={styles.accIcon}>−</span>
+          <span className={styles.accIcon}>{openDescription ? "−" : "+"}</span>
         </button>
 
-        <div className={styles.accBodyOpen}>
-          <div className={styles.descriptionGrid}>
-            <div>
-              <h3 className={styles.subTitle}>Подробнее о товаре</h3>
-              <p className={styles.text}>
-                {product.description || "Описание пока не заполнено."}
-              </p>
+        {openDescription ? (
+          <div className={styles.accBodyOpen}>
+            <div className={styles.descriptionGrid}>
+              <div className={styles.descriptionMain}>
+                <p className={styles.text}>
+                  {product.description || "Описание пока не заполнено."}
+                </p>
+
+                <div className={styles.articleRows}>
+                  <div>
+                    <span>Артикул сайта</span>
+                    <strong>{selectedVariant?.sku || `RCM-${product.id}`}</strong>
+                  </div>
+
+                  <div>
+                    <span>Артикул бренда</span>
+                    <strong>{product.article || "Не указан"}</strong>
+                  </div>
+                </div>
+              </div>
+
+              <div className={styles.compositionBlock}>
+                <h3 className={styles.subTitle}>Состав</h3>
+                <p className={styles.text}>
+                  {product.composition || "Состав пока не заполнен."}
+                </p>
+              </div>
             </div>
-
-            <div>
-              <h3 className={styles.subTitle}>Информация</h3>
-              <ul className={styles.list}>
-                <li>
-                  Производитель:{" "}
-                  {product.brandSlug ? (
-                    <Link href={`/brand/${product.brandSlug}`}>
-                      {product.brand}
-                    </Link>
-                  ) : (
-                    product.brand
-                  )}
-                </li>
-                <li>Категория: {product.category}</li>
-
-                {product.composition ? (
-                  <li>Состав: {product.composition}</li>
-                ) : null}
-
-                {product.article ? (
-                  <li>Артикул: {product.article}</li>
-                ) : null}
-                {selectedVariant?.sku ? <li>SKU: {selectedVariant.sku}</li> : null}
-                {selectedVariant ? (
-                  <li>
-                    Наличие:{" "}
-                {selectedVariant.availableQuantity === null
-                  ? "без ограничения остатка"
-                  : selectedVariant.availableQuantity > 0
-                    ? `${selectedVariant.availableQuantity} шт.`
-                    : "нет в наличии"}
-                  </li>
-                ) : null}
-              </ul>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section className={styles.accItem}>
-        <button type="button" className={styles.accBtn} onClick={onToggleFit}>
-          <span>Размер и крой</span>
-          <span className={styles.accIcon}>{openFit ? "−" : "+"}</span>
-        </button>
-
-        {openFit ? (
-          <div className={styles.accBody}>
-            <p className={styles.text}>
-              {sizesText}. Точные параметры и посадка зависят от выбранного
-              варианта.
-            </p>
           </div>
         ) : null}
       </section>
@@ -101,6 +71,7 @@ export function ProductDetailsAccordion({
           type="button"
           className={styles.accBtn}
           onClick={onToggleShipping}
+          aria-expanded={openShipping}
         >
           <span>Доставка и возврат</span>
           <span className={styles.accIcon}>{openShipping ? "−" : "+"}</span>
@@ -108,10 +79,34 @@ export function ProductDetailsAccordion({
 
         {openShipping ? (
           <div className={styles.accBody}>
-            <p className={styles.text}>
-              Доставка рассчитывается при оформлении заказа. Возврат возможен
-              в стандартные сроки магазина.
-            </p>
+            <div className={styles.shippingText}>
+              <p>
+                Доставка рассчитывается при оформлении заказа и зависит от
+                выбранного города, способа получения и тарифов службы доставки.
+              </p>
+              <p>
+                Вы оплачиваете итоговую стоимость заказа на этапе оформления.
+                Если в заказе несколько товаров, условия доставки будут
+                рассчитаны для всей корзины.
+              </p>
+              <p>
+                Возврат возможен в течение 30 дней после получения заказа, если
+                товар сохранил товарный вид, бирки и упаковку.
+              </p>
+              <p>
+                Точные правила возврата, сроки обработки и исключения мы
+                вынесем в отдельные разделы после финальной настройки политики
+                магазина.
+              </p>
+
+              <div className={styles.shippingLinks}>
+                <span>Заказы и доставка</span>
+                <span>Возврат</span>
+                <span>Оплата и пошлины</span>
+                <span>Данные продавца</span>
+                <span>Информация о производителе</span>
+              </div>
+            </div>
           </div>
         ) : null}
       </section>

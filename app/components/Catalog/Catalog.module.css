@@ -7,6 +7,63 @@
   margin-bottom: 20px;
 }
 
+.skeletonTop {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-bottom: 20px;
+}
+
+.skeletonBreadcrumb,
+.skeletonHeading,
+.skeletonChip,
+.skeletonSort,
+.skeletonCount {
+  background: var(--soft);
+}
+
+.skeletonBreadcrumb {
+  width: 124px;
+  height: 16px;
+}
+
+.skeletonHeading {
+  width: min(420px, 72vw);
+  height: 40px;
+}
+
+.skeletonActions {
+  position: sticky;
+  top: var(--site-header-height);
+  z-index: 10;
+
+  display: flex;
+  align-items: center;
+  gap: 12px;
+
+  margin-bottom: 20px;
+  padding: 12px 0;
+
+  background: var(--white);
+}
+
+.skeletonChip {
+  width: 128px;
+  height: 44px;
+}
+
+.skeletonSort {
+  width: 148px;
+  height: 44px;
+  margin-left: auto;
+}
+
+.skeletonCount {
+  width: 86px;
+  height: 18px;
+  margin-bottom: 12px;
+}
+
 .breadcrumbs {
   margin-bottom: 14px;
 }
@@ -251,6 +308,9 @@
   grid-template-columns: repeat(1, minmax(0, 1fr));
   gap: 20px 12px;
   min-height: 400px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
 }
 
 .pagination {
@@ -276,6 +336,16 @@
   color: var(--black);
 
   text-decoration: none;
+  font-size: var(--font-sm);
+}
+
+.pageEllipsis {
+  min-width: 28px;
+  height: 40px;
+  color: var(--muted);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   font-size: var(--font-sm);
 }
 
@@ -322,6 +392,19 @@
 
     padding: 10px 0;
     border-bottom-color: var(--line);
+  }
+
+  .skeletonActions {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+    padding: 10px 0;
+  }
+
+  .skeletonChip,
+  .skeletonSort {
+    width: 100%;
+    margin-left: 0;
   }
 
   .chipsRow {

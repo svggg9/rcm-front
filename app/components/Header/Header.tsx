@@ -279,10 +279,6 @@ function HeaderContent() {
       <div className={styles.bottom}>
         <div className={styles.inner}>
           <nav className={styles.categories} aria-label="Категории">
-            {loadingCategories ? (
-              <span className={styles.loading}>Загрузка…</span>
-            ) : null}
-
             {!loadingCategories
               ? categories.map((category) => (
                   <button

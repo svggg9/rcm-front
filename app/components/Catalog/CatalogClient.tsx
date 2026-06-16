@@ -29,12 +29,40 @@ type Props = {
   selectedAudience: SelectedAudience;
   initialBrand: string;
   searchQuery: string;
-  pageTitle: string;
   currentPage: number;
   totalPages: number;
   initialSort: SortValue;
   hasError: boolean;
 };
+
+function getPaginationItems(currentPage: number, totalPages: number) {
+  const items: Array<number | "dots-start" | "dots-end"> = [];
+
+  if (totalPages <= 7) {
+    return Array.from({ length: totalPages }, (_, index) => index + 1);
+  }
+
+  items.push(1);
+
+  const start = Math.max(2, currentPage - 1);
+  const end = Math.min(totalPages - 1, currentPage + 1);
+
+  if (start > 2) {
+    items.push("dots-start");
+  }
+
+  for (let page = start; page <= end; page += 1) {
+    items.push(page);
+  }
+
+  if (end < totalPages - 1) {
+    items.push("dots-end");
+  }
+
+  items.push(totalPages);
+
+  return items;
+}
 
 export function CatalogClient({
   products,
@@ -44,7 +72,6 @@ export function CatalogClient({
   selectedAudience,
   initialBrand,
   searchQuery,
-  pageTitle,
   currentPage,
   totalPages,
   initialSort,
@@ -89,9 +116,21 @@ export function CatalogClient({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const visibleBrands = useMemo(() => brands.slice(0, 8), [brands]);
+  const visibleBrands = useMemo(() => {
+    const firstBrands = brands.slice(0, 8);
+
+    if (!selectedBrand || firstBrands.includes(selectedBrand)) {
+      return firstBrands;
+    }
+
+    return [selectedBrand, ...firstBrands.slice(0, 7)];
+  }, [brands, selectedBrand]);
   const breadcrumbAudienceLabel = audienceLabels[selectedAudience];
   const sortButtonText = sortBy ? sortLabels[sortBy] : "Сортировка";
+  const paginationItems = useMemo(
+    () => getPaginationItems(currentPage, totalPages),
+    [currentPage, totalPages]
+  );
 
   function toggleBrandsDropdown() {
     setBrandsOpen((prev) => !prev);
@@ -144,9 +183,6 @@ export function CatalogClient({
           </ol>
         </nav>
 
-        <div className={styles.headingWrap}>
-          <h1 className={styles.heading}>{pageTitle}</h1>
-        </div>
       </div>
 
       <div className={styles.catalogActions}>
@@ -295,27 +331,33 @@ export function CatalogClient({
 
       {totalPages > 1 ? (
         <nav className={styles.pagination} aria-label="Пагинация">
-          {Array.from({ length: totalPages }, (_, index) => {
-            const page = index + 1;
+          {paginationItems.map((item) => {
+            if (typeof item !== "number") {
+              return (
+                <span key={item} className={styles.pageEllipsis}>
+                  ...
+                </span>
+              );
+            }
 
             return (
               <Link
-                key={page}
+                key={item}
                 href={buildCatalogQuery({
                   audience: selectedAudience,
                   category: selectedCategory,
                   brand: selectedBrand,
                   q: searchQuery,
-                  page,
+                  page: item,
                   sort: sortBy,
                 })}
                 className={`${styles.pageLink} ${
-                  currentPage === page ? styles.pageLinkActive : ""
+                  currentPage === item ? styles.pageLinkActive : ""
                 }`}
-                aria-current={currentPage === page ? "page" : undefined}
+                aria-current={currentPage === item ? "page" : undefined}
                 prefetch={false}
               >
-                {page}
+                {item}
               </Link>
             );
           })}

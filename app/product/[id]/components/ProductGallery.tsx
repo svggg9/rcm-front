@@ -1,6 +1,8 @@
 "use client";
 
 import Image from "next/image";
+import { useCallback, useEffect, useRef, useState } from "react";
+
 import styles from "../ProductPage.module.css";
 
 type Props = {
@@ -10,82 +12,125 @@ type Props = {
 };
 
 export function ProductGallery({ title, images, onOpenImage }: Props) {
-  const topImages = images.slice(0, 2);
-  const bottomImages = images.slice(2, 6);
-  const bottomCount = bottomImages.length;
+  const [activeIndex, setActiveIndex] = useState(0);
+  const [canScrollUp, setCanScrollUp] = useState(false);
+  const [canScrollDown, setCanScrollDown] = useState(false);
+  const thumbsRef = useRef<HTMLDivElement | null>(null);
+  const activeImage = images[activeIndex] ?? images[0];
+  const hasThumbScroll = images.length > 4;
+
+  const updateScrollState = useCallback(() => {
+    const node = thumbsRef.current;
+    if (!node) return;
+
+    const maxScrollTop = node.scrollHeight - node.clientHeight;
+
+    setCanScrollUp(node.scrollTop > 4);
+    setCanScrollDown(node.scrollTop < maxScrollTop - 4);
+  }, []);
+
+  useEffect(() => {
+    thumbsRef.current?.scrollTo({ top: 0 });
+  }, [images]);
+
+  useEffect(() => {
+    const frame = window.requestAnimationFrame(updateScrollState);
+
+    return () => window.cancelAnimationFrame(frame);
+  }, [images.length, updateScrollState]);
+
+  function scrollThumbs(direction: "up" | "down") {
+    thumbsRef.current?.scrollBy({
+      top: direction === "down" ? 170 : -170,
+      behavior: "smooth",
+    });
+  }
 
   if (images.length === 0) {
-  return (
-    <div className={styles.gallery}>
-      <div className={styles.galleryTop}>
-        <div className={styles.galleryLarge}>
+    return (
+      <div className={styles.gallery}>
+        <div className={styles.galleryMain}>
           <div className={styles.galleryPlaceholder}>Фото отсутствует</div>
         </div>
       </div>
-    </div>
-  );
-}
+    );
+  }
 
   return (
     <div className={styles.gallery}>
-      <div className={styles.galleryTop}>
-        {topImages.map((src, index) => (
+      <div className={styles.galleryThumbsWrap}>
+        {hasThumbScroll && canScrollUp ? (
           <button
-            key={`${src}-${index}`}
             type="button"
-            className={`${styles.galleryLarge} ${styles.galleryButton}`}
-            onClick={() => onOpenImage(index)}
+            className={`${styles.galleryThumbScroll} ${styles.galleryThumbScrollTop}`}
+            onClick={() => scrollThumbs("up")}
+            aria-label="Показать предыдущие фото"
           >
-            <Image
-              src={src}
-              alt={`${title} ${index + 1}`}
-              fill
-              sizes="(max-width: 768px) 100vw, 50vw"
-              className={styles.galleryImg}
-              priority={index === 0}
-            />
-
-            <span className={styles.zoomBadge} aria-hidden="true">
-              <Image src="/icons/search.svg" alt="" width={16} height={16} />
-            </span>
+            <svg viewBox="0 0 16 16" focusable="false" aria-hidden="true">
+              <path d="M4 10L8 6L12 10" />
+            </svg>
           </button>
-        ))}
-      </div>
+        ) : null}
 
-      {bottomImages.length > 0 ? (
         <div
-          className={`${styles.galleryBottom} ${
-            bottomCount === 1
-              ? styles.bottom1
-              : bottomCount === 2
-              ? styles.bottom2
-              : bottomCount === 3
-              ? styles.bottom3
-              : styles.bottom4
-          }`}
+          ref={thumbsRef}
+          className={styles.galleryThumbs}
+          aria-label="Фотографии товара"
+          onScroll={updateScrollState}
         >
-          {bottomImages.map((src, index) => (
+          {images.map((src, index) => (
             <button
-              key={`${src}-${index + 2}`}
+              key={`${src}-${index}`}
               type="button"
-              className={`${styles.gallerySmall} ${styles.galleryButton}`}
-              onClick={() => onOpenImage(index + 2)}
+              className={`${styles.galleryThumb} ${
+                activeIndex === index ? styles.galleryThumbActive : ""
+              }`.trim()}
+              onClick={() => setActiveIndex(index)}
+              aria-label={`Показать фото ${index + 1}`}
             >
               <Image
                 src={src}
-                alt={`${title} ${index + 3}`}
+                alt=""
                 fill
-                sizes="(max-width: 768px) 50vw, 25vw"
+                sizes="120px"
                 className={styles.galleryImg}
               />
-
-              <span className={styles.zoomBadge} aria-hidden="true">
-                <Image src="/icons/search.svg" alt="" width={16} height={16} />
-              </span>
             </button>
           ))}
         </div>
-      ) : null}
+
+        {hasThumbScroll && canScrollDown ? (
+          <button
+            type="button"
+            className={`${styles.galleryThumbScroll} ${styles.galleryThumbScrollBottom}`}
+            onClick={() => scrollThumbs("down")}
+            aria-label="Показать следующие фото"
+          >
+            <svg viewBox="0 0 16 16" focusable="false" aria-hidden="true">
+              <path d="M4 6L8 10L12 6" />
+            </svg>
+          </button>
+        ) : null}
+      </div>
+
+      <button
+        type="button"
+        className={`${styles.galleryMain} ${styles.galleryButton}`}
+        onClick={() => onOpenImage(activeIndex)}
+      >
+        <Image
+          src={activeImage}
+          alt={`${title} ${activeIndex + 1}`}
+          fill
+          sizes="(max-width: 1100px) 100vw, 56vw"
+          className={styles.galleryImg}
+          priority
+        />
+
+        <span className={styles.zoomBadge} aria-hidden="true">
+          <Image src="/icons/search.svg" alt="" width={16} height={16} />
+        </span>
+      </button>
     </div>
   );
 }

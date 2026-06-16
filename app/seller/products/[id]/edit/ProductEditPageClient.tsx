@@ -1,12 +1,11 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { apiFetch, API_URL } from "../../../../lib/api";
 
 import { ProductStickyHeader } from "./components/ProductStickyHeader";
 import { ProductGeneralCard } from "./components/ProductGeneralCard";
-import { ProductImagesCard } from "./components/ProductImagesCard";
 import { ProductVariantsCard } from "./components/ProductVariantsCard";
 import { ProductShippingCard } from "./components/ProductShippingCard";
 import { ProductPreviewAside } from "./components/ProductPreviewAside";
@@ -66,6 +65,7 @@ function createEmptyVariant(): ProductVariant {
     price: 0,
     availableQuantity: null,
     sku: "",
+    sellerArticle: "",
     stockTrackingEnabled: false,
   };
 }
@@ -74,6 +74,7 @@ function mapProductVariants(productData: SellerProduct): ProductVariant[] {
   return Array.isArray(productData.variants) && productData.variants.length
     ? productData.variants.map((variant) => ({
         id: variant.id,
+        colorwayId: variant.colorwayId ?? null,
         sizeId: variant.sizeId ?? "",
         size: variant.size ?? "",
         colorId: variant.colorId ?? "",
@@ -82,6 +83,7 @@ function mapProductVariants(productData: SellerProduct): ProductVariant[] {
         price: Number(variant.price ?? 0),
         availableQuantity: variant.availableQuantity,
         sku: variant.sku ?? "",
+        sellerArticle: variant.sellerArticle ?? "",
         stockTrackingEnabled: variant.stockTrackingEnabled !== false,
       }))
     : [createEmptyVariant()];
@@ -103,6 +105,7 @@ export function ProductEditPageClient({ productId }: Props) {
   const [description, setDescription] = useState("");
   const [composition, setComposition] = useState("");
   const [categoryId, setCategoryId] = useState<number | "">("");
+  const [suggestedCategoryName, setSuggestedCategoryName] = useState("");
   const [brandId, setBrandId] = useState<number | "">("");
   const [audience, setAudience] = useState<Audience>("UNISEX");
   const [sizes, setSizes] = useState<Option[]>([]);
@@ -128,6 +131,7 @@ export function ProductEditPageClient({ productId }: Props) {
     useState<SellerOnboardingStatus | null>(null);
 
   const [validationErrors, setValidationErrors] = useState<ValidationErrors>({});
+  const pageContentRef = useRef<HTMLDivElement | null>(null);
 
   const [uploadProgress, setUploadProgress] = useState({
       done: 0,
@@ -139,7 +143,7 @@ export function ProductEditPageClient({ productId }: Props) {
 
     if (title.trim()) score += 15;
     if (description.trim().length >= 80) score += 20;
-    if (categoryId) score += 10;
+    if (categoryId || suggestedCategoryName.trim()) score += 10;
     if (brandId) score += 10;
     if (images.length > 0) score += 20;
     if (variants.length > 0) score += 15;
@@ -152,6 +156,7 @@ export function ProductEditPageClient({ productId }: Props) {
     title,
     description,
     categoryId,
+    suggestedCategoryName,
     brandId,
     images.length,
     variants.length,
@@ -241,6 +246,7 @@ export function ProductEditPageClient({ productId }: Props) {
         setDescription(productData.description ?? "");
         setComposition(productData.composition ?? "");
         setCategoryId(productData.categoryId ?? "");
+        setSuggestedCategoryName(productData.suggestedCategoryName ?? "");
         setAudience(productData.audience ?? "UNISEX");
 
         setPackageWidthCm(productData.packageWidthCm ?? "");
@@ -323,6 +329,20 @@ export function ProductEditPageClient({ productId }: Props) {
     });
   }
 
+  function scrollToFirstValidationError() {
+    requestAnimationFrame(() => {
+      const root = pageContentRef.current ?? document;
+      const firstError = root.querySelector<HTMLElement>(
+        `.${styles.fieldInvalid}, .${styles.requiredEmpty}, .${styles.dropZoneInvalid}`
+      );
+
+      firstError?.scrollIntoView({
+        behavior: "smooth",
+        block: "center",
+      });
+    });
+  }
+
   function validateProduct() {
   const nextErrors: ValidationErrors = {};
   const messages: string[] = [];
@@ -337,9 +357,8 @@ export function ProductEditPageClient({ productId }: Props) {
     messages.push("Заполните описание");
   }
 
-  if (categoryId === "") {
+  if (categoryId === "" && !suggestedCategoryName.trim()) {
     nextErrors.categoryId = true;
-    messages.push("Выберите категорию");
   }
 
   if (brandId === "") {
@@ -369,10 +388,6 @@ export function ProductEditPageClient({ productId }: Props) {
 
   variants.forEach((variant, index) => {
     const current: NonNullable<ValidationErrors["variants"]>[number] = {};
-
-    if (!variant.sku.trim()) current.sku = true;
-    if (!variant.sizeId) current.sizeId = true;
-    if (!variant.colorId) current.colorId = true;
     if (variant.price <= 0) current.price = true;
 
     if (
@@ -389,7 +404,7 @@ export function ProductEditPageClient({ productId }: Props) {
 
   if (Object.keys(variantErrors).length > 0) {
     nextErrors.variants = variantErrors;
-    messages.push("Проверьте варианты товара: SKU, размер, цвет, цену и остатки");
+    messages.push("Проверьте варианты товара: цену и остатки");
   }
 
   setValidationErrors(nextErrors);
@@ -407,13 +422,11 @@ export function ProductEditPageClient({ productId }: Props) {
     const validation = validateProduct();
 
     if (!validation.valid) {
+      scrollToFirstValidationError();
       return failValidation(validation.message ?? "Заполните обязательные поля");
     }
 
     for (const variant of variants) {
-      if (!variant.sku.trim()) return failValidation("У каждого варианта должен быть SKU");
-      if (!variant.sizeId) return failValidation("У каждого варианта должен быть размер");
-      if (!variant.colorId) return failValidation("У каждого варианта должен быть цвет");
       if (variant.price <= 0) return failValidation("Цена варианта должна быть больше 0");
 
       if (
@@ -435,7 +448,8 @@ export function ProductEditPageClient({ productId }: Props) {
           title: title.trim(),
           description: description.trim(),
           composition: composition.trim(),
-          categoryId: Number(categoryId),
+          categoryId: categoryId ? Number(categoryId) : null,
+          suggestedCategoryName: suggestedCategoryName.trim() || null,
           brandId: Number(brandId),
           audience,
           packageWidthCm: numberOrNull(packageWidthCm),
@@ -445,12 +459,15 @@ export function ProductEditPageClient({ productId }: Props) {
           variants: variantsToSave.map((variant) => ({
             id: variant.id,
             sizeId: variant.sizeId ? Number(variant.sizeId) : null,
+            suggestedSizeName: variant.sizeId ? null : variant.size.trim() || null,
             colorId: variant.colorId ? Number(variant.colorId) : null,
+            suggestedColorName: variant.colorId ? null : variant.color.trim() || null,
             price: Number(variant.price),
             stockQuantity: variant.stockTrackingEnabled
               ? Number(variant.availableQuantity ?? 0)
               : null,
-            sku: variant.sku.trim(),
+            sku: variant.sku.trim() || null,
+            sellerArticle: variant.sellerArticle?.trim() || null,
             stockTrackingEnabled: variant.stockTrackingEnabled,
           })),
         }),
@@ -517,7 +534,7 @@ export function ProductEditPageClient({ productId }: Props) {
     setImages(Array.isArray(productData.imageItems) ? productData.imageItems : []);
   }
 
-  async function uploadImages(filesToUpload = selectedFiles) {
+  async function uploadImages(filesToUpload = selectedFiles, colorwayId?: number | null) {
     if (!filesToUpload.length || uploading) return;
 
     setUploading(true);
@@ -529,6 +546,9 @@ export function ProductEditPageClient({ productId }: Props) {
 
         const formData = new FormData();
         formData.append("file", file);
+        if (colorwayId) {
+          formData.append("colorwayId", String(colorwayId));
+        }
 
         const response = await apiFetch(`${API_URL}/api/seller/products/${productId}/images`, {
           method: "POST",
@@ -741,10 +761,13 @@ export function ProductEditPageClient({ productId }: Props) {
     markDirty();
   }
 
-  function addVariant() {
+  function addVariant(base: Partial<ProductVariant> = {}) {
     setVariants((current) => [
       ...current,
-      createEmptyVariant(),
+      {
+        ...createEmptyVariant(),
+        ...base,
+      },
     ]);
 
     markDirty();
@@ -785,7 +808,6 @@ export function ProductEditPageClient({ productId }: Props) {
         brandId={brandId}
         categories={categories}
         brands={brands}
-        variants={variants}
         images={images}
         dirty={dirty}
         saving={saving}
@@ -800,7 +822,7 @@ export function ProductEditPageClient({ productId }: Props) {
         onArchive={() => void archiveProduct()}
         onActionsOpenChange={setActionsOpen}
         />
-    <div className={styles.pageContent}>
+    <div className={styles.pageContent} ref={pageContentRef}>
         {onboardingStatus && onboardingStatus.progress < 100 ? (
           <div className={styles.onboardingWarning}>
             <strong>Магазин не готов к публикации</strong>
@@ -827,6 +849,7 @@ export function ProductEditPageClient({ productId }: Props) {
               description={description}
               composition={composition}
               categoryId={categoryId}
+              suggestedCategoryName={suggestedCategoryName}
               brandId={brandId}
               audience={audience}
               categories={categories}
@@ -847,6 +870,17 @@ export function ProductEditPageClient({ productId }: Props) {
               }}
               onCategoryIdChange={(value) => {
                 setCategoryId(value);
+                if (value) {
+                  setSuggestedCategoryName("");
+                }
+                clearValidationError("categoryId");
+                markDirty();
+              }}
+              onSuggestedCategoryNameChange={(value) => {
+                setSuggestedCategoryName(value);
+                if (value.trim()) {
+                  setCategoryId("");
+                }
                 clearValidationError("categoryId");
                 markDirty();
               }}
@@ -861,28 +895,24 @@ export function ProductEditPageClient({ productId }: Props) {
               }}
             />
 
-            <ProductImagesCard
-            invalid={validationErrors.images}
+            <ProductVariantsCard
+            variants={variants}
+            invalidImages={validationErrors.images}
             uploadProgress={uploadProgress}
             images={images}
             uploading={uploading}
             reordering={reordering}
             dragImageId={dragImageId}
+            validationErrors={validationErrors.variants ?? {}}
+            onUpdateVariant={updateVariant}
+            onAddVariant={addVariant}
+            onRemoveVariant={removeVariant}
             onFilesChange={setSelectedFiles}
-            onUploadImages={(files) => void uploadImages(files)}
+            onUploadImages={(files, colorwayId) => void uploadImages(files, colorwayId)}
             onDragImageStart={setDragImageId}
             onDragImageEnd={() => setDragImageId(null)}
             onMoveImage={(imageId) => moveImage(imageId)}
             onDeleteImage={(imageId) => void deleteImage(imageId)}
-            onMoveImageByIndex={moveImageByIndex}
-            />
-
-            <ProductVariantsCard
-            validationErrors={validationErrors.variants ?? {}}
-            variants={variants}
-            onUpdateVariant={updateVariant}
-            onAddVariant={addVariant}
-            onRemoveVariant={removeVariant}
             sizes={sizes}
             colors={colors}
             />

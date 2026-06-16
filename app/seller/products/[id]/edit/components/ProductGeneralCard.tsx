@@ -1,3 +1,5 @@
+import { FormCombobox } from "../../../../../components/ui/FormCombobox";
+import { FormSelect } from "../../../../../components/ui/FormSelect";
 import { SectionHeader } from "./SectionHeader";
 import type { Audience, Option } from "../types";
 import styles from "../ProductEditPage.module.css";
@@ -17,6 +19,7 @@ type Props = {
   composition: string;
 
   categoryId: number | "";
+  suggestedCategoryName: string;
   brandId: number | "";
   audience: Audience;
 
@@ -28,6 +31,7 @@ type Props = {
   onCompositionChange: (value: string) => void;
 
   onCategoryIdChange: (value: number | "") => void;
+  onSuggestedCategoryNameChange: (value: string) => void;
   onBrandIdChange: (value: number | "") => void;
   onAudienceChange: (value: Audience) => void;
 };
@@ -38,6 +42,7 @@ export function ProductGeneralCard({
   description,
   composition,
   categoryId,
+  suggestedCategoryName,
   brandId,
   audience,
   categories,
@@ -46,98 +51,74 @@ export function ProductGeneralCard({
   onDescriptionChange,
   onCompositionChange,
   onCategoryIdChange,
+  onSuggestedCategoryNameChange,
   onBrandIdChange,
   onAudienceChange,
 }: Props) {
-  const categoriesEmpty = categories.length === 0;
   const brandsEmpty = brands.length === 0;
 
   return (
     <>
       <section className={styles.card}>
-      <SectionHeader
-        title="Основные данные"
-        hint="Название, категория и аудитория товара."
-      />
+        <SectionHeader
+          title="Основные данные"
+          hint="Название, категория и аудитория товара."
+        />
 
-      <div className={styles.formGrid}>
-        <label className={styles.fieldFull}>
-          <span className={styles.required}>Название</span>
+        <div className={styles.formGrid}>
+          <label className={styles.fieldFull}>
+            <span className={styles.required}>Название</span>
 
-          <input
-            value={title}
-            onChange={(event) => onTitleChange(event.target.value)}
-            className={`${styles.input} ${
-              validationErrors.title ? styles.fieldInvalid : ""
-            } ${title.trim() ? "" : styles.requiredEmpty}`}
-            placeholder="Например: хлопковая рубашка oversize"
+            <input
+              value={title}
+              onChange={(event) => onTitleChange(event.target.value)}
+              className={`${styles.input} ${
+                validationErrors.title ? styles.fieldInvalid : ""
+              } ${title.trim() ? "" : styles.requiredEmpty}`}
+              placeholder="Например: хлопковая рубашка oversize"
+            />
+
+            {validationErrors.title ? (
+              <small className={styles.fieldErrorText}>
+                Введите название товара.
+              </small>
+            ) : (
+              <small>
+                Оптимально: тип товара + производитель + модель.
+              </small>
+            )}
+          </label>
+
+          <FormCombobox
+            label="Категория"
+            value={categoryId}
+            customValue={suggestedCategoryName}
+            required
+            invalid={validationErrors.categoryId}
+            placeholder="Выберите или ввести свою"
+            options={categories.map((category) => ({
+              value: category.id,
+              label: category.name,
+            }))}
+            onChange={(value, customValue) => {
+              onCategoryIdChange(value);
+              onSuggestedCategoryNameChange(customValue);
+            }}
           />
 
-          {validationErrors.title ? (
-            <small className={styles.fieldErrorText}>
-              Введите название товара.
-            </small>
-          ) : (
-            <small>
-              Оптимально: тип товара + производитель + модель.
-            </small>
-          )}
-        </label>
-
-        <label className={styles.field}>
-          <span className={styles.required}>Категория</span>
-
-          <select
-            value={categoryId}
-            onChange={(event) =>
-              onCategoryIdChange(
-                event.target.value ? Number(event.target.value) : ""
-              )
-            }
-            className={`${styles.select} ${
-              validationErrors.categoryId ? styles.fieldInvalid : ""
-            } ${categoryId ? "" : styles.requiredEmpty}`}
-            disabled={categoriesEmpty}
-          >
-            <option value="">
-              {categoriesEmpty
-                ? "Категории не найдены"
-                : "Выберите категорию"}
-            </option>
-
-            {categories.map((category) => (
-              <option key={category.id} value={category.id}>
-                {category.name}
-              </option>
-            ))}
-          </select>
-
-          {validationErrors.categoryId ? (
-            <small className={styles.fieldErrorText}>
-              Выберите категорию.
-            </small>
-          ) : categoriesEmpty ? (
-            <small>Сначала добавьте категории в админке.</small>
-          ) : null}
-        </label>
-
-        <label className={styles.field}>
-          <span>Аудитория</span>
-
-          <select
+          <FormSelect<Audience>
+            label="Кому подходит"
             value={audience}
-            onChange={(event) =>
-              onAudienceChange(event.target.value as Audience)
-            }
-            className={styles.select}
-          >
-            <option value="MEN">Мужское</option>
-            <option value="WOMEN">Женское</option>
-            <option value="UNISEX">Унисекс</option>
-          </select>
-        </label>
-      </div>
-
+            options={[
+              { value: "MEN", label: "Мужское" },
+              { value: "WOMEN", label: "Женское" },
+              { value: "UNISEX", label: "Для всех" },
+            ]}
+            onChange={(value) => {
+              if (value) onAudienceChange(value);
+            }}
+          />
+        </div>
       </section>
 
       <section className={styles.card}>
@@ -146,34 +127,23 @@ export function ProductGeneralCard({
           hint="Укажите производителя товара."
         />
 
-      <div className={styles.formGrid}>
-        <label className={styles.fieldFull}>
-          <span className={styles.required}>Производитель</span>
-
-            <select
-              value={brandId}
-              onChange={(event) =>
-                onBrandIdChange(
-                  event.target.value ? Number(event.target.value) : ""
-                )
-              }
-              className={`${styles.select} ${
-                validationErrors.brandId ? styles.fieldInvalid : ""
-              } ${brandId ? "" : styles.requiredEmpty}`}
-              disabled={brandsEmpty || brands.length === 1}
-            >
-            <option value="">
-              {brandsEmpty
-                ? "Производители не найдены"
-                : "Выберите производителя"}
-            </option>
-
-            {brands.map((brand) => (
-              <option key={brand.id} value={brand.id}>
-                {brand.name}
-              </option>
-            ))}
-          </select>
+        <div className={styles.formGrid}>
+          <FormSelect<number>
+            label="Производитель"
+            value={brandId}
+            full
+            required
+            invalid={validationErrors.brandId}
+            disabled={brandsEmpty || brands.length === 1}
+            placeholder={
+              brandsEmpty ? "Производители не найдены" : "Выберите производителя"
+            }
+            options={brands.map((brand) => ({
+              value: brand.id,
+              label: brand.name,
+            }))}
+            onChange={onBrandIdChange}
+          />
 
           {validationErrors.brandId ? (
             <small className={styles.fieldErrorText}>
@@ -188,8 +158,7 @@ export function ProductGeneralCard({
               Производитель привязан к вашему аккаунту.
             </small>
           ) : null}
-        </label>
-      </div>
+        </div>
       </section>
 
       <section className={styles.card}>
@@ -198,45 +167,45 @@ export function ProductGeneralCard({
           hint="Материалы, особенности и комплектация товара."
         />
 
-      <div className={styles.formGrid}>
-        <label className={styles.fieldFull}>
-          <span className={styles.required}>Описание товара</span>
+        <div className={styles.formGrid}>
+          <label className={styles.fieldFull}>
+            <span className={styles.required}>Описание товара</span>
 
-          <textarea
-            value={description}
-            onChange={(event) => onDescriptionChange(event.target.value)}
-            className={`${styles.textarea} ${
-              validationErrors.description ? styles.fieldInvalid : ""
-            } ${description.trim() ? "" : styles.requiredEmpty}`}
-            rows={8}
-            maxLength={6000}
-            placeholder="Материал, особенности, назначение, комплектация и важные характеристики."
-          />
+            <textarea
+              value={description}
+              onChange={(event) => onDescriptionChange(event.target.value)}
+              className={`${styles.textarea} ${
+                validationErrors.description ? styles.fieldInvalid : ""
+              } ${description.trim() ? "" : styles.requiredEmpty}`}
+              rows={8}
+              maxLength={6000}
+              placeholder="Материал, особенности, назначение, комплектация и важные характеристики."
+            />
 
-          {validationErrors.description ? (
-            <small className={styles.fieldErrorText}>
-              Введите описание товара.
-            </small>
-          ) : (
-            <small>{description.length}/6000</small>
-          )}
-        </label>
+            {validationErrors.description ? (
+              <small className={styles.fieldErrorText}>
+                Введите описание товара.
+              </small>
+            ) : (
+              <small>{description.length}/6000</small>
+            )}
+          </label>
 
-        <label className={styles.fieldFull}>
-          <span>Состав</span>
+          <label className={styles.fieldFull}>
+            <span>Состав</span>
 
-          <textarea
-            value={composition}
-            onChange={(event) => onCompositionChange(event.target.value)}
-            className={styles.textarea}
-            rows={3}
-            maxLength={1000}
-            placeholder="Например: 92% хлопок, 8% эластан"
-          />
+            <textarea
+              value={composition}
+              onChange={(event) => onCompositionChange(event.target.value)}
+              className={styles.textarea}
+              rows={3}
+              maxLength={1000}
+              placeholder="Например: 92% хлопок, 8% эластан"
+            />
 
-          <small>{composition.length}/1000</small>
-        </label>
-      </div>
+            <small>{composition.length}/1000</small>
+          </label>
+        </div>
       </section>
     </>
   );

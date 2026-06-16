@@ -4,7 +4,6 @@ import type {
   Option,
   ProductImageItem,
   ProductStatus,
-  ProductVariant,
   SellerProduct,
 } from "../types";
 import styles from "../ProductEditPage.module.css";
@@ -19,7 +18,6 @@ type Props = {
   brandId: number | "";
   categories: Option[];
   brands: Option[];
-  variants: ProductVariant[];
   images: ProductImageItem[];
   dirty: boolean;
   saving: boolean;
@@ -43,7 +41,6 @@ export function ProductStickyHeader({
   brandId,
   categories,
   brands,
-  variants,
   images,
   dirty,
   saving,
@@ -112,7 +109,7 @@ export function ProductStickyHeader({
             </div>
 
             <div className={styles.lockedMeta}>
-              <span>{variants[0]?.sku || "SKU не заполнен"}</span>
+              <span>{product?.article || "Артикул сайта появится после сохранения"}</span>
               <span>•</span>
               <span>
                 {categories.find((category) => category.id === categoryId)?.name ||
