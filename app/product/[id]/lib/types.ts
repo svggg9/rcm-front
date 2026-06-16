@@ -1,11 +1,22 @@
 export type Variant = {
   id: number;
+  colorwayId?: number | null;
   size: string;
   color: string;
   price: number;
   availableQuantity: number | null;
   sku: string;
   stockTrackingEnabled?: boolean;
+};
+
+export type ProductColorway = {
+  id: number;
+  colorId?: number | null;
+  color: string;
+  colorHex?: string | null;
+  sortOrder?: number | null;
+  isDefault?: boolean;
+  images: string[];
 };
 
 export type Product = {
@@ -21,5 +32,6 @@ export type Product = {
   audience?: "MEN" | "WOMEN" | "UNISEX";
   status?: "DRAFT" | "ACTIVE" | "ARCHIVED" | "BLOCKED";
   images: string[];
+  colorways?: ProductColorway[];
   variants: Variant[];
 };

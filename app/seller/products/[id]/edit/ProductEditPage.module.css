@@ -104,7 +104,7 @@
   position: absolute;
   left: 14px;
   top: 7px;
-  z-index: 2;
+  z-index: 12;
   color: var(--muted);
   font-size: 10px;
   font-weight: 400;
@@ -134,15 +134,108 @@
   padding: 19px 14px 7px;
 }
 
+.field:focus-within > span:first-child,
+.fieldFull:focus-within > span:first-child {
+  z-index: 70;
+}
+
+.selectShell {
+  position: relative;
+  display: block;
+}
+
+.selectShell .select {
+  appearance: none;
+  padding-right: 42px;
+  cursor: pointer;
+}
+
+.selectShell .select:disabled {
+  cursor: not-allowed;
+}
+
+.selectChevron {
+  position: absolute;
+  right: 14px;
+  top: 50%;
+  width: 16px;
+  height: 16px;
+  transform: translateY(-50%);
+  color: var(--muted);
+  pointer-events: none;
+  transition: transform 0.18s ease, color 0.18s ease;
+}
+
+.selectChevron path {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.selectShell:focus-within .selectChevron {
+  color: var(--black);
+  transform: translateY(-50%) rotate(180deg);
+}
+
 .requiredEmpty {
   border-color: rgba(201, 162, 79, 0.22);
   background: rgba(201, 162, 79, 0.07);
+}
+
+.input.requiredEmpty,
+.select.requiredEmpty,
+.textarea.requiredEmpty {
+  border-color: rgba(201, 162, 79, 0.32);
+  background: rgba(201, 162, 79, 0.12);
+}
+
+.requiredEmpty:focus,
+.field:focus-within .requiredEmpty {
+  background: var(--white);
+  border-color: var(--line);
 }
 
 .input:focus,
 .textarea:focus,
 .select:focus {
   border-color: var(--black);
+}
+
+.priceField {
+  position: relative;
+}
+
+.priceField .input {
+  padding-right: 14px;
+}
+
+.priceInlineSuffix {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  max-width: calc(100% - 28px);
+  overflow: hidden;
+  font-size: var(--font-sm);
+  line-height: 1.5;
+  color: var(--muted);
+  transform: translateY(-17%);
+  pointer-events: none;
+}
+
+.priceMirror {
+  visibility: hidden;
+  white-space: pre;
+}
+
+.priceSuffix {
+  flex: 0 0 auto;
+  font-size: var(--font-sm);
 }
 
 .input:disabled,
@@ -506,23 +599,66 @@
 
 /* variants */
 
-.variantList {
-  display: flex;
-  flex-direction: column;
+.variantModeSwitcher {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 16px;
 }
 
-.variantCard {
-  border: none;
-  border-top: 1px solid var(--line);
-  padding: 18px 0;
+.variantModeOption {
+  min-height: 74px;
+  border: 1px solid var(--line);
+  background: var(--white);
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 5px;
+  color: var(--black);
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.18s ease, background 0.18s ease;
+}
+
+.variantModeOption strong {
+  font-size: var(--font-sm);
+  font-weight: 500;
+}
+
+.variantModeOption span {
+  color: var(--muted);
+  font-size: var(--font-xs);
+  line-height: 1.35;
+}
+
+.variantModeOptionActive {
+  border-color: var(--black);
+  background: var(--white);
+}
+
+.variantImagesBlock {
+  border: 1px solid var(--line);
+  background: var(--white);
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.variantList {
   display: flex;
   flex-direction: column;
   gap: 14px;
 }
 
-.variantCard:first-child {
-  border-top: 0;
-  padding-top: 0;
+.variantCard {
+  border: 1px solid var(--line);
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
 }
 
 .variantHeader {
@@ -561,6 +697,225 @@
   padding: 19px 14px 7px;
   color: var(--muted);
   font-size: var(--font-sm);
+}
+
+.variantImageDropZone {
+  border: 1px dashed var(--line);
+  background: var(--white);
+  padding: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.variantColorField {
+  position: relative;
+}
+
+.variantColorField > div input {
+  padding-right: 150px;
+}
+
+.variantNoColorToggle {
+  position: absolute;
+  right: 54px;
+  top: 50%;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--muted);
+  font-size: var(--font-xs);
+  white-space: nowrap;
+  transform: translateY(-50%);
+}
+
+.variantNoColorToggle input {
+  width: 14px;
+  height: 14px;
+  accent-color: var(--black);
+  pointer-events: auto;
+}
+
+.variantImageDropZone strong {
+  display: block;
+  color: var(--black);
+  font-size: var(--font-sm);
+  font-weight: 500;
+}
+
+.variantImageDropZone span {
+  display: block;
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: var(--font-xs);
+}
+
+.variantImageDropZoneDisabled {
+  background: var(--soft);
+}
+
+.variantImageGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(112px, 1fr));
+  gap: 10px;
+}
+
+.variantSizeList {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.variantSizeRow {
+  display: grid;
+  grid-template-columns: minmax(120px, 1fr) minmax(120px, 1fr) minmax(160px, 1.2fr) minmax(138px, 0.9fr);
+  gap: 10px;
+  align-items: start;
+}
+
+.variantSizeField {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.variantSizeActions {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 7px;
+}
+
+.variantSizeActions:has(.variantSizeDeleteBtn) {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+}
+
+.variantAddSizeBtn,
+.variantSizeDeleteBtn {
+  width: 100%;
+  min-height: 22px;
+  border: 1px solid var(--line);
+  background: var(--white);
+  color: var(--muted);
+  padding: 2px 6px;
+  font-size: var(--font-xs);
+  line-height: 1.2;
+  cursor: pointer;
+}
+
+.variantAddSizeBtn {
+  border-color: rgba(33, 106, 67, 0.24);
+  background: rgba(33, 106, 67, 0.055);
+  color: var(--success);
+}
+
+.variantAddSizeBtn:hover {
+  background: rgba(33, 106, 67, 0.1);
+  border-color: rgba(33, 106, 67, 0.42);
+  color: var(--success);
+}
+
+.variantSizeDeleteBtn:hover {
+  border-color: var(--black);
+  color: var(--black);
+}
+
+.variantSizeDeleteBtn {
+  border-color: rgba(155, 44, 44, 0.22);
+  background: rgba(155, 44, 44, 0.045);
+  color: var(--danger);
+}
+
+.variantSizeDeleteBtn:hover {
+  background: rgba(155, 44, 44, 0.09);
+  border-color: rgba(155, 44, 44, 0.38);
+  color: var(--danger);
+}
+
+.quantityField {
+  position: relative;
+  gap: 7px;
+}
+
+.quantityField .input,
+.quantityField .readonlyBox {
+  padding-right: 14px;
+}
+
+.quantityField .variantStockToggle {
+  margin-top: 0;
+}
+
+.variantStockToggle {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--muted);
+  font-size: var(--font-xs);
+}
+
+.variantStockToggle input {
+  width: 15px;
+  height: 15px;
+  accent-color: var(--black);
+  pointer-events: auto;
+}
+
+.variantCardActions {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+}
+
+.variantCardActions:has(.variantDeleteBtn) {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+}
+
+.variantAddVariantBtn,
+.variantDeleteBtn {
+  height: 40px;
+  border: 1px solid var(--black);
+  background: var(--black);
+  color: var(--white);
+  font-size: var(--font-sm);
+  font-weight: 500;
+  padding: 0 12px;
+  cursor: pointer;
+  transition: border-color 0.18s ease, color 0.18s ease, opacity 0.18s ease;
+}
+
+.variantAddVariantBtn:hover,
+.variantDeleteBtn:hover {
+  opacity: 0.78;
+}
+
+.variantDeleteBtn {
+  border-color: rgba(155, 44, 44, 0.22);
+  background: rgba(155, 44, 44, 0.045);
+  color: var(--danger);
+}
+
+.variantDeleteBtn:hover {
+  background: rgba(155, 44, 44, 0.09);
+  border-color: rgba(155, 44, 44, 0.38);
+  color: var(--danger);
+  opacity: 1;
+}
+
+.variantRemoveBtn {
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  padding: 0;
+  font-size: var(--font-xs);
+  line-height: 1.2;
+  cursor: pointer;
+}
+
+.variantRemoveBtn:hover {
+  color: var(--danger);
+  text-decoration: underline;
 }
 
 .addVariantBtn {

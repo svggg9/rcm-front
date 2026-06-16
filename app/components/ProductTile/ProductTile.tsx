@@ -19,7 +19,6 @@ type Product = {
 
 export function ProductTile({ product }: { product: Product }) {
   const router = useRouter();
-
   const mainImage = product.images?.[0];
   const hoverImage = product.images?.[1];
   const hasHoverImage = hoverImage && hoverImage !== mainImage;
@@ -30,94 +29,85 @@ export function ProductTile({ product }: { product: Product }) {
   const prefetchedRef = useRef(false);
 
   const priceText =
-  product.minPrice > 0
-    ? `${product.minPrice.toLocaleString("ru-RU")} ₽`
-    : "Цена по запросу";
+    product.minPrice > 0
+      ? `${product.minPrice.toLocaleString("ru-RU")} ₽`
+      : "Цена по запросу";
+  const imageSizes =
+    "(max-width: 599px) 100vw, (max-width: 899px) 50vw, (max-width: 1199px) 33vw, 25vw";
 
   function prefetchProduct() {
     if (prefetchedRef.current) return;
     prefetchedRef.current = true;
     if (window.innerWidth > 768) {
-    router.prefetch(`/product/${product.id}`);
-}
+      router.prefetch(`/product/${product.id}`);
+    }
   }
 
   async function onLike(e: React.MouseEvent<HTMLButtonElement>) {
-    e.preventDefault();
     e.stopPropagation();
     await toggle(product.id);
   }
 
   return (
     <li className={styles.item}>
-      <Link
-        href={`/product/${product.id}`}
-        className={styles.link}
-        onMouseEnter={prefetchProduct}
-        onFocus={prefetchProduct}
-      >
-        <div className={styles.media}>
-          {mainImage ? (
-            <Image
-              src={mainImage}
-              alt={product.title}
-              fill
-              sizes="(max-width: 768px) 50vw, (max-width: 1200px) 25vw, 280px"
-              className={styles.imgMain}
-            />
-          ) : (
-            <div className={styles.noImage}>Нет изображения</div>
-          )}
+      <article className={styles.card}>
+        <div className={styles.mediaWrap}>
+          <Link
+            href={`/product/${product.id}`}
+            className={styles.mediaLink}
+            onMouseEnter={prefetchProduct}
+            onFocus={prefetchProduct}
+          >
+            {mainImage ? (
+              <Image
+                src={mainImage}
+                alt={product.title}
+                fill
+                sizes={imageSizes}
+                className={styles.imgMain}
+              />
+            ) : (
+              <div className={styles.noImage}>Нет изображения</div>
+            )}
 
-          {hasHoverImage ? (
+            {hasHoverImage ? (
+              <Image
+                src={hoverImage}
+                alt=""
+                fill
+                sizes={imageSizes}
+                className={styles.imgHover}
+              />
+            ) : null}
+          </Link>
+
+          <button
+            type="button"
+            className={`${styles.like} ${fav ? styles.liked : ""}`}
+            onClick={onLike}
+            aria-label={fav ? "Убрать из избранного" : "Сохранить"}
+            title={fav ? "Убрать" : "Сохранить"}
+          >
             <Image
-              src={hoverImage}
+              src={fav ? "/icons/like-filled.svg" : "/icons/like.svg"}
               alt=""
-              fill
-              sizes="(max-width: 768px) 50vw, (max-width: 1200px) 25vw, 280px"
-              className={styles.imgHover}
+              width={20}
+              height={20}
+              aria-hidden="true"
             />
-          ) : null}
+          </button>
         </div>
 
         <div className={styles.info}>
           {product.brand ? (
-              <button
-                type="button"
-                className={styles.brand}
-                onClick={(event) => {
-                  event.preventDefault();
-                  event.stopPropagation();
+            <span className={styles.brandText}>{product.brand}</span>
+          ) : null}
 
-                  if (product.brandSlug) {
-                    router.push(`/brand/${product.brandSlug}`);
-                  }
-                }}
-                disabled={!product.brandSlug}
-              >
-                {product.brand}
-              </button>
-            ) : null}
           <div className={styles.title}>{product.title}</div>
+
           <div className={styles.price}>{priceText}</div>
         </div>
-
-        <button
-          type="button"
-          className={`${styles.like} ${fav ? styles.liked : ""}`}
-          onClick={onLike}
-          aria-label={fav ? "Убрать из избранного" : "Сохранить"}
-          title={fav ? "Убрать" : "Сохранить"}
-        >
-          <Image
-            src={fav ? "/icons/like-filled.svg" : "/icons/like.svg"}
-            alt=""
-            width={20}
-            height={20}
-            aria-hidden="true"
-          />
-        </button>
-      </Link>
+      </article>
     </li>
   );
 }

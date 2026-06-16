@@ -18,7 +18,7 @@ import { ProductImageViewer } from "./components/ProductImageViewer";
 import type { Product } from "./lib/types";
 import { useCurrentUser } from "../../lib/useCurrentUser";
 import { addVariantToCart } from "./lib/productPageApi";
-import { getMinPrice, getSizesText } from "./lib/productPageUtils";
+import { getMinPrice } from "./lib/productPageUtils";
 import { toast } from "sonner";
 import type { CarouselProduct } from "../../components/ProductCarousel/types";
 
@@ -38,26 +38,68 @@ export default function ProductPageClient({ product, related }: Props) {
   const isSellerView = isAdmin || isOwnSellerProduct;
 
   const [adding, setAdding] = useState(false);
-  const [openFit, setOpenFit] = useState(false);
+  const [openDescription, setOpenDescription] = useState(true);
   const [openShipping, setOpenShipping] = useState(false);
 
-  const [selectedVariantId, setSelectedVariantId] = useState<number | null>(
-    product.variants.find(
-      (variant) =>
-        variant.availableQuantity === null || variant.availableQuantity > 0
-    )?.id ??
-      product.variants[0]?.id ??
-      null
-  );
+  const [selectedVariantId, setSelectedVariantId] = useState<number | null>(null);
 
   const [viewerOpen, setViewerOpen] = useState(false);
   const [viewerIndex, setViewerIndex] = useState(0);
+  const [selectedColorwayId, setSelectedColorwayId] = useState<number | null>(() => {
+    const defaultColorway =
+      product.colorways?.find((colorway) => colorway.isDefault) ??
+      product.colorways?.[0];
+
+    return defaultColorway?.id ?? product.variants[0]?.colorwayId ?? null;
+  });
 
   const { favoriteIds, toggle } = useFavorites();
   const isFav = favoriteIds.includes(product.id);
 
+  const selectedColorway = useMemo(() => {
+    return (
+      product.colorways?.find((colorway) => colorway.id === selectedColorwayId) ??
+      null
+    );
+  }, [product.colorways, selectedColorwayId]);
+
+  const displayImages = useMemo(() => {
+    return selectedColorway?.images?.length ? selectedColorway.images : product.images;
+  }, [product.images, selectedColorway]);
+
+  const visibleVariants = useMemo(() => {
+    if (!selectedColorwayId) {
+      return product.variants;
+    }
+
+    const filtered = product.variants.filter(
+      (variant) => variant.colorwayId === selectedColorwayId
+    );
+
+    return filtered.length ? filtered : product.variants;
+  }, [product.variants, selectedColorwayId]);
+
+  const selectedVariant = useMemo(() => {
+    return (
+      visibleVariants.find((variant) => variant.id === selectedVariantId) ??
+      visibleVariants[0] ??
+      null
+    );
+  }, [visibleVariants, selectedVariantId]);
+
+  const currentPrice = selectedVariant?.price ?? getMinPrice(product);
+
+  const viewerProgress =
+    displayImages.length > 1
+      ? (viewerIndex / (displayImages.length - 1)) * 100
+      : 0;
+
   useEffect(() => {
-    if (!viewerOpen || !product.images.length) return;
+    setViewerIndex(0);
+  }, [displayImages]);
+
+  useEffect(() => {
+    if (!viewerOpen || !displayImages.length) return;
 
     function onKeyDown(event: KeyboardEvent) {
       if (event.key === "Escape") {
@@ -65,12 +107,12 @@ export default function ProductPageClient({ product, related }: Props) {
       }
 
       if (event.key === "ArrowRight") {
-        setViewerIndex((prev) => (prev + 1) % product.images.length);
+        setViewerIndex((prev) => (prev + 1) % displayImages.length);
       }
 
       if (event.key === "ArrowLeft") {
         setViewerIndex((prev) =>
-          prev === 0 ? product.images.length - 1 : prev - 1
+          prev === 0 ? displayImages.length - 1 : prev - 1
         );
       }
     }
@@ -82,23 +124,27 @@ export default function ProductPageClient({ product, related }: Props) {
       window.removeEventListener("keydown", onKeyDown);
       document.body.style.overflow = "";
     };
-  }, [viewerOpen, product.images]);
+  }, [viewerOpen, displayImages]);
 
-  const selectedVariant = useMemo(() => {
-    return (
-      product.variants.find((variant) => variant.id === selectedVariantId) ??
-      product.variants[0] ??
-      null
+  function handleChangeColorway(colorwayId: number) {
+    setSelectedColorwayId(colorwayId);
+
+    const nextVariant = product.variants.find(
+      (variant) => variant.colorwayId === colorwayId
     );
-  }, [product.variants, selectedVariantId]);
 
-  const currentPrice = selectedVariant?.price ?? getMinPrice(product);
-  const sizesText = useMemo(() => getSizesText(product), [product]);
+    setSelectedVariantId(nextVariant?.id ?? null);
+  }
 
-  const viewerProgress =
-    product.images.length > 1
-      ? (viewerIndex / (product.images.length - 1)) * 100
-      : 0;
+  function handleChangeVariant(variantId: number) {
+    const nextVariant = product.variants.find((variant) => variant.id === variantId);
+
+    setSelectedVariantId(variantId);
+
+    if (nextVariant?.colorwayId) {
+      setSelectedColorwayId(nextVariant.colorwayId);
+    }
+  }
 
   async function handleAddToCart() {
     try {
@@ -164,17 +210,17 @@ export default function ProductPageClient({ product, related }: Props) {
   }
 
   function showPrevImage() {
-    if (!product.images.length) return;
+    if (!displayImages.length) return;
 
     setViewerIndex((prev) =>
-      prev === 0 ? product.images.length - 1 : prev - 1
+      prev === 0 ? displayImages.length - 1 : prev - 1
     );
   }
 
   function showNextImage() {
-    if (!product.images.length) return;
+    if (!displayImages.length) return;
 
-    setViewerIndex((prev) => (prev + 1) % product.images.length);
+    setViewerIndex((prev) => (prev + 1) % displayImages.length);
   }
 
   return (
@@ -208,18 +254,22 @@ export default function ProductPageClient({ product, related }: Props) {
           </nav>
           <div className={styles.top}>
             <ProductGallery
+              key={selectedColorwayId ?? "default"}
               title={product.title}
-              images={product.images}
+              images={displayImages}
               onOpenImage={openViewer}
             />
 
             <ProductInfoPanel
               product={product}
+              variants={visibleVariants}
+              colorways={product.colorways ?? []}
+              selectedColorwayId={selectedColorwayId}
+              onChangeColorway={handleChangeColorway}
               selectedVariantId={selectedVariantId}
-              onChangeVariant={setSelectedVariantId}
+              onChangeVariant={handleChangeVariant}
               selectedVariant={selectedVariant}
               currentPrice={currentPrice}
-              sizesText={sizesText}
               adding={adding}
               isFav={isFav}
               isSellerView={isSellerView}
@@ -229,26 +279,34 @@ export default function ProductPageClient({ product, related }: Props) {
             />
           </div>
 
+          {related.length > 0 ? (
+            <>
+              <ProductCarousel
+                title={`Еще от ${product.brand}`}
+                products={related.filter((item) => item.brand === product.brand)}
+              />
+              <ProductCarousel
+                title="Рекомендации"
+                products={related.filter((item) => item.brand !== product.brand)}
+              />
+            </>
+          ) : null}
+
           <ProductDetailsAccordion
             product={product}
             selectedVariant={selectedVariant}
-            sizesText={sizesText}
-            openFit={openFit}
+            openDescription={openDescription}
             openShipping={openShipping}
-            onToggleFit={() => setOpenFit((prev) => !prev)}
+            onToggleDescription={() => setOpenDescription((prev) => !prev)}
             onToggleShipping={() => setOpenShipping((prev) => !prev)}
           />
-
-          {related.length > 0 ? (
-            <ProductCarousel title="Другие товары" products={related} />
-          ) : null}
         </div>
       </div>
 
       <ProductImageViewer
         open={viewerOpen}
         title={product.title}
-        images={product.images}
+        images={displayImages}
         currentIndex={viewerIndex}
         progress={viewerProgress}
         onClose={closeViewer}

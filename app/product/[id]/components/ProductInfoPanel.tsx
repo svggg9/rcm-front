@@ -3,16 +3,20 @@
 import Link from "next/link";
 import styles from "../ProductPage.module.css";
 
-import type { Product, Variant } from "../lib/types";
+import type { Product, ProductColorway, Variant } from "../lib/types";
 import Image from "next/image";
+import { ProductVariantSelect } from "./ProductVariantSelect";
 
 type Props = {
   product: Product;
+  variants: Variant[];
+  colorways: ProductColorway[];
+  selectedColorwayId: number | null;
+  onChangeColorway: (colorwayId: number) => void;
   selectedVariantId: number | null;
   onChangeVariant: (variantId: number) => void;
   selectedVariant: Variant | null;
   currentPrice: number;
-  sizesText: string;
   adding: boolean;
   isFav: boolean;
   onAddToCart: () => void;
@@ -21,13 +25,33 @@ type Props = {
   onEditProduct: () => void;
 };
 
+function formatDeliveryDate(value: Date) {
+  return new Intl.DateTimeFormat("ru-RU", {
+    day: "numeric",
+    month: "short",
+  }).format(value);
+}
+
+function getEstimatedDeliveryRange() {
+  const start = new Date();
+  const end = new Date();
+
+  start.setDate(start.getDate() + 3);
+  end.setDate(end.getDate() + 7);
+
+  return `${formatDeliveryDate(start)} - ${formatDeliveryDate(end)}`;
+}
+
 export function ProductInfoPanel({
   product,
+  variants,
+  colorways,
+  selectedColorwayId,
+  onChangeColorway,
   selectedVariantId,
   onChangeVariant,
   selectedVariant,
   currentPrice,
-  sizesText,
   adding,
   isFav,
   onAddToCart,
@@ -35,18 +59,57 @@ export function ProductInfoPanel({
   isSellerView,
   onEditProduct,
 }: Props) {
+  const deliveryRange = getEstimatedDeliveryRange();
+  const variantModels = colorways.length
+    ? colorways
+    : selectedVariant
+      ? [
+          {
+            id: selectedVariant.colorwayId ?? selectedVariant.id,
+            color: selectedVariant.color,
+            images: [],
+          },
+        ]
+      : [];
+  const selectedModelIndex = Math.max(
+    0,
+    variantModels.findIndex((model) => model.id === selectedColorwayId)
+  );
+  const shouldShowVariantModels = variantModels.length > 1;
+
   return (
     <aside className={styles.info}>
       <div className={styles.label}>Новый сезон</div>
 
       <div className={styles.heading}>
-        {product.brandSlug ? (
-          <Link href={`/brand/${product.brandSlug}`} className={styles.brand}>
-            {product.brand}
-          </Link>
-        ) : (
-          <div className={styles.brand}>{product.brand}</div>
-        )}
+        <div className={styles.brandRow}>
+          {product.brandSlug ? (
+            <Link href={`/brand/${product.brandSlug}`} className={styles.brand}>
+              {product.brand}
+            </Link>
+          ) : (
+            <div className={styles.brand}>{product.brand}</div>
+          )}
+
+          {!isSellerView ? (
+            <button
+              type="button"
+              className={`${styles.favoriteIconBtn} ${isFav ? styles.favoriteIconBtnActive : ""}`}
+              onClick={() => void onToggleFavorite()}
+              aria-label={isFav ? "Убрать из избранного" : "Добавить в избранное"}
+              aria-pressed={isFav}
+            >
+              <Image
+                src={isFav ? "/icons/like-filled.svg" : "/icons/like.svg"}
+                alt=""
+                aria-hidden="true"
+                width={24}
+                height={24}
+              />
+            </button>
+          ) : null}
+        </div>
+
         <h1 className={styles.title}>{product.title}</h1>
       </div>
 
@@ -61,31 +124,42 @@ export function ProductInfoPanel({
         </div>
       </div>
 
+      <div className={styles.deliveryEstimate}>
+        <div className={styles.deliveryEstimateTitle}>Примерная дата доставки:</div>
+        <div className={styles.deliveryEstimateValue}>{deliveryRange}</div>
+      </div>
+
+      {shouldShowVariantModels ? (
+        <div className={styles.productModels}>
+          <div className={styles.productModelsTitle}>Другие варианты</div>
+          <div className={styles.productModelsCount}>
+            {selectedModelIndex + 1} из {variantModels.length} моделей
+          </div>
+
+          <div className={styles.productModelsList}>
+            {variantModels.map((model) => (
+              <button
+                key={model.id}
+                type="button"
+                className={`${styles.productModelOption} ${
+                  selectedColorwayId === model.id ? styles.productModelOptionActive : ""
+                }`.trim()}
+                onClick={() => onChangeColorway(model.id)}
+              >
+                {product.brand} {product.title}
+                {model.color ? `, ${model.color}` : ""}
+              </button>
+            ))}
+          </div>
+        </div>
+      ) : null}
+
       <div className={styles.variantBlock}>
-        <div className={styles.variantHeader}>Выберите размер</div>
-
-        <select
-          className={styles.sizeSelect}
-          value={selectedVariantId ?? ""}
-          onChange={(event) => onChangeVariant(Number(event.target.value))}
-        >
-          {product.variants.map((variant) => (
-            <option
-              key={variant.id}
-              value={variant.id}
-              disabled={
-                variant.availableQuantity !== null && variant.availableQuantity <= 0
-              }
-            >
-              {variant.size} — {variant.price.toLocaleString()} ₽
-              {variant.availableQuantity !== null && variant.availableQuantity <= 0
-                ? " (нет в наличии)"
-                : ""}
-            </option>
-          ))}
-        </select>
-
-        <div className={styles.variantText}>{sizesText}</div>
+        <ProductVariantSelect
+          variants={variants}
+          selectedVariantId={selectedVariant?.id ?? selectedVariantId}
+          onChange={onChangeVariant}
+        />
 
         <div className={styles.actions}>
           {isSellerView ? (
@@ -112,29 +186,7 @@ export function ProductInfoPanel({
             </button>
           )}
 
-          {!isSellerView ? (
-          <button
-            type="button"
-            className={`${styles.favoriteBtn} ${isFav ? styles.favoriteBtnActive : ""}`}
-            onClick={() => void onToggleFavorite()}
-            aria-pressed={isFav}
-          >
-            <span>{isFav ? "В избранном" : "В избранное"}</span>
-            <Image
-              src={isFav ? "/icons/like-filled.svg" : "/icons/like.svg"}
-              alt=""
-              aria-hidden="true"
-              width={20}
-              height={20}
-            />
-          </button>
-          ) : null}
         </div>
-      </div>
-
-      <div className={styles.delivery}>
-        <div className={styles.deliveryTitle}>Примерная дата доставки:</div>
-        <div className={styles.deliveryText}>Рассчитывается при оформлении</div>
       </div>
     </aside>
   );

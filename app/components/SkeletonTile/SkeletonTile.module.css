@@ -1,34 +1,27 @@
-.card {
+.item {
   display: flex;
   flex-direction: column;
+  gap: 8px;
+  list-style: none;
 }
 
-.image {
+.media {
   width: 100%;
   aspect-ratio: 3 / 4;
   background: var(--soft);
-  animation: pulse 1.2s ease-in-out infinite;
 }
 
-.text {
-  padding-top: 10px;
+.line,
+.lineShort {
+  height: 14px;
+  background: var(--soft);
 }
 
 .line {
-  height: 10px;
-  margin-bottom: 6px;
-
-  background: var(--soft);
-
-  animation: pulse 1.2s ease-in-out infinite;
+  width: 76%;
+  margin-top: 2px;
 }
 
-.short {
-  width: 60%;
-}
-
-@keyframes pulse {
-  0% { opacity: 0.55; }
-  50% { opacity: 1; }
-  100% { opacity: 0.55; }
+.lineShort {
+  width: 44%;
 }

@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
+import { redirect } from "next/navigation";
 
 import { API_URL } from "../lib/api";
 import { CatalogClient } from "../components/Catalog/CatalogClient";
 import {
-  buildCatalogTitle,
   normalizeAudience,
   normalizeProducts,
   parsePage,
@@ -127,7 +127,7 @@ function normalizeCatalogParams(params: CatalogSearchParams) {
   const selectedCategory = params.category ?? "";
   const selectedAudience = normalizeAudience(params.audience ?? null);
   const selectedBrand = params.brand ?? "";
-  const searchQuery = (params.q ?? "").trim().toLowerCase();
+  const searchQuery = (params.q ?? "").trim();
   const page = parsePage(params.page);
   const sortBy = normalizeSort(params.sort);
 
@@ -139,6 +139,28 @@ function normalizeCatalogParams(params: CatalogSearchParams) {
     page,
     sortBy,
   };
+}
+
+function normalizeBrandNames(data: unknown): string[] {
+  if (!Array.isArray(data)) return [];
+
+  return data
+    .map((item) => {
+      if (typeof item === "string") return item;
+
+      if (
+        typeof item === "object" &&
+        item !== null &&
+        "name" in item &&
+        typeof (item as { name?: unknown }).name === "string"
+      ) {
+        return (item as { name: string }).name;
+      }
+
+      return null;
+    })
+    .filter((brand): brand is string => Boolean(brand?.trim()))
+    .sort((a, b) => a.localeCompare(b, "ru"));
 }
 
 export async function generateMetadata({
@@ -306,20 +328,23 @@ async function getCatalogBrands(params: {
       search.set("q", params.q);
     }
 
-    const response = await fetch(
-      `${API_URL}/api/products/brands?${search.toString()}`,
-      {
-        next: { revalidate: 60 },
-      }
-    );
+    const response = await fetch(`${API_URL}/api/products/brands?${search.toString()}`, {
+      next: { revalidate: 60 },
+    });
 
-    if (!response.ok) return [];
+    if (!response.ok) {
+      const fallbackResponse = await fetch(`${API_URL}/api/catalog/brands`, {
+        next: { revalidate: 60 },
+      });
+
+      if (!fallbackResponse.ok) return [];
+
+      return normalizeBrandNames(await fallbackResponse.json());
+    }
 
     const data: unknown = await response.json();
 
-    return Array.isArray(data)
-      ? data.filter((brand): brand is string => typeof brand === "string")
-      : [];
+    return normalizeBrandNames(data);
   } catch {
     return [];
   }
@@ -358,7 +383,18 @@ export default async function CatalogPage({
       }),
     ]);
 
-  const pageTitle = buildCatalogTitle(selectedCategory, selectedAudience);
+  if (!hasError && totalProducts > 0 && page > totalPages) {
+    redirect(
+      buildCatalogCanonical({
+        category: selectedCategory,
+        audience: selectedAudience,
+        brand: selectedBrand,
+        q: searchQuery,
+        page: totalPages,
+        sort: sortBy,
+      })
+    );
+  }
 
   return (
     <div className="pageContainer">
@@ -370,7 +406,6 @@ export default async function CatalogPage({
         selectedAudience={selectedAudience}
         initialBrand={selectedBrand}
         searchQuery={searchQuery}
-        pageTitle={pageTitle}
         currentPage={page}
         totalPages={totalPages}
         initialSort={sortBy}
