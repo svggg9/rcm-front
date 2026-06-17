@@ -29,17 +29,14 @@
 }
 
 .required::after {
-  content: "";
+  content: " *";
+  color: #c9a24f;
+  font-weight: 500;
 }
 
 .requiredEmpty {
   border-color: rgba(201, 162, 79, 0.22);
   background: rgba(201, 162, 79, 0.07);
-}
-
-.invalid {
-  border-color: var(--danger) !important;
-  background: rgba(155, 44, 44, 0.04) !important;
 }
 
 .select {
@@ -65,6 +62,23 @@
 .selectOpen.requiredEmpty {
   background: var(--white);
   border-color: var(--line);
+}
+
+.select.invalid,
+.selectOpen.invalid,
+.selectOpen.requiredEmpty.invalid {
+  border-color: var(--danger) !important;
+  border-bottom-color: var(--danger) !important;
+  background: rgba(155, 44, 44, 0.04) !important;
+}
+
+.select.invalid .menu,
+.selectOpen.invalid .menu {
+  border-color: var(--danger);
+}
+
+.selectOpen.invalid .menu {
+  border-top-color: var(--danger);
 }
 
 .selectDisabled {

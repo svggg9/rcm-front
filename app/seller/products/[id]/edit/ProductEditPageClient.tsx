@@ -4,7 +4,6 @@ import { useEffect, useMemo, useRef, useState } from "react";
 
 import { apiFetch, API_URL } from "../../../../lib/api";
 
-import { ProductStickyHeader } from "./components/ProductStickyHeader";
 import { ProductGeneralCard } from "./components/ProductGeneralCard";
 import { ProductVariantsCard } from "./components/ProductVariantsCard";
 import { ProductShippingCard } from "./components/ProductShippingCard";
@@ -54,9 +53,17 @@ type SellerOnboardingStatus = {
   agreementAccepted: boolean;
 };
 
+function createVariantClientKey() {
+  return `variant-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
 function createEmptyVariant(): ProductVariant {
+  const clientKey = createVariantClientKey();
+
   return {
     id: null,
+    clientKey,
+    groupKey: clientKey,
     size: "",
     sizeId: "",
     colorId: "",
@@ -74,6 +81,7 @@ function mapProductVariants(productData: SellerProduct): ProductVariant[] {
   return Array.isArray(productData.variants) && productData.variants.length
     ? productData.variants.map((variant) => ({
         id: variant.id,
+        clientKey: variant.id ? `saved-${variant.id}` : createVariantClientKey(),
         colorwayId: variant.colorwayId ?? null,
         sizeId: variant.sizeId ?? "",
         size: variant.size ?? "",
@@ -92,10 +100,6 @@ function mapProductVariants(productData: SellerProduct): ProductVariant[] {
 export function ProductEditPageClient({ productId }: Props) {
   const [initialized, setInitialized] = useState(false);
   const [dirty, setDirty] = useState(false);
-  const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null);
-
-  const [actionsOpen, setActionsOpen] = useState(false);
-  const [archiving, setArchiving] = useState(false);
 
   const [product, setProduct] = useState<SellerProduct | null>(null);
   const [categories, setCategories] = useState<Option[]>([]);
@@ -109,7 +113,6 @@ export function ProductEditPageClient({ productId }: Props) {
   const [brandId, setBrandId] = useState<number | "">("");
   const [audience, setAudience] = useState<Audience>("UNISEX");
   const [sizes, setSizes] = useState<Option[]>([]);
-  const [colors, setColors] = useState<Option[]>([]);
 
   const [packageWidthCm, setPackageWidthCm] = useState<number | "">("");
   const [packageHeightCm, setPackageHeightCm] = useState<number | "">("");
@@ -177,14 +180,12 @@ export function ProductEditPageClient({ productId }: Props) {
           categoriesResponse,
           brandsResponse,
           sizesResponse,
-          colorsResponse,
           onboardingResponse,
         ] = await Promise.all([
           apiFetch(`${API_URL}/api/seller/products/${productId}`),
           apiFetch(`${API_URL}/api/catalog/categories`),
           apiFetch(`${API_URL}/api/seller/brands`),
           apiFetch(`${API_URL}/api/sizes`),
-          apiFetch(`${API_URL}/api/colors`),
           apiFetch(`${API_URL}/api/seller/onboarding-status`),
         ]);
 
@@ -205,15 +206,10 @@ export function ProductEditPageClient({ productId }: Props) {
           throw new Error("Не удалось загрузить размеры");
         }
 
-        if (!colorsResponse.ok) {
-          throw new Error("Не удалось загрузить цвета");
-        }
-
         const productData: SellerProduct = await productResponse.json();
         const categoriesData: Option[] = await categoriesResponse.json();
         const brandsData: Option[] = await brandsResponse.json();
         const sizesData: Option[] = await sizesResponse.json();
-        const colorsData: Option[] = await colorsResponse.json();
         const onboardingData: SellerOnboardingStatus | null = onboardingResponse.ok
           ? await onboardingResponse.json()
           : null;
@@ -223,10 +219,8 @@ export function ProductEditPageClient({ productId }: Props) {
         const safeCategories = Array.isArray(categoriesData) ? categoriesData : [];
         const safeBrands = Array.isArray(brandsData) ? brandsData : [];
         const safeSizes = Array.isArray(sizesData) ? sizesData : [];
-        const safeColors = Array.isArray(colorsData) ? colorsData : [];
 
         setSizes(safeSizes);
-        setColors(safeColors);
 
         setProduct(productData);
         setOnboardingStatus(onboardingData);
@@ -259,7 +253,6 @@ export function ProductEditPageClient({ productId }: Props) {
         setImages(Array.isArray(productData.imageItems) ? productData.imageItems : []);
         setInitialized(true);
         setDirty(false);
-        setLastSavedAt(new Date());
       } catch (e) {
         if (!cancelled) {
           toast.error(e instanceof Error ? e.message : "Не удалось загрузить товар");
@@ -333,7 +326,7 @@ export function ProductEditPageClient({ productId }: Props) {
     requestAnimationFrame(() => {
       const root = pageContentRef.current ?? document;
       const firstError = root.querySelector<HTMLElement>(
-        `.${styles.fieldInvalid}, .${styles.requiredEmpty}, .${styles.dropZoneInvalid}`
+        `[data-validation-error="true"], .${styles.fieldInvalid}, .${styles.requiredEmpty}, .${styles.dropZoneInvalid}`
       );
 
       firstError?.scrollIntoView({
@@ -385,10 +378,63 @@ export function ProductEditPageClient({ productId }: Props) {
   }
 
   const variantErrors: ValidationErrors["variants"] = {};
+  const sizeKeysByGroup = new Map<string, Map<string, number>>();
+  const colorKeysByGroup = new Map<string, number>();
+  const checkedColorGroups = new Set<string>();
 
   variants.forEach((variant, index) => {
     const current: NonNullable<ValidationErrors["variants"]>[number] = {};
     if (variant.price <= 0) current.price = true;
+
+    const groupKey =
+      variant.groupKey ||
+      (variant.colorwayId
+        ? `colorway-${variant.colorwayId}`
+        : variant.colorId
+          ? `color-${variant.colorId}`
+          : variant.color.trim()
+            ? `color-name-${variant.color.trim().toLowerCase()}`
+            : "no-color");
+    const colorKey = variant.colorId
+      ? `id-${variant.colorId}`
+      : variant.color.trim()
+        ? `name-${variant.color.trim().toLowerCase()}`
+        : "no-color";
+
+    if (!checkedColorGroups.has(groupKey)) {
+      const duplicateColorIndex = colorKeysByGroup.get(colorKey);
+
+      if (duplicateColorIndex !== undefined) {
+        current.colorId = true;
+        variantErrors[duplicateColorIndex] = {
+          ...variantErrors[duplicateColorIndex],
+          colorId: true,
+        };
+      } else {
+        colorKeysByGroup.set(colorKey, index);
+      }
+
+      checkedColorGroups.add(groupKey);
+    }
+
+    const sizeKey = variant.sizeId
+      ? `id-${variant.sizeId}`
+      : variant.size.trim()
+        ? `name-${variant.size.trim().toLowerCase()}`
+        : "no-size";
+    const groupSizeKeys = sizeKeysByGroup.get(groupKey) ?? new Map<string, number>();
+    const duplicateIndex = groupSizeKeys.get(sizeKey);
+
+    if (duplicateIndex !== undefined) {
+      current.sizeId = true;
+      variantErrors[duplicateIndex] = {
+        ...variantErrors[duplicateIndex],
+        sizeId: true,
+      };
+    } else {
+      groupSizeKeys.set(sizeKey, index);
+      sizeKeysByGroup.set(groupKey, groupSizeKeys);
+    }
 
     if (
       variant.stockTrackingEnabled &&
@@ -404,7 +450,7 @@ export function ProductEditPageClient({ productId }: Props) {
 
   if (Object.keys(variantErrors).length > 0) {
     nextErrors.variants = variantErrors;
-    messages.push("Проверьте варианты товара: цену и остатки");
+    messages.push("Проверьте варианты товара: вариант, размер, цену и остатки");
   }
 
   setValidationErrors(nextErrors);
@@ -458,6 +504,7 @@ export function ProductEditPageClient({ productId }: Props) {
           packageWeightKg: numberOrNull(packageWeightKg),
           variants: variantsToSave.map((variant) => ({
             id: variant.id,
+            colorwayId: variant.colorwayId ?? null,
             sizeId: variant.sizeId ? Number(variant.sizeId) : null,
             suggestedSizeName: variant.sizeId ? null : variant.size.trim() || null,
             colorId: variant.colorId ? Number(variant.colorId) : null,
@@ -480,7 +527,6 @@ export function ProductEditPageClient({ productId }: Props) {
 
       await reloadProductState();
       setDirty(false);
-      setLastSavedAt(new Date());
       toast.success("Товар сохранён");
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Не удалось сохранить товар");
@@ -707,30 +753,6 @@ export function ProductEditPageClient({ productId }: Props) {
     return onboardingStatus === null || onboardingStatus.progress === 100;
   }
 
-  async function archiveProduct() {
-    if (archiving) return;
-
-    setArchiving(true);
-
-    try {
-      const response = await apiFetch(`${API_URL}/api/seller/products/${productId}/archive`, {
-        method: "POST",
-      });
-
-      if (!response.ok) {
-        const text = await response.text().catch(() => "");
-        throw new Error(text || `Ошибка архивации (${response.status})`);
-      }
-
-      toast.success("Товар перенесён в архив");
-      setActionsOpen(false);
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Не удалось перенести товар в архив");
-    } finally {
-      setArchiving(false);
-    }
-  }
-
   function updateVariant(index: number, patch: Partial<ProductVariant>) {
     setVariants((current) =>
       current.map((variant, variantIndex) =>
@@ -762,12 +784,14 @@ export function ProductEditPageClient({ productId }: Props) {
   }
 
   function addVariant(base: Partial<ProductVariant> = {}) {
+    const variant = {
+      ...createEmptyVariant(),
+      ...base,
+    };
+
     setVariants((current) => [
       ...current,
-      {
-        ...createEmptyVariant(),
-        ...base,
-      },
+      variant,
     ]);
 
     markDirty();
@@ -800,29 +824,15 @@ export function ProductEditPageClient({ productId }: Props) {
   return (
     <div className="pageContainer">
       <div className={styles.page}>
-        <ProductStickyHeader
-        productId={productId}
-        product={product}
-        title={title}
-        categoryId={categoryId}
-        brandId={brandId}
-        categories={categories}
-        brands={brands}
-        images={images}
-        dirty={dirty}
-        saving={saving}
-        publishing={publishing}
-        archiving={archiving}
-        canPublish={canPublish}
-        publishBlockedReason={publishBlockedReason}
-        actionsOpen={actionsOpen}
-        lastSavedAt={lastSavedAt}
-        onSave={() => void saveProduct()}
-        onPublish={() => void publishProduct()}
-        onArchive={() => void archiveProduct()}
-        onActionsOpenChange={setActionsOpen}
-        />
-    <div className={styles.pageContent} ref={pageContentRef}>
+        <nav className={styles.breadcrumbs} aria-label="Навигация">
+          <a href="/seller">Кабинет продавца</a>
+          <span>/</span>
+          <a href="/seller?tab=products">Товары</a>
+          <span>/</span>
+          <span>{title || "Редактирование товара"}</span>
+        </nav>
+
+        <div className={styles.pageContent} ref={pageContentRef}>
         {onboardingStatus && onboardingStatus.progress < 100 ? (
           <div className={styles.onboardingWarning}>
             <strong>Магазин не готов к публикации</strong>
@@ -914,7 +924,6 @@ export function ProductEditPageClient({ productId }: Props) {
             onMoveImage={(imageId) => moveImage(imageId)}
             onDeleteImage={(imageId) => void deleteImage(imageId)}
             sizes={sizes}
-            colors={colors}
             />
 
             <ProductShippingCard
@@ -944,9 +953,31 @@ export function ProductEditPageClient({ productId }: Props) {
                 markDirty();
             }}
             />
+
+            <div className={styles.formActions}>
+              <button
+                type="button"
+                onClick={() => void saveProduct()}
+                disabled={saving || !dirty}
+                className={styles.primaryBtn}
+              >
+                {!dirty && !saving ? "Сохранено" : "Сохранить"}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => void publishProduct()}
+                disabled={publishing || !canPublish}
+                className={styles.secondaryBtn}
+                title={!canPublish ? publishBlockedReason : undefined}
+              >
+                {publishing ? "Отправляем..." : "Отправить на модерацию"}
+              </button>
+            </div>
           </main>
 
             <ProductPreviewAside
+            productId={productId}
             title={title}
             brandId={brandId}
             brands={brands}

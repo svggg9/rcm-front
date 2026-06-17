@@ -3,9 +3,9 @@
 .page {
   display: flex;
   flex-direction: column;
-  gap: 0;
+  gap: 16px;
   margin: 0 0 48px;
-  padding-top: var(--product-sticky-header-height);
+  padding-top: 24px;
   color: var(--black);
 }
 
@@ -25,11 +25,48 @@
   justify-content: center;
 }
 
+.breadcrumbs {
+  width: min(1120px, 100%);
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--muted);
+  font-size: var(--font-sm);
+}
+
+.breadcrumbs a {
+  color: var(--black);
+  text-decoration: none;
+}
+
+.breadcrumbs a:hover {
+  text-decoration: underline;
+}
+
+.breadcrumbs span:last-child {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .main {
   display: flex;
   flex-direction: column;
   min-width: 0;
   gap: 16px;
+}
+
+.formActions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.formActions .primaryBtn,
+.formActions .secondaryBtn {
+  width: 100%;
 }
 
 .aside {
@@ -40,7 +77,8 @@
 
 .card {
   background: var(--white);
-  border: 1px solid var(--line);
+  border: 0;
+  border-top: 1px solid var(--line);
   padding: 18px;
   display: flex;
   flex-direction: column;
@@ -48,6 +86,7 @@
 }
 
 .card:first-child {
+  border-top: 0;
   padding-top: 18px;
 }
 
@@ -113,7 +152,9 @@
 }
 
 .required::after {
-  content: "";
+  content: " *";
+  color: #c9a24f;
+  font-weight: 500;
 }
 
 .input,
@@ -283,7 +324,7 @@
 .secondaryBtn,
 .lockedSecondaryBtn,
 .lockedIconBtn {
-  border: 1px solid var(--line);
+  border: 1px solid var(--black);
   background: var(--white);
   color: var(--black);
 }
@@ -292,6 +333,7 @@
 .secondaryBtn {
   height: 44px;
   padding: 0 18px;
+  line-height: 1.1;
 }
 
 .lockedPrimaryBtn,
@@ -328,22 +370,18 @@
   cursor: default;
 }
 
-/* fixed product header */
+/* product header */
 
 .lockedHeader {
-  position: fixed;
-  top: calc(var(--site-header-height) - 1px);
-  left: 0;
-  right: 0;
-  z-index: 290;
-  padding: 12px 0;
+  width: min(1120px, 100%);
+  margin: 0 auto;
+  padding: 12px 16px;
   background: var(--white);
-  border-bottom: 1px solid var(--line);
+  border: 1px solid var(--line);
 }
 
 .lockedHeaderInner {
-  width: min(1120px, calc(100% - 32px));
-  margin: 0 auto;
+  width: 100%;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -503,12 +541,43 @@
 
 .statusBadge {
   padding: 4px 8px;
-  border: 1px solid var(--line);
-  background: var(--white);
+  border: 1px solid rgba(201, 162, 79, 0.26);
+  background: rgba(201, 162, 79, 0.07);
   color: var(--black);
   font-size: var(--font-xs);
   font-weight: 500;
   white-space: nowrap;
+}
+
+.statusBadge_DRAFT {
+  border-color: var(--line);
+  background: var(--white);
+  color: var(--muted);
+}
+
+.statusBadge_MODERATION {
+  border-color: rgba(138, 106, 47, 0.26);
+  background: rgba(201, 162, 79, 0.08);
+  color: color-mix(in srgb, var(--warning) 72%, var(--black));
+}
+
+.statusBadge_NEEDS_REVISION,
+.statusBadge_BLOCKED {
+  border-color: rgba(155, 44, 44, 0.22);
+  background: rgba(155, 44, 44, 0.045);
+  color: var(--danger);
+}
+
+.statusBadge_ACTIVE {
+  border-color: rgba(33, 106, 67, 0.22);
+  background: rgba(33, 106, 67, 0.055);
+  color: var(--success);
+}
+
+.statusBadge_ARCHIVED {
+  border-color: var(--line);
+  background: var(--soft);
+  color: var(--muted);
 }
 
 /* images */
@@ -525,6 +594,9 @@
   border: 1px solid var(--line);
   background: var(--white);
   padding: 11px 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   cursor: pointer;
   font-size: var(--font-sm);
   font-weight: 500;
@@ -647,6 +719,18 @@
   gap: 12px;
 }
 
+.variantSimpleBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.variantSimpleGrid {
+  display: grid;
+  grid-template-columns: minmax(140px, 1fr) minmax(140px, 1fr);
+  gap: 10px;
+}
+
 .variantList {
   display: flex;
   flex-direction: column;
@@ -700,8 +784,8 @@
 }
 
 .variantImageDropZone {
-  border: 1px dashed var(--line);
-  background: var(--white);
+  border: 0;
+  background: var(--soft);
   padding: 14px;
   display: flex;
   align-items: center;
@@ -770,7 +854,7 @@
 
 .variantSizeRow {
   display: grid;
-  grid-template-columns: minmax(120px, 1fr) minmax(120px, 1fr) minmax(160px, 1.2fr) minmax(138px, 0.9fr);
+  grid-template-columns: minmax(120px, 1fr) minmax(120px, 1fr) minmax(138px, 0.9fr) 28px;
   gap: 10px;
   align-items: start;
 }
@@ -781,56 +865,69 @@
   gap: 7px;
 }
 
-.variantSizeActions {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 7px;
-}
-
-.variantSizeActions:has(.variantSizeDeleteBtn) {
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-}
-
-.variantAddSizeBtn,
-.variantSizeDeleteBtn {
+.variantAddSizeBtn {
   width: 100%;
-  min-height: 22px;
+  min-height: 34px;
   border: 1px solid var(--line);
   background: var(--white);
   color: var(--muted);
-  padding: 2px 6px;
-  font-size: var(--font-xs);
-  line-height: 1.2;
+  padding: 0 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  font-size: var(--font-sm);
   cursor: pointer;
 }
 
+.variantActionIcon {
+  width: 13px;
+  height: 13px;
+}
+
+.variantActionIcon path {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.7;
+  stroke-linecap: round;
+}
+
 .variantAddSizeBtn {
-  border-color: rgba(33, 106, 67, 0.24);
-  background: rgba(33, 106, 67, 0.055);
-  color: var(--success);
+  border-color: var(--line);
+  background: var(--white);
+  color: var(--muted);
 }
 
 .variantAddSizeBtn:hover {
-  background: rgba(33, 106, 67, 0.1);
-  border-color: rgba(33, 106, 67, 0.42);
-  color: var(--success);
-}
-
-.variantSizeDeleteBtn:hover {
+  background: var(--soft);
   border-color: var(--black);
   color: var(--black);
 }
 
+.variantSizeRemoveCell {
+  height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
 .variantSizeDeleteBtn {
-  border-color: rgba(155, 44, 44, 0.22);
-  background: rgba(155, 44, 44, 0.045);
-  color: var(--danger);
+  width: 28px;
+  height: 28px;
+  border: 1px solid var(--line);
+  background: var(--white);
+  color: var(--muted);
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
 }
 
 .variantSizeDeleteBtn:hover {
-  background: rgba(155, 44, 44, 0.09);
-  border-color: rgba(155, 44, 44, 0.38);
-  color: var(--danger);
+  background: var(--soft);
+  border-color: var(--black);
+  color: var(--black);
 }
 
 .quantityField {
@@ -870,6 +967,31 @@
 
 .variantCardActions:has(.variantDeleteBtn) {
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+}
+
+.variantNextToggle {
+  min-height: 34px;
+  border: 1px solid var(--line);
+  background: var(--white);
+  padding: 0 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--muted);
+  font-size: var(--font-sm);
+  cursor: pointer;
+}
+
+.variantNextToggle input {
+  width: 15px;
+  height: 15px;
+  accent-color: var(--black);
+  pointer-events: auto;
+}
+
+.variantNextToggle:has(input:checked) {
+  border-color: var(--black);
+  color: var(--black);
 }
 
 .variantAddVariantBtn,
@@ -941,12 +1063,12 @@
 
 .stickyCard {
   position: sticky;
-  top: calc(var(--site-header-height) + var(--product-sticky-header-height) + 24px);
+  top: calc(var(--site-header-height) + 24px);
   display: flex;
   flex-direction: column;
   gap: 14px;
   padding: 16px;
-  border: 1px solid var(--line);
+  border: 0;
   background: var(--white);
 }
 
@@ -977,6 +1099,34 @@
   line-height: 1.3;
   font-weight: 500;
   letter-spacing: -0.02em;
+}
+
+.previewTitleRow {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.previewTitleRow h2 {
+  min-width: 0;
+}
+
+.previewAction {
+  height: 38px;
+  border: 1px solid var(--black);
+  background: var(--white);
+  color: var(--black);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  font-size: var(--font-sm);
+  font-weight: 500;
+}
+
+.previewAction:hover {
+  border-color: var(--black);
 }
 
 .stickyCard p {
@@ -1086,11 +1236,11 @@
   }
 
   .lockedHeader {
-    padding: 12px 20px;
+    padding: 12px;
   }
 
   .lockedHeaderInner {
-    width: min(100%, calc(100% - 24px));
+    width: 100%;
     align-items: flex-start;
     flex-direction: column;
   }
@@ -1146,7 +1296,7 @@
   min-height: 128px;
   padding: 18px;
   border: 1px dashed var(--line);
-  background: var(--white);
+  background: var(--soft);
 
   display: flex;
   align-items: center;

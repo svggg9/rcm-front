@@ -82,11 +82,7 @@ export function ProductGeneralCard({
               <small className={styles.fieldErrorText}>
                 Введите название товара.
               </small>
-            ) : (
-              <small>
-                Оптимально: тип товара + производитель + модель.
-              </small>
-            )}
+            ) : null}
           </label>
 
           <FormCombobox
@@ -95,7 +91,8 @@ export function ProductGeneralCard({
             customValue={suggestedCategoryName}
             required
             invalid={validationErrors.categoryId}
-            placeholder="Выберите или ввести свою"
+            placeholder="Выберите или предложите свою"
+            showModerationBadge={false}
             options={categories.map((category) => ({
               value: category.id,
               label: category.name,

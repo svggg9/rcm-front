@@ -21,6 +21,8 @@ export function ProductDetailsAccordion({
   onToggleDescription,
   onToggleShipping,
 }: Props) {
+  const composition = product.composition?.trim();
+
   return (
     <div className={styles.accordion}>
       <section className={styles.accItem}>
@@ -36,7 +38,11 @@ export function ProductDetailsAccordion({
 
         {openDescription ? (
           <div className={styles.accBodyOpen}>
-            <div className={styles.descriptionGrid}>
+            <div
+              className={`${styles.descriptionGrid} ${
+                composition ? "" : styles.descriptionGridSingle
+              }`.trim()}
+            >
               <div className={styles.descriptionMain}>
                 <p className={styles.text}>
                   {product.description || "Описание пока не заполнено."}
@@ -48,19 +54,21 @@ export function ProductDetailsAccordion({
                     <strong>{selectedVariant?.sku || `RCM-${product.id}`}</strong>
                   </div>
 
-                  <div>
-                    <span>Артикул бренда</span>
-                    <strong>{product.article || "Не указан"}</strong>
-                  </div>
+                  {selectedVariant?.sellerArticle ? (
+                    <div>
+                      <span>Артикул продавца</span>
+                      <strong>{selectedVariant.sellerArticle}</strong>
+                    </div>
+                  ) : null}
                 </div>
               </div>
 
-              <div className={styles.compositionBlock}>
-                <h3 className={styles.subTitle}>Состав</h3>
-                <p className={styles.text}>
-                  {product.composition || "Состав пока не заполнен."}
-                </p>
-              </div>
+              {composition ? (
+                <div className={styles.compositionBlock}>
+                  <h3 className={styles.subTitle}>Состав</h3>
+                  <p className={styles.text}>{composition}</p>
+                </div>
+              ) : null}
             </div>
           </div>
         ) : null}

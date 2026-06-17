@@ -6,6 +6,7 @@ export type Variant = {
   price: number;
   availableQuantity: number | null;
   sku: string;
+  sellerArticle?: string | null;
   stockTrackingEnabled?: boolean;
 };
 
@@ -30,7 +31,13 @@ export type Product = {
   brandSlug?: string | null;
   category: string;
   audience?: "MEN" | "WOMEN" | "UNISEX";
-  status?: "DRAFT" | "ACTIVE" | "ARCHIVED" | "BLOCKED";
+  status?:
+    | "DRAFT"
+    | "MODERATION"
+    | "NEEDS_REVISION"
+    | "ACTIVE"
+    | "ARCHIVED"
+    | "BLOCKED";
   images: string[];
   colorways?: ProductColorway[];
   variants: Variant[];

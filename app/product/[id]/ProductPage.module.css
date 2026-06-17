@@ -620,6 +620,10 @@
   gap: 40px;
 }
 
+.descriptionGridSingle {
+  grid-template-columns: minmax(0, 1fr);
+}
+
 .descriptionMain {
   display: flex;
   flex-direction: column;

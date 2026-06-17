@@ -8,7 +8,6 @@ import type {
 } from "../types";
 import styles from "../ProductEditPage.module.css";
 import Image from "next/image";
-import { useEffect, useRef } from "react";
 
 type Props = {
   productId: number;
@@ -55,30 +54,8 @@ export function ProductStickyHeader({
   onArchive,
   onActionsOpenChange,
 }: Props) {
-  
-  const headerRef = useRef<HTMLElement | null>(null);
-
-  useEffect(() => {
-    const node = headerRef.current;
-    if (!node) return;
-
-    const update = () => {
-      document.documentElement.style.setProperty(
-        "--product-sticky-header-height",
-        `${Math.ceil(node.getBoundingClientRect().height)}px`
-      );
-    };
-
-    update();
-
-    const observer = new ResizeObserver(update);
-    observer.observe(node);
-
-    return () => observer.disconnect();
-  }, []);
-
   return (
-    <header ref={headerRef} className={styles.lockedHeader}>
+    <header className={styles.lockedHeader}>
       <div className={styles.lockedHeaderInner}>
         <div className={styles.lockedProduct}>
           <Link href="/seller?tab=products" className={styles.lockedBack}>
@@ -210,5 +187,9 @@ function StatusBadge({ status }: { status: ProductStatus }) {
     BLOCKED: "Заблокирован",
   }[status];
 
-  return <span className={styles.statusBadge}>{label}</span>;
+  return (
+    <span className={`${styles.statusBadge} ${styles[`statusBadge_${status}`]}`}>
+      {label}
+    </span>
+  );
 }
