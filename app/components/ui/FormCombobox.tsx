@@ -20,6 +20,7 @@ type Props = {
   full?: boolean;
   disabled?: boolean;
   moderationLabel?: string;
+  showModerationBadge?: boolean;
   emptyOptionLabel?: string;
   onChange: (value: number | "", customValue: string) => void;
 };
@@ -35,6 +36,7 @@ export function FormCombobox({
   full = false,
   disabled = false,
   moderationLabel = "На модерации",
+  showModerationBadge = true,
   emptyOptionLabel,
   onChange,
 }: Props) {
@@ -46,7 +48,7 @@ export function FormCombobox({
   const inputValue = open ? query : selectedOption?.label ?? customValue;
   const normalizedQuery = query.trim().toLowerCase();
   const hasValue = Boolean(selectedOption || customValue.trim());
-  const showModerationBadge = !open && Boolean(customValue.trim());
+  const shouldShowModerationBadge = showModerationBadge && !open && Boolean(customValue.trim());
 
   const filteredOptions = useMemo(() => {
     if (!normalizedQuery) return options;
@@ -110,7 +112,11 @@ export function FormCombobox({
   }
 
   return (
-    <div className={full ? styles.fieldFull : styles.field} ref={rootRef}>
+    <div
+      className={full ? styles.fieldFull : styles.field}
+      data-validation-error={invalid ? "true" : undefined}
+      ref={rootRef}
+    >
       <span className={required ? styles.required : undefined}>{label}</span>
 
       <div
@@ -122,7 +128,7 @@ export function FormCombobox({
       >
         <input
           value={inputValue}
-          className={`${styles.comboboxInput} ${showModerationBadge ? styles.comboboxInputWithBadge : ""} ${hasValue ? "" : styles.placeholder}`}
+          className={`${styles.comboboxInput} ${shouldShowModerationBadge ? styles.comboboxInputWithBadge : ""} ${hasValue ? "" : styles.placeholder}`}
           placeholder={placeholder}
           disabled={disabled}
           onFocus={() => {
@@ -143,7 +149,7 @@ export function FormCombobox({
           }}
         />
 
-        {showModerationBadge ? (
+        {shouldShowModerationBadge ? (
           <span className={styles.comboboxBadge}>{moderationLabel}</span>
         ) : null}
 

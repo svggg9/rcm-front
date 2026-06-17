@@ -15,6 +15,7 @@ export type ProductStatus =
 
 export type ProductVariant = {
   id: number | null;
+  clientKey?: string;
   colorwayId?: number | null;
   sizeId: number | "";
   size: string;

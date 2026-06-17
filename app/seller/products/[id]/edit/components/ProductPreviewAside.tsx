@@ -3,6 +3,7 @@ import styles from "../ProductEditPage.module.css";
 import Image from "next/image";
 
 type Props = {
+  productId: number;
   title: string;
   brandId: number | "";
   brands: Option[];
@@ -15,6 +16,7 @@ type Props = {
 };
 
 export function ProductPreviewAside({
+  productId,
   title,
   brandId,
   brands,
@@ -42,7 +44,10 @@ export function ProductPreviewAside({
           )}
         </div>
 
-        <h2>{title || "Название товара"}</h2>
+        <div className={styles.previewTitleRow}>
+          <h2>{title || "Название товара"}</h2>
+          {product ? <StatusBadge status={product.status} /> : null}
+        </div>
         <p>{brands.find((brand) => brand.id === brandId)?.name || product?.brand || "Бренд"}</p>
 
         <div className={styles.scoreBlock}>
@@ -56,6 +61,15 @@ export function ProductPreviewAside({
           </div>
         </div>
 
+        <a
+          href={`/seller/products/${productId}/preview`}
+          target="_blank"
+          rel="noreferrer"
+          className={styles.previewAction}
+        >
+          Предпросмотр
+        </a>
+
         <div className={styles.asideHints}>
           {images.length === 0 ? <span>Добавь хотя бы одно фото</span> : null}
           {descriptionLength < 80 ? <span>Описание лучше сделать подробнее</span> : null}
@@ -64,5 +78,22 @@ export function ProductPreviewAside({
         </div>
       </div>
     </aside>
+  );
+}
+
+function StatusBadge({ status }: { status: NonNullable<SellerProduct["status"]> }) {
+  const label = {
+    DRAFT: "Черновик",
+    MODERATION: "На модерации",
+    NEEDS_REVISION: "Нужна доработка",
+    ACTIVE: "Активен",
+    ARCHIVED: "Архив",
+    BLOCKED: "Заблокирован",
+  }[status];
+
+  return (
+    <span className={`${styles.statusBadge} ${styles[`statusBadge_${status}`]}`}>
+      {label}
+    </span>
   );
 }

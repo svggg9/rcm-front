@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Image from "next/image";
 
 import { FormCombobox } from "../../../../../components/ui/FormCombobox";
@@ -26,7 +26,6 @@ type Props = {
   variants: ProductVariant[];
   images: ProductImageItem[];
   sizes: Option[];
-  colors: Option[];
   validationErrors: VariantValidationErrors;
   invalidImages?: boolean;
   uploading: boolean;
@@ -44,15 +43,6 @@ type Props = {
   onDeleteImage: (imageId: number) => void;
 };
 
-type VariantGroup = {
-  key: string;
-  colorwayId: number | null;
-  colorId: number | "";
-  color: string;
-  variants: Array<{ variant: ProductVariant; index: number }>;
-  images: ProductImageItem[];
-};
-
 function digitsOnly(value: string) {
   return value.replace(/\D/g, "");
 }
@@ -63,50 +53,10 @@ function formatPrice(value: number) {
   return String(value).replace(/\B(?=(\d{3})+(?!\d))/g, " ");
 }
 
-function buildVariantGroups(
-  variants: ProductVariant[],
-  images: ProductImageItem[]
-): VariantGroup[] {
-  const groups = new Map<string, VariantGroup>();
-
-  variants.forEach((variant, index) => {
-    const key = variant.groupKey || (variant.colorwayId
-      ? `colorway-${variant.colorwayId}`
-      : variant.colorId
-        ? `color-${variant.colorId}`
-        : variant.color.trim()
-          ? `color-name-${variant.color.trim().toLowerCase()}`
-          : `variant-${index}`);
-
-    const existing = groups.get(key);
-
-    if (existing) {
-      existing.variants.push({ variant, index });
-      return;
-    }
-
-    const colorwayId = variant.colorwayId ?? null;
-
-    groups.set(key, {
-      key,
-      colorwayId,
-      colorId: variant.colorId,
-      color: variant.color,
-      variants: [{ variant, index }],
-      images: colorwayId
-        ? images.filter((image) => image.colorwayId === colorwayId)
-        : images.filter((image) => image.colorwayId == null),
-    });
-  });
-
-  return Array.from(groups.values());
-}
-
 export function ProductVariantsCard({
   variants,
   images,
   sizes,
-  colors,
   validationErrors,
   invalidImages = false,
   uploading,
@@ -123,50 +73,41 @@ export function ProductVariantsCard({
   onMoveImage,
   onDeleteImage,
 }: Props) {
-  const [dragActiveKey, setDragActiveKey] = useState<string | null>(null);
-  const [multipleVariants, setMultipleVariants] = useState(() => variants.length > 1);
-  const [colorlessGroupKeys, setColorlessGroupKeys] = useState<Set<string>>(new Set());
-  const groups = buildVariantGroups(variants, images);
-  const visibleGroups = multipleVariants ? groups : groups.slice(0, 1);
+  const [dragActive, setDragActive] = useState(false);
+  const baseVariant = variants[0] ?? null;
 
-  function switchToSingleVariant() {
-    setMultipleVariants(false);
-
-    for (let index = variants.length - 1; index > 0; index -= 1) {
-      onRemoveVariant(index);
+  useEffect(() => {
+    if (variants.length === 0) {
+      onAddVariant();
     }
-  }
+  }, [variants.length, onAddVariant]);
 
-  function uploadFiles(files: File[], colorwayId: number | null, allowWithoutColorway = false) {
+  function uploadFiles(files: File[]) {
     const imageFiles = files.filter((file) => file.type.startsWith("image/"));
 
-    if (imageFiles.length === 0 || uploading || (!colorwayId && !allowWithoutColorway)) {
+    if (imageFiles.length === 0 || uploading) {
       return;
     }
 
-    setDragActiveKey(null);
+    setDragActive(false);
     onFilesChange(imageFiles);
-    onUploadImages(imageFiles, colorwayId);
+    onUploadImages(imageFiles);
   }
 
-  function updateGroupColor(group: VariantGroup, value: number | "", customValue = "") {
-    const color = colors.find((item) => item.id === value);
-
-    setColorlessGroupKeys((current) => {
-      const next = new Set(current);
-      next.delete(group.key);
-      return next;
-    });
-
-    group.variants.forEach(({ index }) => {
-      onUpdateVariant(index, {
-        colorId: value,
-        color: color?.name ?? customValue,
-      });
+  function addSizeRow() {
+    onAddVariant({
+      groupKey: baseVariant?.groupKey ?? "simple-product",
+      colorwayId: baseVariant?.colorwayId ?? null,
+      colorId: "",
+      color: "",
+      price: baseVariant?.price ?? 0,
+      availableQuantity: baseVariant?.availableQuantity ?? null,
+      sellerArticle: baseVariant?.sellerArticle ?? "",
+      stockTrackingEnabled: baseVariant?.stockTrackingEnabled ?? false,
     });
   }
 
-  function removeVariantRow(index: number) {
+  function removeSizeRow(index: number) {
     if (variants.length > 1) {
       onRemoveVariant(index);
       return;
@@ -177,363 +118,253 @@ export function ProductVariantsCard({
       size: "",
       price: 0,
       availableQuantity: null,
-      sellerArticle: "",
       stockTrackingEnabled: false,
     });
   }
 
-  function removeGroup(group: VariantGroup) {
-    [...group.variants]
-      .sort((left, right) => right.index - left.index)
-      .forEach(({ index }) => onRemoveVariant(index));
-  }
-
-  function setGroupWithoutColor(group: VariantGroup, checked: boolean) {
-    setColorlessGroupKeys((current) => {
-      const next = new Set(current);
-
-      if (checked) {
-        next.add(group.key);
-      } else {
-        next.delete(group.key);
-      }
-
-      return next;
+  function updateSellerArticle(value: string) {
+    variants.forEach((_, index) => {
+      onUpdateVariant(index, { sellerArticle: value });
     });
-
-    if (checked) {
-      group.variants.forEach(({ index }) => {
-        onUpdateVariant(index, {
-          colorId: "",
-          color: "",
-        });
-      });
-    }
   }
-
 
   return (
-    <section className={styles.card}>
-      <SectionHeader
-        title="Варианты товара"
-        hint="Фото относятся к цвету, а каждый размер имеет свою цену, артикул и остаток."
-      />
+    <>
+      <section className={styles.card}>
+        <SectionHeader
+          title="Фото товара"
+          hint="Главное фото будет первым в карточке товара."
+        />
 
-      <div className={styles.variantModeSwitcher}>
-        <button
-          type="button"
-          className={`${styles.variantModeOption} ${!multipleVariants ? styles.variantModeOptionActive : ""}`}
-          onClick={switchToSingleVariant}
+        <div className={styles.variantSimpleBlock}>
+          <div
+          className={`${styles.variantImageDropZone} ${
+            dragActive ? styles.dropZoneActive : ""
+          } ${invalidImages && images.length === 0 ? styles.dropZoneInvalid : ""}`}
+          onDragEnter={(event) => {
+            event.preventDefault();
+            setDragActive(true);
+          }}
+          onDragOver={(event) => {
+            event.preventDefault();
+            setDragActive(true);
+          }}
+          onDragLeave={(event) => {
+            event.preventDefault();
+            setDragActive(false);
+          }}
+          onDrop={(event) => {
+            event.preventDefault();
+            uploadFiles(Array.from(event.dataTransfer.files));
+          }}
         >
-          <strong>Один вариант</strong>
-          <span>Один товар на карточке, без опций</span>
-        </button>
+          <div>
+            <strong>{uploading ? "Загружаем фото..." : "Фото товара"}</strong>
+            <span>
+              {uploading && uploadProgress.total > 0
+                ? `${uploadProgress.done} из ${uploadProgress.total}`
+                : "Перетащи фото сюда или выбери файл."}
+            </span>
+          </div>
 
-        <button
-          type="button"
-          className={`${styles.variantModeOption} ${multipleVariants ? styles.variantModeOptionActive : ""}`}
-          onClick={() => setMultipleVariants(true)}
-        >
-          <strong>Несколько вариантов</strong>
-          <span>Например, если товар есть в разных цветах</span>
-        </button>
-      </div>
+          <label className={styles.filePicker}>
+            <input
+              type="file"
+              accept="image/*"
+              multiple
+              disabled={uploading}
+              onChange={(event) => {
+                uploadFiles(Array.from(event.target.files ?? []));
+                event.target.value = "";
+              }}
+            />
+            <span>{uploading ? "Загрузка..." : "Выбрать фото"}</span>
+          </label>
+        </div>
 
-      <div className={styles.variantList}>
-        {visibleGroups.map((group, groupIndex) => {
-          const isNoColorGroup = !group.colorId && !group.color.trim();
-          const noColorChecked = colorlessGroupKeys.has(group.key);
-          const canUploadToGroup = group.colorwayId !== null || isNoColorGroup;
-
-          return (
-            <div key={group.key} className={styles.variantCard}>
-              <div className={styles.variantHeader}>
-                <strong>
-                  {groupIndex === 0 ? "Основной вариант" : `Вариант ${groupIndex + 1}`}
-                </strong>
-              </div>
-
-              {multipleVariants ? (
-                <div className={styles.variantColorField}>
-                  <FormCombobox
-                    label="Вариант"
-                    value={group.colorId}
-                    customValue={group.colorId ? "" : group.color}
-                    placeholder="Выберите или введите вариант"
-                    options={colors.map((color) => ({
-                      value: color.id,
-                      label: color.name,
-                    }))}
-                    onChange={(value, customValue) => updateGroupColor(group, value, customValue)}
-                  />
-
-                  <div className={styles.variantNoColorToggle}>
-                    <input
-                      type="checkbox"
-                      checked={noColorChecked}
-                      onChange={(event) => setGroupWithoutColor(group, event.target.checked)}
-                    />
-                    <span>Без цвета</span>
-                  </div>
-                </div>
-              ) : null}
-
-              <div className={styles.variantImagesBlock}>
-                <div
-                  className={`${styles.variantImageDropZone} ${
-                  dragActiveKey === group.key ? styles.dropZoneActive : ""
-                } ${invalidImages && images.length === 0 ? styles.dropZoneInvalid : ""} ${
-                  canUploadToGroup ? "" : styles.variantImageDropZoneDisabled
+        {images.length > 0 ? (
+          <div className={styles.variantImageGrid}>
+            {images.map((image, index) => (
+              <div
+                key={image.id}
+                draggable={!reordering}
+                onDragStart={() => onDragImageStart(image.id)}
+                onDragOver={(event) => event.preventDefault()}
+                onDrop={() => onMoveImage(image.id)}
+                onDragEnd={onDragImageEnd}
+                className={`${styles.imageCard} ${
+                  dragImageId === image.id ? styles.imageCardDragging : ""
                 }`}
-                onDragEnter={(event) => {
-                  event.preventDefault();
-                  if (canUploadToGroup) setDragActiveKey(group.key);
-                }}
-                onDragOver={(event) => {
-                  event.preventDefault();
-                  if (canUploadToGroup) setDragActiveKey(group.key);
-                }}
-                onDragLeave={(event) => {
-                  event.preventDefault();
-                  setDragActiveKey(null);
-                }}
-                onDrop={(event) => {
-                  event.preventDefault();
-                  uploadFiles(Array.from(event.dataTransfer.files), group.colorwayId, canUploadToGroup);
-                }}
               >
-                <div>
-                  <strong>{uploading ? "Загружаем фото..." : "Фото этого варианта"}</strong>
-                  <span>
-                    {canUploadToGroup
-                      ? uploading && uploadProgress.total > 0
-                        ? `${uploadProgress.done} из ${uploadProgress.total}`
-                        : "Перетащи фото сюда или выбери файл."
-                      : "Сохрани вариант, чтобы загрузить фото этого варианта."}
-                  </span>
-                </div>
+                <Image
+                  src={image.url}
+                  alt=""
+                  fill
+                  sizes="140px"
+                  className={styles.image}
+                />
 
-                <label className={styles.filePicker}>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    multiple
-                    disabled={uploading || !canUploadToGroup}
-                    onChange={(event) => {
-                      uploadFiles(
-                        Array.from(event.target.files ?? []),
-                        group.colorwayId,
-                        canUploadToGroup,
-                      );
-                      event.target.value = "";
+                {index === 0 ? (
+                  <div className={styles.mainImageBadge}>Главное</div>
+                ) : null}
+
+                <button
+                  type="button"
+                  onClick={() => onDeleteImage(image.id)}
+                  className={styles.imageDeleteBtn}
+                  aria-label="Удалить фото"
+                >
+                  x
+                </button>
+              </div>
+            ))}
+          </div>
+        ) : null}
+        </div>
+      </section>
+
+      <section className={styles.card}>
+        <SectionHeader
+          title="Параметры товара"
+          hint="Размер, цена и остатки."
+        />
+
+        <div className={styles.variantSimpleBlock}>
+
+          {baseVariant ? (
+          <label className={`${styles.field} ${styles.fieldFull}`}>
+            <span>Артикул продавца (необязательно)</span>
+            <input
+              value={baseVariant.sellerArticle ?? ""}
+              onChange={(event) => updateSellerArticle(event.target.value)}
+              className={styles.input}
+            />
+          </label>
+        ) : null}
+
+        <div className={styles.variantSizeList}>
+          {variants.map((variant, index) => {
+            const errors = validationErrors[index] ?? {};
+
+            return (
+              <div key={variant.id ?? variant.clientKey ?? `new-${index}`} className={styles.variantSizeRow}>
+                <div className={styles.variantSizeField}>
+                  <FormCombobox
+                    label="Размер"
+                    value={variant.sizeId}
+                    customValue={variant.sizeId ? "" : variant.size}
+                    invalid={errors.sizeId}
+                    placeholder="Без размера"
+                    emptyOptionLabel="Без размера"
+                    options={sizes.map((size) => ({
+                      value: size.id,
+                      label: size.name,
+                    }))}
+                    onChange={(value, customValue) => {
+                      const size = sizes.find((item) => item.id === value);
+                      onUpdateVariant(index, {
+                        sizeId: value,
+                        size: size?.name ?? customValue,
+                      });
                     }}
                   />
-                  <span>{uploading ? "Загрузка..." : "Выбрать фото"}</span>
-                </label>
-              </div>
-
-              {group.images.length > 0 ? (
-                <div className={styles.variantImageGrid}>
-                  {group.images.map((image, index) => (
-                    <div
-                      key={image.id}
-                      draggable={!reordering}
-                      onDragStart={() => onDragImageStart(image.id)}
-                      onDragOver={(event) => event.preventDefault()}
-                      onDrop={() => onMoveImage(image.id)}
-                      onDragEnd={onDragImageEnd}
-                      className={`${styles.imageCard} ${
-                        dragImageId === image.id ? styles.imageCardDragging : ""
-                      }`}
-                    >
-                      <Image
-                        src={image.url}
-                        alt=""
-                        fill
-                        sizes="140px"
-                        className={styles.image}
-                      />
-
-                      {index === 0 ? (
-                        <div className={styles.mainImageBadge}>Главное</div>
-                      ) : null}
-
-                      <button
-                        type="button"
-                        onClick={() => onDeleteImage(image.id)}
-                        className={styles.imageDeleteBtn}
-                        aria-label="Удалить фото"
-                      >
-                        x
-                      </button>
-                    </div>
-                  ))}
                 </div>
-              ) : null}
-              </div>
 
-              <div className={styles.variantSizeList}>
-                {group.variants.map(({ variant, index }) => {
-                  const errors = validationErrors[index] ?? {};
+                <label className={`${styles.field} ${styles.priceField}`}>
+                  <span className={styles.required}>Цена</span>
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    value={formatPrice(variant.price)}
+                    onChange={(event) =>
+                      onUpdateVariant(index, {
+                        price:
+                          digitsOnly(event.target.value) === ""
+                            ? 0
+                            : Number(digitsOnly(event.target.value)),
+                      })
+                    }
+                    className={`${styles.input} ${
+                      errors.price ? styles.fieldInvalid : ""
+                    } ${variant.price > 0 ? "" : styles.requiredEmpty}`}
+                  />
+                  <span className={styles.priceInlineSuffix} aria-hidden="true">
+                    <span className={styles.priceMirror}>
+                      {formatPrice(variant.price)}
+                    </span>
+                    {variant.price > 0 ? (
+                      <span className={styles.priceSuffix}>₽</span>
+                    ) : null}
+                  </span>
+                </label>
 
-                  return (
-                    <div key={variant.id ?? `new-${index}`} className={styles.variantSizeRow}>
-                      <div className={styles.variantSizeField}>
-                        <FormCombobox
-                          label="Размер"
-                          value={variant.sizeId}
-                          customValue={variant.sizeId ? "" : variant.size}
-                          placeholder="Без размера"
-                          emptyOptionLabel="Без размера"
-                          options={sizes.map((size) => ({
-                            value: size.id,
-                            label: size.name,
-                          }))}
-                          onChange={(value, customValue) => {
-                            const size = sizes.find((item) => item.id === value);
-                            onUpdateVariant(index, {
-                              sizeId: value,
-                              size: size?.name ?? customValue,
-                            });
-                          }}
-                        />
+                <div className={`${styles.field} ${styles.quantityField}`}>
+                  <span>Количество</span>
+                  {variant.stockTrackingEnabled ? (
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      pattern="[0-9]*"
+                      value={variant.availableQuantity ?? ""}
+                      onChange={(event) =>
+                        onUpdateVariant(index, {
+                          availableQuantity:
+                            digitsOnly(event.target.value) === ""
+                              ? null
+                              : Number(digitsOnly(event.target.value)),
+                        })
+                      }
+                      className={`${styles.input} ${
+                        errors.availableQuantity ? styles.fieldInvalid : ""
+                      } ${variant.availableQuantity === null ? styles.requiredEmpty : ""}`}
+                    />
+                  ) : (
+                    <div className={styles.readonlyBox} aria-hidden="true" />
+                  )}
+                  <div className={styles.variantStockToggle}>
+                    <input
+                      type="checkbox"
+                      checked={variant.stockTrackingEnabled}
+                      onChange={(event) =>
+                        onUpdateVariant(index, {
+                          stockTrackingEnabled: event.target.checked,
+                          availableQuantity: event.target.checked
+                            ? variant.availableQuantity
+                            : null,
+                        })
+                      }
+                    />
+                    <span>Учитывать кол-во</span>
+                  </div>
+                </div>
 
-                        <div className={styles.variantSizeActions}>
-                          <button
-                              type="button"
-                              onClick={() =>
-                                onAddVariant({
-                                  groupKey: group.key,
-                                  colorwayId: group.colorwayId,
-                                  colorId: group.colorId,
-                                  color: group.color,
-                                })
-                              }
-                              className={styles.variantAddSizeBtn}
-                            >
-                              Добавить
-                            </button>
-
-                          {group.variants.length > 0 ? (
-                            <button
-                              type="button"
-                              onClick={() => removeVariantRow(index)}
-                              className={styles.variantSizeDeleteBtn}
-                            >
-                              Удалить
-                            </button>
-                          ) : null}
-                        </div>
-                      </div>
-
-                      <label className={`${styles.field} ${styles.priceField}`}>
-                        <span className={styles.required}>Цена</span>
-                        <input
-                          type="text"
-                          inputMode="numeric"
-                          pattern="[0-9]*"
-                          value={formatPrice(variant.price)}
-                          onChange={(event) =>
-                            onUpdateVariant(index, {
-                              price:
-                                digitsOnly(event.target.value) === ""
-                                  ? 0
-                                  : Number(digitsOnly(event.target.value)),
-                            })
-                          }
-                          className={`${styles.input} ${
-                            errors.price ? styles.fieldInvalid : ""
-                          } ${variant.price > 0 ? "" : styles.requiredEmpty}`}
-                        />
-                        <span className={styles.priceInlineSuffix} aria-hidden="true">
-                          <span className={styles.priceMirror}>
-                            {formatPrice(variant.price)}
-                          </span>
-                          {variant.price > 0 ? (
-                            <span className={styles.priceSuffix}>₽</span>
-                          ) : null}
-                        </span>
-                      </label>
-                      <label className={styles.field}>
-                        <span>Артикул продавца</span>
-                        <input
-                          value={variant.sellerArticle ?? ""}
-                          onChange={(event) =>
-                            onUpdateVariant(index, { sellerArticle: event.target.value })
-                          }
-                          className={styles.input}
-                        />
-                      </label>
-
-                      <div className={`${styles.field} ${styles.quantityField}`}>
-                        <span>Количество</span>
-                        {variant.stockTrackingEnabled ? (
-                          <input
-                            type="text"
-                            inputMode="numeric"
-                            pattern="[0-9]*"
-                            value={variant.availableQuantity ?? ""}
-                            onChange={(event) =>
-                              onUpdateVariant(index, {
-                                availableQuantity:
-                                  digitsOnly(event.target.value) === ""
-                                    ? null
-                                    : Number(digitsOnly(event.target.value)),
-                              })
-                            }
-                            className={`${styles.input} ${errors.availableQuantity ? styles.fieldInvalid : ""} ${variant.availableQuantity === null ? styles.requiredEmpty : ""}`}
-                          />
-                        ) : (
-                          <div className={styles.readonlyBox} aria-hidden="true" />
-                        )}
-                        <div className={styles.variantStockToggle}>
-                          <input
-                            type="checkbox"
-                            checked={variant.stockTrackingEnabled}
-                            onChange={(event) =>
-                              onUpdateVariant(index, {
-                                stockTrackingEnabled: event.target.checked,
-                                availableQuantity: event.target.checked
-                                  ? variant.availableQuantity
-                                  : null,
-                              })
-                            }
-                          />
-                          <span>Учитывать кол-во</span>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-
-              {multipleVariants ? (
-                <div className={styles.variantCardActions}>
+                <div className={styles.variantSizeRemoveCell}>
                   <button
                     type="button"
-                    onClick={() => onAddVariant()}
-                    className={styles.variantAddVariantBtn}
+                    onClick={() => removeSizeRow(index)}
+                    className={styles.variantSizeDeleteBtn}
+                    aria-label="Удалить размер"
                   >
-                    Добавить вариант
+                    <svg viewBox="0 0 16 16" aria-hidden="true" className={styles.variantActionIcon}>
+                      <path d="M4.5 4.5L11.5 11.5M11.5 4.5L4.5 11.5" />
+                    </svg>
                   </button>
-
-                  {groupIndex > 0 ? (
-                    <button
-                      type="button"
-                      onClick={() => removeGroup(group)}
-                      className={styles.variantDeleteBtn}
-                    >
-                      Удалить
-                    </button>
-                  ) : null}
                 </div>
-              ) : null}
-            </div>
-          );
-        })}
+              </div>
+            );
+          })}
+
+          <button
+            type="button"
+            onClick={addSizeRow}
+            className={styles.variantAddSizeBtn}
+          >
+            <span>Добавить размер</span>
+          </button>
+        </div>
       </div>
-    </section>
+      </section>
+    </>
   );
 }
-
-

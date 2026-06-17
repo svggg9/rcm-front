@@ -25,9 +25,14 @@ import type { CarouselProduct } from "../../components/ProductCarousel/types";
 type Props = {
   product: Product;
   related: CarouselProduct[];
+  sellerPreview?: boolean;
 };
 
-export default function ProductPageClient({ product, related }: Props) {
+export default function ProductPageClient({
+  product,
+  related,
+  sellerPreview = false,
+}: Props) {
   const router = useRouter();
   const { user } = useCurrentUser();
 
@@ -35,7 +40,7 @@ export default function ProductPageClient({ product, related }: Props) {
   const isOwnSellerProduct =
     user?.role === "SELLER" && product.sellerId === user.id;
 
-  const isSellerView = isAdmin || isOwnSellerProduct;
+  const isSellerView = sellerPreview || isAdmin || isOwnSellerProduct;
 
   const [adding, setAdding] = useState(false);
   const [openDescription, setOpenDescription] = useState(true);
