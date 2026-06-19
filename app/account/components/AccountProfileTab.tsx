@@ -3,62 +3,42 @@
 import type { InputHTMLAttributes } from "react";
 
 import { Button } from "../../components/ui/Button";
-import { ChoiceMark } from "../../components/ui/ChoiceMark";
 
 import styles from "./AccountProfileTab.module.css";
 
 type Props = {
-  displayName: string;
-  initials: string;
   email: string;
-  role: string;
-  lastName: string;
   firstName: string;
-  middleName: string;
-  birthDate: string;
-  gender: "men" | "women" | "";
   phone: string;
+  defaultDeliveryAddress: string;
+  defaultDeliveryMethod: string | null;
+  defaultDeliveryCityName: string;
+  deliveryFullName: string;
+  defaultDeliveryApartment: string;
+  defaultDeliveryFloor: string;
+  defaultDeliveryIntercom: string;
   saving: boolean;
   changed: boolean;
   savedMessage: string | null;
   onSave: () => void;
-  onLastNameChange: (value: string) => void;
   onFirstNameChange: (value: string) => void;
-  onMiddleNameChange: (value: string) => void;
-  onBirthDateChange: (value: string) => void;
-  onGenderChange: (value: "men" | "women") => void;
-  onPhoneChange: (value: string) => void;
+  onDeliveryFullNameChange: (value: string) => void;
+  onDefaultDeliveryAddressChange: (value: string) => void;
+  onDefaultDeliveryCityNameChange: (value: string) => void;
+  onDefaultDeliveryApartmentChange: (value: string) => void;
+  onDefaultDeliveryFloorChange: (value: string) => void;
+  onDefaultDeliveryIntercomChange: (value: string) => void;
 };
 
 type ProfileFieldProps = {
   label: string;
 };
 
-function getRussianPhoneDigits(value: string): string {
-  let digits = value.replace(/\D/g, "");
+function formatDeliveryMethod(value: string | null): string {
+  if (value === "COURIER") return "Курьером";
+  if (value === "PICKUP_POINT" || value === "PICKUP") return "ПВЗ СДЭК";
 
-  if (digits.startsWith("8")) {
-    digits = `7${digits.slice(1)}`;
-  }
-
-  if (digits.startsWith("7")) {
-    digits = digits.slice(1);
-  }
-
-  return digits.slice(0, 10);
-}
-
-function formatRussianPhone(value: string): string {
-  const digits = getRussianPhoneDigits(value);
-
-  let result = "+7";
-
-  if (digits.length > 0) result += ` ${digits.slice(0, 3)}`;
-  if (digits.length > 3) result += ` ${digits.slice(3, 6)}`;
-  if (digits.length > 6) result += `-${digits.slice(6, 8)}`;
-  if (digits.length > 8) result += `-${digits.slice(8, 10)}`;
-
-  return result;
+  return "Не указано";
 }
 
 function ProfileTextField({
@@ -75,116 +55,43 @@ function ProfileTextField({
 }
 
 export function AccountProfileTab({
-  displayName,
-  initials,
   email,
-  role,
-  lastName,
   firstName,
-  middleName,
-  birthDate,
-  gender,
   phone,
+  defaultDeliveryAddress,
+  defaultDeliveryMethod,
+  defaultDeliveryCityName,
+  deliveryFullName,
+  defaultDeliveryApartment,
+  defaultDeliveryFloor,
+  defaultDeliveryIntercom,
   saving,
   changed,
   savedMessage,
   onSave,
-  onLastNameChange,
   onFirstNameChange,
-  onMiddleNameChange,
-  onBirthDateChange,
-  onGenderChange,
-  onPhoneChange,
+  onDeliveryFullNameChange,
+  onDefaultDeliveryAddressChange,
+  onDefaultDeliveryCityNameChange,
+  onDefaultDeliveryApartmentChange,
+  onDefaultDeliveryFloorChange,
+  onDefaultDeliveryIntercomChange,
 }: Props) {
   const saveButtonText = savedMessage && !changed ? savedMessage : "Сохранить";
 
   return (
     <section className={styles.page}>
-      <section className={styles.profileCard}>
-        <div className={styles.profileHead}>
-          <div className={styles.avatar}>{initials}</div>
-
-          <div className={styles.profileMeta}>
-            <div className={styles.profileName}>{displayName}</div>
-            <div className={styles.profileSub}>Личный кабинет покупателя</div>
-          </div>
-        </div>
-      </section>
-
       <section className={styles.card}>
         <div className={styles.cardHeader}>
-          <h2>Основная информация</h2>
+          <h2>Основные данные</h2>
         </div>
 
         <div className={styles.formGrid}>
-          <ProfileTextField
-            label="Фамилия"
-            value={lastName}
-            onChange={(event) => onLastNameChange(event.target.value)}
-          />
-
           <ProfileTextField
             label="Имя"
             value={firstName}
             onChange={(event) => onFirstNameChange(event.target.value)}
           />
-
-          <ProfileTextField
-            label="Отчество"
-            value={middleName}
-            onChange={(event) => onMiddleNameChange(event.target.value)}
-          />
-
-          <ProfileTextField
-            label="Дата рождения"
-            value={birthDate}
-            placeholder="дд.мм.гггг"
-            onChange={(event) => onBirthDateChange(event.target.value)}
-          />
-        </div>
-
-        <div className={styles.subSection}>
-          <div className={styles.subSectionTitle}>Пол</div>
-
-          <div className={styles.choiceGrid}>
-            {[
-              { value: "men" as const, label: "Мужской" },
-              { value: "women" as const, label: "Женский" },
-            ].map((option) => {
-              const checked = gender === option.value;
-
-              return (
-                <label
-                  key={option.value}
-                  className={`${styles.choiceOption} ${
-                    checked ? styles.choiceOptionActive : ""
-                  }`.trim()}
-                >
-                  <input
-                    type="radio"
-                    name="gender"
-                    value={option.value}
-                    checked={checked}
-                    onChange={() => onGenderChange(option.value)}
-                  />
-                  <span>{option.label}</span>
-                  <ChoiceMark checked={checked} />
-                </label>
-              );
-            })}
-          </div>
-        </div>
-      </section>
-
-      <section className={styles.card}>
-        <div className={styles.cardHeader}>
-          <h2>Контакты</h2>
-        </div>
-
-        <div className={styles.formGrid}>
-          <ProfileTextField label="E-mail" value={email} disabled />
-
-          <ProfileTextField label="Роль" value={role} disabled />
 
           <ProfileTextField
             label="Телефон"
@@ -193,17 +100,59 @@ export function AccountProfileTab({
             autoComplete="tel"
             value={phone}
             placeholder="+7 999 123-45-67"
-            onChange={(event) => onPhoneChange(formatRussianPhone(event.target.value))}
-            onFocus={() => {
-              if (!phone) {
-                onPhoneChange("+7");
-              }
-            }}
-            onBlur={() => {
-              if (phone === "+7" || phone === "+7 ") {
-                onPhoneChange("");
-              }
-            }}
+            disabled
+          />
+
+          <ProfileTextField label="E-mail" value={email} disabled />
+        </div>
+      </section>
+
+      <section className={styles.card}>
+        <div className={styles.cardHeader}>
+          <h2>Данные доставки</h2>
+        </div>
+
+        <div className={styles.formGrid}>
+          <ProfileTextField
+            label="Фамилия, имя и отчество"
+            value={deliveryFullName}
+            onChange={(event) => onDeliveryFullNameChange(event.target.value)}
+          />
+
+          <ProfileTextField
+            label="Способ доставки"
+            value={formatDeliveryMethod(defaultDeliveryMethod)}
+            disabled
+          />
+
+          <ProfileTextField
+            label="Город"
+            value={defaultDeliveryCityName}
+            onChange={(event) => onDefaultDeliveryCityNameChange(event.target.value)}
+          />
+
+          <ProfileTextField
+            label="Адрес"
+            value={defaultDeliveryAddress}
+            onChange={(event) => onDefaultDeliveryAddressChange(event.target.value)}
+          />
+
+          <ProfileTextField
+            label="Квартира"
+            value={defaultDeliveryApartment}
+            onChange={(event) => onDefaultDeliveryApartmentChange(event.target.value)}
+          />
+
+          <ProfileTextField
+            label="Этаж"
+            value={defaultDeliveryFloor}
+            onChange={(event) => onDefaultDeliveryFloorChange(event.target.value)}
+          />
+
+          <ProfileTextField
+            label="Домофон"
+            value={defaultDeliveryIntercom}
+            onChange={(event) => onDefaultDeliveryIntercomChange(event.target.value)}
           />
         </div>
       </section>

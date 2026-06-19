@@ -93,9 +93,12 @@
   text-decoration: none;
 }
 
-.breadcrumbLink:hover,
-.breadcrumbCurrent {
+.breadcrumbLink:hover {
   color: var(--black);
+}
+
+.breadcrumbCurrent {
+  color: var(--gold-muted);
 }
 
 .headingWrap {

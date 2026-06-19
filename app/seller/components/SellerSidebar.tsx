@@ -7,15 +7,26 @@ import type { SellerTab } from "../types";
 type Props = {
   currentTab: SellerTab;
   ordersCount: number;
+  productsCount: number;
   storeName: string;
+  creatingProduct: boolean;
+  onCreateProduct: () => void;
 };
 
-export function SellerSidebar({ currentTab, ordersCount, storeName }: Props) {
+export function SellerSidebar({
+  currentTab,
+  ordersCount,
+  productsCount,
+  storeName,
+  creatingProduct,
+  onCreateProduct,
+}: Props) {
   return (
     <CabinetSidebar
       ariaLabel="Меню продавца"
       subtitle="Кабинет продавца"
       title={storeName}
+      mobileInline
       items={[
         {
           href: "/seller?tab=orders",
@@ -27,6 +38,13 @@ export function SellerSidebar({ currentTab, ordersCount, storeName }: Props) {
           href: "/seller?tab=products",
           label: "Товары",
           active: currentTab === "products",
+          count: productsCount,
+        },
+        {
+          label: "Добавить новый товар",
+          mobileLabel: "Добавить товар",
+          onClick: onCreateProduct,
+          disabled: creatingProduct,
         },
         {
           href: "/seller?tab=brand",

@@ -199,11 +199,7 @@ function CheckoutResultContent() {
   }
 
   if (loading) {
-    return (
-      <div className={styles.page}>
-        <div className={styles.card}>Проверяем оплату…</div>
-      </div>
-    );
+    return null;
   }
 
   return (
@@ -311,13 +307,7 @@ function CheckoutResultContent() {
 
 export default function CheckoutResultPage() {
   return (
-    <Suspense
-      fallback={
-        <div className={styles.page}>
-          <div className={styles.card}>Загружаем результат оплаты…</div>
-        </div>
-      }
-    >
+    <Suspense fallback={null}>
       <CheckoutResultContent />
     </Suspense>
   );

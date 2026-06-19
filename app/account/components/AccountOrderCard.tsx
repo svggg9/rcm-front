@@ -52,31 +52,21 @@ export function AccountOrderCard({
       </div>
 
       <div className={styles.orderMain}>
-        <div className={styles.orderTitle}>Заказ #{order.id}</div>
-        <div className={styles.orderMeta}>
-          <span>{new Date(order.createdAt).toLocaleString("ru-RU")}</span>
-          <span>•</span>
-          <span>{order.orderGroupId}</span>
+        <div className={styles.orderStatus}>
+          <StatusBadge tone={getOrderTone(order)}>{statusLabel}</StatusBadge>
+        </div>
+
+        <div className={styles.orderInfo}>
+          <div className={styles.orderNumber}>Заказ {order.id}</div>
+          <div className={styles.orderDate}>
+            {new Date(order.createdAt).toLocaleString("ru-RU")}
+          </div>
         </div>
       </div>
 
-      <div className={styles.orderProducts}>
-        {order.firstProductTitle ? (
-          <div className={styles.orderProductLine}>{order.firstProductTitle}</div>
-        ) : null}
-
-        <div className={styles.orderItemsCount}>
-          {order.itemsCount} шт. в заказе
-        </div>
-      </div>
-
-      <div className={styles.orderAmount}>
-        {order.totalAmount.toLocaleString()} ₽
-      </div>
-
-      <div className={styles.orderStatus}>
-        <StatusBadge tone={getOrderTone(order)}>{statusLabel}</StatusBadge>
-      </div>
+      <span className={styles.orderArrow} aria-hidden="true">
+        &gt;
+      </span>
     </article>
   );
 }

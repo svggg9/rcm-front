@@ -25,14 +25,6 @@ import type {
 
 type AccountTab = "profile" | "orders";
 
-function getInitials(value: string): string {
-  const parts = value.trim().split(/\s+/).filter(Boolean).slice(0, 2);
-
-  if (parts.length === 0) return "П";
-
-  return parts.map((part) => part[0]?.toUpperCase() ?? "").join("");
-}
-
 function formatOrderStatus(status: OrderStatus): string {
   switch (status) {
     case "NEW":
@@ -78,6 +70,14 @@ function formatDeliveryStatus(status: DeliveryStatus): string {
   }
 }
 
+function isActiveAccountOrder(order: OrderListItem): boolean {
+  return (
+    order.status !== "CANCELED" &&
+    order.status !== "COMPLETED" &&
+    order.deliveryStatus !== "DELIVERED"
+  );
+}
+
 function buildOrderStatusLabel(order: Order | OrderListItem): string {
   if (order.paymentStatus === "PENDING") return "Ожидает оплаты";
   if (order.paymentStatus === "FAILED") return "Ошибка оплаты";
@@ -88,27 +88,56 @@ function buildOrderStatusLabel(order: Order | OrderListItem): string {
   return formatOrderStatus(order.status);
 }
 
-function normalizeGender(value: Me["gender"]): "men" | "women" | "" {
-  return value === "men" || value === "women" ? value : "";
-}
-
 type ProfileForm = {
   lastName: string;
   firstName: string;
   middleName: string;
   birthDate: string;
-  gender: "men" | "women" | "";
   phone: string;
+  deliveryFullName: string;
+  defaultDeliveryAddress: string;
+  defaultDeliveryCityName: string;
+  defaultDeliveryApartment: string;
+  defaultDeliveryFloor: string;
+  defaultDeliveryIntercom: string;
 };
 
 function buildProfileForm(me: Me): ProfileForm {
+  const deliveryFullName = buildFullName(
+    me.lastName ?? "",
+    me.firstName ?? "",
+    me.middleName ?? ""
+  );
+
   return {
     lastName: me.lastName ?? "",
     firstName: me.firstName ?? "",
     middleName: me.middleName ?? "",
     birthDate: me.birthDate ?? "",
-    gender: normalizeGender(me.gender),
     phone: me.phone ?? "",
+    deliveryFullName,
+    defaultDeliveryAddress: me.defaultDeliveryAddress ?? "",
+    defaultDeliveryCityName: me.defaultDeliveryCityName ?? "",
+    defaultDeliveryApartment: me.defaultDeliveryApartment ?? "",
+    defaultDeliveryFloor: me.defaultDeliveryFloor ?? "",
+    defaultDeliveryIntercom: me.defaultDeliveryIntercom ?? "",
+  };
+}
+
+function buildFullName(lastName: string, firstName: string, middleName: string): string {
+  return [lastName, firstName, middleName]
+    .map((value) => value.trim())
+    .filter(Boolean)
+    .join(" ");
+}
+
+function parseFullName(value: string) {
+  const parts = value.trim().split(/\s+/).filter(Boolean);
+
+  return {
+    lastName: parts[0] ?? "",
+    firstName: parts[1] ?? "",
+    middleName: parts.slice(2).join(" "),
   };
 }
 
@@ -139,10 +168,25 @@ function AccountPageContent({ initialMe, initialOrders }: Props) {
   const [firstName, setFirstName] = useState(initialProfileForm.firstName);
   const [middleName, setMiddleName] = useState(initialProfileForm.middleName);
   const [birthDate, setBirthDate] = useState(initialProfileForm.birthDate);
-  const [gender, setGender] = useState<"men" | "women" | "">(
-    initialProfileForm.gender
-  );
   const [phone, setPhone] = useState(initialProfileForm.phone);
+  const [deliveryFullName, setDeliveryFullName] = useState(
+    initialProfileForm.deliveryFullName
+  );
+  const [defaultDeliveryAddress, setDefaultDeliveryAddress] = useState(
+    initialProfileForm.defaultDeliveryAddress
+  );
+  const [defaultDeliveryCityName, setDefaultDeliveryCityName] = useState(
+    initialProfileForm.defaultDeliveryCityName
+  );
+  const [defaultDeliveryApartment, setDefaultDeliveryApartment] = useState(
+    initialProfileForm.defaultDeliveryApartment
+  );
+  const [defaultDeliveryFloor, setDefaultDeliveryFloor] = useState(
+    initialProfileForm.defaultDeliveryFloor
+  );
+  const [defaultDeliveryIntercom, setDefaultDeliveryIntercom] = useState(
+    initialProfileForm.defaultDeliveryIntercom
+  );
   const [savedProfileForm, setSavedProfileForm] =
     useState<ProfileForm>(initialProfileForm);
   const [profileSavedMessage, setProfileSavedMessage] = useState<string | null>(
@@ -198,8 +242,13 @@ function AccountPageContent({ initialMe, initialOrders }: Props) {
     setFirstName(initialProfileForm.firstName);
     setMiddleName(initialProfileForm.middleName);
     setBirthDate(initialProfileForm.birthDate);
-    setGender(initialProfileForm.gender);
     setPhone(initialProfileForm.phone);
+    setDeliveryFullName(initialProfileForm.deliveryFullName);
+    setDefaultDeliveryAddress(initialProfileForm.defaultDeliveryAddress);
+    setDefaultDeliveryCityName(initialProfileForm.defaultDeliveryCityName);
+    setDefaultDeliveryApartment(initialProfileForm.defaultDeliveryApartment);
+    setDefaultDeliveryFloor(initialProfileForm.defaultDeliveryFloor);
+    setDefaultDeliveryIntercom(initialProfileForm.defaultDeliveryIntercom);
     setSavedProfileForm(initialProfileForm);
     setProfileSavedMessage(null);
   }, [initialMe, initialProfileForm]);
@@ -215,15 +264,25 @@ function AccountPageContent({ initialMe, initialOrders }: Props) {
     setError(null);
 
     try {
+      const parsedDeliveryName = parseFullName(deliveryFullName);
+      const nextFirstName = firstName.trim() || parsedDeliveryName.firstName;
+      const nextLastName = parsedDeliveryName.lastName;
+      const nextMiddleName = parsedDeliveryName.middleName;
+
       const response = await apiFetch(`${API_URL}/api/profile`, {
         method: "PUT",
         body: JSON.stringify({
-          firstName,
-          lastName,
-          middleName,
+          firstName: nextFirstName,
+          lastName: nextLastName,
+          middleName: nextMiddleName,
           birthDate,
-          gender: gender || null,
+          gender: me?.gender ?? null,
           phone,
+          defaultDeliveryAddress,
+          defaultDeliveryCityName,
+          defaultDeliveryApartment,
+          defaultDeliveryFloor,
+          defaultDeliveryIntercom,
         }),
       });
 
@@ -240,8 +299,13 @@ function AccountPageContent({ initialMe, initialOrders }: Props) {
       setFirstName(updatedProfileForm.firstName);
       setMiddleName(updatedProfileForm.middleName);
       setBirthDate(updatedProfileForm.birthDate);
-      setGender(updatedProfileForm.gender);
       setPhone(updatedProfileForm.phone);
+      setDeliveryFullName(updatedProfileForm.deliveryFullName);
+      setDefaultDeliveryAddress(updatedProfileForm.defaultDeliveryAddress);
+      setDefaultDeliveryCityName(updatedProfileForm.defaultDeliveryCityName);
+      setDefaultDeliveryApartment(updatedProfileForm.defaultDeliveryApartment);
+      setDefaultDeliveryFloor(updatedProfileForm.defaultDeliveryFloor);
+      setDefaultDeliveryIntercom(updatedProfileForm.defaultDeliveryIntercom);
       setSavedProfileForm(updatedProfileForm);
       setProfileSavedMessage("Профиль сохранён");
 
@@ -267,52 +331,69 @@ function AccountPageContent({ initialMe, initialOrders }: Props) {
     router.push("/account?tab=orders");
   }
 
-  const fullName = useMemo(() => {
-    const parts = [lastName, firstName, middleName].filter(
-      (value) => value.trim().length > 0
-    );
-
-    return parts.join(" ").trim();
-  }, [lastName, firstName, middleName]);
-
-  const displayName =
-    fullName || me?.displayName?.trim() || me?.username || "Профиль";
-
-  const initials = getInitials(displayName);
   const profileForm = useMemo(
-    () => ({ lastName, firstName, middleName, birthDate, gender, phone }),
-    [lastName, firstName, middleName, birthDate, gender, phone]
+    () => ({
+      lastName,
+      firstName,
+      middleName,
+      birthDate,
+      phone,
+      deliveryFullName,
+      defaultDeliveryAddress,
+      defaultDeliveryCityName,
+      defaultDeliveryApartment,
+      defaultDeliveryFloor,
+      defaultDeliveryIntercom,
+    }),
+    [
+      lastName,
+      firstName,
+      middleName,
+      birthDate,
+      phone,
+      deliveryFullName,
+      defaultDeliveryAddress,
+      defaultDeliveryCityName,
+      defaultDeliveryApartment,
+      defaultDeliveryFloor,
+      defaultDeliveryIntercom,
+    ]
   );
   const profileChanged =
     JSON.stringify(profileForm) !== JSON.stringify(savedProfileForm);
-
-  function updateLastName(value: string) {
-    setLastName(value);
-    setProfileSavedMessage(null);
-  }
 
   function updateFirstName(value: string) {
     setFirstName(value);
     setProfileSavedMessage(null);
   }
 
-  function updateMiddleName(value: string) {
-    setMiddleName(value);
+  function updateDeliveryFullName(value: string) {
+    setDeliveryFullName(value);
     setProfileSavedMessage(null);
   }
 
-  function updateBirthDate(value: string) {
-    setBirthDate(value);
+  function updateDefaultDeliveryAddress(value: string) {
+    setDefaultDeliveryAddress(value);
     setProfileSavedMessage(null);
   }
 
-  function updateGender(value: "men" | "women") {
-    setGender(value);
+  function updateDefaultDeliveryCityName(value: string) {
+    setDefaultDeliveryCityName(value);
     setProfileSavedMessage(null);
   }
 
-  function updatePhone(value: string) {
-    setPhone(value);
+  function updateDefaultDeliveryApartment(value: string) {
+    setDefaultDeliveryApartment(value);
+    setProfileSavedMessage(null);
+  }
+
+  function updateDefaultDeliveryFloor(value: string) {
+    setDefaultDeliveryFloor(value);
+    setProfileSavedMessage(null);
+  }
+
+  function updateDefaultDeliveryIntercom(value: string) {
+    setDefaultDeliveryIntercom(value);
     setProfileSavedMessage(null);
   }
 
@@ -327,42 +408,45 @@ function AccountPageContent({ initialMe, initialOrders }: Props) {
     );
   }
 
+  const activeOrdersCount = orders.filter(isActiveAccountOrder).length;
+
   return (
     <div className="pageContainer">
       <div className={styles.page}>
         <div className={styles.layout}>
           <AccountSidebar
             currentTab={currentTab}
-            ordersCount={orders.length}
+            ordersCount={activeOrdersCount}
             onLogout={() => void logout()}
           />
 
           <div className={styles.content}>
             {currentTab === "profile" ? (
               <AccountProfileTab
-                displayName={displayName}
-                initials={initials}
                 email={me?.email?.trim() || me?.username || "—"}
-                role={me?.role ?? "—"}
-                lastName={lastName}
                 firstName={firstName}
-                middleName={middleName}
-                birthDate={birthDate}
-                gender={gender}
                 phone={phone}
+                defaultDeliveryAddress={defaultDeliveryAddress}
+                defaultDeliveryMethod={me?.defaultDeliveryMethod ?? null}
+                defaultDeliveryCityName={defaultDeliveryCityName}
+                deliveryFullName={deliveryFullName}
+                defaultDeliveryApartment={defaultDeliveryApartment}
+                defaultDeliveryFloor={defaultDeliveryFloor}
+                defaultDeliveryIntercom={defaultDeliveryIntercom}
                 saving={profileSaving}
                 changed={profileChanged}
                 savedMessage={profileSavedMessage}
-                onLastNameChange={updateLastName}
                 onFirstNameChange={updateFirstName}
-                onMiddleNameChange={updateMiddleName}
-                onBirthDateChange={updateBirthDate}
-                onGenderChange={updateGender}
-                onPhoneChange={updatePhone}
+                onDeliveryFullNameChange={updateDeliveryFullName}
+                onDefaultDeliveryAddressChange={updateDefaultDeliveryAddress}
+                onDefaultDeliveryCityNameChange={updateDefaultDeliveryCityName}
+                onDefaultDeliveryApartmentChange={updateDefaultDeliveryApartment}
+                onDefaultDeliveryFloorChange={updateDefaultDeliveryFloor}
+                onDefaultDeliveryIntercomChange={updateDefaultDeliveryIntercom}
                 onSave={() => void saveProfile()}
               />
             ) : detailsLoading ? (
-              <div className={styles.sectionTitle}>Загрузка заказа…</div>
+              null
             ) : selectedOrder ? (
               <AccountOrderDetails
                 order={selectedOrder}

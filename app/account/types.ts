@@ -13,6 +13,12 @@ export type Me = {
   phone: string | null;
   defaultDeliveryAddress: string | null;
   defaultDeliveryMethod: string | null;
+  defaultDeliveryCountryCode: string | null;
+  defaultDeliveryCityCode: number | null;
+  defaultDeliveryCityName: string | null;
+  defaultDeliveryApartment: string | null;
+  defaultDeliveryFloor: string | null;
+  defaultDeliveryIntercom: string | null;
 };
 
 export type PageResponse<T> = {

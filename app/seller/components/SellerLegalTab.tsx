@@ -7,9 +7,11 @@ import type {
   TextareaHTMLAttributes,
 } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 import { Button } from "../../components/ui/Button";
 import { ChoiceMark } from "../../components/ui/ChoiceMark";
+import { API_URL, apiFetch } from "../../lib/api";
 import { isNonEmpty } from "../../lib/validation";
 import { emitSellerOnboardingChanged } from "../lib/sellerOnboardingEvents";
 
@@ -71,11 +73,14 @@ function formatSellerType(type: SellerType) {
 }
 
 export function SellerLegalTab() {
+  const router = useRouter();
   const [form, setForm] = useState<SellerLegalInfoForm>(INITIAL_FORM);
   const [savedForm, setSavedForm] = useState<SellerLegalInfoForm>(INITIAL_FORM);
   const [errors, setErrors] = useState<FormErrors>({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [creatingProduct, setCreatingProduct] = useState(false);
+  const [successOpen, setSuccessOpen] = useState(false);
 
   const [error, setError] = useState<string | null>(null);
   const [savedMessage, setSavedMessage] = useState<string | null>(null);
@@ -200,11 +205,37 @@ export function SellerLegalTab() {
       await saveSellerLegalInfo(form);
       setSavedForm(form);
       setSavedMessage("Реквизиты сохранены");
+      setSuccessOpen(true);
       emitSellerOnboardingChanged();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Не удалось сохранить реквизиты");
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function createProductDraft() {
+    if (creatingProduct) return;
+
+    setCreatingProduct(true);
+
+    try {
+      const response = await apiFetch(`${API_URL}/api/seller/products/draft`, {
+        method: "POST",
+      });
+
+      if (!response.ok) {
+        const text = await response.text().catch(() => "");
+        throw new Error(text || "Не удалось создать товар");
+      }
+
+      const productId: number = await response.json();
+      router.push(`/seller/products/${productId}/edit`);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Не удалось создать товар");
+      setSuccessOpen(false);
+    } finally {
+      setCreatingProduct(false);
     }
   }
 
@@ -414,6 +445,58 @@ export function SellerLegalTab() {
           </Button>
         </div>
       </form>
+
+      {successOpen ? (
+        <div className="modalOverlay" role="presentation">
+          <div
+            className={`modal ${styles.successModal}`}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="seller-legal-success-title"
+          >
+            <div className="modalHeader">
+              <div>
+                <div className={styles.modalKicker}>Готово</div>
+                <h2 className="modalTitle" id="seller-legal-success-title">
+                  Реквизиты сохранены
+                </h2>
+              </div>
+              <button
+                type="button"
+                className="modalClose"
+                onClick={() => setSuccessOpen(false)}
+                aria-label="Закрыть"
+              >
+                ×
+              </button>
+            </div>
+
+            <div className="modalBody">
+              <p className={styles.modalText}>
+                Теперь можно добавить первый товар и отправить карточку на модерацию.
+              </p>
+            </div>
+
+            <div className="modalFooter">
+              <button
+                type="button"
+                className="buttonSecondary"
+                onClick={() => setSuccessOpen(false)}
+              >
+                Позже
+              </button>
+              <button
+                type="button"
+                className="buttonPrimary"
+                disabled={creatingProduct}
+                onClick={() => void createProductDraft()}
+              >
+                {creatingProduct ? "Создаем..." : "Создать товар"}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </section>
   );
 }

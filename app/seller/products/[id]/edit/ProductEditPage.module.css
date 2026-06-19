@@ -49,13 +49,14 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  color: var(--gold-muted);
 }
 
 .main {
   display: flex;
   flex-direction: column;
   min-width: 0;
-  gap: 16px;
+  gap: 0;
 }
 
 .formActions {
@@ -65,7 +66,9 @@
 }
 
 .formActions .primaryBtn,
-.formActions .secondaryBtn {
+.formActions .secondaryBtn,
+.formActions .archiveBtn,
+.formActions .deleteProductBtn {
   width: 100%;
 }
 
@@ -78,16 +81,18 @@
 .card {
   background: var(--white);
   border: 0;
-  border-top: 1px solid var(--line);
-  padding: 18px;
+  padding: 28px 0;
   display: flex;
   flex-direction: column;
   gap: 18px;
 }
 
 .card:first-child {
-  border-top: 0;
-  padding-top: 18px;
+  padding-top: 28px;
+}
+
+.card + .card {
+  padding-top: 0;
 }
 
 .sectionHeader,
@@ -276,6 +281,7 @@
 
 .priceSuffix {
   flex: 0 0 auto;
+  color: var(--warning);
   font-size: var(--font-sm);
 }
 
@@ -304,6 +310,8 @@
 
 .primaryBtn,
 .secondaryBtn,
+.archiveBtn,
+.deleteProductBtn,
 .lockedPrimaryBtn,
 .lockedSecondaryBtn,
 .lockedIconBtn {
@@ -325,12 +333,30 @@
 .lockedSecondaryBtn,
 .lockedIconBtn {
   border: 1px solid var(--black);
+  background: color-mix(in srgb, var(--warning) 82%, var(--black));
+  color: var(--white);
+}
+
+.secondaryBtn:hover {
+  opacity: 0.78;
+}
+
+.archiveBtn {
+  border: 1px solid var(--black);
   background: var(--white);
   color: var(--black);
 }
 
+.deleteProductBtn {
+  border: 1px solid var(--black);
+  background: rgba(155, 44, 44, 0.045);
+  color: var(--danger);
+}
+
 .primaryBtn,
-.secondaryBtn {
+.secondaryBtn,
+.archiveBtn,
+.deleteProductBtn {
   height: 44px;
   padding: 0 18px;
   line-height: 1.1;
@@ -355,14 +381,22 @@
 
 .primaryBtn:hover,
 .secondaryBtn:hover,
+.archiveBtn:hover,
 .lockedPrimaryBtn:hover,
 .lockedSecondaryBtn:hover,
 .lockedIconBtn:hover {
   opacity: 0.78;
 }
 
+.deleteProductBtn:hover {
+  background: rgba(155, 44, 44, 0.09);
+  border-color: var(--black);
+}
+
 .primaryBtn:disabled,
 .secondaryBtn:disabled,
+.archiveBtn:disabled,
+.deleteProductBtn:disabled,
 .lockedPrimaryBtn:disabled,
 .lockedSecondaryBtn:disabled,
 .lockedIconBtn:disabled {
@@ -398,7 +432,7 @@
 .lockedBack {
   width: 32px;
   height: 32px;
-  border: 1px solid var(--line);
+  border: 1px solid var(--black);
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -591,7 +625,7 @@
 
 .filePicker,
 .fileLabel {
-  border: 1px solid var(--line);
+  border: 1px solid var(--black);
   background: var(--white);
   padding: 11px 16px;
   display: inline-flex;
@@ -680,7 +714,7 @@
 
 .variantModeOption {
   min-height: 74px;
-  border: 1px solid var(--line);
+  border: 1px solid var(--black);
   background: var(--white);
   padding: 12px 14px;
   display: flex;
@@ -868,7 +902,7 @@
 .variantAddSizeBtn {
   width: 100%;
   min-height: 34px;
-  border: 1px solid var(--line);
+  border: 1px solid var(--black);
   background: var(--white);
   color: var(--muted);
   padding: 0 12px;
@@ -893,9 +927,9 @@
 }
 
 .variantAddSizeBtn {
-  border-color: var(--line);
+  border-color: var(--black);
   background: var(--white);
-  color: var(--muted);
+  color: var(--black);
 }
 
 .variantAddSizeBtn:hover {
@@ -914,7 +948,7 @@
 .variantSizeDeleteBtn {
   width: 28px;
   height: 28px;
-  border: 1px solid var(--line);
+  border: 1px solid var(--black);
   background: var(--white);
   color: var(--muted);
   padding: 0;
@@ -1042,7 +1076,7 @@
 
 .addVariantBtn {
   width: 100%;
-  border: 1px solid var(--line);
+  border: 1px solid var(--black);
   background: var(--white);
   padding: 16px;
   cursor: pointer;
@@ -1212,6 +1246,99 @@
   color: var(--muted);
 }
 
+.skeletonBreadcrumbs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 24px;
+}
+
+.skeletonBreadcrumbs div,
+.skeletonSectionTitle,
+.skeletonFields div,
+.skeletonUpload,
+.skeletonActions div,
+.skeletonPreview,
+.skeletonPreviewImage,
+.skeletonPreviewLine,
+.skeletonPreviewLineShort,
+.skeletonPreviewButton {
+  background: var(--soft);
+}
+
+.skeletonBreadcrumbs div {
+  width: 92px;
+  height: 14px;
+}
+
+.skeletonBreadcrumbs div:first-child {
+  width: 140px;
+}
+
+.skeletonSection {
+  padding: 0 0 28px;
+}
+
+.skeletonSectionTitle {
+  width: 190px;
+  height: 18px;
+  margin-bottom: 18px;
+}
+
+.skeletonFields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.skeletonFields div {
+  height: 54px;
+}
+
+.skeletonFields div:first-child,
+.skeletonFields div:nth-child(2) {
+  grid-column: 1 / -1;
+}
+
+.skeletonUpload {
+  height: 168px;
+  margin-bottom: 14px;
+}
+
+.skeletonActions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.skeletonActions div {
+  height: 44px;
+}
+
+.skeletonPreview {
+  padding: 14px;
+}
+
+.skeletonPreviewImage {
+  aspect-ratio: 3 / 4;
+  margin-bottom: 14px;
+}
+
+.skeletonPreviewLine {
+  width: 100%;
+  height: 14px;
+  margin-bottom: 10px;
+}
+
+.skeletonPreviewLineShort {
+  width: 62%;
+  height: 14px;
+  margin-bottom: 16px;
+}
+
+.skeletonPreviewButton {
+  height: 40px;
+}
+
 /* responsive */
 
 @media (max-width: 1100px) {
@@ -1227,6 +1354,10 @@
   .sidebar,
   .stickyCard {
     position: static;
+  }
+
+  .skeletonPreview {
+    display: none;
   }
 }
 
@@ -1256,6 +1387,17 @@
 
   .lockedTitle {
     max-width: 100%;
+  }
+}
+
+@media (max-width: 640px) {
+  .skeletonFields,
+  .skeletonActions {
+    grid-template-columns: 1fr;
+  }
+
+  .skeletonBreadcrumbs {
+    margin-bottom: 18px;
   }
 }
 
@@ -1427,7 +1569,7 @@
   width: 28px;
   height: 28px;
 
-  border: 1px solid var(--line);
+  border: 1px solid var(--black);
   background: rgba(255, 255, 255, 0.92);
   color: var(--black);
 
@@ -1456,7 +1598,7 @@
   width: 34px;
   height: 30px;
 
-  border: 1px solid var(--line);
+  border: 1px solid var(--black);
   background: var(--white);
   color: var(--black);
 
@@ -1490,7 +1632,6 @@
 }
 
 .revisionBox {
-  border-bottom: 1px solid var(--line);
   padding: 18px 0;
   color: var(--black);
 }
@@ -1523,7 +1664,7 @@
 .smallBtn {
   height: 44px;
   padding: 0 12px;
-  border: 1px solid var(--line);
+  border: 1px solid var(--black);
   background: var(--white);
   color: var(--black);
   font-size: 12px;

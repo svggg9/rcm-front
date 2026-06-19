@@ -4,10 +4,13 @@ import type { ReactNode } from "react";
 import styles from "./CabinetSidebar.module.css";
 
 type SidebarItem = {
-  href: string;
+  href?: string;
   label: string;
+  mobileLabel?: string;
   active?: boolean;
   count?: number;
+  onClick?: () => void;
+  disabled?: boolean;
 };
 
 type Props = {
@@ -16,6 +19,7 @@ type Props = {
   items: SidebarItem[];
   footer?: ReactNode;
   ariaLabel: string;
+  mobileInline?: boolean;
 };
 
 export function CabinetSidebar({
@@ -24,9 +28,12 @@ export function CabinetSidebar({
   items,
   footer,
   ariaLabel,
+  mobileInline = false,
 }: Props) {
   return (
-    <aside className={styles.sidebar}>
+    <aside
+      className={`${styles.sidebar} ${mobileInline ? styles.mobileInline : ""}`}
+    >
       {title || subtitle ? (
         <div className={styles.head}>
           {subtitle ? <div className={styles.subtitle}>{subtitle}</div> : null}
@@ -36,19 +43,41 @@ export function CabinetSidebar({
 
       <nav className={styles.nav} aria-label={ariaLabel}>
         {items.map((item) => (
-          <Link
-            key={item.href}
-            href={item.href}
-            className={`${styles.item} ${item.active ? styles.itemActive : ""}`}
-            aria-current={item.active ? "page" : undefined}
-            prefetch={false}
-          >
-            <span>{item.label}</span>
+          item.href ? (
+            <Link
+              key={item.href}
+              href={item.href}
+              className={`${styles.item} ${item.active ? styles.itemActive : ""}`}
+              aria-current={item.active ? "page" : undefined}
+              prefetch={false}
+            >
+              <span>
+                <span className={styles.desktopLabel}>{item.label}</span>
+                <span className={styles.mobileLabel}>
+                  {item.mobileLabel ?? item.label}
+                </span>
+              </span>
 
-            {typeof item.count === "number" ? (
-              <span className={styles.count}>{item.count}</span>
-            ) : null}
-          </Link>
+              {typeof item.count === "number" && item.count > 0 ? (
+                <span className={styles.count}>{item.count}</span>
+              ) : null}
+            </Link>
+          ) : (
+            <button
+              key={item.label}
+              type="button"
+              className={styles.item}
+              onClick={item.onClick}
+              disabled={item.disabled}
+            >
+              <span>
+                <span className={styles.desktopLabel}>{item.label}</span>
+                <span className={styles.mobileLabel}>
+                  {item.mobileLabel ?? item.label}
+                </span>
+              </span>
+            </button>
+          )
         ))}
       </nav>
 

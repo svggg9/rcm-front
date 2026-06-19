@@ -1,37 +1,36 @@
 .hero {
-  display: grid;
-  grid-template-columns: minmax(0, 1.12fr) minmax(360px, 0.88fr);
-
-  width: 100%;
-  margin-top: 24px;
-
-  min-height: 720px;
-
-  background: var(--soft);
-}
-
-.media {
   position: relative;
-  min-height: 720px;
+  display: flex;
+  align-items: center;
+  width: 100%;
+  min-height: clamp(520px, 66vh, 720px);
+  margin-top: 24px;
   overflow: hidden;
+  background: var(--soft);
 }
 
 .image {
   object-fit: cover;
+  object-position: center;
 }
 
 .content {
+  position: relative;
+  z-index: 1;
   display: flex;
   flex-direction: column;
   justify-content: center;
-
-  padding: 64px 72px;
+  width: min(560px, calc(100% - 48px));
+  margin-left: clamp(24px, 7vw, 96px);
+  padding: 56px 0;
+  color: var(--white);
+  text-shadow: 0 1px 18px rgba(0, 0, 0, 0.18);
 }
 
 .eyebrow {
   margin-bottom: 18px;
 
-  color: var(--muted);
+  color: var(--white);
 
   font-size: 11px;
   font-weight: 500;
@@ -42,21 +41,21 @@
 .title {
   margin-bottom: 24px;
 
-  color: var(--black);
+  color: var(--white);
 
-  font-size: clamp(40px, 5vw, 72px);
-  line-height: 0.95;
+  font-size: clamp(38px, 6vw, 82px);
+  line-height: 0.92;
   font-weight: 500;
-  letter-spacing: -0.05em;
+  letter-spacing: 0;
 }
 
 .text {
   max-width: 460px;
 
-  color: var(--muted);
+  color: rgba(255, 255, 255, 0.9);
 
   font-size: var(--font-lg);
-  line-height: 1.65;
+  line-height: 1.55;
 }
 
 .actions {
@@ -72,47 +71,44 @@
   padding: 0 22px;
 
   border: 1px solid var(--black);
-  background: var(--black);
-  color: var(--white);
+  background: var(--white);
+  color: var(--black);
 
   font-size: 12px;
   font-weight: 500;
   letter-spacing: 0.08em;
   text-transform: uppercase;
 
-  transition: opacity var(--transition);
+  text-shadow: none;
+  transition: opacity var(--transition-fast), background var(--transition-fast);
 }
 
 .button:hover {
-  opacity: 0.86;
+  background: rgba(255, 255, 255, 0.88);
 }
 
 @media (max-width: 1100px) {
   .hero {
-    grid-template-columns: 1fr;
-    min-height: auto;
-  }
-
-  .media {
-    min-height: 520px;
+    min-height: 560px;
   }
 
   .content {
-    padding: 40px 28px 48px;
+    width: min(560px, calc(100% - 40px));
+    margin-left: 28px;
+    padding: 48px 0;
   }
 }
 
 @media (max-width: 720px) {
   .hero {
     margin-top: 16px;
-  }
-
-  .media {
     min-height: 380px;
   }
 
   .content {
-    padding: 28px 18px 32px;
+    width: min(100% - 32px, 520px);
+    margin-left: 16px;
+    padding: 32px 0;
   }
 
   .text {

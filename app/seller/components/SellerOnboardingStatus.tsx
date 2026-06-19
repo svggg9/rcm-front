@@ -11,6 +11,8 @@ import { SELLER_ONBOARDING_EVENT } from "../lib/sellerOnboardingEvents";
 
 import styles from "./SellerOnboardingStatus.module.css";
 
+const DISMISSED_STORAGE_KEY = "seller-onboarding-ready-dismissed";
+
 type Step = {
   key: keyof Pick<
     SellerOnboardingStatusType,
@@ -19,29 +21,34 @@ type Step = {
     | "legalCompleted"
     | "agreementAccepted"
   >;
-  label: string;
+  doneLabel: string;
+  pendingLabel: string;
   href: string;
 };
 
 const STEPS: Step[] = [
   {
     key: "applicationCompleted",
-    label: "Заявка продавца одобрена",
+    doneLabel: "Заявка продавца одобрена",
+    pendingLabel: "Заявка продавца не одобрена",
     href: "/seller?tab=brand",
   },
   {
     key: "brandCompleted",
-    label: "Профиль производителя заполнен",
+    doneLabel: "Профиль производителя заполнен",
+    pendingLabel: "Профиль производителя не заполнен",
     href: "/seller?tab=brand",
   },
   {
     key: "legalCompleted",
-    label: "Юридические данные заполнены",
+    doneLabel: "Юридические данные заполнены",
+    pendingLabel: "Юридические данные не заполнены",
     href: "/seller?tab=legal",
   },
   {
     key: "agreementAccepted",
-    label: "Оферта продавца принята",
+    doneLabel: "Оферта продавца принята",
+    pendingLabel: "Оферта продавца не принята",
     href: "/seller?tab=legal",
   },
 ];
@@ -49,7 +56,16 @@ const STEPS: Step[] = [
 export function SellerOnboardingStatus() {
   const [status, setStatus] = useState<SellerOnboardingStatusType | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [dismissed, setDismissed] = useState(false);
+  const [dismissed, setDismissed] = useState(
+    () =>
+      typeof window !== "undefined" &&
+      window.localStorage.getItem(DISMISSED_STORAGE_KEY) === "true"
+  );
+
+  function dismissReadyStatus() {
+    setDismissed(true);
+    window.localStorage.setItem(DISMISSED_STORAGE_KEY, "true");
+  }
 
   async function loadStatus() {
     setError(null);
@@ -64,7 +80,7 @@ export function SellerOnboardingStatus() {
     }
   }
 
-    useEffect(() => {
+  useEffect(() => {
     const handleChange = () => {
         void loadStatus();
     };
@@ -76,14 +92,14 @@ export function SellerOnboardingStatus() {
     return () => {
         window.removeEventListener(SELLER_ONBOARDING_EVENT, handleChange);
     };
-    }, []);
+  }, []);
 
   if (error) {
     return <div className={styles.error}>{error}</div>;
   }
 
   if (!status) {
-    return <div className={styles.state}>Загрузка готовности магазина…</div>;
+    return null;
   }
 
   if (status.progress === 100 && dismissed) {
@@ -96,7 +112,7 @@ export function SellerOnboardingStatus() {
         <button
           type="button"
           className={styles.closeButton}
-          onClick={() => setDismissed(true)}
+          onClick={dismissReadyStatus}
           aria-label="Скрыть онбординг"
         >
           ×
@@ -123,13 +139,30 @@ export function SellerOnboardingStatus() {
         <div className={styles.steps}>
         {STEPS.map((step) => {
           const done = Boolean(status[step.key]);
+          const isLocked = step.key === "applicationCompleted";
+          const label = done ? step.doneLabel : step.pendingLabel;
+          const className = `${styles.step} ${done ? styles.stepDone : styles.stepPending} ${
+            isLocked ? styles.stepStatic : ""
+          }`;
+
+          if (isLocked) {
+            return (
+              <div key={step.key} className={className}>
+                <span>{label}</span>
+              </div>
+            );
+          }
 
           return (
-            <Link key={step.key} href={step.href} className={styles.step}>
-              <span className={done ? styles.stepDone : styles.stepPending}>
-                {done ? "✓" : "—"}
+            <Link
+              key={step.key}
+              href={step.href}
+              className={className}
+            >
+              <span>{label}</span>
+              <span className={styles.stepArrow} aria-hidden="true">
+                &gt;
               </span>
-              <span>{step.label}</span>
             </Link>
           );
         })}

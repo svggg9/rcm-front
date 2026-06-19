@@ -1,6 +1,7 @@
 "use client";
 
 import styles from "../Cart.module.css";
+import { Price } from "../../components/ui/Price";
 
 type Props = {
   subtotal: number;
@@ -16,18 +17,18 @@ export function CartSummary({ subtotal, onCheckout, disabled }: Props) {
       <div className={styles.summaryBlock}>
         <div className={styles.summaryRow}>
           <span>Товары</span>
-          <span>{subtotal.toLocaleString()} ₽</span>
+          <span><Price amount={subtotal} /></span>
         </div>
 
         <div className={styles.summaryRow}>
           <span>Доставка</span>
-          <span>0 ₽</span>
+          <span><Price amount={0} /></span>
         </div>
       </div>
 
       <div className={styles.summaryTotal}>
         <span>Итого</span>
-        <span>{subtotal.toLocaleString()} ₽</span>
+        <span><Price amount={subtotal} /></span>
       </div>
 
     <button

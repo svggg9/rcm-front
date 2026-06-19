@@ -20,11 +20,9 @@ type Props = {
 
   categoryId: number | "";
   suggestedCategoryName: string;
-  brandId: number | "";
   audience: Audience;
 
   categories: Option[];
-  brands: Option[];
 
   onTitleChange: (value: string) => void;
   onDescriptionChange: (value: string) => void;
@@ -32,7 +30,6 @@ type Props = {
 
   onCategoryIdChange: (value: number | "") => void;
   onSuggestedCategoryNameChange: (value: string) => void;
-  onBrandIdChange: (value: number | "") => void;
   onAudienceChange: (value: Audience) => void;
 };
 
@@ -43,20 +40,15 @@ export function ProductGeneralCard({
   composition,
   categoryId,
   suggestedCategoryName,
-  brandId,
   audience,
   categories,
-  brands,
   onTitleChange,
   onDescriptionChange,
   onCompositionChange,
   onCategoryIdChange,
   onSuggestedCategoryNameChange,
-  onBrandIdChange,
   onAudienceChange,
 }: Props) {
-  const brandsEmpty = brands.length === 0;
-
   return (
     <>
       <section className={styles.card}>
@@ -120,46 +112,6 @@ export function ProductGeneralCard({
 
       <section className={styles.card}>
         <SectionHeader
-          title="Производитель"
-          hint="Укажите производителя товара."
-        />
-
-        <div className={styles.formGrid}>
-          <FormSelect<number>
-            label="Производитель"
-            value={brandId}
-            full
-            required
-            invalid={validationErrors.brandId}
-            disabled={brandsEmpty || brands.length === 1}
-            placeholder={
-              brandsEmpty ? "Производители не найдены" : "Выберите производителя"
-            }
-            options={brands.map((brand) => ({
-              value: brand.id,
-              label: brand.name,
-            }))}
-            onChange={onBrandIdChange}
-          />
-
-          {validationErrors.brandId ? (
-            <small className={styles.fieldErrorText}>
-              Выберите производителя.
-            </small>
-          ) : brandsEmpty ? (
-            <small>
-              Сначала заполните производителя в кабинете продавца.
-            </small>
-          ) : brands.length === 1 ? (
-            <small>
-              Производитель привязан к вашему аккаунту.
-            </small>
-          ) : null}
-        </div>
-      </section>
-
-      <section className={styles.card}>
-        <SectionHeader
           title="Описание"
           hint="Материалы, особенности и комплектация товара."
         />
@@ -174,8 +126,8 @@ export function ProductGeneralCard({
               className={`${styles.textarea} ${
                 validationErrors.description ? styles.fieldInvalid : ""
               } ${description.trim() ? "" : styles.requiredEmpty}`}
-              rows={8}
-              maxLength={6000}
+              rows={5}
+              maxLength={2000}
               placeholder="Материал, особенности, назначение, комплектация и важные характеристики."
             />
 
@@ -184,7 +136,7 @@ export function ProductGeneralCard({
                 Введите описание товара.
               </small>
             ) : (
-              <small>{description.length}/6000</small>
+              <small>{description.length}/2000</small>
             )}
           </label>
 

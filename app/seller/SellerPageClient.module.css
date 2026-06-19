@@ -5,10 +5,10 @@
 }
 
 .layout {
-  width: min(1180px, 100%);
+  width: min(1260px, 100%);
   margin: 0 auto;
   display: grid;
-  grid-template-columns: 240px minmax(0, 860px);
+  grid-template-columns: 360px minmax(0, 860px);
   gap: 40px;
   align-items: start;
   justify-content: center;
@@ -24,7 +24,7 @@
 @media (max-width: 900px) {
   .layout {
     grid-template-columns: 1fr;
-    gap: 24px;
+    gap: 0;
   }
 }
 
@@ -47,7 +47,7 @@
 
 @media (max-width: 768px) {
   .page {
-    margin-top: 20px;
+    margin-top: 0;
   }
 
   .sectionTitle {

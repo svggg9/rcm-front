@@ -88,7 +88,6 @@ export function AuthModalProvider({ children }: Props) {
 
     window.dispatchEvent(new Event("auth-changed"));
     closeAuth();
-    toast.success(mode === "login" ? "Вы вошли в аккаунт" : "Аккаунт создан");
     router.replace(next);
     router.refresh();
   }

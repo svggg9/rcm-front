@@ -2,6 +2,9 @@
   --black: #111111;
   --white: #ffffff;
   --gold: #b08d57;
+  --gold-muted: #9b8359;
+  --gold-soft: #f4efe6;
+  --gold-line: rgba(176, 141, 87, 0.42);
 
   --bg: var(--white);
   --text: var(--black);
@@ -9,6 +12,11 @@
   --muted: #6f6f6f;
   --line: #d2d2d2;
   --soft: #f7f7f7;
+  --content-primary: #242424;
+  --content-primary-hover-label: #111111;
+  --content-primary-hover-icon: #111111;
+  --surface-hover: #f5f5f5;
+  --surface-gold-hover: #f8f3ea;
 
   --input-border-color: #111111;
 

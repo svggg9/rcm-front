@@ -1,25 +1,42 @@
 .logout {
-  flex-shrink: 0;
-  min-height: 40px;
-  padding: 0 14px;
-
-  border: 1px solid var(--line);
-  background: var(--white);
-  color: var(--black);
-
-  font-size: var(--font-sm);
-  font-weight: 500;
-
+  width: 100%;
+  min-height: 42px;
+  padding: 0 12px 0 16px;
+  border: 0;
+  background: var(--surface-hover);
+  color: var(--content-primary);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
   cursor: pointer;
+  font: inherit;
+  font-size: var(--font-sm);
+  transition:
+    background var(--transition-fast),
+    color var(--transition-fast);
 }
 
 .logout:hover {
-  border-color: var(--black);
   background: var(--soft);
+  color: var(--content-primary-hover-icon);
 }
 
-@media (max-width: 768px) {
+.logout svg {
+  display: block;
+}
+
+@media (max-width: 900px) {
   .logout {
-    width: 100%;
+    flex-shrink: 0;
+    width: 42px;
+    height: 42px;
+    min-height: 42px;
+    padding: 0;
+    justify-content: center;
+  }
+
+  .logoutText {
+    display: none;
   }
 }

@@ -32,7 +32,9 @@ export type AdminProduct = {
   title: string;
   description: string;
   brand: string | null;
+  categoryId: number | null;
   category: string | null;
+  suggestedCategoryName?: string | null;
   audience: string;
   status: ProductStatus;
   moderationComment: string | null;

@@ -5,6 +5,7 @@ import styles from "../ProductPage.module.css";
 
 import type { Product, ProductColorway, Variant } from "../lib/types";
 import Image from "next/image";
+import { Price } from "../../../components/ui/Price";
 import { ProductVariantSelect } from "./ProductVariantSelect";
 
 type Props = {
@@ -114,7 +115,9 @@ export function ProductInfoPanel({
       </div>
 
       <div className={styles.priceBlock}>
-        <div className={styles.price}>{currentPrice.toLocaleString()} ₽</div>
+        <div className={styles.price}>
+          <Price amount={currentPrice} />
+        </div>
         <div className={styles.priceNote}>
           {selectedVariant
             ? `Размер ${selectedVariant.size}${

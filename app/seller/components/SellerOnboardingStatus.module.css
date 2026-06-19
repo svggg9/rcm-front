@@ -1,12 +1,12 @@
 .card {
   position: relative;
   padding: 18px;
-  border: 1px solid var(--line);
+  border: 1px solid color-mix(in srgb, var(--black) 84%, var(--line));
   background: var(--white);
 }
 
 .cardReady {
-  border-color: rgba(33, 106, 67, 0.16);
+  border-color: color-mix(in srgb, var(--black) 84%, var(--line));
   background: rgba(33, 106, 67, 0.035);
   padding-right: 48px;
 }
@@ -75,34 +75,47 @@
 .steps {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 1px;
+  gap: 8px;
   margin-top: 14px;
-  border: 1px solid var(--line);
-  background: var(--line);
 }
 
 .step {
   display: flex;
   align-items: center;
-  gap: 10px;
+  justify-content: space-between;
+  gap: 16px;
   min-height: 52px;
   padding: 14px 16px;
-  background: var(--white);
   color: var(--black);
   font-size: var(--font-sm);
   text-decoration: none;
+  transition:
+    background var(--transition-fast),
+    color var(--transition-fast);
 }
 
 .step:hover {
-  background: var(--soft);
+  color: var(--content-primary-hover-label);
+}
+
+.stepStatic {
+  cursor: default;
+}
+
+.stepArrow {
+  flex-shrink: 0;
+  color: var(--muted);
+  font-size: 18px;
+  font-weight: 300;
+  line-height: 1;
 }
 
 .stepDone {
-  color: var(--success);
+  background: rgba(33, 106, 67, 0.08);
 }
 
 .stepPending {
-  color: var(--muted);
+  background: rgba(138, 106, 47, 0.1);
 }
 
 .hint {

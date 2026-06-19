@@ -86,7 +86,7 @@ export function ProductImagesCard({
         }}
       >
         <div>
-          <strong>{uploading ? "Загружаем фото…" : "Перетащи фото сюда"}</strong>
+          <strong>Перетащи фото сюда</strong>
           <span>
             {uploading
               ? `${uploadProgress.done} из ${uploadProgress.total}`
@@ -105,7 +105,7 @@ export function ProductImagesCard({
               event.target.value = "";
             }}
           />
-          <span>{uploading ? "Загрузка…" : "Выбрать фото"}</span>
+          <span>Выбрать фото</span>
         </label>
       </div>
 

@@ -159,7 +159,7 @@ export function ProductVariantsCard({
           }}
         >
           <div>
-            <strong>{uploading ? "Загружаем фото..." : "Фото товара"}</strong>
+            <strong>Фото товара</strong>
             <span>
               {uploading && uploadProgress.total > 0
                 ? `${uploadProgress.done} из ${uploadProgress.total}`
@@ -178,7 +178,7 @@ export function ProductVariantsCard({
                 event.target.value = "";
               }}
             />
-            <span>{uploading ? "Загрузка..." : "Выбрать фото"}</span>
+            <span>Выбрать фото</span>
           </label>
         </div>
 

@@ -1,14 +1,20 @@
 import { useState } from "react";
 
 import styles from "../Admin.module.css";
-import type { AdminProduct } from "../types";
+import type { AdminProduct, DictionaryItem } from "../types";
+import { Price } from "../../components/ui/Price";
 import { StatusBadge } from "../../components/ui/StatusBadge";
 import Image from "next/image";
 
 type Props = {
   product: AdminProduct;
+  categories: DictionaryItem[];
   actionProductId: number | null;
   onBack: () => void;
+  onAssignCategory: (params: {
+    categoryId?: number;
+    categoryName?: string;
+  }) => void;
   onApprove: () => void;
   onReturnToRevision: (comment: string) => void;
   onBlock: () => void;
@@ -50,8 +56,10 @@ function getProductStatusTone(status: string) {
 
 export function AdminProductDetails({
   product,
+  categories,
   actionProductId,
   onBack,
+  onAssignCategory,
   onApprove,
   onReturnToRevision,
   onBlock,
@@ -60,6 +68,12 @@ export function AdminProductDetails({
   const loading = actionProductId === product.id;
 
   const [revisionComment, setRevisionComment] = useState("");
+  const [selectedCategoryId, setSelectedCategoryId] = useState<number | "">(
+    product.categoryId ?? ""
+  );
+  const [newCategoryName, setNewCategoryName] = useState(
+    product.suggestedCategoryName ?? ""
+  );
 
   function handleReturnToRevision() {
     const cleanComment = revisionComment.trim();
@@ -130,7 +144,7 @@ export function AdminProductDetails({
                     </div>
                   </div>
                   <div className={styles.variantPrice}>
-                    {variant.price.toLocaleString("ru-RU")} ₽
+                    <Price amount={variant.price} />
                   </div>
                   <div className={styles.muted}>
                     Остаток: {variant.availableQuantity}
@@ -160,6 +174,14 @@ export function AdminProductDetails({
                   {product.category || "—"}
                 </span>
               </div>
+              {product.suggestedCategoryName ? (
+                <div className={styles.infoRow}>
+                  <span className={styles.infoLabel}>Предложена</span>
+                  <span className={styles.infoValue}>
+                    {product.suggestedCategoryName}
+                  </span>
+                </div>
+              ) : null}
               <div className={styles.infoRow}>
                 <span className={styles.infoLabel}>Бренд</span>
                 <span className={styles.infoValue}>{product.brand || "—"}</span>
@@ -168,6 +190,64 @@ export function AdminProductDetails({
                 <span className={styles.infoLabel}>Аудитория</span>
                 <span className={styles.infoValue}>{product.audience}</span>
               </div>
+            </div>
+          </section>
+
+          <section className={styles.detailsSection}>
+            <h2 className={styles.detailsSectionTitle}>Модерация категории</h2>
+
+            <div className={styles.categoryModeration}>
+              <label className={styles.adminField}>
+                <span>Существующая категория</span>
+                <select
+                  value={selectedCategoryId}
+                  onChange={(event) =>
+                    setSelectedCategoryId(
+                      event.target.value ? Number(event.target.value) : ""
+                    )
+                  }
+                  className={styles.adminSelect}
+                >
+                  <option value="">Выберите категорию</option>
+                  {categories.map((category) => (
+                    <option key={category.id} value={category.id}>
+                      {category.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <button
+                type="button"
+                className={styles.secondaryBtn}
+                disabled={loading || !selectedCategoryId}
+                onClick={() =>
+                  onAssignCategory({ categoryId: Number(selectedCategoryId) })
+                }
+              >
+                Применить категорию
+              </button>
+
+              <label className={styles.adminField}>
+                <span>Новая категория</span>
+                <input
+                  value={newCategoryName}
+                  onChange={(event) => setNewCategoryName(event.target.value)}
+                  className={styles.adminInput}
+                  placeholder="Например: футболки"
+                />
+              </label>
+
+              <button
+                type="button"
+                className={styles.primaryBtn}
+                disabled={loading || !newCategoryName.trim()}
+                onClick={() =>
+                  onAssignCategory({ categoryName: newCategoryName.trim() })
+                }
+              >
+                Создать и применить
+              </button>
             </div>
           </section>
 

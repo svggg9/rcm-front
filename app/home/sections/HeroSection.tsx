@@ -10,16 +10,14 @@ type HeroSectionProps = {
 export function HeroSection({ block }: HeroSectionProps) {
   return (
     <section className={styles.hero}>
-      <div className={styles.media}>
-        <Image
-          fill
-          src={block.image}
-          alt={block.imageAlt}
-          sizes="(max-width: 1100px) 100vw, 60vw"
-          className={styles.image}
-          priority
-        />
-      </div>
+      <Image
+        fill
+        src={block.image}
+        alt={block.imageAlt}
+        sizes="100vw"
+        className={styles.image}
+        priority
+      />
 
       <div className={styles.content}>
         <span className={styles.eyebrow}>{block.eyebrow}</span>

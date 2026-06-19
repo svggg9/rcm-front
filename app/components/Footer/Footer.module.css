@@ -1,5 +1,5 @@
 .footer {
-  margin-top: 72px;
+  margin-top: 0;
   border-top: 1px solid var(--line);
   background: var(--white);
   color: var(--black);
@@ -8,14 +8,14 @@
 .grid {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 220px 280px;
-  gap: 48px;
-  padding: 40px 0;
+  gap: 56px;
+  padding: 48px 0;
 }
 
 .logo {
-  font-size: var(--font-xl);
-  font-weight: 600;
-  letter-spacing: -0.04em;
+  font-size: var(--font-lg);
+  font-weight: 500;
+  letter-spacing: 0.18em;
 }
 
 .text {
@@ -29,24 +29,25 @@
 .nav {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
 }
 
 .nav a {
   color: var(--black);
-  font-size: var(--font-sm);
+  font-size: var(--font-xs);
   text-decoration: none;
 }
 
 .nav a:hover {
-  color: var(--gold);
+  text-decoration: underline;
+  text-underline-offset: 3px;
 }
 
 .bottom {
   display: flex;
   justify-content: space-between;
   gap: 24px;
-  padding: 18px 0;
+  padding: 16px 0;
   border-top: 1px solid var(--line);
   color: var(--muted);
   font-size: var(--font-xs);

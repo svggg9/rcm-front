@@ -1,8 +1,10 @@
 "use client";
 
 import Image from "next/image";
+import type { ReactNode } from "react";
 
 import { Button } from "../../components/ui/Button";
+import { Price } from "../../components/ui/Price";
 import { StatusBadge } from "../../components/ui/StatusBadge";
 import { apiFetch, API_URL } from "../../lib/api";
 
@@ -53,7 +55,7 @@ export function SellerOrderDetails({
           <div className={styles.meta}>
             <span>{new Date(order.createdAt).toLocaleString("ru-RU")}</span>
             <span>•</span>
-            <span>{order.totalAmount.toLocaleString()} ₽</span>
+            <span><Price amount={order.totalAmount} /></span>
           </div>
         </div>
       </div>
@@ -98,12 +100,12 @@ export function SellerOrderDetails({
                     </div>
 
                     <div className={styles.itemMeta}>
-                      {item.quantity} × {item.price.toLocaleString()} ₽
+                      {item.quantity} × <Price amount={item.price} />
                     </div>
                   </div>
 
                   <div className={styles.itemTotal}>
-                    {item.lineTotal.toLocaleString()} ₽
+                    <Price amount={item.lineTotal} />
                   </div>
                 </article>
               ))}
@@ -164,13 +166,13 @@ export function SellerOrderDetails({
               <h2>Сумма</h2>
 
               <div className={styles.totals}>
-                <InfoRow label="Товары" value={`${order.subtotalAmount.toLocaleString()} ₽`} />
-                <InfoRow label="Доставка" value={`${order.deliveryAmount.toLocaleString()} ₽`} />
-                <InfoRow label="Скидка" value={`${order.discountAmount.toLocaleString()} ₽`} />
+                <InfoRow label="Товары" value={<Price amount={order.subtotalAmount} />} />
+                <InfoRow label="Доставка" value={<Price amount={order.deliveryAmount} />} />
+                <InfoRow label="Скидка" value={<Price amount={order.discountAmount} />} />
 
                 <div className={styles.totalFinal}>
                   <span>Итого</span>
-                  <strong>{order.totalAmount.toLocaleString()} ₽</strong>
+                  <strong><Price amount={order.totalAmount} /></strong>
                 </div>
               </div>
             </section>
@@ -236,7 +238,7 @@ function InfoRow({
   value,
 }: {
   label: string;
-  value: string | null | undefined;
+  value: ReactNode | null | undefined;
 }) {
   return (
     <div className={styles.infoRow}>

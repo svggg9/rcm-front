@@ -11,6 +11,7 @@ import { apiFetch, API_URL } from "../lib/api";
 import { getGuestFavoriteIds } from "../lib/favorites";
 import { toast } from "sonner";
 import { Loader } from "../components/ui/Loader";
+import { Price } from "../components/ui/Price";
 
 type ProductVariantApi = {
   id: number;
@@ -223,9 +224,9 @@ export default function FavoritesPage() {
             Всего товаров: {products.length}
           </div>
         ) : null}
-      </div>
+        </div>
         {loading ? (
-          <Loader label="Загружаем избранное" />
+          <Loader />
         ) : products.length === 0 ? (
         <div className="emptyState">
           <div className="emptyStateTitle">В избранном пока пусто</div>
@@ -269,7 +270,7 @@ export default function FavoritesPage() {
                   <div className={styles.name}>{product.title}</div>
 
                   <div className={isSoldOut ? styles.soldOut : styles.price}>
-                    {isSoldOut ? "Распродано" : `${product.minPrice.toLocaleString()} ₽`}
+                    {isSoldOut ? "Распродано" : <Price amount={product.minPrice} />}
                   </div>
                 </div>
               </Link>

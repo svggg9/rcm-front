@@ -13,6 +13,7 @@ import { AdminDictionariesTab } from "./components/AdminDictionariesTab";
 
 import {
   approveProduct,
+  assignProductCategory,
   blockProduct,
   getAdminProduct,
   getAdminProducts,
@@ -101,9 +102,14 @@ function AdminPageContent() {
       setError(null);
 
       try {
-        const data = await getAdminProducts(currentStatus, 0, 50);
+        const [data, categoriesData] = await Promise.all([
+          getAdminProducts(currentStatus, 0, 50),
+          getAdminDictionary("categories"),
+        ]);
+
         setProducts(Array.isArray(data.content) ? data.content : []);
         setTotalProducts(data.totalElements ?? 0);
+        setCategories(categoriesData);
       } catch (e) {
         setError(e instanceof Error ? e.message : "Не удалось загрузить товары");
       } finally {
@@ -303,6 +309,44 @@ function AdminPageContent() {
     }
   }
 
+  async function assignSelectedProductCategory(params: {
+    categoryId?: number;
+    categoryName?: string;
+  }) {
+    if (!selectedProduct) return;
+
+    const cleanName = params.categoryName?.trim();
+
+    setActionProductId(selectedProduct.id);
+    setError(null);
+
+    try {
+      let categoryId = params.categoryId;
+
+      if (!categoryId && cleanName) {
+        const created = await createAdminDictionaryItem("categories", {
+          name: cleanName,
+          isActive: true,
+        });
+
+        categoryId = created.id;
+        await loadDictionaries({ silent: true });
+      }
+
+      if (!categoryId) {
+        throw new Error("Выберите или создайте категорию");
+      }
+
+      await assignProductCategory(selectedProduct.id, categoryId);
+      await loadProducts({ silent: true });
+      await loadSelectedProduct(selectedProduct.id);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Не удалось назначить категорию");
+    } finally {
+      setActionProductId(null);
+    }
+  }
+
   async function returnSelectedProductToRevision(comment: string) {
     if (!selectedProduct) return;
 
@@ -340,13 +384,7 @@ function AdminPageContent() {
   }
 
   if (loading) {
-    return (
-      <div className="pageContainer">
-        <div className={styles.page}>
-          <div className={styles.sectionTitle}>Загрузка админ-панели…</div>
-        </div>
-      </div>
-    );
+    return null;
   }
 
   return (
@@ -392,12 +430,17 @@ function AdminPageContent() {
                 }
               />
             ) : detailsLoading ? (
-              <div className={styles.sectionTitle}>Загрузка товара…</div>
+              null
             ) : selectedProduct ? (
               <AdminProductDetails
+                key={selectedProduct.id}
                 product={selectedProduct}
+                categories={categories}
                 actionProductId={actionProductId}
                 onBack={closeProductDetails}
+                onAssignCategory={(params) =>
+                  void assignSelectedProductCategory(params)
+                }
                 onApprove={() =>
                   void runProductAction(selectedProduct.id, approveProduct)
                 }

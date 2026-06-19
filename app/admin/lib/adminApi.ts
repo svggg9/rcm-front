@@ -247,3 +247,17 @@ export async function rejectSellerApplication(
     throw new Error(await readError(response, "Не удалось отклонить заявку"));
   }
 }
+
+export async function assignProductCategory(
+  id: number,
+  categoryId: number
+): Promise<void> {
+  const response = await apiFetch(`${API_URL}/api/admin/products/${id}/category`, {
+    method: "POST",
+    body: JSON.stringify({ categoryId }),
+  });
+
+  if (!response.ok) {
+    throw new Error(await readError(response, "Не удалось назначить категорию"));
+  }
+}
