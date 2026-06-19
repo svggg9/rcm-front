@@ -50,7 +50,6 @@ function LoginPageContent() {
         clearGuestFavoriteIds();
         window.dispatchEvent(new Event("auth-changed"));
       }
-      toast.success("Вы вошли в аккаунт");
       router.replace(next);
     } catch (error) {
         toast.error(

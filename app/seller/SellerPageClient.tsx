@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { toast } from "sonner";
 
 import { apiFetch, API_URL, getSellerOrdersList } from "../lib/api";
 
@@ -100,6 +101,14 @@ function canShipOrder(order: SellerOrder | SellerOrderListItem): boolean {
   );
 }
 
+function isActiveSellerOrder(order: SellerOrderListItem): boolean {
+  return order.status === "NEW";
+}
+
+function isActiveSellerProduct(product: SellerProductListItem): boolean {
+  return product.status === "ACTIVE";
+}
+
 type Props = {
   initialProducts: SellerProductListItem[];
   initialOrders: SellerOrderListItem[];
@@ -126,6 +135,7 @@ function SellerPageContent({ initialProducts, initialOrders }: Props) {
   const [detailsLoading, setDetailsLoading] = useState(false);
 
   const [shippingId, setShippingId] = useState<number | null>(null);
+  const [creatingProduct, setCreatingProduct] = useState(false);
 
   const [error, setError] = useState<string | null>(null);
 
@@ -246,14 +256,51 @@ function SellerPageContent({ initialProducts, initialOrders }: Props) {
     router.push("/seller?tab=orders");
   }
 
+  async function createDraftProduct() {
+    if (creatingProduct) return;
+
+    setCreatingProduct(true);
+
+    try {
+      const brands = await getSellerBrands();
+
+      if (!Array.isArray(brands) || brands.length === 0) {
+        router.push("/seller?tab=brand");
+        return;
+      }
+
+      const response = await apiFetch(`${API_URL}/api/seller/products/draft`, {
+        method: "POST",
+      });
+
+      if (!response.ok) {
+        const text = await response.text().catch(() => "");
+        throw new Error(text || "Не удалось создать черновик");
+      }
+
+      const id: number = await response.json();
+      router.push(`/seller/products/${id}/edit`);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Не удалось создать товар");
+    } finally {
+      setCreatingProduct(false);
+    }
+  }
+
+  const activeOrdersCount = orders.filter(isActiveSellerOrder).length;
+  const activeProductsCount = products.filter(isActiveSellerProduct).length;
+
   return (
     <div className="pageContainer">
       <div className={styles.page}>
         <div className={styles.layout}>
           <SellerSidebar
             currentTab={currentTab}
-            ordersCount={orders.length}
+            ordersCount={activeOrdersCount}
+            productsCount={activeProductsCount}
             storeName={storeName}
+            creatingProduct={creatingProduct}
+            onCreateProduct={() => void createDraftProduct()}
           />
 
           <div className={styles.content}>
@@ -268,7 +315,7 @@ function SellerPageContent({ initialProducts, initialOrders }: Props) {
             ) : currentTab === "products" ? (
               <SellerProductsTab products={products} loading={false} />
             ) : detailsLoading ? (
-              <div className={styles.sectionTitle}>Загрузка заказа…</div>
+              null
             ) : selectedOrder ? (
               <SellerOrderDetails
                 order={selectedOrder}

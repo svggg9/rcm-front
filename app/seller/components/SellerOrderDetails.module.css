@@ -1,7 +1,7 @@
 .page {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 0;
 }
 
 .header {
@@ -92,7 +92,15 @@
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 0;
+}
+
+.main > * {
+  margin-bottom: 28px;
+}
+
+.main > *:first-child {
+  margin-top: 28px;
 }
 
 .section,

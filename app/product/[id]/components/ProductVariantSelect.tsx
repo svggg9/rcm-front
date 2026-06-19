@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 
 import styles from "../ProductPage.module.css";
+import { Price } from "../../../components/ui/Price";
 
 import type { Variant } from "../lib/types";
 
@@ -70,7 +71,7 @@ export function ProductVariantSelect({
               >
                 <span className={styles.variantSelectSize}>{variant.size}</span>
                 <span className={styles.variantSelectPrice}>
-                  {variant.price.toLocaleString()} ₽
+                  <Price amount={variant.price} />
                   {disabled ? " нет в наличии" : ""}
                 </span>
               </button>

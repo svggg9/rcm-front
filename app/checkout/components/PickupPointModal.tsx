@@ -1,6 +1,7 @@
 "use client";
 
 import type { DeliveryOption } from "../types";
+import { Price } from "../../components/ui/Price";
 import { PickupPointMap } from "./PickupPointMap";
 import styles from "./PickupPointModal.module.css";
 
@@ -28,9 +29,6 @@ export function PickupPointModal({
   const selectedPoint = selectedId.trim()
     ? points.find((point) => point.id === selectedId) ?? null
     : null;
-
-  const deliveryText =
-    deliveryPrice > 0 ? `${deliveryPrice.toLocaleString()} ₽` : "рассчитаем";
 
   return (
     <div className={styles.overlay}>
@@ -67,7 +65,7 @@ export function PickupPointModal({
                 </div>
 
                 <div className={styles.detailLine}>
-                  Доставка — в воскресенье {deliveryText}
+                  Доставка — в воскресенье {deliveryPrice > 0 ? <Price amount={deliveryPrice} /> : "рассчитаем"}
                 </div>
 
                 <div className={styles.detailLine}>Срок хранения 5 дней</div>
@@ -113,7 +111,7 @@ export function PickupPointModal({
                       <span className={styles.itemMeta}>Есть примерка</span>
 
                       <span className={styles.itemMeta}>
-                        Доставка — в воскресенье {deliveryText}
+                        Доставка — в воскресенье {deliveryPrice > 0 ? <Price amount={deliveryPrice} /> : "рассчитаем"}
                       </span>
                     </button>
                   ))

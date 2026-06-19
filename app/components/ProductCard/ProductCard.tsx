@@ -3,6 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import styles from "./ProductCard.module.css";
+import { Price } from "../ui/Price";
 
 type Variant = {
   price: number;
@@ -55,7 +56,7 @@ export function ProductCard({ product }: { product: Product }) {
             {product.brand} {product.title}
           </div>
           <div className={styles.cardPrice}>
-            {minPrice.toLocaleString("ru-RU")} ₽
+            <Price amount={minPrice} />
           </div>
         </div>
       </div>

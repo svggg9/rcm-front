@@ -18,8 +18,8 @@ export function AdminSidebar({
   return (
     <CabinetSidebar
       ariaLabel="Меню администратора"
-      subtitle="Панель"
-      title="Администратор"
+      subtitle="RCM"
+      title="Админка"
       items={[
         {
           href: "/admin?tab=products",

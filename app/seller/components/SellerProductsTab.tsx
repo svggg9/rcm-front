@@ -1,15 +1,14 @@
 "use client";
 
 import Image from "next/image";
-import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { toast } from "sonner";
 
 import styles from "./SellerProductsTab.module.css";
+import { CabinetTabs, type CabinetTabItem } from "../../components/ui/CabinetTabs";
 import { EmptyState } from "../../components/ui/EmptyState";
+import { Price } from "../../components/ui/Price";
 import { StatusBadge } from "../../components/ui/StatusBadge";
-import { apiFetch, API_URL } from "../../lib/api";
 
 import type { SellerProductListItem } from "../types";
 
@@ -27,11 +26,8 @@ type ProductFilter =
   | "ARCHIVED";
 
 export function SellerProductsTab({ products, loading }: Props) {
-  const router = useRouter();
-
   const [items, setItems] = useState(products);
   const [filter, setFilter] = useState<ProductFilter>("ALL");
-  const [creating, setCreating] = useState(false);
 
   useEffect(() => {
     setItems(products);
@@ -42,6 +38,14 @@ export function SellerProductsTab({ products, loading }: Props) {
   const moderationCount = items.filter((product) => product.status === "MODERATION").length;
   const revisionCount = items.filter((product) => product.status === "NEEDS_REVISION").length;
   const archivedCount = items.filter((product) => product.status === "ARCHIVED").length;
+  const productTabs: CabinetTabItem<ProductFilter>[] = [
+    { value: "ALL", label: "Все", count: items.length },
+    { value: "ACTIVE", label: "Активные", count: activeCount },
+    { value: "MODERATION", label: "На модерации", count: moderationCount },
+    { value: "NEEDS_REVISION", label: "На доработке", count: revisionCount },
+    { value: "DRAFT", label: "Черновики", count: draftCount },
+    { value: "ARCHIVED", label: "Архив", count: archivedCount },
+  ];
 
   const filteredProducts = useMemo(() => {
     if (filter === "ACTIVE") {
@@ -67,202 +71,27 @@ export function SellerProductsTab({ products, loading }: Props) {
     return items;
   }, [filter, items]);
 
-  async function createDraftProduct() {
-    if (creating) return;
-
-    setCreating(true);
-
-    try {
-      const brandsResponse = await apiFetch(`${API_URL}/api/seller/brands`);
-
-      if (!brandsResponse.ok) {
-        throw new Error("Не удалось проверить производителя");
-      }
-
-      const brands = await brandsResponse.json();
-
-      if (!Array.isArray(brands) || brands.length === 0) {
-        router.push("/seller?tab=brand");
-        return;
-      }
-
-      const response = await apiFetch(`${API_URL}/api/seller/products/draft`, {
-        method: "POST",
-      });
-
-      if (!response.ok) {
-        const text = await response.text().catch(() => "");
-        throw new Error(text || "Не удалось создать черновик");
-      }
-
-      const id: number = await response.json();
-      router.push(`/seller/products/${id}/edit`);
-    } catch (error) {
-      toast.error(
-        error instanceof Error ? error.message : "Не удалось создать товар"
-      );
-    } finally {
-      setCreating(false);
-    }
-  }
-
-  async function archiveProduct(productId: number) {
-    try {
-      const response = await apiFetch(
-        `${API_URL}/api/seller/products/${productId}/archive`,
-        {
-          method: "POST",
-        }
-      );
-
-      if (!response.ok) {
-        const text = await response.text().catch(() => "");
-        throw new Error(text || "Не удалось перенести товар в архив");
-      }
-
-      setItems((current) =>
-        current.map((product) =>
-          product.id === productId
-            ? {
-                ...product,
-                status: "ARCHIVED",
-              }
-            : product
-        )
-      );
-
-      toast.success("Товар перенесён в архив");
-    } catch (error) {
-      toast.error(
-        error instanceof Error
-          ? error.message
-          : "Не удалось перенести товар в архив"
-      );
-    }
-  }
-
-  async function copyProduct(productId: number) {
-  try {
-    const response = await apiFetch(
-      `${API_URL}/api/seller/products/${productId}/copy`,
-      {
-        method: "POST",
-      }
-    );
-
-    if (!response.ok) {
-      const text = await response.text().catch(() => "");
-      throw new Error(text || "Не удалось скопировать товар");
-    }
-
-    const newProductId: number = await response.json();
-
-    toast.success("Копия товара создана");
-    router.push(`/seller/products/${newProductId}/edit`);
-  } catch (error) {
-    toast.error(
-      error instanceof Error ? error.message : "Не удалось скопировать товар"
-    );
-  }
-  }
-
-  async function deleteProduct(productId: number) {
-  try {
-    const response = await apiFetch(
-      `${API_URL}/api/seller/products/${productId}/delete`,
-      {
-        method: "POST",
-      }
-    );
-
-    if (!response.ok) {
-      const text = await response.text().catch(() => "");
-      throw new Error(text || "Не удалось удалить товар");
-    }
-
-    setItems((current) => current.filter((product) => product.id !== productId));
-
-    toast.success("Товар удалён");
-  } catch (error) {
-    toast.error(
-      error instanceof Error ? error.message : "Не удалось удалить товар"
-    );
-  }
-  }
-
   return (
     <div className={styles.productsPage}>
       <div className={styles.productsToolbar}>
-        <div className={styles.productsFilters}>
-          <FilterButton
-            active={filter === "ALL"}
-            label="Всего товаров"
-            value={items.length}
-            onClick={() => setFilter("ALL")}
-          />
-
-          <FilterButton
-            active={filter === "ACTIVE"}
-            label="Активные"
-            value={activeCount}
-            onClick={() => setFilter("ACTIVE")}
-          />
-
-          <FilterButton
-            active={filter === "MODERATION"}
-            label="На модерации"
-            value={moderationCount}
-            onClick={() => setFilter("MODERATION")}
-          />
-
-          <FilterButton
-            active={filter === "NEEDS_REVISION"}
-            label="На доработке"
-            value={revisionCount}
-            onClick={() => setFilter("NEEDS_REVISION")}
-          />
-
-          <FilterButton
-            active={filter === "DRAFT"}
-            label="Черновики"
-            value={draftCount}
-            onClick={() => setFilter("DRAFT")}
-          />
-
-          <FilterButton
-            active={filter === "ARCHIVED"}
-            label="Архив"
-            value={archivedCount}
-            onClick={() => setFilter("ARCHIVED")}
-          />
-
-          <button
-            type="button"
-            onClick={createDraftProduct}
-            disabled={creating}
-            className={styles.createProductLink}
-          >
-            Добавить товар
-          </button>
-        </div>
+        <CabinetTabs
+          items={productTabs}
+          value={filter}
+          onChange={setFilter}
+          ariaLabel="Фильтр товаров"
+          fullBleedMobile
+          pinFirst
+          countTone="gold"
+          tone="gold"
+        />
       </div>
 
       {loading ? (
-        <EmptyState title="Загружаем товары…" />
+        null
       ) : items.length === 0 ? (
         <EmptyState
           title="Товаров пока нет"
           text="Создай первую карточку товара, добавь фото и отправь её на публикацию."
-          actions={
-            <button
-              type="button"
-              onClick={createDraftProduct}
-              disabled={creating}
-              className={styles.createProductLink}
-            >
-              Добавить товар
-            </button>
-          }
         />
       ) : filteredProducts.length === 0 ? (
         <EmptyState
@@ -275,9 +104,6 @@ export function SellerProductsTab({ products, loading }: Props) {
             <ProductRow
               key={product.id}
               product={product}
-              onArchive={archiveProduct}
-              onCopy={copyProduct}
-              onDelete={deleteProduct}
             />
           ))}
         </div>
@@ -286,50 +112,17 @@ export function SellerProductsTab({ products, loading }: Props) {
   );
 }
 
-function FilterButton({
-  active,
-  label,
-  value,
-  onClick,
-}: {
-  active: boolean;
-  label: string;
-  value: number;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`${styles.productsFilterCard} ${
-        active ? styles.productsFilterCardActive : ""
-      }`}
-    >
-      <strong>{value}</strong>
-      <span>{label}</span>
-    </button>
-  );
-}
-
 function ProductRow({
-    product,
-    onArchive,
-    onCopy,
-    onDelete,
-  }: {
-    product: SellerProductListItem;
-    onArchive: (productId: number) => Promise<void>;
-    onCopy: (productId: number) => Promise<void>;
-    onDelete: (productId: number) => Promise<void>;
-  }) {
+  product,
+}: {
+  product: SellerProductListItem;
+}) {
   const router = useRouter();
-  const [menuOpen, setMenuOpen] = useState(false);
 
   const mainImage = product.coverImage;
   const minPrice = product.minPrice ?? 0;
   const totalStock = product.totalStock ?? 0;
   const variantsCount = product.variantsCount ?? 0;
-  const archived = product.status === "ARCHIVED";
   const editHref = `/seller/products/${product.id}/edit`;
 
   function openProductEdit() {
@@ -366,117 +159,42 @@ function ProductRow({
       </div>
 
       <div className={styles.productMain}>
-        <div className={styles.productTitleRow}>
-          <h2>{product.title || "Без названия"}</h2>
+        <div className={styles.productStatus}>
           <StatusBadge tone={getProductStatusTone(product.status)}>
             {formatProductStatus(product.status)}
           </StatusBadge>
         </div>
 
-        <div className={styles.productMeta}>
-          <span>ID: {product.id}</span>
-          <span>•</span>
-          <span>{product.categoryName || "Категория не определена"}</span>
-          <span>•</span>
-          <span>{product.brandName || "Бренд не указан"}</span>
-        </div>
+        <div className={styles.productInfo}>
+          <h2 className={styles.productTitle}>{product.title || "Без названия"}</h2>
 
-        <div className={styles.productTags}>
-          <span>{variantsCount} вариант(ов)</span>
-          <span>Остаток: {Number(totalStock).toLocaleString()}</span>
-        </div>
-      </div>
-
-      <div className={styles.productRightSide}>
-        <div className={styles.productInlineFields}>
-          <div className={styles.inlineFieldWrap}>
-            <div className={styles.inlineFieldLabel}>Цена от, ₽</div>
-            <div className={styles.inlineReadonlyField}>
-              <b>{Number(minPrice).toLocaleString()}</b>
-            </div>
-          </div>
-
-          <div className={styles.inlineFieldWrap}>
-            <div className={styles.inlineFieldLabel}>Количество, ед.</div>
-            <div className={styles.inlineReadonlyField}>
-              <b>{Number(totalStock).toLocaleString()}</b>
-            </div>
-          </div>
-        </div>
-
-        <div className={styles.productActions}>
-          <div className={styles.productMenuWrap}>
-            <button
-              type="button"
-              className={styles.productMenuBtn}
-              onClick={(event) => {
-                event.stopPropagation();
-                setMenuOpen((value) => !value);
-              }}
-              aria-label="Действия с товаром"
-            >
-              ⋯
-            </button>
-
-            {menuOpen ? (
-              <div
-                className={styles.productMenu}
-                onClick={(event) => event.stopPropagation()}
-              >
-                <Link
-                  href={editHref}
-                  className={styles.productMenuLink}
-                >
-                  Редактировать
-                </Link>
-
-                {product.status === "ACTIVE" ? (
-                  <Link
-                    href={`/product/${product.id}`}
-                    target="_blank"
-                    className={styles.productMenuLink}
-                  >
-                    Открыть на сайте
-                  </Link>
-                ) : null}
-
-                <button
-                  type="button"
-                  onClick={() => {
-                    setMenuOpen(false);
-                    void onCopy(product.id);
-                  }}
-                >
-                  Скопировать
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => {
-                    setMenuOpen(false);
-                    void onArchive(product.id);
-                  }}
-                  disabled={archived}
-                >
-                  {archived ? "В архиве" : "Перенести в архив"}
-                </button>
-
-                <button
-                  type="button"
-                  className={styles.productMenuDanger}
-                  onClick={() => {
-                    setMenuOpen(false);
-                    void onDelete(product.id);
-                  }}
-                  disabled={product.status === "ACTIVE" || product.status === "MODERATION"}
-                >
-                  Удалить
-                </button>
-              </div>
+          <div className={styles.productMeta}>
+            <span>ID: {product.id}</span>
+            {product.categoryName ? (
+              <>
+                <span>•</span>
+                <span>{product.categoryName}</span>
+              </>
             ) : null}
           </div>
+
+          <div className={styles.productTags}>
+            <span>{variantsCount} вариант(ов)</span>
+            <span>Остаток: {Number(totalStock).toLocaleString()}</span>
+          </div>
+        </div>
+
+        <div className={styles.productState}>
+          <div className={styles.productPrice}>
+            <Price amount={Number(minPrice)} />
+          </div>
         </div>
       </div>
+
+      <span className={styles.productArrow} aria-hidden="true">
+        &gt;
+      </span>
+
     </article>
   );
 }
@@ -490,8 +208,9 @@ function getProductStatusTone(status: SellerProductListItem["status"]) {
     case "NEEDS_REVISION":
       return "warning";
     case "BLOCKED":
-    case "ARCHIVED":
       return "danger";
+    case "ARCHIVED":
+      return "default";
     default:
       return "default";
   }

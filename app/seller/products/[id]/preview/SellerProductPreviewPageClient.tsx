@@ -69,11 +69,7 @@ export function SellerProductPreviewPageClient({ productId }: Props) {
   );
 
   if (loading) {
-    return (
-      <div className="pageContainer">
-        <div className={styles.state}>Загружаем предпросмотр</div>
-      </div>
-    );
+    return null;
   }
 
   if (error || !previewProduct) {

@@ -1,7 +1,20 @@
 .page {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 0;
+}
+
+.page > * {
+  margin-bottom: 28px;
+}
+
+.page > *:first-child {
+  margin-top: 0;
+}
+
+.ordersToolbar {
+  min-width: 0;
+  margin-bottom: 15px;
 }
 
 .header {
@@ -98,25 +111,9 @@
 .list {
   display: flex;
   flex-direction: column;
-  border: 1px solid var(--line);
+  gap: 12px;
+  border: 0;
   background: var(--white);
-}
-
-.listHead {
-  display: grid;
-  grid-template-columns: 74px minmax(0, 1.2fr) minmax(150px, 0.75fr) 110px 140px;
-  gap: 18px;
-  padding: 12px 14px;
-  border-bottom: 1px solid var(--line);
-  color: var(--muted);
-  font-size: var(--font-xs);
-  letter-spacing: 0;
-  text-transform: uppercase;
-}
-
-.listHead span:nth-child(4),
-.listHead span:nth-child(5) {
-  text-align: right;
 }
 
 @media (max-width: 900px) {
@@ -128,9 +125,6 @@
     min-height: 82px;
   }
 
-.listHead {
-    display: none;
-  }
 }
 
 @media (max-width: 768px) {

@@ -9,6 +9,7 @@ import type {
 } from "../types";
 
 import { ChoiceMark } from "../../components/ui/ChoiceMark";
+import { Price } from "../../components/ui/Price";
 import { PickupPointModal } from "./PickupPointModal";
 import styles from "./CheckoutDeliverySection.module.css";
 
@@ -117,9 +118,8 @@ export function CheckoutDeliverySection({
   const selectedPickupPoint =
     options.find((option) => option.id === selectedAddressId) ?? null;
 
-  const deliveryPriceText =
-    deliveryPrice > 0 ? `${deliveryPrice.toLocaleString()} ₽` : "";
-  const showDeliveryMetaLoading = quoteLoading && !deliveryPriceText;
+  const hasDeliveryPrice = deliveryPrice > 0;
+  const showDeliveryMetaLoading = quoteLoading && !hasDeliveryPrice;
 
   const deliveryDateInfo = deliveryDateText
     ? `Ближайшая доставка — ${deliveryDateText}.`
@@ -355,13 +355,13 @@ export function CheckoutDeliverySection({
       <span className={styles.choiceTitle}>С примеркой</span>
     </span>
     <span className={styles.choiceMeta}>
-      {deliveryPriceText || showDeliveryMetaLoading ? (
+      {hasDeliveryPrice || showDeliveryMetaLoading ? (
         <span
           className={`${styles.metaBadge} ${
-            !deliveryPriceText ? styles.metaBadgeLoading : ""
+            !hasDeliveryPrice ? styles.metaBadgeLoading : ""
           }`}
         >
-          {deliveryPriceText}
+          {hasDeliveryPrice ? <Price amount={deliveryPrice} /> : null}
         </span>
       ) : null}
       <ChoiceMark checked={fittingMode === "WITH_FITTING"} />
@@ -380,13 +380,13 @@ export function CheckoutDeliverySection({
       <span className={styles.choiceTitle}>Без примерки</span>
     </span>
     <span className={styles.choiceMeta}>
-      {deliveryPriceText || showDeliveryMetaLoading ? (
+      {hasDeliveryPrice || showDeliveryMetaLoading ? (
         <span
           className={`${styles.metaBadge} ${
-            !deliveryPriceText ? styles.metaBadgeLoading : ""
+            !hasDeliveryPrice ? styles.metaBadgeLoading : ""
           }`}
         >
-          {deliveryPriceText}
+          {hasDeliveryPrice ? <Price amount={deliveryPrice} /> : null}
         </span>
       ) : null}
       <ChoiceMark checked={fittingMode === "WITHOUT_FITTING"} />

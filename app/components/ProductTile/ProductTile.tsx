@@ -6,6 +6,7 @@ import { useRef } from "react";
 import { useRouter } from "next/navigation";
 
 import styles from "./ProductTile.module.css";
+import { Price } from "../ui/Price";
 import { useFavorites } from "../../lib/FavoritesContext";
 
 type Product = {
@@ -28,10 +29,6 @@ export function ProductTile({ product }: { product: Product }) {
 
   const prefetchedRef = useRef(false);
 
-  const priceText =
-    product.minPrice > 0
-      ? `${product.minPrice.toLocaleString("ru-RU")} ₽`
-      : "Цена по запросу";
   const imageSizes =
     "(max-width: 599px) 100vw, (max-width: 899px) 50vw, (max-width: 1199px) 33vw, 25vw";
 
@@ -105,7 +102,9 @@ export function ProductTile({ product }: { product: Product }) {
 
           <div className={styles.title}>{product.title}</div>
 
-          <div className={styles.price}>{priceText}</div>
+          <div className={styles.price}>
+            {product.minPrice > 0 ? <Price amount={product.minPrice} /> : "Цена по запросу"}
+          </div>
         </div>
       </article>
     </li>

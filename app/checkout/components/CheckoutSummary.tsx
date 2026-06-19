@@ -3,6 +3,7 @@
 import styles from "../Checkout.module.css";
 import type { CartItem } from "../types";
 import Image from "next/image";
+import { Price } from "../../components/ui/Price";
 
 type Props = {
   items: CartItem[];
@@ -23,7 +24,7 @@ export function CheckoutSummary({
         <div className={styles.summaryTotalLine}>
           <span className={styles.summaryTotalLabel}>Итого</span>
           <span className={styles.summaryTotalValue}>
-            {total.toLocaleString()} ₽
+            <Price amount={total} />
           </span>
         </div>
 
@@ -51,7 +52,7 @@ export function CheckoutSummary({
               </div>
 
               <div className={styles.summaryItemPrice}>
-                {(item.price * item.quantity).toLocaleString()} ₽
+                <Price amount={item.price * item.quantity} />
               </div>
             </div>
           ))}
@@ -60,13 +61,13 @@ export function CheckoutSummary({
         <div className={styles.summaryLines}>
           <div className={styles.summaryRow}>
             <span>Товары</span>
-            <span>{subtotal.toLocaleString()} ₽</span>
+            <span><Price amount={subtotal} /></span>
           </div>
 
           <div className={styles.summaryRow}>
             <span>Доставка</span>
             <span>
-              {deliveryPrice === 0 ? "Бесплатно" : `${deliveryPrice.toLocaleString()} ₽`}
+              {deliveryPrice === 0 ? "Бесплатно" : <Price amount={deliveryPrice} />}
             </span>
           </div>
         </div>

@@ -14,7 +14,7 @@ type Props = {
   }>;
 };
 
-export default async function SellerPage({ searchParams }: Props) {
+export default async function SellerPage({ searchParams: _searchParams }: Props) {
   console.time("seller session");
   const session = await getServerSession();
   console.timeEnd("seller session");
@@ -27,22 +27,17 @@ export default async function SellerPage({ searchParams }: Props) {
     redirect("/");
   }
 
-  const params = await searchParams;
-  const currentTab = params?.tab === "products" ? "products" : "orders";
+  await _searchParams;
 
-  const dataLabel = `seller data ${currentTab}`;
-  console.time(dataLabel);
-
-  let initialProducts: SellerProductListItem[] = [];
-  let initialOrders: SellerOrderListItem[] = [];
-
-  if (currentTab === "products") {
-    initialProducts = await getSellerProductsServer();
-  } else {
-    initialOrders = await getSellerOrdersServer();
-  }
-
-  console.timeEnd(dataLabel);
+  console.time("seller data");
+  const [initialProducts, initialOrders]: [
+    SellerProductListItem[],
+    SellerOrderListItem[],
+  ] = await Promise.all([
+    getSellerProductsServer(),
+    getSellerOrdersServer(),
+  ]);
+  console.timeEnd("seller data");
 
   return (
     <SellerPageClient

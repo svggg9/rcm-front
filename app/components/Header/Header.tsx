@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
 import styles from "./Header.module.css";
@@ -18,19 +18,6 @@ type Category = {
   name: string;
 };
 
-const banners = [
-  {
-    text: "RCM подключает отечественных производителей",
-    link: "/seller/apply",
-    linkText: "Стать продавцом",
-  },
-  {
-    text: "Маркетплейс локальных брендов и качественных товаров",
-    link: "/about",
-    linkText: "О проекте",
-  },
-];
-
 const audienceItems = [
   { key: "all", label: "Для всех" },
   { key: "men", label: "Для него" },
@@ -44,6 +31,7 @@ function isSellerRole(role: string | null) {
 function HeaderContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const headerRef = useRef<HTMLElement | null>(null);
 
   const activeCategory = searchParams.get("category");
   const activeAudience = searchParams.get("audience") || "all";
@@ -52,9 +40,10 @@ function HeaderContent() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [loadingCategories, setLoadingCategories] = useState(true);
   const [search, setSearch] = useState(activeSearch);
-  const [bannerIndex, setBannerIndex] = useState(0);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [menuAudience, setMenuAudience] = useState(activeAudience);
 
-  const { isAuthenticated: isAuth } = useCurrentUser();
+  const { user, isAuthenticated: isAuth } = useCurrentUser();
   const cartCount = useCartCount();
   const role = useUserRole();
   const { count: favoritesCount } = useFavorites();
@@ -63,6 +52,12 @@ function HeaderContent() {
   useEffect(() => {
     setSearch(activeSearch);
   }, [activeSearch]);
+
+  useEffect(() => {
+    if (!menuOpen) {
+      setMenuAudience(activeAudience);
+    }
+  }, [activeAudience, menuOpen]);
 
   useEffect(() => {
     let cancelled = false;
@@ -101,12 +96,31 @@ function HeaderContent() {
   }, []);
 
   useEffect(() => {
-    const id = window.setInterval(() => {
-      setBannerIndex((current) => (current + 1) % banners.length);
-    }, 4000);
+    const node = headerRef.current;
+    if (!node) return;
 
-    return () => window.clearInterval(id);
+    const update = () => {
+      document.documentElement.style.setProperty(
+        "--site-header-height",
+        `${Math.ceil(node.getBoundingClientRect().height)}px`
+      );
+    };
+
+    update();
+
+    const observer = new ResizeObserver(update);
+    observer.observe(node);
+
+    return () => observer.disconnect();
   }, []);
+
+  useEffect(() => {
+    document.body.style.overflow = menuOpen ? "hidden" : "";
+
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [menuOpen]);
 
   function buildCatalogUrl(params: {
     category?: string | null;
@@ -130,13 +144,38 @@ function HeaderContent() {
   }
 
   function handleAudienceClick(audience: string) {
+    setMenuOpen(false);
     router.push(buildCatalogUrl({ audience }));
   }
 
   function handleCategoryClick(category: string) {
     const isSame = activeCategory === category;
+    setMenuOpen(false);
     router.push(buildCatalogUrl({ category: isSame ? null : category }));
   }
+
+  function openMobileMenu() {
+    setMenuAudience(activeAudience);
+    setMenuOpen(true);
+  }
+
+  function handleMobileAudienceClick(audience: string) {
+    setMenuAudience(audience);
+  }
+
+  function handleMobileAudienceCatalogClick() {
+    setMenuOpen(false);
+    router.push(buildCatalogUrl({ audience: menuAudience, category: null }));
+  }
+
+  function handleMobileCategoryClick(category: string) {
+    setMenuOpen(false);
+    router.push(buildCatalogUrl({ audience: menuAudience, category }));
+  }
+
+  const selectedMenuAudience =
+    audienceItems.find((item) => item.key === menuAudience) ?? audienceItems[0];
+  const accountLabel = user?.username || "Профиль";
 
   function handleSearchSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -150,44 +189,21 @@ function HeaderContent() {
     );
   }
 
-  const activeBanner = banners[bannerIndex];
-
   return (
-    <header
-        className={styles.header}
-        ref={(node) => {
-          if (!node) return;
-
-          const update = () => {
-            document.documentElement.style.setProperty(
-            "--site-header-height",
-            `${Math.ceil(node.getBoundingClientRect().height)}px`
-            );
-          };
-
-          update();
-
-          const observer = new ResizeObserver(update);
-          observer.observe(node);
-
-          return () => observer.disconnect();
-        }}
-      >
-      <div className={styles.banner}>
-        <div className={styles.inner}>
-          <div className={styles.bannerText}>
-            {activeBanner.text}{" "}
-            {activeBanner.link ? (
-              <Link href={activeBanner.link} className={styles.bannerLink}>
-                {activeBanner.linkText}
-              </Link>
-            ) : null}
-          </div>
-        </div>
-      </div>
-
+    <header className={styles.header} ref={headerRef}>
       <div className={styles.top}>
         <div className={styles.inner}>
+          <button
+            type="button"
+            className={styles.menuBtn}
+            aria-label="Открыть меню"
+            aria-expanded={menuOpen}
+            onClick={openMobileMenu}
+          >
+            <span />
+            <span />
+          </button>
+
           <nav className={styles.audience} aria-label="Разделы">
             {audienceItems.map((item) => (
               <button
@@ -259,14 +275,14 @@ function HeaderContent() {
             </Link>
 
             {isAuth === true ? (
-              <Link href="/account?tab=orders" className={styles.iconBtn}>
+              <Link href="/account?tab=profile" className={styles.iconBtn}>
                 <Image src="/icons/user.svg" alt="Profile" width={22} height={22} />
               </Link>
               ) : (
                 <button
                   type="button"
                   className={styles.iconBtn}
-                  onClick={() => openAuth("login", "/account?tab=orders")}
+                  onClick={() => openAuth("login", "/account?tab=profile")}
                   aria-label="Войти"
                 >
                   <Image src="/icons/user.svg" alt="" width={22} height={22} />
@@ -305,12 +321,143 @@ function HeaderContent() {
               value={search}
               onChange={(event) => setSearch(event.target.value)}
             />
-            <button type="submit" className={styles.searchBtn}>
-              Поиск
+            <button
+              type="submit"
+              className={styles.searchBtn}
+              aria-label="Искать"
+            >
+              <svg
+                aria-hidden="true"
+                width="17"
+                height="17"
+                viewBox="0 0 17 17"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <circle cx="7.25" cy="7.25" r="5.25" stroke="currentColor" strokeWidth="1.4" />
+                <path d="M11.1 11.1L15 15" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+              </svg>
             </button>
           </form>
         </div>
       </div>
+
+      {menuOpen ? (
+        <div className={styles.mobilePanel} role="dialog" aria-modal="true">
+          <div className={styles.mobilePanelHead}>
+            <Link
+              href="/"
+              className={styles.mobilePanelLogo}
+              aria-label="РЦМ"
+              onClick={() => setMenuOpen(false)}
+            >
+              <Image
+                src="/icons/logo-rcm.webp"
+                alt="РЦМ"
+                width={132}
+                height={44}
+                className={styles.logoImg}
+                priority
+              />
+            </Link>
+
+            <button
+              type="button"
+              className={styles.mobileClose}
+              aria-label="Закрыть меню"
+              onClick={() => setMenuOpen(false)}
+            >
+              <span />
+              <span />
+            </button>
+          </div>
+
+          <nav className={styles.mobileAudience} aria-label="Разделы">
+            {audienceItems.map((item) => (
+              <button
+                key={item.key}
+                type="button"
+                className={`${styles.mobileAudienceBtn} ${
+                  menuAudience === item.key ? styles.mobileAudienceBtnActive : ""
+                }`}
+                onClick={() => handleMobileAudienceClick(item.key)}
+              >
+                {item.label}
+              </button>
+            ))}
+          </nav>
+
+          <nav className={styles.mobileCategories} aria-label="Категории">
+            <button
+              type="button"
+              className={styles.mobileCategory}
+              onClick={handleMobileAudienceCatalogClick}
+            >
+              <span>{selectedMenuAudience.label}</span>
+              <span aria-hidden="true">›</span>
+            </button>
+
+            {!loadingCategories
+              ? categories.map((category) => (
+                  <button
+                    key={category.id}
+                    type="button"
+                    className={`${styles.mobileCategory} ${
+                      activeCategory === category.name
+                        ? styles.mobileCategoryActive
+                        : ""
+                    }`}
+                    onClick={() => handleMobileCategoryClick(category.name)}
+                  >
+                    <span>{category.name}</span>
+                    <span aria-hidden="true">›</span>
+                  </button>
+                ))
+              : null}
+          </nav>
+
+          <div className={styles.mobileAccount}>
+            <div className={styles.mobileAccountTitle}>В личный кабинет</div>
+
+            {isAuth === true ? (
+              <Link
+                href="/account?tab=profile"
+                className={styles.mobileProfileLink}
+                onClick={() => setMenuOpen(false)}
+              >
+                <span className={styles.mobileProfileMain}>
+                  <Image src="/icons/user.svg" alt="" width={18} height={18} />
+                  <span>{accountLabel}</span>
+                </span>
+                <span aria-hidden="true">›</span>
+              </Link>
+            ) : (
+              <div className={styles.mobileAuthActions}>
+                <button
+                  type="button"
+                  className={styles.mobilePrimary}
+                  onClick={() => {
+                    setMenuOpen(false);
+                    openAuth("login", "/account?tab=profile");
+                  }}
+                >
+                  Войти
+                </button>
+                <button
+                  type="button"
+                  className={styles.mobileSecondary}
+                  onClick={() => {
+                    setMenuOpen(false);
+                    openAuth("register", "/account?tab=profile");
+                  }}
+                >
+                  Зарегистрироваться
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      ) : null}
     </header>
   );
 }

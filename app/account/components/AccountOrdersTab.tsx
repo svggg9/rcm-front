@@ -18,19 +18,10 @@ export function AccountOrdersTab({
   buildOrderStatusLabel,
   onOpenOrder,
 }: Props) {
-  const paidCount = orders.filter((order) => order.paymentStatus === "PAID").length;
-  const transitCount = orders.filter(
-    (order) => order.deliveryStatus === "IN_TRANSIT"
-  ).length;
-  const totalAmount = orders.reduce((sum, order) => sum + order.totalAmount, 0);
-
   return (
     <section className={styles.page}>
-      <div className={styles.summary}>
-        <SummaryItem label="Всего заказов" value={orders.length.toString()} />
-        <SummaryItem label="Оплачены" value={paidCount.toString()} />
-        <SummaryItem label="В пути" value={transitCount.toString()} />
-        <SummaryItem label="Сумма покупок" value={`${totalAmount.toLocaleString()} ₽`} />
+      <div className={styles.cardHeader}>
+        <h2>История заказов</h2>
       </div>
 
       {orders.length === 0 ? (
@@ -40,14 +31,6 @@ export function AccountOrdersTab({
         />
       ) : (
         <div className={styles.list}>
-          <div className={styles.listHead}>
-            <span>Товары</span>
-            <span>Заказ</span>
-            <span>Состав</span>
-            <span>Сумма</span>
-            <span>Статус</span>
-          </div>
-
           {orders.map((order) => (
             <AccountOrderCard
               key={order.id}
@@ -59,14 +42,5 @@ export function AccountOrdersTab({
         </div>
       )}
     </section>
-  );
-}
-
-function SummaryItem({ label, value }: { label: string; value: string }) {
-  return (
-    <div className={styles.summaryItem}>
-      <strong>{value}</strong>
-      <span>{label}</span>
-    </div>
   );
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 
 import { apiFetch, API_URL } from "../../../../lib/api";
 
@@ -98,6 +99,7 @@ function mapProductVariants(productData: SellerProduct): ProductVariant[] {
 }
 
 export function ProductEditPageClient({ productId }: Props) {
+  const router = useRouter();
   const [initialized, setInitialized] = useState(false);
   const [dirty, setDirty] = useState(false);
 
@@ -130,6 +132,8 @@ export function ProductEditPageClient({ productId }: Props) {
   const [uploading, setUploading] = useState(false);
   const [reordering, setReordering] = useState(false);
   const [publishing, setPublishing] = useState(false);
+  const [archiving, setArchiving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [onboardingStatus, setOnboardingStatus] =
     useState<SellerOnboardingStatus | null>(null);
 
@@ -803,11 +807,77 @@ export function ProductEditPageClient({ productId }: Props) {
   }
 
   if (loading) {
-    return (
-      <div className="pageContainer">
-        <div className={styles.page}>Загрузка…</div>
-      </div>
+    return <ProductEditSkeleton />;
+  }
+
+  async function archiveProduct() {
+    if (archiving || product?.status === "ARCHIVED") return;
+
+    if (dirty) {
+      const confirmed = window.confirm(
+        "Есть несохраненные изменения. Переместить товар в архив без сохранения правок?"
+      );
+
+      if (!confirmed) return;
+    }
+
+    setArchiving(true);
+
+    try {
+      const response = await apiFetch(`${API_URL}/api/seller/products/${productId}/archive`, {
+        method: "POST",
+      });
+
+      if (!response.ok) {
+        const text = await response.text().catch(() => "");
+        throw new Error(text || `Ошибка архивации (${response.status})`);
+      }
+
+      setProduct((current) =>
+        current
+          ? {
+              ...current,
+              status: "ARCHIVED",
+            }
+          : current
+      );
+      toast.success("Товар перемещён в архив");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Не удалось переместить товар в архив");
+    } finally {
+      setArchiving(false);
+    }
+  }
+
+  async function deleteProduct() {
+    if (deleting) return;
+
+    const confirmed = window.confirm(
+      dirty
+        ? "Есть несохраненные изменения. Удалить товар без сохранения правок?"
+        : "Удалить товар? Это действие нельзя будет быстро отменить."
     );
+    if (!confirmed) return;
+
+    setDeleting(true);
+
+    try {
+      const response = await apiFetch(`${API_URL}/api/seller/products/${productId}/delete`, {
+        method: "POST",
+      });
+
+      if (!response.ok) {
+        const text = await response.text().catch(() => "");
+        throw new Error(text || `Ошибка удаления (${response.status})`);
+      }
+
+      toast.success("Товар удалён");
+      router.push("/seller?tab=products");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Не удалось удалить товар");
+    } finally {
+      setDeleting(false);
+    }
   }
 
   function failValidation(message: string) {
@@ -860,10 +930,8 @@ export function ProductEditPageClient({ productId }: Props) {
               composition={composition}
               categoryId={categoryId}
               suggestedCategoryName={suggestedCategoryName}
-              brandId={brandId}
               audience={audience}
               categories={categories}
-              brands={brands}
               onTitleChange={(value) => {
                 setTitle(value);
                 clearValidationError("title");
@@ -892,11 +960,6 @@ export function ProductEditPageClient({ productId }: Props) {
                   setCategoryId("");
                 }
                 clearValidationError("categoryId");
-                markDirty();
-              }}
-              onBrandIdChange={(value) => {
-                setBrandId(value);
-                clearValidationError("brandId");
                 markDirty();
               }}
               onAudienceChange={(value) => {
@@ -971,7 +1034,27 @@ export function ProductEditPageClient({ productId }: Props) {
                 className={styles.secondaryBtn}
                 title={!canPublish ? publishBlockedReason : undefined}
               >
-                {publishing ? "Отправляем..." : "Отправить на модерацию"}
+                {publishing ? "Отправляем..." : "Опубликовать"}
+              </button>
+
+              {product?.status !== "ARCHIVED" ? (
+                <button
+                  type="button"
+                  onClick={() => void archiveProduct()}
+                  disabled={archiving}
+                  className={styles.archiveBtn}
+                >
+                  {archiving ? "Переносим..." : "В архив"}
+                </button>
+              ) : null}
+
+              <button
+                type="button"
+                onClick={() => void deleteProduct()}
+                disabled={deleting}
+                className={styles.deleteProductBtn}
+              >
+                {deleting ? "Удаляем..." : "Удалить"}
               </button>
             </div>
           </main>
@@ -992,5 +1075,63 @@ export function ProductEditPageClient({ productId }: Props) {
         </div>
       </div>
     </div>
+  );
+}
+
+function ProductEditSkeleton() {
+  return (
+    <div className="pageContainer">
+      <div className={styles.page}>
+        <div className={styles.skeletonBreadcrumbs}>
+          <div />
+          <div />
+          <div />
+        </div>
+
+        <div className={styles.pageContent}>
+          <div className={styles.layout}>
+            <main className={styles.main}>
+              <SkeletonSection rows={5} />
+              <SkeletonSection rows={4} image />
+              <SkeletonSection rows={4} />
+
+              <div className={styles.skeletonActions}>
+                <div />
+                <div />
+              </div>
+            </main>
+
+            <aside className={styles.aside}>
+              <div className={styles.skeletonPreview}>
+                <div className={styles.skeletonPreviewImage} />
+                <div className={styles.skeletonPreviewLine} />
+                <div className={styles.skeletonPreviewLineShort} />
+                <div className={styles.skeletonPreviewButton} />
+              </div>
+            </aside>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function SkeletonSection({
+  rows,
+  image = false,
+}: {
+  rows: number;
+  image?: boolean;
+}) {
+  return (
+    <section className={styles.skeletonSection}>
+      <div className={styles.skeletonSectionTitle} />
+      {image ? <div className={styles.skeletonUpload} /> : null}
+      <div className={styles.skeletonFields}>
+        {Array.from({ length: rows }).map((_, index) => (
+          <div key={index} />
+        ))}
+      </div>
+    </section>
   );
 }

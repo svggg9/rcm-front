@@ -5,15 +5,14 @@
   right: 0;
   z-index: 300;
   background: var(--white);
-  border-bottom: 1px solid var(--line);
 }
 
 .inner {
-  width: min(1440px, calc(100% - 48px));
+  width: min(1440px, calc(100% - 64px));
   margin: 0 auto;
 }
 
-.banner {
+.menuBtn {
   display: none;
 }
 
@@ -23,31 +22,36 @@
 }
 
 .top .inner {
-  min-height: 72px;
+  min-height: 66px;
   display: grid;
+  grid-template-areas: "audience logo actions";
   grid-template-columns: 1fr auto 1fr;
   align-items: center;
-  gap: 20px;
+  gap: 24px;
 }
 
 .audience {
+  grid-area: audience;
   display: flex;
   align-items: center;
-  gap: 24px;
+  gap: 22px;
   justify-self: start;
 }
 
 .audienceBtn {
+  position: relative;
   background: none;
   border: none;
-  padding: 0;
+  padding: 4px 0;
   cursor: pointer;
   color: var(--muted);
-  font-size: 13px;
+  font-size: 11px;
   line-height: 1;
   text-transform: uppercase;
   letter-spacing: 0.12em;
-  transition: color var(--transition-fast);
+  transition:
+    color var(--transition-fast),
+    opacity var(--transition-fast);
 }
 
 .audienceBtn:hover {
@@ -59,7 +63,18 @@
   font-weight: 500;
 }
 
+.audienceBtnActive::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -18px;
+  height: 1px;
+  background: var(--black);
+}
+
 .logo {
+  grid-area: logo;
   justify-self: center;
   display: flex;
   align-items: center;
@@ -73,16 +88,17 @@
 }
 
 .logoImg {
-  height: 38px;
+  height: 32px;
   width: auto;
   display: block;
 }
 
 .actions {
+  grid-area: actions;
   display: flex;
   align-items: center;
   justify-self: end;
-  gap: 18px;
+  gap: 10px;
 }
 
 .iconBtn {
@@ -91,17 +107,22 @@
   padding: 0;
   display: inline-flex;
   align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
   cursor: pointer;
-  transition: opacity var(--transition-fast);
+  transition:
+    background var(--transition-fast),
+    opacity var(--transition-fast);
 }
 
 .iconBtn:hover {
-  opacity: 0.62;
+  background: var(--soft);
 }
 
 .iconBtn img {
-  width: 22px;
-  height: 22px;
+  width: 21px;
+  height: 21px;
   display: block;
 }
 
@@ -113,8 +134,8 @@
 
 .badge {
   position: absolute;
-  top: -7px;
-  right: -9px;
+  top: -8px;
+  right: -10px;
   min-width: 16px;
   height: 16px;
   padding: 0 4px;
@@ -124,6 +145,7 @@
   font-weight: 500;
   line-height: 16px;
   text-align: center;
+  border-radius: 0;
 }
 
 .bottom {
@@ -133,9 +155,9 @@
 .bottom .inner {
   min-height: 44px;
   display: grid;
-  grid-template-columns: 1fr auto;
+  grid-template-columns: minmax(0, 1fr) 300px;
   align-items: center;
-  gap: 24px;
+  gap: 28px;
 }
 
 .categories {
@@ -156,10 +178,10 @@
   height: 44px;
   padding: 0 14px;
   border: 0;
-  border-bottom: 1px solid transparent;
+  border-bottom: 2px solid transparent;
   background: transparent;
   color: var(--black);
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 400;
   white-space: nowrap;
   cursor: pointer;
@@ -178,19 +200,20 @@
 }
 
 .search {
+  position: relative;
   display: flex;
   align-items: center;
-  gap: 10px;
   justify-self: end;
+  width: 100%;
 }
 
 .searchInput {
-  width: 260px;
-  height: 40px;
+  width: 100%;
+  height: 36px;
   border: 1px solid var(--line);
   background: var(--white);
-  padding: 0 14px;
-  font-size: 14px;
+  padding: 0 42px 0 14px;
+  font-size: 13px;
   outline: none;
   transition: border-color var(--transition-fast);
 }
@@ -204,46 +227,315 @@
 }
 
 .searchBtn {
-  height: 40px;
-  border: 1px solid var(--black);
-  background: var(--black);
-  color: var(--white);
-  padding: 0 16px;
+  position: absolute;
+  right: 1px;
+  top: 1px;
+  height: 36px;
+  width: 38px;
+  border: 0;
+  background: transparent;
+  color: var(--black);
+  padding: 0;
   cursor: pointer;
-  font-size: 12px;
-  font-weight: 500;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  transition: opacity var(--transition-fast);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition:
+    background var(--transition-fast),
+    opacity var(--transition-fast);
 }
 
 .searchBtn:hover {
+  background: var(--soft);
+}
+
+.mobilePanel {
+  position: fixed;
+  inset: 0;
+  z-index: 600;
+  display: flex;
+  flex-direction: column;
+  background: var(--white);
+  color: var(--content-primary);
+}
+
+.mobilePanelHead {
+  min-height: 64px;
+  padding: 0 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.mobilePanelLogo {
+  display: inline-flex;
+  align-items: center;
+}
+
+.mobileClose {
+  position: relative;
+  width: 38px;
+  height: 38px;
+  border: 0;
+  background: transparent;
+  color: var(--black);
+  cursor: pointer;
+}
+
+.mobileClose span {
+  position: absolute;
+  left: 9px;
+  right: 9px;
+  top: 18px;
+  height: 1px;
+  background: currentColor;
+}
+
+.mobileClose span:first-child {
+  transform: rotate(45deg);
+}
+
+.mobileClose span:last-child {
+  transform: rotate(-45deg);
+}
+
+.mobileAudience {
+  display: flex;
+  gap: 0;
+  overflow-x: auto;
+  padding: 14px 0 10px;
+  scrollbar-width: none;
+}
+
+.mobileAudience::-webkit-scrollbar {
+  display: none;
+}
+
+.mobileAudienceBtn {
+  flex: 1 0 auto;
+  min-width: 96px;
+  height: 44px;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: var(--white);
+  color: var(--muted);
+  font-size: var(--font-md);
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition:
+    background var(--transition-fast),
+    border-color var(--transition-fast),
+    color var(--transition-fast);
+}
+
+.mobileAudienceBtn:hover {
+  background: var(--surface-hover);
+  color: var(--content-primary-hover-label);
+}
+
+.mobileAudienceBtnActive {
+  color: var(--black);
+  border-bottom-color: var(--gold);
+}
+
+.mobileCategories {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 0 0 18px;
+}
+
+.mobileCategory {
+  width: 100%;
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border: 0;
+  background: transparent;
+  color: var(--content-primary);
+  padding: 0 20px;
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.2;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    background var(--transition-fast),
+    color var(--transition-fast);
+}
+
+.mobileCategory span:last-child {
+  color: var(--muted);
+  font-size: 20px;
+  line-height: 1;
+  font-weight: 300;
+}
+
+.mobileCategory:hover {
+  background: var(--surface-hover);
+  color: var(--content-primary-hover-label);
+}
+
+.mobileCategory:hover span:last-child {
+  color: var(--content-primary-hover-icon);
+}
+
+.mobileCategoryActive {
+  font-weight: 500;
+  background: var(--surface-hover);
+}
+
+.mobileAccount {
+  padding: 10px 0 calc(29px + env(safe-area-inset-bottom));
+  background: var(--white);
+}
+
+.mobileAccountTitle {
+  color: var(--content-primary);
+  font-size: 22px;
+  font-weight: 400;
+  margin-bottom: 12px;
+  padding: 0 18px;
+}
+
+.mobileAuthActions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 0 15px;
+}
+
+.mobileProfileLink {
+  width: 100%;
+  min-height: 48px;
+  padding: 0 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  color: var(--content-primary);
+  font-size: 14px;
+  text-decoration: none;
+  transition:
+    background var(--transition-fast),
+    color var(--transition-fast);
+}
+
+.mobileProfileLink:hover {
+  background: var(--surface-hover);
+  color: var(--content-primary-hover-label);
+}
+
+.mobileProfileLink > span:last-child {
+  color: var(--muted);
+  font-size: 20px;
+  line-height: 1;
+  font-weight: 300;
+}
+
+.mobileProfileLink:hover > span:last-child {
+  color: var(--content-primary-hover-icon);
+}
+
+.mobileProfileMain {
+  min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.mobileProfileMain img {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+
+.mobileProfileMain span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mobilePrimary,
+.mobileSecondary {
+  width: 100%;
+  min-width: 0;
+  height: 48px;
+  padding: 0 18px;
+  font: inherit;
+  font-size: var(--font-sm);
+  font-weight: 500;
+  letter-spacing: 0;
+  text-transform: none;
+  cursor: pointer;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition:
+    background var(--transition-fast),
+    opacity var(--transition-fast);
+}
+
+.mobilePrimary {
+  border: 1px solid var(--black);
+  background: var(--black);
+  color: var(--white);
+}
+
+.mobileSecondary {
+  border: 1px solid var(--line);
+  background: var(--white);
+  color: var(--black);
+}
+
+.mobilePrimary:hover {
   opacity: 0.86;
+}
+
+.mobileSecondary:hover {
+  background: var(--surface-hover);
 }
 
 @media (max-width: 1100px) {
   .top .inner {
-    grid-template-columns: 1fr;
-    justify-items: center;
-    padding: 16px 0;
-    gap: 14px;
+    min-height: auto;
+    grid-template-areas:
+      "logo actions"
+      "audience audience";
+    grid-template-columns: 1fr auto;
+    padding: 16px 0 12px;
+    gap: 14px 18px;
+  }
+
+  .logo {
+    justify-self: start;
   }
 
   .audience {
-    justify-self: center;
+    justify-self: start;
     flex-wrap: wrap;
-    justify-content: center;
+    justify-content: flex-start;
     gap: 16px;
   }
 
+  .audienceBtnActive::after {
+    bottom: -8px;
+  }
+
   .actions {
-    justify-self: center;
+    justify-self: end;
   }
 
   .bottom .inner {
-    grid-template-columns: 1fr;
-    padding: 14px 0;
-    gap: 14px;
+    grid-template-columns: minmax(0, 1fr) 260px;
+    gap: 18px;
   }
 
   .search {
@@ -260,24 +552,59 @@
     width: min(100%, calc(100% - 24px));
   }
 
+  .top .inner {
+    min-height: 58px;
+    grid-template-areas: "menu logo actions";
+    grid-template-columns: 38px 1fr auto;
+    padding: 0;
+    gap: 12px;
+  }
+
+  .menuBtn {
+    grid-area: menu;
+    width: 38px;
+    height: 38px;
+    display: inline-flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 6px;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: var(--black);
+    cursor: pointer;
+  }
+
+  .menuBtn span {
+    width: 20px;
+    height: 1px;
+    background: currentColor;
+  }
+
   .logo {
+    justify-self: center;
     font-size: 20px;
     letter-spacing: 0.2em;
   }
 
-  .actions {
-    gap: 14px;
+  .logoImg {
+    height: 30px;
   }
 
-  .audience {
-    gap: 14px;
+  .actions {
+    gap: 8px;
+  }
+
+  .audience,
+  .bottom {
+    display: none;
+  }
+
+  .top {
+    border-bottom: 0;
   }
 
   .search {
     display: none;
-  }
-
-  .searchBtn {
-    padding: 0 14px;
   }
 }

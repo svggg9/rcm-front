@@ -1019,10 +1019,7 @@ function CheckoutPageContent() {
   if (loading) {
     return (
       <div className="pageContainer">
-        <Loader
-          fullPage
-          label="Загружаем оформление"
-        />
+        <Loader fullPage />
       </div>
     );
   }

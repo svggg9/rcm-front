@@ -1,13 +1,25 @@
 .page {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 0;
+}
+
+.page > * {
+  margin-bottom: 28px;
+}
+
+.page > *:first-child {
+  margin-top: 28px;
+}
+
+.page > *:last-child {
+  margin-bottom: 0;
 }
 
 .header {
-  padding: 20px;
-  border: 1px solid var(--line);
-  background: var(--white);
+  padding: 0;
+  border: 0;
+  background: transparent;
 }
 
 .kicker {
@@ -55,19 +67,25 @@
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 0;
+}
+
+.main > * {
+  margin-bottom: 28px;
+}
+
+.main > *:last-child {
+  margin-bottom: 0;
 }
 
 .card {
-  padding: 20px;
-  border: 1px solid var(--line);
-  background: var(--white);
+  padding: 0;
+  border: 0;
+  background: transparent;
 }
 
 .cardHeader {
   margin-bottom: 16px;
-  padding-bottom: 16px;
-  border-bottom: 1px solid var(--line);
 }
 
 .cardHeader h2 {
@@ -148,9 +166,9 @@
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
-  padding: 20px;
-  border: 1px solid var(--line);
-  background: var(--white);
+  padding: 0;
+  border: 0;
+  background: transparent;
 }
 
 .actionsBar > * {
@@ -183,7 +201,6 @@
 
 .skeletonHeader,
 .skeletonCard {
-  border: 1px solid var(--line);
   background: var(--white);
   overflow: hidden;
   position: relative;

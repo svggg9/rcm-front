@@ -1,13 +1,25 @@
 .page {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 0;
+}
+
+.page > * {
+  margin-bottom: 28px;
+}
+
+.page > *:first-child {
+  margin-top: 28px;
+}
+
+.page > *:last-child {
+  margin-bottom: 0;
 }
 
 .header {
-  padding: 20px;
-  border: 1px solid var(--line);
-  background: var(--white);
+  padding: 0;
+  border: 0;
+  background: transparent;
 }
 
 .kicker {
@@ -38,13 +50,21 @@
 .form {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 0;
+}
+
+.form > * {
+  margin-bottom: 28px;
+}
+
+.form > *:last-child {
+  margin-bottom: 0;
 }
 
 .card {
-  padding: 20px;
-  border: 1px solid var(--line);
-  background: var(--white);
+  padding: 0;
+  border: 0;
+  background: transparent;
 }
 
 .cardHeader {
@@ -256,11 +276,30 @@
   min-height: 44px;
 }
 
+.successModal {
+  max-width: 460px;
+}
+
+.modalKicker {
+  margin-bottom: 8px;
+  color: var(--gold);
+  font-size: var(--font-xs);
+  font-weight: 500;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.modalText {
+  margin: 0;
+  color: var(--muted);
+  font-size: var(--font-md);
+  line-height: 1.55;
+}
+
 .skeletonHeader,
 .skeletonCard {
   position: relative;
   overflow: hidden;
-  border: 1px solid var(--line);
   background: var(--white);
 }
 

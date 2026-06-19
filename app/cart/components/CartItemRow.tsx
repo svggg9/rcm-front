@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import { Price } from "../../components/ui/Price";
 import { CartItem } from "../lib/types";
 import styles from "../Cart.module.css";
 
@@ -34,7 +35,7 @@ export function CartItemRow({ item, onChangeQty, onRemove }: Props) {
 
       <div className={styles.side}>
         <div className={styles.price}>
-          {item.price.toLocaleString()} ₽
+          <Price amount={item.price} />
         </div>
 
         <div className={styles.controls}>

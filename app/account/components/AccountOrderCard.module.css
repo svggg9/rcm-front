@@ -1,10 +1,9 @@
 .orderRow {
   display: grid;
-  grid-template-columns: 74px minmax(0, 1.2fr) minmax(150px, 0.75fr) 110px 140px;
+  grid-template-columns: 120px minmax(0, 1fr) auto;
   gap: 18px;
-  align-items: center;
-  padding: 16px 14px;
-  border-bottom: 1px solid var(--line);
+  align-items: start;
+  padding: 0 14px 0 0;
   background: var(--white);
   cursor: pointer;
   transition: background 0.15s ease;
@@ -19,22 +18,18 @@
   outline-offset: -1px;
 }
 
-.orderRow:last-child {
-  border-bottom: 0;
-}
-
 .orderPreview {
   position: relative;
-  width: 58px;
-  height: 64px;
+  width: 120px;
+  height: 150px;
+  overflow: hidden;
 }
 
 .orderImage,
 .orderImagePlaceholder {
-  width: 48px;
-  height: 64px;
+  width: 100%;
+  height: 100%;
   object-fit: cover;
-  border: 1px solid var(--line);
   background: var(--soft);
 }
 
@@ -55,81 +50,76 @@
   font-weight: 500;
 }
 
-.orderMain,
-.orderProducts {
+.orderMain {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 0;
+}
+
+.orderInfo {
   min-width: 0;
 }
 
-.orderTitle {
+.orderNumber {
   color: var(--black);
-  font-size: var(--font-sm);
+  font-size: 17px;
   font-weight: 500;
 }
 
-.orderMeta {
-  display: flex;
-  gap: 7px;
-  flex-wrap: wrap;
-  margin-top: 8px;
+.orderDate {
+  margin-top: 5px;
   color: var(--muted);
   font-size: var(--font-xs);
-}
-
-.orderProducts {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.orderProductLine {
-  color: var(--muted);
-  font-size: var(--font-sm);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.orderItemsCount {
-  color: var(--muted);
-  font-size: var(--font-xs);
-}
-
-.orderAmount {
-  justify-self: end;
-  color: var(--black);
-  font-size: var(--font-sm);
-  font-weight: 500;
-  white-space: nowrap;
 }
 
 .orderStatus {
+  min-width: 96px;
+  margin-top: 10px;
+}
+
+.orderStatus :global(.badge) {
+  min-height: 20px;
+  padding: 0 6px;
+  font-size: 10px;
+  line-height: 20px;
+}
+
+.orderArrow {
+  align-self: center;
   justify-self: end;
-  min-width: 0;
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
+  color: var(--muted);
+  font-size: 18px;
+  line-height: 1;
 }
 
 @media (max-width: 900px) {
   .orderRow {
-    grid-template-columns: 1fr;
+    grid-template-columns: 120px minmax(0, 1fr) auto;
     gap: 12px;
+  }
+}
+
+@media (max-width: 520px) {
+  .orderRow {
+    grid-template-columns: 102px minmax(0, 1fr) auto;
+    gap: 10px;
+    padding: 0 12px 0 0;
   }
 
   .orderPreview {
-    width: 100%;
-    height: auto;
-    display: flex;
-    align-items: flex-end;
+    width: 102px;
+    height: 130px;
+  }
+
+  .orderMain {
     gap: 8px;
+    padding: 0;
   }
 
-  .extraItems {
-    position: static;
-  }
-
-  .orderAmount,
   .orderStatus {
-    justify-self: start;
+    min-width: 0;
   }
 }

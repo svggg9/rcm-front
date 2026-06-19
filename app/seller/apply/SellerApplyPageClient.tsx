@@ -53,6 +53,7 @@ export function SellerApplyPageClient() {
   const [loadingApplication, setLoadingApplication] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
+  const [successOpen, setSuccessOpen] = useState(false);
 
   const isSeller = user?.role === "SELLER";
   const isAdmin = user?.role === "ADMIN";
@@ -196,6 +197,7 @@ export function SellerApplyPageClient() {
 
     setApplication(created);
     setForm(INITIAL_FORM);
+    setSuccessOpen(true);
   } catch (error) {
     setFormError(
       error instanceof Error ? error.message : "Не удалось отправить заявку"
@@ -289,7 +291,7 @@ export function SellerApplyPageClient() {
             </div>
 
             {userLoading || loadingApplication ? (
-              <div className={styles.stateText}>Загрузка…</div>
+              null
             ) : isSeller ? (
               <StatusBlock
                 title="Вы уже продавец"
@@ -456,6 +458,50 @@ export function SellerApplyPageClient() {
           </section>
         </section>
       </div>
+
+      {successOpen ? (
+        <div className="modalOverlay" role="presentation">
+          <div
+            className={`modal ${styles.successModal}`}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="seller-apply-success-title"
+          >
+            <div className="modalHeader">
+              <div>
+                <div className={styles.modalKicker}>Заявка отправлена</div>
+                <h2 className="modalTitle" id="seller-apply-success-title">
+                  Спасибо, мы все получили
+                </h2>
+              </div>
+              <button
+                type="button"
+                className="modalClose"
+                onClick={() => setSuccessOpen(false)}
+                aria-label="Закрыть"
+              >
+                ×
+              </button>
+            </div>
+
+            <div className="modalBody">
+              <p className={styles.modalText}>
+                Проверим данные производителя и оповестим после модерации.
+              </p>
+            </div>
+
+            <div className="modalFooter">
+              <button
+                type="button"
+                className="buttonPrimary"
+                onClick={() => setSuccessOpen(false)}
+              >
+                Понятно
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </main>
   );
 }

@@ -176,7 +176,7 @@ export default function CartPage() {
     if (loading) {
       return (
         <div className="pageContainer">
-          <Loader fullPage label="Загружаем корзину" />
+          <Loader fullPage />
         </div>
       );
     }
