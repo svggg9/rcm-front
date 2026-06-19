@@ -630,7 +630,7 @@ function LegalTextField({
 
           event.preventDefault();
           input.value = nextValue;
-          onChange?.(event);
+          input.dispatchEvent(new Event("input", { bubbles: true }));
         }}
         onChange={(event) => {
           if (numeric) {
