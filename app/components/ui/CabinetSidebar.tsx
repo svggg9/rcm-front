@@ -44,11 +44,11 @@ export function CabinetSidebar({
     >
       {title || subtitle ? (
         <div className={styles.head}>
-          {subtitle ? <div className={styles.subtitle}>{subtitle}</div> : null}
+          {subtitle ? <div className={`${styles.subtitle} textMicro`}>{subtitle}</div> : null}
           {titleLoading ? (
             <div className={styles.titleSkeleton} aria-hidden="true" />
           ) : title ? (
-            <strong className={styles.title}>{title}</strong>
+            <strong className={`${styles.title} textSectionTitle`}>{title}</strong>
           ) : null}
         </div>
       ) : null}
@@ -64,7 +64,7 @@ export function CabinetSidebar({
             <Link
               key={itemKey}
               href={item.href}
-              className={`${styles.item} ${isActive ? styles.itemActive : ""}`}
+              className={`${styles.item} textSmall ${isActive ? styles.itemActive : ""}`}
               aria-current={isActive ? "page" : undefined}
               prefetch={false}
               onClick={() => setPendingActiveKey(itemKey)}
@@ -77,14 +77,14 @@ export function CabinetSidebar({
               </span>
 
               {typeof item.count === "number" && item.count > 0 ? (
-                <span className={styles.count}>{item.count}</span>
+                <span className={`${styles.count} textMicro`}>{item.count}</span>
               ) : null}
             </Link>
           ) : (
             <button
               key={itemKey}
               type="button"
-              className={`${styles.item} ${isActive ? styles.itemActive : ""}`}
+              className={`${styles.item} textSmall ${isActive ? styles.itemActive : ""}`}
               onClick={() => {
                 item.onClick?.();
               }}

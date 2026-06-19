@@ -31,3 +31,22 @@ export async function updateSellerBrandProfile(
 
   return response.json();
 }
+export async function uploadSellerBrandLogo(
+  brandId: number,
+  file: File
+): Promise<SellerBrand> {
+  const formData = new FormData();
+  formData.append("file", file);
+
+  const response = await apiFetch(`${API_URL}/api/seller/brands/${brandId}/logo`, {
+    method: "POST",
+    body: formData,
+  });
+
+  if (!response.ok) {
+    const text = await response.text().catch(() => "");
+    throw new Error(text || "Не удалось загрузить логотип производителя");
+  }
+
+  return response.json();
+}

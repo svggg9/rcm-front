@@ -27,6 +27,40 @@ import styles from "./SellerLegalTab.module.css";
 
 type FormErrors = Partial<Record<keyof SellerLegalInfoForm, string>>;
 
+function onlyDigits(value: string, maxLength?: number) {
+  const digits = value.replace(/\D/g, "");
+  return typeof maxLength === "number" ? digits.slice(0, maxLength) : digits;
+}
+
+function isValidInn(value: string, sellerType: SellerType) {
+  const inn = onlyDigits(value);
+  return sellerType === "OOO" ? inn.length === 10 : inn.length === 12;
+}
+
+function isValidOgrn(value: string) {
+  return onlyDigits(value).length === 13;
+}
+
+function isValidOgrnip(value: string) {
+  return onlyDigits(value).length === 15;
+}
+
+function isValidBik(value: string) {
+  return onlyDigits(value).length === 9;
+}
+
+function isValidBankAccount(value: string, bik: string) {
+  const account = onlyDigits(value);
+  const cleanBik = onlyDigits(bik);
+  return account.length === 20 && cleanBik.length === 9;
+}
+
+function isValidCorrespondentAccount(value: string, bik: string) {
+  const account = onlyDigits(value);
+  const cleanBik = onlyDigits(bik);
+  return account.length === 20 && cleanBik.length === 9;
+}
+
 const INITIAL_FORM: SellerLegalInfoForm = {
   sellerType: "IP",
   inn: "",
@@ -126,70 +160,99 @@ export function SellerLegalTab() {
     key: K,
     value: SellerLegalInfoForm[K]
   ) {
-    setForm((current) => ({
-      ...current,
+    const nextForm = {
+      ...form,
       [key]: value,
-    }));
+    };
 
-    setErrors((current) => ({
-      ...current,
-      [key]: undefined,
-    }));
+    setForm(nextForm);
+    setErrors((currentErrors) => {
+      const nextErrors = { ...currentErrors };
+
+      delete nextErrors[key];
+
+      if (key === "sellerType") {
+        delete nextErrors.inn;
+        delete nextErrors.ogrn;
+        delete nextErrors.ogrnip;
+        delete nextErrors.companyName;
+        delete nextErrors.legalName;
+      }
+
+      if (key === "bik") {
+        delete nextErrors.checkingAccount;
+        delete nextErrors.correspondentAccount;
+      }
+
+      return nextErrors;
+    });
 
     setSavedMessage(null);
   }
 
   const formChanged = JSON.stringify(form) !== JSON.stringify(savedForm);
+  const hasValidationErrors = Object.keys(errors).length > 0;
 
-  function validate(): FormErrors {
-    const nextErrors: FormErrors = {};
-
-    if (!isNonEmpty(form.inn)) {
-      nextErrors.inn = "Укажите ИНН";
+  function validateForm(values: SellerLegalInfoForm): FormErrors {
+    function error(key: keyof SellerLegalInfoForm, message: string): FormErrors {
+      return { [key]: message };
     }
 
-    if (form.sellerType === "IP" && !isNonEmpty(form.ogrnip)) {
-      nextErrors.ogrnip = "Укажите ОГРНИП";
+    if (!isValidInn(values.inn, values.sellerType)) {
+      return error("inn", "Укажите ИНН");
     }
 
-    if (form.sellerType === "OOO") {
-      if (!isNonEmpty(form.companyName)) {
-        nextErrors.companyName = "Укажите название компании";
+    if (values.sellerType === "IP" && !isValidOgrnip(values.ogrnip)) {
+      return error("ogrnip", "Укажите ОГРНИП");
+    }
+
+    if (values.sellerType === "OOO") {
+      if (!isNonEmpty(values.companyName)) {
+        return error("companyName", "Укажите название компании");
       }
 
-      if (!isNonEmpty(form.ogrn)) {
-        nextErrors.ogrn = "Укажите ОГРН";
+      if (!isValidOgrn(values.ogrn)) {
+        return error("ogrn", "Укажите ОГРН");
       }
     }
 
-    if (!isNonEmpty(form.legalName)) {
-      nextErrors.legalName =
-        form.sellerType === "OOO" ? "Укажите юр. название" : "Укажите ФИО";
+    if (!isNonEmpty(values.legalName)) {
+      return error(
+        "legalName",
+        values.sellerType === "OOO" ? "Укажите юр. название" : "Укажите ФИО"
+      );
     }
 
-    if (!isNonEmpty(form.bankName)) {
-      nextErrors.bankName = "Укажите банк";
+    if (!isNonEmpty(values.bankName)) {
+      return error("bankName", "Укажите банк");
     }
 
-    if (!isNonEmpty(form.bik)) {
-      nextErrors.bik = "Укажите БИК";
+    if (!isValidBik(values.bik)) {
+      return error("bik", "Укажите БИК");
     }
 
-    if (!isNonEmpty(form.checkingAccount)) {
-      nextErrors.checkingAccount = "Укажите расчетный счет";
+    if (!isValidBankAccount(values.checkingAccount, values.bik)) {
+      return error("checkingAccount", "Укажите расчетный счет");
     }
 
-    if (!form.agreementAccepted) {
-      nextErrors.agreementAccepted = "Необходимо принять оферту продавца";
+    if (
+      isNonEmpty(values.correspondentAccount) &&
+      !isValidCorrespondentAccount(values.correspondentAccount, values.bik)
+    ) {
+      return error("correspondentAccount", "Укажите корреспондентский счет");
     }
 
-    return nextErrors;
+    if (!values.agreementAccepted) {
+      return error("agreementAccepted", "Необходимо принять оферту продавца");
+    }
+
+    return {};
   }
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    const nextErrors = validate();
+    const nextErrors = validateForm(form);
 
     setErrors(nextErrors);
     setError(null);
@@ -310,7 +373,9 @@ export function SellerLegalTab() {
             <LegalTextField
               label="ИНН"
               numeric
+              numericMaxLength={form.sellerType === "OOO" ? 10 : 12}
               required
+              suppressRequiredHighlight={hasValidationErrors}
               value={form.inn}
               error={errors.inn}
               onChange={(event) => updateField("inn", event.target.value)}
@@ -320,7 +385,9 @@ export function SellerLegalTab() {
               <LegalTextField
                 label="ОГРНИП"
                 numeric
+                numericMaxLength={15}
                 required
+                suppressRequiredHighlight={hasValidationErrors}
                 value={form.ogrnip}
                 error={errors.ogrnip}
                 onChange={(event) => updateField("ogrnip", event.target.value)}
@@ -332,6 +399,7 @@ export function SellerLegalTab() {
                 <LegalTextField
                   label="Название компании"
                   required
+                  suppressRequiredHighlight={hasValidationErrors}
                   value={form.companyName}
                   error={errors.companyName}
                   onChange={(event) =>
@@ -342,7 +410,9 @@ export function SellerLegalTab() {
                 <LegalTextField
                   label="ОГРН"
                   numeric
+                  numericMaxLength={13}
                   required
+                  suppressRequiredHighlight={hasValidationErrors}
                   value={form.ogrn}
                   error={errors.ogrn}
                   onChange={(event) => updateField("ogrn", event.target.value)}
@@ -353,6 +423,7 @@ export function SellerLegalTab() {
             <LegalTextField
               label={form.sellerType === "OOO" ? "Юридическое название" : "ФИО"}
               required
+              suppressRequiredHighlight={hasValidationErrors}
               value={form.legalName}
               error={errors.legalName}
               onChange={(event) => updateField("legalName", event.target.value)}
@@ -378,6 +449,7 @@ export function SellerLegalTab() {
             <LegalTextField
               label="Банк"
               required
+              suppressRequiredHighlight={hasValidationErrors}
               value={form.bankName}
               error={errors.bankName}
               onChange={(event) => updateField("bankName", event.target.value)}
@@ -386,7 +458,9 @@ export function SellerLegalTab() {
             <LegalTextField
               label="БИК"
               numeric
+              numericMaxLength={9}
               required
+              suppressRequiredHighlight={hasValidationErrors}
               value={form.bik}
               error={errors.bik}
               onChange={(event) => updateField("bik", event.target.value)}
@@ -395,7 +469,9 @@ export function SellerLegalTab() {
             <LegalTextField
               label="Расчетный счет"
               numeric
+              numericMaxLength={20}
               required
+              suppressRequiredHighlight={hasValidationErrors}
               value={form.checkingAccount}
               error={errors.checkingAccount}
               onChange={(event) =>
@@ -406,7 +482,9 @@ export function SellerLegalTab() {
             <LegalTextField
               label="Корреспондентский счет"
               numeric
+              numericMaxLength={20}
               value={form.correspondentAccount}
+              error={errors.correspondentAccount}
               onChange={(event) =>
                 updateField("correspondentAccount", event.target.value)
               }
@@ -416,7 +494,11 @@ export function SellerLegalTab() {
 
         <section className={styles.plainSection}>
           <div className={styles.agreementRow}>
-            <label className={styles.checkbox}>
+            <label
+              className={`${styles.checkbox} ${
+                errors.agreementAccepted ? styles.checkboxError : ""
+              }`}
+            >
               <input
                 type="checkbox"
                 checked={form.agreementAccepted}
@@ -432,10 +514,6 @@ export function SellerLegalTab() {
                 </Link>
               </span>
             </label>
-
-            {errors.agreementAccepted ? (
-              <div className={styles.fieldError}>{errors.agreementAccepted}</div>
-            ) : null}
           </div>
         </section>
 
@@ -504,21 +582,25 @@ export function SellerLegalTab() {
 type LegalFieldProps = {
   label: string;
   required?: boolean;
+  suppressRequiredHighlight?: boolean;
   error?: string;
   numeric?: boolean;
+  numericMaxLength?: number;
 };
 
 function LegalTextField({
   label,
   required,
+  suppressRequiredHighlight,
   error,
   numeric,
+  numericMaxLength,
   className = "",
   onChange,
   ...props
 }: LegalFieldProps & InputHTMLAttributes<HTMLInputElement>) {
   const requiredEmpty =
-    required && !String(props.value ?? "").trim();
+    required && !suppressRequiredHighlight && !String(props.value ?? "").trim();
 
   return (
     <label className={styles.fieldWrap}>
@@ -534,9 +616,25 @@ function LegalTextField({
         inputMode={numeric ? "numeric" : props.inputMode}
         pattern={numeric ? "[0-9]*" : props.pattern}
         aria-invalid={error ? "true" : undefined}
+        onPaste={(event) => {
+          if (numeric) return;
+
+          const pastedText = event.clipboardData.getData("text").trim();
+          const input = event.currentTarget;
+          const selectionStart = input.selectionStart ?? input.value.length;
+          const selectionEnd = input.selectionEnd ?? input.value.length;
+          const nextValue =
+            input.value.slice(0, selectionStart) +
+            pastedText +
+            input.value.slice(selectionEnd);
+
+          event.preventDefault();
+          input.value = nextValue;
+          onChange?.(event);
+        }}
         onChange={(event) => {
           if (numeric) {
-            event.target.value = event.target.value.replace(/\D/g, "");
+            event.target.value = onlyDigits(event.target.value, numericMaxLength);
           }
 
           onChange?.(event);

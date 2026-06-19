@@ -112,9 +112,10 @@
 
 .price,
 .soldOut {
-  margin-top: 8px;
+  margin-top: 5px;
   color: var(--black);
-  font-size: var(--font-md);
+  font-size: 14px;
+  font-weight: 300;
 }
 
 .soldOut {

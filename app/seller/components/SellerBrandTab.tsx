@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import Image from "next/image";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { Button } from "../../components/ui/Button";
 
@@ -9,11 +10,13 @@ import { emitSellerOnboardingChanged } from "../lib/sellerOnboardingEvents";
 import {
   getSellerBrands,
   updateSellerBrandProfile,
+  uploadSellerBrandLogo,
 } from "../lib/sellerBrandApi";
 
 import styles from "./SellerBrandTab.module.css";
 
 type FormState = {
+  name: string;
   description: string;
   logoUrl: string;
   website: string;
@@ -25,6 +28,7 @@ type FormState = {
 
 function toFormState(brand: SellerBrand): FormState {
   return {
+    name: brand.name ?? "",
     description: brand.description ?? "",
     logoUrl: brand.logoUrl ?? "",
     website: brand.website ?? "",
@@ -35,10 +39,14 @@ function toFormState(brand: SellerBrand): FormState {
   };
 }
 
-function toPayload(form: FormState): SellerBrandProfileRequest {
+function toPayload(
+  form: FormState,
+  selectedBrand: SellerBrand
+): SellerBrandProfileRequest {
   const year = Number(form.foundationYear);
 
   return {
+    name: selectedBrand.name,
     description: form.description,
     logoUrl: form.logoUrl,
     website: form.website,
@@ -57,6 +65,8 @@ export function SellerBrandTab() {
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [uploadingLogo, setUploadingLogo] = useState(false);
+  const logoInputRef = useRef<HTMLInputElement | null>(null);
 
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
@@ -96,18 +106,34 @@ export function SellerBrandTab() {
     };
   }, []);
 
-  function selectBrand(brandId: number) {
-    const brand = brands.find((item) => item.id === brandId) ?? null;
-
-    setSelectedBrandId(brand?.id ?? null);
-    setForm(brand ? toFormState(brand) : null);
-    setSaved(false);
-    setError(null);
-  }
-
   function updateField<K extends keyof FormState>(key: K, value: FormState[K]) {
     setForm((prev) => (prev ? { ...prev, [key]: value } : prev));
     setSaved(false);
+  }
+
+  async function uploadLogo(file: File | null) {
+    if (!selectedBrand || !form || !file) return;
+
+    setUploadingLogo(true);
+    setError(null);
+    setSaved(false);
+
+    try {
+      const updated = await uploadSellerBrandLogo(selectedBrand.id, file);
+
+      setBrands((prev) =>
+        prev.map((brand) => (brand.id === updated.id ? updated : brand))
+      );
+      setForm(toFormState(updated));
+      emitSellerOnboardingChanged();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Не удалось загрузить логотип");
+    } finally {
+      setUploadingLogo(false);
+      if (logoInputRef.current) {
+        logoInputRef.current.value = "";
+      }
+    }
   }
 
   async function save() {
@@ -120,7 +146,7 @@ export function SellerBrandTab() {
     try {
       const updated = await updateSellerBrandProfile(
         selectedBrand.id,
-        toPayload(form)
+        toPayload(form, selectedBrand)
       );
 
       setBrands((prev) =>
@@ -187,57 +213,60 @@ export function SellerBrandTab() {
       </div>
 
       {error ? <div className={styles.error}>{error}</div> : null}
-      {saved ? <div className={styles.success}>Профиль сохранён</div> : null}
 
       <div className={styles.main}>
+        <div className={styles.brandProfileCard}>
+          <button
+            type="button"
+            className={styles.logoButton}
+            onClick={() => logoInputRef.current?.click()}
+            disabled={uploadingLogo}
+            aria-label="Загрузить логотип"
+          >
+            {form.logoUrl ? (
+              <Image
+                src={form.logoUrl}
+                alt=""
+                fill
+                sizes="84px"
+                className={styles.logoImage}
+              />
+            ) : (
+              <span className={styles.logoPlaceholder}>
+                {form.name.trim().slice(0, 1) || "R"}
+              </span>
+            )}
+          </button>
+
+          <input
+            ref={logoInputRef}
+            type="file"
+            accept="image/png,image/jpeg,image/webp"
+            className={styles.logoInput}
+            onChange={(event) =>
+              void uploadLogo(event.target.files?.[0] ?? null)
+            }
+          />
+
+          <div className={styles.brandProfileInfo}>
+            <div className={styles.brandProfileTitle}>
+              {form.name.trim() || "Название бренда"}
+            </div>
+          </div>
+        </div>
         <div className={styles.card}>
           <div className={styles.cardHeader}>
             <h2>Основная информация</h2>
             <p>Кратко расскажите о производителе и его происхождении.</p>
           </div>
 
-          <div className={styles.formGrid}>
-            <BrandField label="Бренд">
-              <select
-                className={styles.selectField}
-                value={selectedBrand.id}
-                onChange={(event) => selectBrand(Number(event.target.value))}
-              >
-                {brands.map((brand) => (
-                  <option key={brand.id} value={brand.id}>
-                    {brand.name}
-                  </option>
-                ))}
-              </select>
-            </BrandField>
-
-            <BrandField label="Страна">
+          <div className={styles.verticalForm}>
+            <BrandField label="Название">
               <input
-                className={styles.input}
-                value={form.country}
-                onChange={(event) => updateField("country", event.target.value)}
-                placeholder="Россия"
-              />
-            </BrandField>
-
-            <BrandField label="Год основания">
-              <input
-                className={styles.input}
-                value={form.foundationYear}
-                onChange={(event) =>
-                  updateField("foundationYear", event.target.value)
-                }
-                inputMode="numeric"
-                placeholder="2024"
-              />
-            </BrandField>
-
-            <BrandField label="Логотип">
-              <input
-                className={styles.input}
-                value={form.logoUrl}
-                onChange={(event) => updateField("logoUrl", event.target.value)}
-                placeholder="https://..."
+                className={`${styles.input} ${styles.inputReadonly}`}
+                value={form.name}
+                disabled
+                placeholder="Название"
               />
             </BrandField>
 
@@ -248,7 +277,8 @@ export function SellerBrandTab() {
                 onChange={(event) =>
                   updateField("description", event.target.value)
                 }
-                rows={7}
+                rows={4}
+                maxLength={1000}
                 placeholder="Расскажите о бренде, производстве, материалах и ценностях."
               />
             </BrandField>
@@ -267,7 +297,7 @@ export function SellerBrandTab() {
                 className={styles.input}
                 value={form.website}
                 onChange={(event) => updateField("website", event.target.value)}
-                placeholder="https://brand.ru"
+                placeholder="brand.ru"
               />
             </BrandField>
 
@@ -276,18 +306,10 @@ export function SellerBrandTab() {
                 className={styles.input}
                 value={form.telegram}
                 onChange={(event) => updateField("telegram", event.target.value)}
-                placeholder="https://t.me/brand"
+                placeholder="@username"
               />
             </BrandField>
 
-            <BrandField label="VK">
-              <input
-                className={styles.input}
-                value={form.vk}
-                onChange={(event) => updateField("vk", event.target.value)}
-                placeholder="https://vk.com/brand"
-              />
-            </BrandField>
           </div>
         </div>
 
@@ -302,8 +324,12 @@ export function SellerBrandTab() {
             </a>
           ) : null}
 
-          <Button variant="primary" onClick={() => void save()} disabled={saving}>
-            Сохранить
+          <Button
+            variant="primary"
+            onClick={() => void save()}
+            disabled={saving || saved}
+          >
+            {saved ? "Сохранено" : "Сохранить"}
           </Button>
         </div>
       </div>

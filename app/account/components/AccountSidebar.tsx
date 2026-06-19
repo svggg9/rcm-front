@@ -18,7 +18,7 @@ export function AccountSidebar({
     <CabinetSidebar
       ariaLabel="Меню аккаунта"
       subtitle="Аккаунт"
-      title="Профиль"
+      title="Личный кабинет"
       mobileInline
       items={[
         {

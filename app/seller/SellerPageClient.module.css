@@ -5,10 +5,10 @@
 }
 
 .layout {
-  width: min(1260px, 100%);
+  width: min(1240px, 100%);
   margin: 0 auto;
   display: grid;
-  grid-template-columns: 360px minmax(0, 860px);
+  grid-template-columns: 260px minmax(0, 900px);
   gap: 40px;
   align-items: start;
   justify-content: center;

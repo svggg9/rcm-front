@@ -31,7 +31,7 @@
 }
 
 .top {
-  border-bottom: 1px solid var(--line);
+  border-bottom: 0;
   background: var(--white);
 }
 
@@ -88,6 +88,7 @@
 }
 
 .logo {
+  position: relative;
   grid-area: logo;
   justify-self: center;
   display: flex;
@@ -107,6 +108,24 @@
   display: block;
 }
 
+.logoBeta {
+  position: absolute;
+  top: -8px;
+  right: -28px;
+  min-height: 16px;
+  padding: 0 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--gold-muted);
+  color: var(--white);
+  font-size: 10px;
+  line-height: 16px;
+  font-weight: 500;
+  letter-spacing: 0;
+  text-transform: none;
+  pointer-events: none;
+}
 .actions {
   grid-area: actions;
   display: flex;
@@ -542,7 +561,6 @@
   .audienceBtnActive::after {
     bottom: -8px;
   }
-
   .actions {
     justify-self: end;
   }
@@ -604,7 +622,6 @@
   .logoImg {
     height: 30px;
   }
-
   .actions {
     gap: 8px;
   }

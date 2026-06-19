@@ -152,11 +152,11 @@ function ProductRow({
             src={mainImage}
             alt={product.title}
             className={styles.productImage}
-            width={160}
-            height={200}
+            width={90}
+            height={112}
           />
         ) : (
-          <div className={styles.productImagePlaceholder}>
+          <div className={`${styles.productImagePlaceholder} textMicro`}>
             Изображение отсутствует
           </div>
         )}
@@ -170,9 +170,9 @@ function ProductRow({
         </div>
 
         <div className={styles.productInfo}>
-          <h2 className={styles.productTitle}>{product.title || "Без названия"}</h2>
+          <h2 className={`${styles.productTitle} textBody`}>{product.title || "Без названия"}</h2>
 
-          <div className={styles.productMeta}>
+          <div className={`${styles.productMeta} textCaption`}>
             <span>ID: {product.id}</span>
             {product.categoryName ? (
               <>
@@ -182,14 +182,14 @@ function ProductRow({
             ) : null}
           </div>
 
-          <div className={styles.productTags}>
+          <div className={`${styles.productTags} textCaption`}>
             <span>{variantsCount} вариант(ов)</span>
             <span>Остаток: {Number(totalStock).toLocaleString()}</span>
           </div>
         </div>
 
         <div className={styles.productState}>
-          <div className={styles.productPrice}>
+          <div className={`${styles.productPrice} textPrice`}>
             <Price amount={Number(minPrice)} />
           </div>
         </div>

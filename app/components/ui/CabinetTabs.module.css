@@ -36,7 +36,7 @@
   width: 100%;
   min-width: 0;
   display: flex;
-  justify-content: flex-start;
+  justify-content: center;
   gap: 4px;
 }
 
@@ -47,15 +47,14 @@
   flex: 0 0 auto;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 0 12px 0 16px;
+  justify-content: center;
+  gap: 6px;
+  padding: 0 8px;
   border: 0;
   background: var(--surface-hover);
   color: var(--content-primary);
   cursor: pointer;
-  font: inherit;
-  font-size: var(--font-sm);
+  font-family: inherit;
   text-align: left;
   transition:
     background var(--transition-fast),
@@ -70,7 +69,6 @@
 .itemActive {
   background: transparent;
   color: var(--content-primary-hover-label);
-  font-weight: 500;
 }
 
 .itemActive:hover {
@@ -95,9 +93,6 @@
   border-radius: 0;
   background: var(--black);
   color: var(--white);
-  font-size: 10px;
-  font-weight: 500;
-  line-height: 16px;
 }
 
 .countGold {
@@ -167,8 +162,8 @@
   .gold .item {
     flex: 0 0 auto;
     min-width: auto;
-    padding-right: 14px;
-    padding-left: 14px;
+    padding-right: 8px;
+    padding-left: 8px;
   }
 
   .gold .pinned .item {
@@ -185,8 +180,8 @@
     min-width: 124px;
     min-height: 44px;
     justify-content: center;
-    padding: 0 14px;
-    gap: 8px;
+    padding: 0 8px;
+    gap: 6px;
   }
 
 }
@@ -194,7 +189,7 @@
 @media (max-width: 420px) {
   .item {
     min-width: 116px;
-    padding: 0 12px;
+    padding: 0 8px;
   }
 
   .pinned .item {
@@ -204,7 +199,7 @@
   .gold .item,
   .gold .pinned .item {
     min-width: auto;
-    padding-right: 12px;
-    padding-left: 12px;
+    padding-right: 8px;
+    padding-left: 8px;
   }
 }

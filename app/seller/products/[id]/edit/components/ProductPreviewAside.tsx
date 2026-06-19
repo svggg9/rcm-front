@@ -38,30 +38,32 @@ export function ProductPreviewAside({
               className={styles.previewImage}
             />
           ) : (
-            <div className={styles.previewPlaceholder}>Нет фото</div>
+            <div className={`${styles.previewPlaceholder} textCaption`}>Нет фото</div>
           )}
         </div>
 
         <div className={styles.previewTitleRow}>
-          <h2>{title || "Название товара"}</h2>
+          <h2 className="textTitle">{title || "Название товара"}</h2>
           {product ? <StatusBadge status={product.status} /> : null}
         </div>
-        <p>{brands.find((brand) => brand.id === brandId)?.name || product?.brand || "Бренд"}</p>
+        <p className="textCaption">
+          {brands.find((brand) => brand.id === brandId)?.name || product?.brand || "Бренд"}
+        </p>
 
         <a
           href={`/seller/products/${productId}/preview`}
           target="_blank"
           rel="noreferrer"
-          className={styles.previewAction}
+          className={`${styles.previewAction} textButton`}
         >
           Предпросмотр
         </a>
 
         <div className={styles.asideHints}>
-          {images.length === 0 ? <span>Добавь хотя бы одно фото</span> : null}
-          {descriptionLength < 80 ? <span>Описание лучше сделать подробнее</span> : null}
-          {!packageWeightKg ? <span>Заполни вес для доставки</span> : null}
-          {variantsCount === 0 ? <span>Добавь вариант товара</span> : null}
+          {images.length === 0 ? <span className="textSmall">Добавь хотя бы одно фото</span> : null}
+          {descriptionLength < 80 ? <span className="textSmall">Описание лучше сделать подробнее</span> : null}
+          {!packageWeightKg ? <span className="textSmall">Заполни вес для доставки</span> : null}
+          {variantsCount === 0 ? <span className="textSmall">Добавь вариант товара</span> : null}
         </div>
       </div>
     </aside>

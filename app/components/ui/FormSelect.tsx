@@ -88,7 +88,7 @@ export function FormSelect<TValue extends SelectValue>({
           aria-controls={listboxId}
           onClick={() => setOpen((current) => !current)}
         >
-          <span>{displayValue}</span>
+          <span className={hasValue ? styles.selectValue : styles.selectPlaceholderValue}>{displayValue}</span>
           <span className={styles.chevron} aria-hidden="true">
             <svg viewBox="0 0 16 16" focusable="false">
               <path d="M4 6L8 10L12 6" />
@@ -106,7 +106,7 @@ export function FormSelect<TValue extends SelectValue>({
                 aria-selected={!hasValue}
                 onClick={() => selectValue("")}
               >
-                <span className={styles.optionLabel}>{placeholder}</span>
+                <span className={`${styles.optionLabel} ${styles.optionPlaceholder}`}>{placeholder}</span>
               </button>
             ) : null}
 
@@ -120,7 +120,7 @@ export function FormSelect<TValue extends SelectValue>({
                 aria-selected={option.value === value}
                 onClick={() => selectValue(option.value as TValue)}
               >
-                <span className={styles.optionLabel}>{option.label}</span>
+                <span className={`${styles.optionLabel} ${styles.optionValue}`}>{option.label}</span>
               </button>
             ))}
           </div>

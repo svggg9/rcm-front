@@ -47,28 +47,49 @@ export function AccountOrderCard({
         )}
 
         {extraItemsCount > 0 ? (
-          <span className={styles.extraItems}>+{extraItemsCount}</span>
+          <span className={`${styles.extraItems} textMicro`}>
+            +{extraItemsCount}
+          </span>
         ) : null}
       </div>
 
       <div className={styles.orderMain}>
-        <div className={styles.orderStatus}>
-          <StatusBadge tone={getOrderTone(order)}>{statusLabel}</StatusBadge>
-        </div>
+        <div className={styles.orderContent}>
+          <div className={styles.orderDetails}>
+            <div className={styles.orderStatus}>
+              <StatusBadge tone={getOrderTone(order)}>{statusLabel}</StatusBadge>
+            </div>
 
-        <div className={styles.orderInfo}>
-          <div className={styles.orderNumber}>Заказ {order.id}</div>
-          <div className={styles.orderDate}>
-            {new Date(order.createdAt).toLocaleString("ru-RU")}
+            <div className={styles.orderInfo}>
+              <div className={styles.orderNumber}>Заказ {order.id}</div>
+              <div className={styles.orderDate}>
+                {new Date(order.createdAt).toLocaleString("ru-RU")}
+              </div>
+            </div>
+          </div>
+
+          <div className={styles.orderMeta}>
+            <div>{formatItemsCount(order.itemsCount)}</div>
+            {order.firstProductTitle ? (
+              <div className={styles.orderProduct}>{order.firstProductTitle}</div>
+            ) : null}
           </div>
         </div>
       </div>
-
-      <span className={styles.orderArrow} aria-hidden="true">
-        &gt;
-      </span>
     </article>
   );
+}
+
+function formatItemsCount(count: number) {
+  const mod10 = count % 10;
+  const mod100 = count % 100;
+
+  if (mod10 === 1 && mod100 !== 11) return `${count} товар`;
+  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) {
+    return `${count} товара`;
+  }
+
+  return `${count} товаров`;
 }
 
 function getOrderTone(order: OrderListItem) {
@@ -81,12 +102,7 @@ function getOrderTone(order: OrderListItem) {
   }
 
   if (order.paymentStatus === "PENDING") return "warning";
-  if (order.deliveryStatus === "DELIVERED") return "success";
-  if (
-    order.status === "CONFIRMED" ||
-    order.status === "COMPLETED" ||
-    order.paymentStatus === "PAID"
-  ) {
+  if (order.status === "COMPLETED" || order.deliveryStatus === "DELIVERED") {
     return "success";
   }
 

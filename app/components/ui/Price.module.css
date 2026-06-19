@@ -1,5 +1,6 @@
 .price {
   color: inherit;
+  font-weight: inherit;
   white-space: nowrap;
 }
 

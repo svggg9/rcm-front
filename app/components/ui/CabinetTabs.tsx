@@ -41,14 +41,14 @@ export function CabinetTabs<T extends string>({
         type="button"
         role="tab"
         aria-selected={active}
-        className={`${styles.item} ${active ? styles.itemActive : ""}`}
+        className={`${styles.item} textSmall ${active ? styles.itemActive : ""}`}
         onClick={() => onChange(item.value)}
       >
         <span className={styles.label}>{item.label}</span>
 
         {typeof item.count === "number" ? (
           <span
-            className={`${styles.count} ${
+            className={`${styles.count} textMicro ${
               countTone === "gold" ? styles.countGold : ""
             }`.trim()}
           >
