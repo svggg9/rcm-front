@@ -180,7 +180,7 @@ export function FormCombobox({
                 aria-selected={!hasValue}
                 onClick={selectEmpty}
               >
-                <span className={styles.optionLabel}>{emptyOptionLabel}</span>
+                <span className={`${styles.optionLabel} ${styles.optionPlaceholder}`}>{emptyOptionLabel}</span>
               </button>
             ) : null}
             {filteredOptions.map((option) => (
@@ -192,7 +192,7 @@ export function FormCombobox({
                 aria-selected={option.value === value}
                 onClick={() => selectExisting(option)}
               >
-                <span className={styles.optionLabel}>{option.label}</span>
+                <span className={`${styles.optionLabel} ${styles.optionValue}`}>{option.label}</span>
               </button>
             ))}
 
@@ -204,12 +204,12 @@ export function FormCombobox({
                 aria-selected={false}
                 onClick={selectSuggested}
               >
-                <span className={styles.optionLabel}>{query.trim()}</span>
+                <span className={`${styles.optionLabel} ${styles.optionValue}`}>{query.trim()}</span>
               </button>
             ) : null}
 
             {!filteredOptions.length && !canSuggest ? (
-              <div className={styles.empty}>Начните вводить свой вариант</div>
+              <div className={`${styles.empty} ${styles.optionPlaceholder}`}>Начните вводить свой вариант</div>
             ) : null}
           </div>
         </div>

@@ -39,8 +39,8 @@ export function SellerOrderCard({
           <Image
             src={order.firstImageUrl}
             alt=""
-            width={48}
-            height={64}
+            width={90}
+            height={112}
             className={styles.orderImage}
           />
         ) : (
@@ -48,7 +48,7 @@ export function SellerOrderCard({
         )}
 
         {extraItemsCount > 0 ? (
-          <span className={styles.extraItems}>+{extraItemsCount}</span>
+          <span className={`${styles.extraItems} textMicro`}>+{extraItemsCount}</span>
         ) : null}
       </div>
 
@@ -58,8 +58,8 @@ export function SellerOrderCard({
         </div>
 
         <div className={styles.orderInfo}>
-          <div className={styles.orderNumber}>Заказ {order.id}</div>
-          <div className={styles.orderDate}>
+          <div className={`${styles.orderNumber} textBody`}>Заказ {order.id}</div>
+          <div className={`${styles.orderDate} textCaption`}>
             {new Date(order.createdAt).toLocaleString("ru-RU")}
           </div>
         </div>
@@ -92,13 +92,7 @@ function getOrderTone(order: SellerOrderListItem) {
     return "warning";
   }
 
-  if (order.deliveryStatus === "DELIVERED") return "success";
-
-  if (
-    order.status === "CONFIRMED" ||
-    order.status === "COMPLETED" ||
-    order.paymentStatus === "PAID"
-  ) {
+  if (order.status === "COMPLETED" || order.deliveryStatus === "DELIVERED") {
     return "success";
   }
 

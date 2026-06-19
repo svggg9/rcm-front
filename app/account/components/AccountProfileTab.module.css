@@ -4,30 +4,31 @@
   gap: 0;
 }
 
-.card {
-  background: var(--white);
+.page > * {
+  margin-bottom: 24px;
+}
+
+.page > *:last-child {
+  margin-bottom: 0;
 }
 
 .card {
-  padding: 28px 0;
-}
-
-.card + .card {
-  padding-top: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
 }
 
 .cardHeader {
-  margin-bottom: 18px;
+  margin-bottom: 16px;
 }
 
 .cardHeader h2 {
   margin: 0;
-
   color: var(--black);
-
-  font-size: 16px;
-  font-weight: 500;
-  letter-spacing: 0.02em;
+  font-size: var(--font-xl);
+  line-height: 1.25;
+  font-weight: 400;
+  letter-spacing: 0;
 }
 
 .formGrid {
@@ -46,30 +47,30 @@
   left: 14px;
   top: 7px;
   z-index: 2;
-
   color: var(--muted);
-
   font-size: 10px;
   line-height: 1;
+  font-weight: 400;
+  letter-spacing: 0;
   pointer-events: none;
 }
 
 .input {
-  font: inherit;
   width: 100%;
-  height: 54px;
-
+  height: 52px;
   border: 1px solid var(--line);
   background: var(--white);
   color: var(--black);
-
-  padding: 19px 14px 7px;
-
+  font-family: inherit;
   font-size: var(--font-sm);
+  line-height: 1.4;
+  font-weight: 300;
+  letter-spacing: 0;
+  padding: 19px 14px 7px;
   outline: none;
   transition:
-    border-color var(--transition-fast),
-    background var(--transition-fast);
+    border-color 0.18s ease,
+    background 0.18s ease;
 }
 
 .input:hover,
@@ -80,11 +81,15 @@
 .input:disabled {
   color: var(--muted);
   background: var(--soft);
-  cursor: not-allowed;
+  cursor: default;
 }
 
 .input::placeholder {
   color: var(--muted);
+  font-size: var(--font-sm);
+  line-height: 1.4;
+  font-weight: 300;
+  letter-spacing: 0;
 }
 
 .actions {
@@ -95,7 +100,12 @@
 
 .actions button {
   width: 100%;
-  height: 48px;
+  height: 44px;
+  min-height: 44px;
+  font-size: var(--font-sm);
+  line-height: 1.2;
+  font-weight: 500;
+  letter-spacing: 0;
 }
 
 @media (max-width: 640px) {

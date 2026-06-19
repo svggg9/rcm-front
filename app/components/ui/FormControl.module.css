@@ -97,7 +97,9 @@
   align-items: center;
   justify-content: space-between;
   gap: 14px;
-  font-size: var(--font-sm);
+  font-size: var(--font-md);
+  line-height: 1.4;
+  font-weight: 400;
   text-align: left;
   outline: none;
   cursor: pointer;
@@ -120,6 +122,9 @@
   background: transparent;
   color: var(--black);
   font-size: var(--font-sm);
+  line-height: 1.4;
+  font-weight: 300;
+  letter-spacing: 0;
   outline: none;
 }
 
@@ -217,7 +222,9 @@
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  font-size: var(--font-sm);
+  font-size: var(--font-md);
+  line-height: 1.4;
+  font-weight: 400;
   text-align: left;
   cursor: pointer;
 }
@@ -237,11 +244,35 @@
 }
 
 .optionLabel {
-  font-weight: 400;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .empty {
   padding: 11px 14px;
   color: var(--muted);
   font-size: var(--font-sm);
+  line-height: 1.4;
+  font-weight: 300;
+}
+.selectValue,
+.optionValue {
+  color: var(--black);
+  font-size: var(--font-sm);
+  line-height: 1.4;
+  font-weight: 300;
+  letter-spacing: 0;
+}
+
+.selectPlaceholderValue,
+.optionPlaceholder,
+.comboboxInput.placeholder,
+.comboboxInput::placeholder {
+  color: var(--muted);
+  font-size: var(--font-sm);
+  line-height: 1.4;
+  font-weight: 300;
+  letter-spacing: 0;
 }

@@ -173,6 +173,7 @@ export type SellerBrand = {
 };
 
 export type SellerBrandProfileRequest = {
+  name: string;
   description: string;
   logoUrl: string;
   website: string;

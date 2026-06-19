@@ -944,7 +944,7 @@ export function ProductEditPageClient({
           ) : (
       <div className={styles.page}>
         <div className={styles.pageContent} ref={pageContentRef}>
-          <nav className={styles.breadcrumbs} aria-label="Навигация">
+          <nav className={`${styles.breadcrumbs} textCaption`} aria-label="Навигация">
             <Link href="/seller">Кабинет продавца</Link>
             <span>/</span>
             <Link href="/seller?tab=products">Товары</Link>
@@ -1070,7 +1070,7 @@ export function ProductEditPageClient({
                 type="button"
                 onClick={() => void saveProduct()}
                 disabled={saving || !dirty}
-                className={styles.primaryBtn}
+                className={`${styles.primaryBtn} textButton`}
               >
                 {!dirty && !saving ? "Сохранено" : "Сохранить"}
               </button>
@@ -1079,7 +1079,7 @@ export function ProductEditPageClient({
                 type="button"
                 onClick={() => void publishProduct()}
                 disabled={publishing || !canPublish}
-                className={styles.secondaryBtn}
+                className={`${styles.secondaryBtn} textButton`}
                 title={!canPublish ? publishBlockedReason : undefined}
               >
                 {publishing ? "Отправляем..." : "Опубликовать"}
@@ -1090,7 +1090,7 @@ export function ProductEditPageClient({
                   type="button"
                   onClick={() => void archiveProduct()}
                   disabled={archiving}
-                  className={styles.archiveBtn}
+                  className={`${styles.archiveBtn} textButton`}
                 >
                   {archiving ? "Переносим..." : "В архив"}
                 </button>
@@ -1100,7 +1100,7 @@ export function ProductEditPageClient({
                 type="button"
                 onClick={() => void deleteProduct()}
                 disabled={deleting}
-                className={styles.deleteProductBtn}
+                className={`${styles.deleteProductBtn} textButton`}
               >
                 {deleting ? "Удаляем..." : "Удалить"}
               </button>

@@ -5,11 +5,7 @@
 }
 
 .page > * {
-  margin-bottom: 28px;
-}
-
-.page > *:first-child {
-  margin-top: 28px;
+  margin-bottom: 24px;
 }
 
 .page > *:last-child {
@@ -25,8 +21,9 @@
 .kicker {
   margin-bottom: 8px;
   color: var(--gold);
-  font-size: var(--font-xs);
-  font-weight: 500;
+  font-size: 10px;
+  line-height: 1;
+  font-weight: 400;
   letter-spacing: 0;
   text-transform: uppercase;
 }
@@ -35,15 +32,19 @@
   margin: 0;
   color: var(--black);
   font-size: var(--font-2xl);
-  line-height: 1.1;
-  font-weight: 500;
+  line-height: 1.15;
+  font-weight: 400;
+  letter-spacing: 0;
 }
 
 .hint {
+  max-width: 720px;
   margin: 8px 0 0;
   color: var(--muted);
   font-size: var(--font-sm);
-  line-height: 1.5;
+  line-height: 1.4;
+  font-weight: 300;
+  letter-spacing: 0;
 }
 
 .error {
@@ -52,6 +53,8 @@
   background: rgba(155, 44, 44, 0.05);
   color: var(--danger);
   font-size: var(--font-sm);
+  line-height: 1.4;
+  font-weight: 300;
 }
 
 .success {
@@ -60,7 +63,8 @@
   background: rgba(33, 106, 67, 0.05);
   color: var(--success);
   font-size: var(--font-sm);
-  font-weight: 500;
+  line-height: 1.4;
+  font-weight: 300;
 }
 
 .main {
@@ -71,11 +75,82 @@
 }
 
 .main > * {
-  margin-bottom: 28px;
+  margin-bottom: 24px;
 }
 
 .main > *:last-child {
   margin-bottom: 0;
+}
+
+
+.brandProfileCard {
+  display: grid;
+  grid-template-columns: 84px minmax(0, 1fr);
+  align-items: center;
+  gap: 16px;
+}
+
+.logoButton {
+  position: relative;
+  width: 84px;
+  height: 84px;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  background: var(--soft);
+  color: var(--black);
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  cursor: pointer;
+  transition: opacity 0.18s ease, border-color 0.18s ease;
+}
+
+.logoButton:hover:not(:disabled) {
+  border-color: var(--black);
+}
+
+.logoButton:disabled {
+  cursor: default;
+  opacity: 0.58;
+}
+
+.logoImage {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.logoPlaceholder {
+  color: var(--black);
+  font-size: var(--font-2xl);
+  line-height: 1;
+  font-weight: 400;
+  text-transform: uppercase;
+}
+
+.logoInput {
+  display: none;
+}
+
+.brandNameField {
+  position: relative;
+  display: block;
+  min-width: 0;
+}
+
+.brandProfileInfo {
+  min-width: 0;
+}
+
+.brandProfileTitle {
+  color: var(--black);
+  font-size: var(--font-xl);
+  line-height: 1.25;
+  font-weight: 400;
+  letter-spacing: 0;
+  overflow-wrap: anywhere;
 }
 
 .card {
@@ -89,23 +164,32 @@
 }
 
 .cardHeader h2 {
-  margin: 0 0 4px;
+  margin: 0 0 5px;
   color: var(--black);
-  font-size: var(--font-lg);
-  font-weight: 500;
-  line-height: 1.2;
+  font-size: var(--font-xl);
+  line-height: 1.25;
+  font-weight: 400;
+  letter-spacing: 0;
 }
 
 .cardHeader p {
   margin: 0;
   color: var(--muted);
   font-size: var(--font-sm);
-  line-height: 1.5;
+  line-height: 1.4;
+  font-weight: 300;
+  letter-spacing: 0;
 }
 
 .formGrid {
   display: grid;
   grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.verticalForm {
+  display: grid;
+  grid-template-columns: 1fr;
   gap: 12px;
 }
 
@@ -117,20 +201,39 @@
 .input,
 .selectField,
 .textarea {
-  font: inherit;
   width: 100%;
-  border: 1px solid #d8d8d8;
+  border: 1px solid var(--line);
   background: var(--white);
   color: var(--black);
+  font-family: inherit;
   font-size: var(--font-sm);
+  line-height: 1.4;
+  font-weight: 300;
+  letter-spacing: 0;
   outline: none;
-  transition: border-color 0.15s ease, background 0.15s ease;
+  transition: border-color 0.18s ease, background 0.18s ease;
+}
+
+.input::placeholder,
+.textarea::placeholder {
+  color: var(--muted);
+  font-size: var(--font-sm);
+  line-height: 1.4;
+  font-weight: 300;
+  letter-spacing: 0;
 }
 
 .input:focus,
 .selectField:focus,
 .textarea:focus {
   border-color: var(--black);
+}
+
+.inputReadonly,
+.inputReadonly:disabled {
+  background: var(--soft);
+  color: var(--muted);
+  cursor: default;
 }
 
 .input,
@@ -152,14 +255,15 @@
   color: var(--muted);
   font-size: 10px;
   line-height: 1;
+  font-weight: 400;
+  letter-spacing: 0;
   pointer-events: none;
 }
 
 .textarea {
-  min-height: 112px;
+  min-height: 92px;
   padding: 24px 14px 13px;
   resize: vertical;
-  line-height: 1.45;
 }
 
 .actionsBar {
@@ -177,6 +281,13 @@
   min-height: 44px;
 }
 
+.actionsBar button {
+  font-size: var(--font-sm);
+  line-height: 1.2;
+  font-weight: 500;
+  letter-spacing: 0;
+}
+
 .openLink {
   height: 44px;
   min-height: 44px;
@@ -189,14 +300,18 @@
   justify-content: center;
   cursor: pointer;
   font-size: var(--font-sm);
+  line-height: 1.2;
   font-weight: 500;
+  letter-spacing: 0;
   text-decoration: none;
   white-space: nowrap;
+  transition: opacity 0.18s ease, background 0.18s ease, border-color 0.18s ease;
 }
 
 .openLink:hover {
   border-color: var(--black);
-  background: var(--soft);
+  background: var(--white);
+  opacity: 0.78;
 }
 
 .skeletonHeader,
@@ -207,11 +322,11 @@
 }
 
 .skeletonHeader {
-  height: 116px;
+  height: 88px;
 }
 
 .skeletonCard {
-  padding: 20px;
+  padding: 0;
 }
 
 .skeletonLine,
@@ -221,7 +336,7 @@
 }
 
 .skeletonLine {
-  width: 220px;
+  width: 260px;
   height: 18px;
   border: 1px solid var(--line);
   background: var(--white);

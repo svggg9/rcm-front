@@ -8,8 +8,8 @@ type Props = {
 export function SectionHeader({ title, hint }: Props) {
   return (
     <div className={styles.sectionHeader}>
-      <h2>{title}</h2>
-      <p>{hint}</p>
+      <h2 className="textTitle">{title}</h2>
+      <p className="textSmall">{hint}</p>
     </div>
   );
 }

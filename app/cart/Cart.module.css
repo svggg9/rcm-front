@@ -112,8 +112,8 @@
 
 .price {
   color: var(--black);
-  font-size: var(--font-md);
-  font-weight: 500;
+  font-size: 14px;
+  font-weight: 300;
   white-space: nowrap;
 }
 

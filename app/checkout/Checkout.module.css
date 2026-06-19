@@ -351,11 +351,16 @@
   margin-bottom: 0;
 }
 
-.summaryTotalLabel,
-.summaryTotalValue {
+.summaryTotalLabel {
   color: var(--black);
   font-size: var(--font-lg);
   font-weight: 500;
+}
+
+.summaryTotalValue {
+  color: var(--black);
+  font-size: 14px;
+  font-weight: 300;
 }
 
 .placeOrderBtn {
@@ -421,7 +426,8 @@
 
 .summaryItemPrice {
   color: var(--black);
-  font-size: var(--font-sm);
+  font-size: 14px;
+  font-weight: 300;
   white-space: nowrap;
 }
 

@@ -311,10 +311,9 @@
 
 .price {
   color: var(--black);
-
   font-size: 28px;
   line-height: 1.1;
-  font-weight: 500;
+  font-weight: 300;
 }
 
 .priceNote {
@@ -908,6 +907,7 @@
 
   .price {
     font-size: 24px;
+    font-weight: 300;
   }
 
   .actions {

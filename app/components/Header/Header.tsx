@@ -39,7 +39,6 @@ function HeaderContent() {
 
   const [categories, setCategories] = useState<Category[]>([]);
   const [loadingCategories, setLoadingCategories] = useState(true);
-  const [search, setSearch] = useState(activeSearch);
   const [menuOpen, setMenuOpen] = useState(false);
   const [menuAudience, setMenuAudience] = useState(activeAudience);
 
@@ -49,9 +48,6 @@ function HeaderContent() {
   const { count: favoritesCount } = useFavorites();
   const { openAuth } = useAuthModal();
 
-  useEffect(() => {
-    setSearch(activeSearch);
-  }, [activeSearch]);
 
   useEffect(() => {
     if (!menuOpen) {
@@ -148,11 +144,6 @@ function HeaderContent() {
     router.push(buildCatalogUrl({ audience }));
   }
 
-  function handleCategoryClick(category: string) {
-    const isSame = activeCategory === category;
-    setMenuOpen(false);
-    router.push(buildCatalogUrl({ category: isSame ? null : category }));
-  }
 
   function openMobileMenu() {
     setMenuAudience(activeAudience);
@@ -177,17 +168,6 @@ function HeaderContent() {
     audienceItems.find((item) => item.key === menuAudience) ?? audienceItems[0];
   const accountLabel = user?.username || "Профиль";
 
-  function handleSearchSubmit(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-
-    const trimmed = search.trim();
-
-    router.push(
-      buildCatalogUrl({
-        q: trimmed || null,
-      })
-    );
-  }
 
   return (
     <header className={styles.header} ref={headerRef}>
@@ -231,6 +211,7 @@ function HeaderContent() {
               className={styles.logoImg}
               priority
             />
+            <span className={styles.logoBeta}>beta</span>
           </Link>
 
           <div className={styles.actions}>
@@ -292,56 +273,6 @@ function HeaderContent() {
                 </button>
               )}
           </div>
-        </div>
-      </div>
-
-      <div className={styles.bottom}>
-        <div className={styles.inner}>
-          <nav className={styles.categories} aria-label="Категории">
-            {!loadingCategories
-              ? categories.map((category) => (
-                  <button
-                    key={category.id}
-                    type="button"
-                    className={`${styles.category} ${
-                      activeCategory === category.name
-                        ? styles.categoryActive
-                        : ""
-                    }`}
-                    onClick={() => handleCategoryClick(category.name)}
-                  >
-                    {category.name}
-                  </button>
-                ))
-              : null}
-          </nav>
-
-          <form className={styles.search} onSubmit={handleSearchSubmit}>
-            <input
-              className={styles.searchInput}
-              type="text"
-              placeholder="Что вы ищете?"
-              value={search}
-              onChange={(event) => setSearch(event.target.value)}
-            />
-            <button
-              type="submit"
-              className={styles.searchBtn}
-              aria-label="Искать"
-            >
-              <svg
-                aria-hidden="true"
-                width="17"
-                height="17"
-                viewBox="0 0 17 17"
-                fill="none"
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <circle cx="7.25" cy="7.25" r="5.25" stroke="currentColor" strokeWidth="1.4" />
-                <path d="M11.1 11.1L15 15" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
-              </svg>
-            </button>
-          </form>
         </div>
       </div>
 
