@@ -39,8 +39,8 @@
 }
 
 .item {
-  flex: 0 0 260px;
-  min-width: 260px;
+  flex: 0 0 325px;
+  min-width: 325px;
   scroll-snap-align: start;
 }
 
@@ -94,16 +94,12 @@
   }
 
   .item {
-    flex-basis: 224px;
-    min-width: 224px;
+    flex-basis: 280px;
+    min-width: 280px;
   }
 }
 
 @media (max-width: 768px) {
-  .section {
-    margin-top: 40px;
-  }
-
   .title {
     font-size: 20px;
   }
@@ -114,8 +110,8 @@
   }
 
   .item {
-    flex-basis: 176px;
-    min-width: 176px;
+    flex-basis: 220px;
+    min-width: 220px;
   }
 
   .arrow {

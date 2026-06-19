@@ -8,7 +8,7 @@ type Props = {
   currentTab: SellerTab;
   ordersCount: number;
   productsCount: number;
-  storeName: string;
+  storeName: string | null;
   creatingProduct: boolean;
   onCreateProduct: () => void;
 };
@@ -25,7 +25,8 @@ export function SellerSidebar({
     <CabinetSidebar
       ariaLabel="Меню продавца"
       subtitle="Кабинет продавца"
-      title={storeName}
+      title={storeName ?? undefined}
+      titleLoading={!storeName}
       mobileInline
       items={[
         {
@@ -43,6 +44,7 @@ export function SellerSidebar({
         {
           label: "Добавить новый товар",
           mobileLabel: "Добавить товар",
+          active: false,
           onClick: onCreateProduct,
           disabled: creatingProduct,
         },

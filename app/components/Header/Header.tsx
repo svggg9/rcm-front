@@ -191,6 +191,8 @@ function HeaderContent() {
 
   return (
     <header className={styles.header} ref={headerRef}>
+      <div className={styles.promoBar}>Подписаться на нас</div>
+
       <div className={styles.top}>
         <div className={styles.inner}>
           <button
@@ -200,6 +202,7 @@ function HeaderContent() {
             aria-expanded={menuOpen}
             onClick={openMobileMenu}
           >
+            <span />
             <span />
             <span />
           </button>

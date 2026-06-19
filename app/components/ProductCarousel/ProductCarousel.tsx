@@ -17,7 +17,7 @@ type Props = {
   products: CarouselProduct[];
 };
 
-const CARD_WIDTH = 260;
+const CARD_WIDTH = 325;
 const CARD_GAP = 18;
 const SCROLL_STEP = CARD_WIDTH * 4 + CARD_GAP * 4;
 

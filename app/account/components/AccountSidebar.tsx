@@ -23,7 +23,7 @@ export function AccountSidebar({
       items={[
         {
           href: "/account?tab=profile",
-          label: "Данные",
+          label: "Профиль",
           active: currentTab === "profile",
         },
         {

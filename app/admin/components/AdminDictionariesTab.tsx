@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState } from "react";
@@ -17,7 +16,6 @@ type Props = {
   categories: DictionaryItem[];
   brands: DictionaryItem[];
   sizes: DictionaryItem[];
-  colors: DictionaryItem[];
   actionKey: string | null;
   onCreate: (kind: DictionaryKind, item: Partial<DictionaryItem>) => void;
   onUpdate: (
@@ -32,7 +30,6 @@ export function AdminDictionariesTab({
   categories,
   brands,
   sizes,
-  colors,
   actionKey,
   onCreate,
   onUpdate,
@@ -42,7 +39,6 @@ export function AdminDictionariesTab({
     { kind: "categories", title: "Категории", items: categories },
     { kind: "brands", title: "Бренды", items: brands },
     { kind: "sizes", title: "Размеры", items: sizes },
-    { kind: "colors", title: "Цвета", items: colors },
   ];
 
   return (
@@ -51,7 +47,7 @@ export function AdminDictionariesTab({
         <div>
           <h1 className={styles.sectionTitleNoMargin}>Справочники</h1>
           <p className={styles.muted}>
-            Управление категориями, брендами, размерами и цветами.
+            Управление категориями, брендами и размерами.
           </p>
         </div>
       </div>
@@ -86,7 +82,6 @@ function DictionarySection({
   onDelete: Props["onDelete"];
 }) {
   const [name, setName] = useState("");
-  const [hex, setHex] = useState("");
   const [sortOrder, setSortOrder] = useState(0);
 
   function submit() {
@@ -96,13 +91,11 @@ function DictionarySection({
 
     onCreate(section.kind, {
       name: cleanName,
-      hex: section.kind === "colors" ? hex.trim() || null : null,
       sortOrder,
       isActive: true,
     });
 
     setName("");
-    setHex("");
     setSortOrder(0);
   }
 
@@ -120,15 +113,6 @@ function DictionarySection({
           className={styles.dictionaryInput}
           placeholder="Название"
         />
-
-        {section.kind === "colors" ? (
-          <input
-            value={hex}
-            onChange={(event) => setHex(event.target.value)}
-            className={styles.dictionaryInput}
-            placeholder="#000000"
-          />
-        ) : null}
 
         <input
           type="number"
@@ -179,7 +163,6 @@ function DictionaryRow({
 }) {
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState(item.name);
-  const [hex, setHex] = useState(item.hex ?? "");
   const [sortOrder, setSortOrder] = useState(item.sortOrder ?? 0);
   const [isActive, setIsActive] = useState(item.isActive ?? true);
 
@@ -188,7 +171,6 @@ function DictionaryRow({
   function save() {
     onUpdate(kind, item.id, {
       name: name.trim(),
-      hex: kind === "colors" ? hex.trim() || null : null,
       sortOrder,
       isActive,
     });
@@ -204,14 +186,6 @@ function DictionaryRow({
           onChange={(event) => setName(event.target.value)}
           className={styles.dictionaryInput}
         />
-
-        {kind === "colors" ? (
-          <input
-            value={hex}
-            onChange={(event) => setHex(event.target.value)}
-            className={styles.dictionaryInput}
-          />
-        ) : null}
 
         <input
           type="number"
@@ -248,11 +222,7 @@ function DictionaryRow({
     <div className={styles.dictionaryRow}>
       <div className={styles.dictionaryName}>
         <span>{item.name}</span>
-        {kind === "colors" && item.hex ? (
-          <small>{item.hex}</small>
-        ) : item.slug ? (
-          <small>{item.slug}</small>
-        ) : null}
+        {item.slug ? <small>{item.slug}</small> : null}
       </div>
 
       <div className={styles.dictionaryMeta}>

@@ -27,7 +27,11 @@
 .list {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 0;
   border: 0;
   background: var(--white);
+}
+
+.list > * {
+  margin-top: 12px;
 }

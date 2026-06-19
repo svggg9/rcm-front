@@ -9,30 +9,37 @@
   color: var(--black);
 }
 
-/* .pageContent {
-  padding-top: var(--product-sticky-header-height);
-} */
-
-/* layout */
-
-.layout {
-  width: min(1120px, 100%);
-  margin: 0 auto;
+.sellerLayout {
+  width: min(1260px, 100%);
+  margin: 24px auto 48px;
   display: grid;
-  grid-template-columns: minmax(0, 700px) minmax(300px, 340px);
+  grid-template-columns: 360px minmax(0, 860px);
   gap: 40px;
   align-items: start;
   justify-content: center;
 }
 
+.editorContent {
+  min-width: 0;
+}
+
+/* .pageContent {
+  padding-top: var(--product-sticky-header-height);
+} */
+
+
 .breadcrumbs {
-  width: min(1120px, 100%);
-  margin: 0 auto;
   display: flex;
-  align-items: center;
   gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-bottom: 24px;
   color: var(--muted);
-  font-size: var(--font-sm);
+  font-size: var(--font-xs);
+}
+
+.breadcrumbs > span:last-child {
+  color: var(--gold-muted);
 }
 
 .breadcrumbs a {
@@ -42,14 +49,18 @@
 
 .breadcrumbs a:hover {
   text-decoration: underline;
+  text-underline-offset: 3px;
 }
+/* layout */
 
-.breadcrumbs span:last-child {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  color: var(--gold-muted);
+.layout {
+  width: 100%;
+  margin: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 540px) minmax(260px, 280px);
+  gap: 32px;
+  align-items: start;
+  justify-content: start;
 }
 
 .main {
@@ -88,7 +99,7 @@
 }
 
 .card:first-child {
-  padding-top: 28px;
+  padding-top: 0;
 }
 
 .card + .card {
@@ -1171,40 +1182,6 @@
   letter-spacing: 0;
 }
 
-.scoreBlock {
-  border: 1px solid rgba(138, 106, 47, 0.18);
-  background: rgba(201, 162, 79, 0.07);
-  padding: 12px;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.scoreTop {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  color: color-mix(in srgb, var(--warning) 74%, var(--black));
-  font-size: var(--font-sm);
-}
-
-.scoreTop strong {
-  color: inherit;
-}
-
-.scoreTrack {
-  height: 4px;
-  background: var(--line);
-  overflow: hidden;
-}
-
-.scoreTrack div {
-  height: 100%;
-  background: var(--warning);
-  transition: width 0.3s ease;
-}
-
 .asideHints {
   display: flex;
   flex-direction: column;
@@ -1246,13 +1223,6 @@
   color: var(--muted);
 }
 
-.skeletonBreadcrumbs {
-  display: flex;
-  gap: 8px;
-  margin-bottom: 24px;
-}
-
-.skeletonBreadcrumbs div,
 .skeletonSectionTitle,
 .skeletonFields div,
 .skeletonUpload,
@@ -1263,15 +1233,6 @@
 .skeletonPreviewLineShort,
 .skeletonPreviewButton {
   background: var(--soft);
-}
-
-.skeletonBreadcrumbs div {
-  width: 92px;
-  height: 14px;
-}
-
-.skeletonBreadcrumbs div:first-child {
-  width: 140px;
 }
 
 .skeletonSection {
@@ -1342,6 +1303,11 @@
 /* responsive */
 
 @media (max-width: 1100px) {
+  .sellerLayout {
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
+
   .layout {
     grid-template-columns: 1fr;
     gap: 32px;
@@ -1362,6 +1328,10 @@
 }
 
 @media (max-width: 900px) {
+  .sellerLayout {
+    margin-top: 0;
+  }
+
   .page {
     margin: 0 0 40px;
   }
@@ -1396,9 +1366,6 @@
     grid-template-columns: 1fr;
   }
 
-  .skeletonBreadcrumbs {
-    margin-bottom: 18px;
-  }
 }
 
 @media (max-width: 768px) {

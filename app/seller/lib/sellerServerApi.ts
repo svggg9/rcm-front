@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { API_URL } from "../../lib/config";
 import type {
   PageResponse,
+  SellerBrand,
   SellerOrderListItem,
   SellerProductListItem,
 } from "../types";
@@ -36,4 +37,10 @@ export async function getSellerOrdersServer(): Promise<SellerOrderListItem[]> {
   );
 
   return Array.isArray(data?.content) ? data.content : [];
+}
+
+export async function getSellerBrandsServer(): Promise<SellerBrand[]> {
+  const data = await serverFetch<SellerBrand[]>("/api/seller/brands");
+
+  return Array.isArray(data) ? data : [];
 }

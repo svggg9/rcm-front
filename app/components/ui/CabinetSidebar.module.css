@@ -30,6 +30,12 @@
   line-height: 1.15;
 }
 
+.titleSkeleton {
+  width: 68%;
+  height: 28px;
+  background: var(--soft);
+}
+
 .nav {
   width: 100%;
   display: flex;
@@ -64,6 +70,7 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  transition: color var(--transition-fast);
 }
 
 .mobileLabel {
@@ -72,6 +79,11 @@
 
 .item:hover {
   background: var(--soft);
+  color: var(--content-primary-hover-label);
+}
+
+.item:active {
+  background: transparent;
   color: var(--content-primary-hover-label);
 }
 

@@ -33,13 +33,17 @@ export function SellerProductsTab({ products, loading }: Props) {
     setItems(products);
   }, [products]);
 
+  const commonItems = useMemo(
+    () => items.filter((product) => product.status !== "DRAFT"),
+    [items]
+  );
   const activeCount = items.filter((product) => product.status === "ACTIVE").length;
   const draftCount = items.filter((product) => product.status === "DRAFT").length;
   const moderationCount = items.filter((product) => product.status === "MODERATION").length;
   const revisionCount = items.filter((product) => product.status === "NEEDS_REVISION").length;
   const archivedCount = items.filter((product) => product.status === "ARCHIVED").length;
   const productTabs: CabinetTabItem<ProductFilter>[] = [
-    { value: "ALL", label: "Все", count: items.length },
+    { value: "ALL", label: "Все", count: commonItems.length },
     { value: "ACTIVE", label: "Активные", count: activeCount },
     { value: "MODERATION", label: "На модерации", count: moderationCount },
     { value: "NEEDS_REVISION", label: "На доработке", count: revisionCount },
@@ -68,8 +72,8 @@ export function SellerProductsTab({ products, loading }: Props) {
       return items.filter((product) => product.status === "ARCHIVED");
     }
 
-    return items;
-  }, [filter, items]);
+    return commonItems;
+  }, [filter, items, commonItems]);
 
   return (
     <div className={styles.productsPage}>
