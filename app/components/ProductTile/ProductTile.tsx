@@ -30,7 +30,7 @@ export function ProductTile({ product }: { product: Product }) {
   const prefetchedRef = useRef(false);
 
   const imageSizes =
-    "(max-width: 599px) 100vw, (max-width: 899px) 50vw, (max-width: 1199px) 33vw, 25vw";
+    "(max-width: 599px) 50vw, (max-width: 899px) 50vw, (max-width: 1199px) 33vw, 25vw";
 
   function prefetchProduct() {
     if (prefetchedRef.current) return;

@@ -9,6 +9,11 @@
   background: var(--soft);
 }
 
+.imageWrap {
+  position: absolute;
+  inset: 0;
+}
+
 .image {
   object-fit: cover;
   object-position: center;
@@ -101,17 +106,67 @@
 
 @media (max-width: 720px) {
   .hero {
-    margin-top: 16px;
-    min-height: 380px;
+    display: block;
+    min-height: auto;
+    margin-top: 0;
+    overflow: visible;
+    background: var(--white);
+  }
+
+  .imageWrap {
+    position: relative;
+    inset: auto;
+    width: 100%;
+    margin-top: 10px;
+    height: min(370px, 42.35svh);
+    overflow: hidden;
+    background: var(--soft);
+  }
+
+  .image {
+    object-position: center top;
   }
 
   .content {
-    width: min(100% - 32px, 520px);
-    margin-left: 16px;
-    padding: 32px 0;
+    width: 100%;
+    min-height: calc(100svh - var(--site-header-height) - min(370px, 42.35svh));
+    margin-left: 0;
+    padding: 28px 0 24px;
+    color: var(--black);
+    text-shadow: none;
+  }
+
+  .eyebrow {
+    display: none;
+  }
+
+  .title {
+    margin-bottom: 18px;
+    color: var(--black);
+    font-size: 38px;
+    line-height: 0.96;
   }
 
   .text {
-    font-size: var(--font-md);
+    max-width: none;
+    color: var(--muted);
+    font-size: 16px;
+    line-height: 1.45;
+  }
+
+  .actions {
+    margin-top: auto;
+    padding-top: 28px;
+  }
+
+  .button {
+    width: 100%;
+    min-height: 48px;
+    background: var(--black);
+    color: var(--white);
+  }
+
+  .button:hover {
+    background: var(--black);
   }
 }

@@ -141,28 +141,6 @@ function normalizeCatalogParams(params: CatalogSearchParams) {
   };
 }
 
-function normalizeBrandNames(data: unknown): string[] {
-  if (!Array.isArray(data)) return [];
-
-  return data
-    .map((item) => {
-      if (typeof item === "string") return item;
-
-      if (
-        typeof item === "object" &&
-        item !== null &&
-        "name" in item &&
-        typeof (item as { name?: unknown }).name === "string"
-      ) {
-        return (item as { name: string }).name;
-      }
-
-      return null;
-    })
-    .filter((brand): brand is string => Boolean(brand?.trim()))
-    .sort((a, b) => a.localeCompare(b, "ru"));
-}
-
 export async function generateMetadata({
   searchParams,
 }: {
@@ -308,48 +286,6 @@ async function getCatalogProducts(params: {
   }
 }
 
-async function getCatalogBrands(params: {
-  audience: string;
-  category: string;
-  q: string;
-}): Promise<string[]> {
-  try {
-    const search = new URLSearchParams();
-
-    if (params.audience && params.audience !== "all") {
-      search.set("audience", params.audience);
-    }
-
-    if (params.category) {
-      search.set("category", params.category);
-    }
-
-    if (params.q) {
-      search.set("q", params.q);
-    }
-
-    const response = await fetch(`${API_URL}/api/products/brands?${search.toString()}`, {
-      next: { revalidate: 60 },
-    });
-
-    if (!response.ok) {
-      const fallbackResponse = await fetch(`${API_URL}/api/catalog/brands`, {
-        next: { revalidate: 60 },
-      });
-
-      if (!fallbackResponse.ok) return [];
-
-      return normalizeBrandNames(await fallbackResponse.json());
-    }
-
-    const data: unknown = await response.json();
-
-    return normalizeBrandNames(data);
-  } catch {
-    return [];
-  }
-}
-
 export default async function CatalogPage({
   searchParams,
 }: {
@@ -366,22 +302,14 @@ export default async function CatalogPage({
     sortBy,
   } = normalizeCatalogParams(params);
 
-  const [{ products, totalPages, totalProducts, hasError }, brands] =
-    await Promise.all([
-      getCatalogProducts({
-        audience: selectedAudience,
-        category: selectedCategory,
-        brand: selectedBrand,
-        q: searchQuery,
-        sort: sortBy,
-        page,
-      }),
-      getCatalogBrands({
-        audience: selectedAudience,
-        category: selectedCategory,
-        q: searchQuery,
-      }),
-    ]);
+  const { products, totalPages, totalProducts, hasError } = await getCatalogProducts({
+    audience: selectedAudience,
+    category: selectedCategory,
+    brand: selectedBrand,
+    q: searchQuery,
+    sort: sortBy,
+    page,
+  });
 
   if (!hasError && totalProducts > 0 && page > totalPages) {
     redirect(
@@ -400,8 +328,6 @@ export default async function CatalogPage({
     <div className="pageContainer">
       <CatalogClient
         products={products}
-        totalProducts={totalProducts}
-        brands={brands}
         selectedCategory={selectedCategory}
         selectedAudience={selectedAudience}
         initialBrand={selectedBrand}

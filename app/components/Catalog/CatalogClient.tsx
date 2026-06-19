@@ -17,14 +17,11 @@ import {
   audienceLabels,
   buildCatalogQuery,
   getMinPrice,
-  getProductsCountText,
   sortLabels,
 } from "./catalogUtils";
 
 type Props = {
   products: CatalogProduct[];
-  totalProducts: number;
-  brands: string[];
   selectedCategory: string;
   selectedAudience: SelectedAudience;
   initialBrand: string;
@@ -66,8 +63,6 @@ function getPaginationItems(currentPage: number, totalPages: number) {
 
 export function CatalogClient({
   products,
-  totalProducts,
-  brands,
   selectedCategory,
   selectedAudience,
   initialBrand,
@@ -79,10 +74,7 @@ export function CatalogClient({
 }: Props) {
   const [selectedBrand, setSelectedBrand] = useState(initialBrand);
   const [sortBy, setSortBy] = useState<SortValue>(initialSort);
-  const [brandsOpen, setBrandsOpen] = useState(false);
   const [sortOpen, setSortOpen] = useState(false);
-
-  const brandsDropdownRef = useRef<HTMLDivElement | null>(null);
   const sortDropdownRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -98,13 +90,6 @@ export function CatalogClient({
       const target = event.target as Node;
 
       if (
-        brandsDropdownRef.current &&
-        !brandsDropdownRef.current.contains(target)
-      ) {
-        setBrandsOpen(false);
-      }
-
-      if (
         sortDropdownRef.current &&
         !sortDropdownRef.current.contains(target)
       ) {
@@ -115,16 +100,6 @@ export function CatalogClient({
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
-
-  const visibleBrands = useMemo(() => {
-    const firstBrands = brands.slice(0, 8);
-
-    if (!selectedBrand || firstBrands.includes(selectedBrand)) {
-      return firstBrands;
-    }
-
-    return [selectedBrand, ...firstBrands.slice(0, 7)];
-  }, [brands, selectedBrand]);
   const breadcrumbAudienceLabel = audienceLabels[selectedAudience];
   const sortButtonText = sortBy ? sortLabels[sortBy] : "Сортировка";
   const paginationItems = useMemo(
@@ -132,14 +107,8 @@ export function CatalogClient({
     [currentPage, totalPages]
   );
 
-  function toggleBrandsDropdown() {
-    setBrandsOpen((prev) => !prev);
-    setSortOpen(false);
-  }
-
   function toggleSortDropdown() {
     setSortOpen((prev) => !prev);
-    setBrandsOpen(false);
   }
 
   function getSortHref(value: Exclude<SortValue, "">) {
@@ -186,121 +155,49 @@ export function CatalogClient({
       </div>
 
       <div className={styles.catalogActions}>
-        <div className={styles.chipsRow}>
-          <div className={styles.dropdownWrap} ref={brandsDropdownRef}>
+        <div className={styles.catalogControls}>
+          <div className={`${styles.sortWrap} ${sortOpen ? styles.sortOpen : ""}`} ref={sortDropdownRef}>
             <button
               type="button"
-              className={`${styles.chip} ${styles.dropdownChip} ${
-                !selectedBrand ? styles.chipActive : ""
-              }`}
-              onClick={toggleBrandsDropdown}
-              aria-expanded={brandsOpen}
+              className={styles.sortButton}
+              onClick={toggleSortDropdown}
+              aria-expanded={sortOpen}
               aria-haspopup="menu"
             >
-              <span>{selectedBrand || "Все"}</span>
+              <span className={`${styles.sortButtonText} ${!sortBy ? styles.sortButtonTextMuted : ""}`}>{sortButtonText}</span>
               <ChevronDownIcon className={styles.chevron} />
             </button>
 
-            {brandsOpen ? (
-              <div className={styles.dropdownMenu} role="menu">
-                <Link
-                  href={buildCatalogQuery({
-                    audience: selectedAudience,
-                    category: selectedCategory,
-                    q: searchQuery,
-                    sort: sortBy,
-                  })}
-                  className={`${styles.dropdownItem} ${
-                    !selectedBrand ? styles.dropdownItemActive : ""
-                  }`}
-                  onClick={() => setBrandsOpen(false)}
-                  prefetch={false}
-                >
-                  Все бренды
-                </Link>
-
-                {brands.map((brand) => (
+            <div className={styles.sortMenu} role="menu">
+              <div className={styles.sortOptions}>
+                {(["price-desc", "price-asc", "newest"] as const).map((value) => (
                   <Link
-                    key={brand}
-                    href={buildCatalogQuery({
-                      audience: selectedAudience,
-                      category: selectedCategory,
-                      brand,
-                      q: searchQuery,
-                      sort: sortBy,
-                    })}
+                    key={value}
+                    href={getSortHref(value)}
                     className={`${styles.dropdownItem} ${
-                      selectedBrand === brand ? styles.dropdownItemActive : ""
+                      sortBy === value ? styles.dropdownItemActive : ""
                     }`}
-                    onClick={() => setBrandsOpen(false)}
+                    onClick={() => setSortOpen(false)}
                     prefetch={false}
                   >
-                    {brand}
+                    {sortLabels[value]}
                   </Link>
                 ))}
               </div>
-            ) : null}
-          </div>
-
-          <div className={styles.quickFilters} aria-label="Бренды">
-            {visibleBrands.map((brand) => (
-              <Link
-                key={brand}
-                href={buildCatalogQuery({
-                  audience: selectedAudience,
-                  category: selectedCategory,
-                  brand: selectedBrand === brand ? "" : brand,
-                  q: searchQuery,
-                  sort: sortBy,
-                })}
-                className={`${styles.chip} ${
-                  selectedBrand === brand ? styles.chipActive : ""
-                }`}
-                prefetch={false}
-              >
-                {brand}
-              </Link>
-            ))}
-          </div>
-        </div>
-
-        <div className={styles.sortWrap} ref={sortDropdownRef}>
-          <button
-            type="button"
-            className={styles.sortButton}
-            onClick={toggleSortDropdown}
-            aria-expanded={sortOpen}
-            aria-haspopup="menu"
-          >
-            <span className={styles.sortButtonText}>{sortButtonText}</span>
-            <ChevronDownIcon className={styles.chevron} />
-          </button>
-
-          {sortOpen ? (
-            <div className={styles.sortMenu} role="menu">
-              {(["price-desc", "price-asc", "newest"] as const).map((value) => (
-                <Link
-                  key={value}
-                  href={getSortHref(value)}
-                  className={`${styles.dropdownItem} ${
-                    sortBy === value ? styles.dropdownItemActive : ""
-                  }`}
-                  onClick={() => setSortOpen(false)}
-                  prefetch={false}
-                >
-                  {sortLabels[value]}
-                </Link>
-              ))}
             </div>
-          ) : null}
+          </div>
+
+          <Link
+            href={buildCatalogQuery({ audience: selectedAudience })}
+            className={styles.clearButton}
+            prefetch={false}
+          >
+            Очистить
+          </Link>
         </div>
       </div>
 
       <section className={styles.results}>
-        <div className={styles.resultsBar}>
-          <div className={styles.count}>{getProductsCountText(totalProducts)}</div>
-        </div>
-
         <ul className={styles.grid} aria-busy="false">
           {products.map((product) => (
             <ProductTile

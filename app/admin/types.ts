@@ -57,12 +57,11 @@ export type DictionaryItem = {
   id: number;
   name: string;
   slug?: string | null;
-  hex?: string | null;
   sortOrder?: number | null;
   isActive?: boolean | null;
 };
 
-export type DictionaryKind = "categories" | "brands" | "sizes" | "colors";
+export type DictionaryKind = "categories" | "brands" | "sizes";
 
 export type SellerApplicationStatus = "NEW" | "APPROVED" | "REJECTED";
 

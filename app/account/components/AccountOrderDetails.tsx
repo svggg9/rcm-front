@@ -139,7 +139,7 @@ export function AccountOrderDetails({
             <h2 className={styles.sectionTitle}>Получатель</h2>
 
             <div className={styles.formGrid}>
-              <ReadonlyField label="Получатель" value={order.recipientName} />
+              <ReadonlyField label="ФИО" value={order.recipientName?.trim() || null} />
               <ReadonlyField label="Телефон" value={order.recipientPhone} />
             </div>
           </section>

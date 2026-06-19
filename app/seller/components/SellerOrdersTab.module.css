@@ -14,7 +14,7 @@
 
 .ordersToolbar {
   min-width: 0;
-  margin-bottom: 15px;
+  margin-bottom: 0;
 }
 
 .header {
@@ -111,11 +111,15 @@
 .list {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 0;
   border: 0;
   background: var(--white);
 }
 
+
+.list > * {
+  margin-top: 12px;
+}
 @media (max-width: 900px) {
   .summary {
     grid-template-columns: repeat(2, minmax(0, 1fr));

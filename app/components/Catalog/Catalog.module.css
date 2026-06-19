@@ -39,6 +39,7 @@
 
   display: flex;
   align-items: center;
+  justify-content: flex-end;
   gap: 12px;
 
   margin-bottom: 20px;
@@ -120,79 +121,71 @@
 
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 24px;
+  justify-content: flex-end;
+  gap: 12px;
 
   margin-bottom: 20px;
-  padding: 12px 0;
+  padding: 0;
 
   background: var(--white);
-  border-bottom: 1px solid transparent;
 }
 
-.chipsRow {
+
+.catalogControls {
   display: flex;
   align-items: center;
-  gap: 12px;
-  min-width: 0;
-  flex: 1;
+  gap: 10px;
+  flex-shrink: 0;
 }
 
-.dropdownWrap,
 .sortWrap {
   position: relative;
   flex-shrink: 0;
 }
 
-.quickFilters {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-
-  min-width: 0;
-  overflow-x: auto;
-
-  scrollbar-width: none;
-}
-
-.quickFilters::-webkit-scrollbar {
-  display: none;
-}
-
-.chip {
+.chip,
+.clearButton {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
 
-  height: 44px;
-  padding: 0 16px;
+  min-height: 38px;
+  padding: 0 14px;
 
   border: 1px solid var(--line);
   background: var(--white);
   color: var(--black);
 
   font-size: var(--font-sm);
+  line-height: 1;
   white-space: nowrap;
   text-decoration: none;
   cursor: pointer;
 
   transition:
     background var(--transition-fast),
-    border-color var(--transition-fast);
+    border-color var(--transition-fast),
+    color var(--transition-fast);
+}
+
+.clearButton {
+  border-color: var(--black);
 }
 
 .chip:hover,
+.clearButton:hover,
 .chipActive {
   border-color: var(--black);
 }
 
-.chipActive {
+.chip:hover,
+.clearButton:hover {
   background: var(--soft);
 }
 
-.dropdownChip {
-  gap: 10px;
+.chipActive {
+  background: var(--soft);
 }
 
 .chevron {
@@ -200,61 +193,56 @@
   height: 16px;
 }
 
-.dropdownMenu,
 .sortMenu {
   position: absolute;
-  top: calc(100% + 8px);
+  left: -1px;
+  right: -1px;
+  top: calc(100% - 1px);
+  z-index: 50;
 
+  display: grid;
+  grid-template-rows: 0fr;
   min-width: 220px;
 
   border: 1px solid var(--line);
+  border-top: 0;
   background: var(--white);
+  overflow: hidden;
+  pointer-events: none;
 
-  z-index: 20;
+  transition: grid-template-rows 0.18s ease;
 }
 
-.dropdownMenu {
-  left: 0;
-  width: min(320px, 90vw);
-  max-height: 360px;
-  overflow-y: auto;
+.sortOpen .sortMenu {
+  grid-template-rows: 1fr;
+  pointer-events: auto;
 }
 
-.sortMenu {
-  right: 0;
-  min-width: 250px;
-}
-
-.dropdownMenu::before,
-.sortMenu::before {
-  content: "";
-  position: sticky;
-  top: 0;
-  display: block;
-  height: 1px;
-  background: var(--line);
+.sortOptions {
+  min-height: 0;
+  max-height: 260px;
+  overflow: auto;
 }
 
 .dropdownItem {
-  display: block;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
 
   width: 100%;
-  min-height: 44px;
-  padding: 10px 14px;
+  min-height: 38px;
+  padding: 0 14px;
 
   border: 0;
-  border-bottom: 1px solid var(--line);
   background: var(--white);
   color: var(--black);
 
   text-align: left;
   text-decoration: none;
   font-size: var(--font-sm);
+  font-weight: 400;
   cursor: pointer;
-}
-
-.dropdownItem:last-child {
-  border-bottom: 0;
 }
 
 .dropdownItem:hover,
@@ -263,27 +251,60 @@
 }
 
 .dropdownItemActive {
-  font-weight: 500;
+  font-weight: 400;
 }
 
 .sortButton {
+  position: relative;
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  justify-content: space-between;
+  gap: 18px;
 
-  height: 44px;
-  padding: 0;
+  min-height: 38px;
+  width: auto;
+  padding: 0 14px;
 
-  background: transparent;
+  border: 1px solid var(--line);
+  background: var(--white);
   color: var(--black);
 
   cursor: pointer;
+  transition:
+    background var(--transition-fast),
+    border-color var(--transition-fast);
+}
+
+.sortButton:hover,
+.sortOpen .sortButton {
+  border-color: var(--line);
+  background: var(--white);
+}
+
+.sortOpen .sortButton {
+  border-bottom-color: transparent;
+}
+
+.sortButton .chevron {
+  color: var(--muted);
+  transition: transform 0.18s ease, color 0.18s ease;
+}
+
+.sortOpen .sortButton .chevron {
+  color: var(--black);
+  transform: rotate(180deg);
 }
 
 .sortButtonText {
+  color: var(--black);
   font-size: var(--font-sm);
-  font-weight: 500;
+  font-weight: 400;
   line-height: 1;
+  white-space: nowrap;
+}
+
+.sortButtonTextMuted {
+  color: var(--muted);
 }
 
 .results {
@@ -308,8 +329,8 @@
 
 .grid {
   display: grid;
-  grid-template-columns: repeat(1, minmax(0, 1fr));
-  gap: 20px 12px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px 10px;
   min-height: 400px;
   margin: 0;
   padding: 0;
@@ -366,6 +387,7 @@
   .grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 24px 16px;
+    padding: 0;
   }
 }
 
@@ -389,12 +411,15 @@
   }
 
   .catalogActions {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 14px;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 10px;
+    padding: 0;
+  }
 
-    padding: 10px 0;
-    border-bottom-color: var(--line);
+  .catalogControls {
+    gap: 8px;
   }
 
   .skeletonActions {
@@ -410,33 +435,9 @@
     margin-left: 0;
   }
 
-  .chipsRow {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 10px;
-  }
-
-  .dropdownWrap,
-  .sortWrap {
-    width: 100%;
-  }
-
-  .dropdownChip,
-  .sortButton {
-    width: 100%;
-    justify-content: space-between;
-  }
-
-  .quickFilters {
-    width: 100%;
-    padding-bottom: 2px;
-  }
-
-  .dropdownMenu,
   .sortMenu {
-    left: 0;
-    right: auto;
-    width: 100%;
+    right: 0;
+    width: min(250px, calc(100vw - 30px));
     min-width: 0;
     max-height: 280px;
   }
@@ -448,8 +449,10 @@
   }
 
   .chip,
+  .clearButton,
   .sortButton {
-    height: 42px;
+    min-height: 36px;
+    padding: 0 12px;
     font-size: var(--font-sm);
   }
 }

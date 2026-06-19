@@ -1,6 +1,11 @@
 import { redirect } from "next/navigation";
 
 import { getServerSession } from "../../../../lib/session";
+import {
+  getSellerBrandsServer,
+  getSellerOrdersServer,
+  getSellerProductsServer,
+} from "../../../lib/sellerServerApi";
 import { ProductEditPageClient } from "./ProductEditPageClient";
 
 type Props = {
@@ -31,5 +36,22 @@ export default async function ProductEditPage({ params }: Props) {
     );
   }
 
-  return <ProductEditPageClient productId={productId} />;
+  const [sellerBrands, sellerProducts, sellerOrders] = await Promise.all([
+    getSellerBrandsServer(),
+    getSellerProductsServer(),
+    getSellerOrdersServer(),
+  ]);
+
+  const storeName = sellerBrands[0]?.name?.trim() || null;
+  const activeProductsCount = sellerProducts.filter((product) => product.status === "ACTIVE").length;
+  const activeOrdersCount = sellerOrders.filter((order) => order.status === "NEW").length;
+
+  return (
+    <ProductEditPageClient
+      productId={productId}
+      initialStoreName={storeName}
+      initialProductsCount={activeProductsCount}
+      initialOrdersCount={activeOrdersCount}
+    />
+  );
 }

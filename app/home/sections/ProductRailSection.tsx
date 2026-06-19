@@ -13,10 +13,6 @@ export function ProductRailSection({ block }: ProductRailSectionProps) {
     <section className={styles.section}>
       <div className={styles.header}>
         <h2 className={styles.title}>{block.title}</h2>
-
-        <Link href={block.href} className={styles.link}>
-          Посмотреть все
-        </Link>
       </div>
 
       {block.products.length > 0 ? (
@@ -24,6 +20,10 @@ export function ProductRailSection({ block }: ProductRailSectionProps) {
       ) : (
         <div className={styles.empty}>Пока нет товаров для этой подборки</div>
       )}
+
+      <Link href={block.href} className={`buttonSecondary ${styles.link}`}>
+        Посмотреть подборку
+      </Link>
     </section>
   );
 }

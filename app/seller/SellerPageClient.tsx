@@ -129,7 +129,7 @@ function SellerPageContent({ initialProducts, initialOrders }: Props) {
 
   const [orders, setOrders] = useState<SellerOrderListItem[]>(initialOrders);
   const [products, setProducts] = useState<SellerProductListItem[]>(initialProducts);
-  const [storeName, setStoreName] = useState("Магазин");
+  const [storeName, setStoreName] = useState<string | null>(null);
 
   const [selectedOrder, setSelectedOrder] = useState<SellerOrder | null>(null);
   const [detailsLoading, setDetailsLoading] = useState(false);
@@ -153,11 +153,11 @@ function SellerPageContent({ initialProducts, initialOrders }: Props) {
     getSellerBrands()
       .then((brands: SellerBrand[]) => {
         if (cancelled) return;
-        setStoreName(brands[0]?.name?.trim() || "Магазин");
+        setStoreName(brands[0]?.name?.trim() || null);
       })
       .catch(() => {
         if (cancelled) return;
-        setStoreName("Магазин");
+        setStoreName(null);
       });
 
     return () => {

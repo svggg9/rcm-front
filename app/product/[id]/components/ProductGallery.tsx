@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, type TouchEvent } from "react";
 
 import styles from "../ProductPage.module.css";
 
@@ -16,6 +16,9 @@ export function ProductGallery({ title, images, onOpenImage }: Props) {
   const [canScrollUp, setCanScrollUp] = useState(false);
   const [canScrollDown, setCanScrollDown] = useState(false);
   const thumbsRef = useRef<HTMLDivElement | null>(null);
+  const mobileTrackRef = useRef<HTMLDivElement | null>(null);
+  const mobileTouchStartXRef = useRef(0);
+  const mobileTouchStartIndexRef = useRef(0);
   const activeImage = images[activeIndex] ?? images[0];
   const hasThumbScroll = images.length > 4;
 
@@ -31,6 +34,7 @@ export function ProductGallery({ title, images, onOpenImage }: Props) {
 
   useEffect(() => {
     thumbsRef.current?.scrollTo({ top: 0 });
+    mobileTrackRef.current?.scrollTo({ left: 0 });
   }, [images]);
 
   useEffect(() => {
@@ -44,6 +48,46 @@ export function ProductGallery({ title, images, onOpenImage }: Props) {
       top: direction === "down" ? 170 : -170,
       behavior: "smooth",
     });
+  }
+
+  function scrollMobileToIndex(index: number) {
+    const node = mobileTrackRef.current;
+    if (!node) return;
+
+    const safeIndex = Math.min(Math.max(index, 0), images.length - 1);
+    node.scrollTo({
+      left: node.clientWidth * safeIndex,
+      behavior: "smooth",
+    });
+    setActiveIndex(safeIndex);
+  }
+
+  function handleMobileScroll() {
+    const node = mobileTrackRef.current;
+    if (!node) return;
+
+    const nextIndex = Math.round(node.scrollLeft / node.clientWidth);
+    setActiveIndex(Math.min(Math.max(nextIndex, 0), images.length - 1));
+  }
+
+  function handleMobileTouchStart(event: TouchEvent<HTMLDivElement>) {
+    mobileTouchStartXRef.current = event.touches[0]?.clientX ?? 0;
+    mobileTouchStartIndexRef.current = activeIndex;
+  }
+
+  function handleMobileTouchEnd(event: TouchEvent<HTMLDivElement>) {
+    const endX = event.changedTouches[0]?.clientX ?? mobileTouchStartXRef.current;
+    const deltaX = mobileTouchStartXRef.current - endX;
+    const swipeThreshold = 36;
+    let nextIndex = mobileTouchStartIndexRef.current;
+
+    if (deltaX > swipeThreshold) {
+      nextIndex += 1;
+    } else if (deltaX < -swipeThreshold) {
+      nextIndex -= 1;
+    }
+
+    window.requestAnimationFrame(() => scrollMobileToIndex(nextIndex));
   }
 
   if (images.length === 0) {
@@ -131,6 +175,50 @@ export function ProductGallery({ title, images, onOpenImage }: Props) {
           <Image src="/icons/search.svg" alt="" width={16} height={16} />
         </span>
       </button>
+
+      <div className={styles.galleryMobile}>
+        <div
+          ref={mobileTrackRef}
+          className={styles.galleryMobileTrack}
+          onScroll={handleMobileScroll}
+          onTouchStart={handleMobileTouchStart}
+          onTouchEnd={handleMobileTouchEnd}
+        >
+          {images.map((src, index) => (
+            <button
+              key={`${src}-mobile-${index}`}
+              type="button"
+              className={`${styles.galleryMobileSlide} ${styles.galleryButton}`}
+              onClick={() => onOpenImage(index)}
+              aria-label={`Открыть фото ${index + 1}`}
+            >
+              <Image
+                src={src}
+                alt={`${title} ${index + 1}`}
+                fill
+                sizes="100vw"
+                className={styles.galleryImg}
+                priority={index === 0}
+              />
+            </button>
+          ))}
+        </div>
+
+        {images.length > 1 ? (
+          <div className={styles.galleryMobileIndicator} aria-hidden="true">
+            {images.map((src, index) => (
+              <span
+                key={`${src}-indicator-${index}`}
+                className={`${styles.galleryMobileIndicatorPart} ${
+                  activeIndex === index
+                    ? styles.galleryMobileIndicatorPartActive
+                    : ""
+                }`}
+              />
+            ))}
+          </div>
+        ) : null}
+      </div>
     </div>
   );
 }

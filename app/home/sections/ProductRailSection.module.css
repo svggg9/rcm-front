@@ -1,13 +1,11 @@
 .section {
   margin-top: 0;
-  padding: 44px 0 52px;
-  border-bottom: 1px solid var(--line);
+  padding: 44px 0 0;
 }
 
 .header {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   gap: 16px;
 
   margin-bottom: 22px;
@@ -17,28 +15,15 @@
   color: var(--black);
 
   font-size: var(--font-xl);
-  font-weight: 500;
+  font-weight: 400;
   letter-spacing: 0;
 }
 
 .link {
-  color: var(--black);
-
-  font-size: var(--font-xs);
-  font-weight: 500;
-  letter-spacing: 0.08em;
+  width: 100%;
+  margin-top: 20px;
+  border-color: var(--black);
   text-decoration: none;
-  text-transform: uppercase;
-
-  border-bottom: 1px solid transparent;
-
-  transition:
-    border-color var(--transition),
-    opacity var(--transition);
-}
-
-.link:hover {
-  border-color: currentColor;
 }
 
 .empty {
@@ -46,13 +31,11 @@
 
   color: var(--muted);
   font-size: var(--font-sm);
-
-  border-bottom: 1px solid var(--line);
 }
 
 @media (max-width: 768px) {
   .section {
-    padding: 32px 0 38px;
+    padding: 32px 0 0;
   }
 
   .title {

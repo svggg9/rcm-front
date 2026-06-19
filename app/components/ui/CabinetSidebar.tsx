@@ -1,5 +1,8 @@
+"use client";
+
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { useState } from "react";
 
 import styles from "./CabinetSidebar.module.css";
 
@@ -15,6 +18,7 @@ type SidebarItem = {
 
 type Props = {
   title?: string;
+  titleLoading?: boolean;
   subtitle?: string;
   items: SidebarItem[];
   footer?: ReactNode;
@@ -24,32 +28,46 @@ type Props = {
 
 export function CabinetSidebar({
   title,
+  titleLoading = false,
   subtitle,
   items,
   footer,
   ariaLabel,
   mobileInline = false,
 }: Props) {
+  const [pendingActiveKey, setPendingActiveKey] = useState<string | null>(null);
+
   return (
     <aside
       className={`${styles.sidebar} ${mobileInline ? styles.mobileInline : ""}`}
+      onMouseLeave={() => setPendingActiveKey(null)}
     >
       {title || subtitle ? (
         <div className={styles.head}>
           {subtitle ? <div className={styles.subtitle}>{subtitle}</div> : null}
-          {title ? <strong className={styles.title}>{title}</strong> : null}
+          {titleLoading ? (
+            <div className={styles.titleSkeleton} aria-hidden="true" />
+          ) : title ? (
+            <strong className={styles.title}>{title}</strong>
+          ) : null}
         </div>
       ) : null}
 
       <nav className={styles.nav} aria-label={ariaLabel}>
-        {items.map((item) => (
-          item.href ? (
+        {items.map((item) => {
+          const itemKey = getItemKey(item);
+          const isActive = pendingActiveKey
+            ? pendingActiveKey === itemKey
+            : item.active;
+
+          return item.href ? (
             <Link
-              key={item.href}
+              key={itemKey}
               href={item.href}
-              className={`${styles.item} ${item.active ? styles.itemActive : ""}`}
-              aria-current={item.active ? "page" : undefined}
+              className={`${styles.item} ${isActive ? styles.itemActive : ""}`}
+              aria-current={isActive ? "page" : undefined}
               prefetch={false}
+              onClick={() => setPendingActiveKey(itemKey)}
             >
               <span>
                 <span className={styles.desktopLabel}>{item.label}</span>
@@ -64,10 +82,12 @@ export function CabinetSidebar({
             </Link>
           ) : (
             <button
-              key={item.label}
+              key={itemKey}
               type="button"
-              className={styles.item}
-              onClick={item.onClick}
+              className={`${styles.item} ${isActive ? styles.itemActive : ""}`}
+              onClick={() => {
+                item.onClick?.();
+              }}
               disabled={item.disabled}
             >
               <span>
@@ -77,11 +97,15 @@ export function CabinetSidebar({
                 </span>
               </span>
             </button>
-          )
-        ))}
+          );
+        })}
       </nav>
 
       {footer ? <div className={styles.footer}>{footer}</div> : null}
     </aside>
   );
+}
+
+function getItemKey(item: SidebarItem) {
+  return item.href ?? item.label;
 }

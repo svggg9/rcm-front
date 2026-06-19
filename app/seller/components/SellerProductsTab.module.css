@@ -16,15 +16,19 @@
   padding: 0;
   border: 0;
   background: transparent;
-  margin-bottom: 15px;
+  margin-bottom: 0;
 }
 
 .productsList {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 0;
 }
 
+
+.productsList > * {
+  margin-top: 12px;
+}
 .productRow {
   display: grid;
   grid-template-columns: 120px minmax(0, 1fr) auto;

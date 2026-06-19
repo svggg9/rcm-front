@@ -75,9 +75,9 @@
   color: var(--black);
 
   font: inherit;
-  font-size: 11px;
-  font-weight: 500;
-  letter-spacing: 0.08em;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0;
   text-align: left;
   text-transform: uppercase;
   cursor: default;
@@ -85,12 +85,13 @@
 
 .title {
   display: -webkit-box;
-  margin-top: 5px;
+  margin-top: 2.5px;
 
   color: var(--black);
 
-  font-size: var(--font-xs);
-  line-height: 1.35;
+  font-size: 12px;
+  line-height: 1.1;
+  min-height: calc(12px * 1.1 * 2);
 
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
@@ -98,12 +99,12 @@
 }
 
 .price {
-  margin-top: 7px;
+  margin-top: 5px;
 
   color: var(--black);
 
-  font-size: 16px;
-  font-weight: 400;
+  font-size: 14px;
+  font-weight: 300;
 }
 
 .like {
@@ -150,8 +151,35 @@
 }
 
 @media (max-width: 600px) {
+  .info {
+    padding-top: 9px;
+  }
+
+  .brandText {
+    font-size: 14px;
+  }
+
+  .title {
+    margin-top: 2px;
+    font-size: 12px;
+    line-height: 1.1;
+    min-height: calc(12px * 1.1 * 2);
+  }
+
+  .price {
+    margin-top: 5px;
+    font-size: 14px;
+  }
+
   .like {
-    width: 36px;
-    height: 36px;
+    top: 6px;
+    right: 6px;
+    width: 30px;
+    height: 30px;
+  }
+
+  .like img {
+    width: 22px;
+    height: 22px;
   }
 }

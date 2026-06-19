@@ -9,7 +9,6 @@ type Props = {
   brands: Option[];
   product: SellerProduct | null;
   images: ProductImageItem[];
-  cardScore: number;
   descriptionLength: number;
   packageWeightKg: number | "";
   variantsCount: number;
@@ -22,7 +21,6 @@ export function ProductPreviewAside({
   brands,
   product,
   images,
-  cardScore,
   descriptionLength,
   packageWeightKg,
   variantsCount,
@@ -49,17 +47,6 @@ export function ProductPreviewAside({
           {product ? <StatusBadge status={product.status} /> : null}
         </div>
         <p>{brands.find((brand) => brand.id === brandId)?.name || product?.brand || "Бренд"}</p>
-
-        <div className={styles.scoreBlock}>
-          <div className={styles.scoreTop}>
-            <span>Качество карточки</span>
-            <strong>{cardScore}%</strong>
-          </div>
-
-          <div className={styles.scoreTrack}>
-            <div style={{ width: `${cardScore}%` }} />
-          </div>
-        </div>
 
         <a
           href={`/seller/products/${productId}/preview`}

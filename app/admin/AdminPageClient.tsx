@@ -76,7 +76,6 @@ function AdminPageContent() {
   const [categories, setCategories] = useState<DictionaryItem[]>([]);
   const [brands, setBrands] = useState<DictionaryItem[]>([]);
   const [sizes, setSizes] = useState<DictionaryItem[]>([]);
-  const [colors, setColors] = useState<DictionaryItem[]>([]);
   const [dictionaryActionKey, setDictionaryActionKey] = useState<string | null>(
     null
   );
@@ -157,18 +156,16 @@ function AdminPageContent() {
     setError(null);
 
     try {
-      const [categoriesData, brandsData, sizesData, colorsData] =
+      const [categoriesData, brandsData, sizesData] =
         await Promise.all([
           getAdminDictionary("categories"),
           getAdminDictionary("brands"),
           getAdminDictionary("sizes"),
-          getAdminDictionary("colors"),
         ]);
 
       setCategories(categoriesData);
       setBrands(brandsData);
       setSizes(sizesData);
-      setColors(colorsData);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Не удалось загрузить справочники");
     } finally {
@@ -405,7 +402,6 @@ function AdminPageContent() {
                 categories={categories}
                 brands={brands}
                 sizes={sizes}
-                colors={colors}
                 actionKey={dictionaryActionKey}
                 onCreate={(kind, item) => void createDictionaryItem(kind, item)}
                 onUpdate={(kind, id, item) =>

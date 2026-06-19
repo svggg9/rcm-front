@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import type { ReactNode } from "react";
 
 import { Button } from "../../components/ui/Button";
@@ -28,7 +29,6 @@ export function SellerOrderDetails({
   order,
   shipping,
   canShip,
-  onBack,
   onShip,
   formatOrderStatus,
   formatPaymentStatus,
@@ -39,75 +39,69 @@ export function SellerOrderDetails({
 
   return (
     <section className={styles.page}>
-      <div className={styles.header}>
-        <Button variant="secondary" onClick={onBack}>
-          ← Назад
-        </Button>
-
-        <div className={styles.headerContent}>
-          <div className={styles.titleRow}>
-            <h1 className={styles.title}>Заказ #{order.id}</h1>
-            <StatusBadge tone={getOrderTone(order)}>
-              {buildSellerStatusLabel(order)}
-            </StatusBadge>
-          </div>
-
-          <div className={styles.meta}>
-            <span>{new Date(order.createdAt).toLocaleString("ru-RU")}</span>
-            <span>•</span>
-            <span><Price amount={order.totalAmount} /></span>
-          </div>
-        </div>
-      </div>
-
-      <div className={styles.summary}>
-        <SummaryItem label="Статус заказа" value={formatOrderStatus(order.status)} />
-        <SummaryItem label="Оплата" value={formatPaymentStatus(order.paymentStatus)} />
-        <SummaryItem label="Доставка" value={formatDeliveryStatus(order.deliveryStatus)} />
-        <SummaryItem label="Товаров" value={`${order.items.length}`} />
-      </div>
+      <nav className={styles.breadcrumbs} aria-label="Навигация">
+        <Link href="/seller">Кабинет продавца</Link>
+        <span>/</span>
+        <Link href="/seller?tab=orders">Заказы</Link>
+        <span>/</span>
+        <span>Заказ {order.id}</span>
+      </nav>
 
       <div className={styles.layout}>
         <main className={styles.main}>
+          <section className={styles.header}>
+            <div className={styles.titleRow}>
+              <h1 className={styles.title}>Заказ {order.id}</h1>
+              <StatusBadge tone={getOrderTone(order)}>
+                {buildSellerStatusLabel(order)}
+              </StatusBadge>
+            </div>
+
+            <div className={styles.meta}>
+              <span>{new Date(order.createdAt).toLocaleString("ru-RU")}</span>
+            </div>
+          </section>
+
           <section className={styles.section}>
             <h2 className={styles.sectionTitle}>Товары</h2>
 
-            <div className={styles.itemsList}>
+            <div className={styles.products}>
               {order.items.map((item, index) => (
-                <article key={`${item.sku}-${index}`} className={styles.itemRow}>
-                  <div className={styles.itemImageWrap}>
+                <Link
+                  key={`${item.sku}-${index}`}
+                  href={`/product/${item.productId}`}
+                  className={styles.product}
+                >
+                  <div className={styles.imageWrap}>
                     {item.imageUrl ? (
                       <Image
                         src={item.imageUrl}
                         alt={item.productTitle}
-                        fill
-                        className={styles.itemImage}
+                        width={120}
+                        height={150}
+                        className={styles.image}
                       />
                     ) : (
-                      <div className={styles.itemImagePlaceholder} />
+                      <div className={styles.imagePlaceholder} />
                     )}
                   </div>
 
-                  <div className={styles.itemMain}>
-                    <div className={styles.itemTitle}>{item.productTitle}</div>
+                  <div className={styles.productInfo}>
+                    <div className={styles.productTitle}>{item.productTitle}</div>
 
-                    <div className={styles.itemMeta}>
-                      <span>SKU: {item.sku}</span>
-                      <span>•</span>
-                      <span>{item.size}</span>
-                      <span>•</span>
-                      <span>{item.color}</span>
+                    <div className={styles.productMeta}>
+                      {item.size} · {item.color}
                     </div>
 
-                    <div className={styles.itemMeta}>
+                    <div className={styles.productMeta}>
                       {item.quantity} × <Price amount={item.price} />
                     </div>
                   </div>
 
-                  <div className={styles.itemTotal}>
+                  <div className={styles.productPrice}>
                     <Price amount={item.lineTotal} />
                   </div>
-                </article>
+                </Link>
               ))}
             </div>
           </section>
@@ -115,33 +109,40 @@ export function SellerOrderDetails({
           <section className={styles.section}>
             <h2 className={styles.sectionTitle}>Получатель</h2>
 
-            <div className={styles.infoGrid}>
-              <InfoRow label="Имя" value={order.recipientName} />
-              <InfoRow label="Телефон" value={order.recipientPhone} />
+            <div className={styles.formGrid}>
+              <ReadonlyField label="ФИО" value={order.recipientName?.trim() || null} />
+              <ReadonlyField label="Телефон" value={order.recipientPhone} />
             </div>
           </section>
 
           <section className={styles.section}>
             <h2 className={styles.sectionTitle}>Доставка</h2>
 
-            <div className={styles.infoGrid}>
-              <InfoRow label="Способ доставки" value={order.deliveryMethod} />
-              <InfoRow label="Адрес / ПВЗ" value={order.deliveryAddress} />
+            <div className={styles.formGrid}>
+              <ReadonlyField label="Способ доставки" value={formatDeliveryMethod(order.deliveryMethod)} />
+              <ReadonlyField label="Адрес / ПВЗ" value={order.deliveryAddress} wide />
 
               {order.delivery?.cdekNumber ? (
-                <InfoRow label="Номер СДЭК" value={order.delivery.cdekNumber} />
+                <ReadonlyField label="Номер СДЭК" value={order.delivery.cdekNumber} />
               ) : null}
 
               {order.delivery?.shipmentStatus ? (
-                <InfoRow label="Статус СДЭК" value={order.delivery.shipmentStatus} />
+                <ReadonlyField label="Статус СДЭК" value={order.delivery.shipmentStatus} />
               ) : null}
 
               {order.delivery?.trackingUrl ? (
-                <InfoLink label="Трекинг" href={order.delivery.trackingUrl} />
+                <ReadonlyField
+                  label="Отследить"
+                  value={
+                    <a href={order.delivery.trackingUrl} target="_blank" rel="noreferrer">
+                      Открыть трекинг
+                    </a>
+                  }
+                />
               ) : null}
 
               {order.trackingNumber ? (
-                <InfoRow label="Трек-номер" value={order.trackingNumber} />
+                <ReadonlyField label="Трек-номер" value={order.trackingNumber} />
               ) : null}
             </div>
           </section>
@@ -150,50 +151,49 @@ export function SellerOrderDetails({
         <aside className={styles.aside}>
           <div className={styles.stickyPanel}>
             <section className={styles.panelSection}>
-              <h2>Информация</h2>
+              <h2 className={styles.sectionTitle}>Информация</h2>
 
-              <div className={styles.infoGrid}>
-                <InfoRow label="Номер" value={`#${order.id}`} />
-                <InfoRow label="Группа" value={String(order.orderGroupId)} />
-                <InfoRow
-                  label="Создан"
-                  value={new Date(order.createdAt).toLocaleString("ru-RU")}
+              <div className={styles.formGridSingle}>
+                <ReadonlyField label="Номер заказа" value={order.id} />
+                <ReadonlyField label="Статус заказа" value={formatOrderStatus(order.status)} />
+                <ReadonlyField label="Статус оплаты" value={formatPaymentStatus(order.paymentStatus)} />
+                <ReadonlyField label="Статус доставки" value={formatDeliveryStatus(order.deliveryStatus)} />
+              </div>
+            </section>
+
+            <section className={styles.panelSection}>
+              <h2 className={styles.sectionTitle}>Сумма</h2>
+
+              <div className={styles.formGridSingle}>
+                <ReadonlyField label="Товары" value={<Price amount={order.subtotalAmount} />} />
+                <ReadonlyField
+                  label="Доставка"
+                  value={
+                    order.deliveryAmount === 0
+                      ? "Бесплатно"
+                      : <Price amount={order.deliveryAmount} />
+                  }
                 />
+                {order.discountAmount > 0 ? (
+                  <ReadonlyField label="Скидка" value={<Price amount={order.discountAmount} />} />
+                ) : null}
+                <ReadonlyField label="Итого" value={<Price amount={order.totalAmount} />} strong />
               </div>
             </section>
 
             <section className={styles.panelSection}>
-              <h2>Сумма</h2>
-
-              <div className={styles.totals}>
-                <InfoRow label="Товары" value={<Price amount={order.subtotalAmount} />} />
-                <InfoRow label="Доставка" value={<Price amount={order.deliveryAmount} />} />
-                <InfoRow label="Скидка" value={<Price amount={order.discountAmount} />} />
-
-                <div className={styles.totalFinal}>
-                  <span>Итого</span>
-                  <strong><Price amount={order.totalAmount} /></strong>
-                </div>
-              </div>
-            </section>
-
-            <section className={styles.panelSection}>
-              <h2>Действия</h2>
+              <h2 className={styles.sectionTitle}>Действия</h2>
 
               <div className={styles.actions}>
                 {canShip ? (
                   <Button variant="primary" onClick={onShip} disabled={shipping}>
                     {shipping ? "Отмечаем…" : "Отправил"}
                   </Button>
-                ) : (
-                  <div className={styles.muted}>
-                    Для текущего статуса отправка недоступна
-                  </div>
-                )}
+                ) : null}
 
                 <a
                   href={labelHref}
-                  className="buttonSecondary"
+                  className={styles.actionLink}
                   target="_blank"
                   rel="noreferrer"
                 >
@@ -224,28 +224,31 @@ export function SellerOrderDetails({
   );
 }
 
-function SummaryItem({ label, value }: { label: string; value: string }) {
+function ReadonlyField({
+  label,
+  value,
+  strong = false,
+  wide = false,
+}: {
+  label: string;
+  value: ReactNode | null | undefined;
+  strong?: boolean;
+  wide?: boolean;
+}) {
   return (
-    <div className={styles.summaryItem}>
-      <strong>{value}</strong>
-      <span>{label}</span>
+    <div className={`${styles.readonlyField} ${wide ? styles.readonlyFieldWide : ""}`.trim()}>
+      <span className={styles.readonlyLabel}>{label}</span>
+      <div className={`${styles.readonlyValue} ${strong ? styles.readonlyValueStrong : ""}`.trim()}>
+        {value || "—"}
+      </div>
     </div>
   );
 }
 
-function InfoRow({
-  label,
-  value,
-}: {
-  label: string;
-  value: ReactNode | null | undefined;
-}) {
-  return (
-    <div className={styles.infoRow}>
-      <span>{label}</span>
-      <strong>{value || "—"}</strong>
-    </div>
-  );
+function formatDeliveryMethod(value: string) {
+  if (value === "COURIER") return "Курьер";
+  if (value === "PICKUP_POINT" || value === "PICKUP") return "ПВЗ СДЭК";
+  return value;
 }
 
 function getOrderTone(order: SellerOrder) {
@@ -281,13 +284,3 @@ function getOrderTone(order: SellerOrder) {
   return "default";
 }
 
-function InfoLink({ label, href }: { label: string; href: string }) {
-  return (
-    <div className={styles.infoRow}>
-      <span>{label}</span>
-      <a href={href} target="_blank" rel="noreferrer">
-        Открыть
-      </a>
-    </div>
-  );
-}

@@ -5,9 +5,9 @@ export const HOME_PLACEHOLDER_IMAGE =
 
 export const HOME_HERO: HeroBlock = {
   eyebrow: "RCM selection",
-  title: "Российские бренды, собранные в одной витрине",
+  title: "Только отечественные производители",
   text: "Новые вещи от локальных производителей: одежда, аксессуары и предметы для повседневного гардероба.",
-  buttonLabel: "Смотреть каталог",
+  buttonLabel: "Начать шопинг",
   buttonHref: "/",
   image: HOME_PLACEHOLDER_IMAGE,
   imageAlt: "Главная подборка",

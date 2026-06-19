@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { apiFetch, API_URL } from "../../../../lib/api";
@@ -9,6 +10,8 @@ import { ProductGeneralCard } from "./components/ProductGeneralCard";
 import { ProductVariantsCard } from "./components/ProductVariantsCard";
 import { ProductShippingCard } from "./components/ProductShippingCard";
 import { ProductPreviewAside } from "./components/ProductPreviewAside";
+import { SellerSidebar } from "../../../components/SellerSidebar";
+import { getSellerBrands } from "../../../lib/sellerBrandApi";
 import { toast } from "sonner";
 
 import type {
@@ -24,6 +27,9 @@ import styles from "./ProductEditPage.module.css";
 
 type Props = {
   productId: number;
+  initialStoreName: string | null;
+  initialProductsCount: number;
+  initialOrdersCount: number;
 };
 
 type ValidationErrors = {
@@ -98,10 +104,16 @@ function mapProductVariants(productData: SellerProduct): ProductVariant[] {
     : [createEmptyVariant()];
 }
 
-export function ProductEditPageClient({ productId }: Props) {
+export function ProductEditPageClient({
+  productId,
+  initialStoreName,
+  initialProductsCount,
+  initialOrdersCount,
+}: Props) {
   const router = useRouter();
   const [initialized, setInitialized] = useState(false);
   const [dirty, setDirty] = useState(false);
+  const [moderationChangesPending, setModerationChangesPending] = useState(false);
 
   const [product, setProduct] = useState<SellerProduct | null>(null);
   const [categories, setCategories] = useState<Option[]>([]);
@@ -134,6 +146,7 @@ export function ProductEditPageClient({ productId }: Props) {
   const [publishing, setPublishing] = useState(false);
   const [archiving, setArchiving] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [creatingProduct, setCreatingProduct] = useState(false);
   const [onboardingStatus, setOnboardingStatus] =
     useState<SellerOnboardingStatus | null>(null);
 
@@ -144,34 +157,6 @@ export function ProductEditPageClient({ productId }: Props) {
       done: 0,
       total: 0,
     });
-
-  const cardScore = useMemo(() => {
-    let score = 0;
-
-    if (title.trim()) score += 15;
-    if (description.trim().length >= 80) score += 20;
-    if (categoryId || suggestedCategoryName.trim()) score += 10;
-    if (brandId) score += 10;
-    if (images.length > 0) score += 20;
-    if (variants.length > 0) score += 15;
-    if (packageWidthCm && packageHeightCm && packageLengthCm && packageWeightKg) {
-      score += 10;
-    }
-
-    return Math.min(score, 100);
-  }, [
-    title,
-    description,
-    categoryId,
-    suggestedCategoryName,
-    brandId,
-    images.length,
-    variants.length,
-    packageWidthCm,
-    packageHeightCm,
-    packageLengthCm,
-    packageWeightKg,
-  ]);
 
   useEffect(() => {
     let cancelled = false;
@@ -257,6 +242,7 @@ export function ProductEditPageClient({ productId }: Props) {
         setImages(Array.isArray(productData.imageItems) ? productData.imageItems : []);
         setInitialized(true);
         setDirty(false);
+        setModerationChangesPending(false);
       } catch (e) {
         if (!cancelled) {
           toast.error(e instanceof Error ? e.message : "Не удалось загрузить товар");
@@ -290,9 +276,13 @@ export function ProductEditPageClient({ productId }: Props) {
     };
   }, [dirty]);
 
-  function markDirty() {
+  function markDirty(options: { moderation?: boolean } = {}) {
     if (!initialized) return;
     setDirty(true);
+
+    if (options.moderation) {
+      setModerationChangesPending(true);
+    }
   }
 
   function clearValidationError(key: keyof ValidationErrors) {
@@ -620,6 +610,7 @@ export function ProductEditPageClient({ productId }: Props) {
       toast.success("Фото загружены");
       await reloadProductImages();
       clearValidationError("images");
+      setModerationChangesPending(true);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Не удалось загрузить фото");
     } finally {
@@ -654,6 +645,7 @@ export function ProductEditPageClient({ productId }: Props) {
 
       toast.success("Фото удалено");
       await reloadProductImages();
+      setModerationChangesPending(true);
     } catch (e) {
       setImages(previous);
       toast.error(e instanceof Error ? e.message : "Не удалось удалить фото");
@@ -707,6 +699,7 @@ export function ProductEditPageClient({ productId }: Props) {
     nextImages.splice(toIndex, 0, moved);
 
     setImages(nextImages);
+    setModerationChangesPending(true);
     void saveImageOrder(nextImages);
   }
 
@@ -746,6 +739,7 @@ export function ProductEditPageClient({ productId }: Props) {
             }
           : current
       );
+      setModerationChangesPending(false);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Не удалось опубликовать товар");
     } finally {
@@ -784,7 +778,11 @@ export function ProductEditPageClient({ productId }: Props) {
       clearVariantValidationError(index, "availableQuantity");
     }
 
-    markDirty();
+    const operationalOnly = Object.keys(patch).every((key) =>
+      ["price", "availableQuantity", "stockTrackingEnabled", "sellerArticle"].includes(key)
+    );
+
+    markDirty({ moderation: !operationalOnly });
   }
 
   function addVariant(base: Partial<ProductVariant> = {}) {
@@ -798,16 +796,43 @@ export function ProductEditPageClient({ productId }: Props) {
       variant,
     ]);
 
-    markDirty();
+    markDirty({ moderation: true });
   }
 
   function removeVariant(index: number) {
     setVariants((current) => current.filter((_, variantIndex) => variantIndex !== index));
-    markDirty();
+    markDirty({ moderation: true });
   }
 
-  if (loading) {
-    return <ProductEditSkeleton />;
+  async function createDraftProduct() {
+    if (creatingProduct) return;
+
+    setCreatingProduct(true);
+
+    try {
+      const sellerBrands = brands.length > 0 ? brands : await getSellerBrands();
+
+      if (!Array.isArray(sellerBrands) || sellerBrands.length === 0) {
+        router.push("/seller?tab=brand");
+        return;
+      }
+
+      const response = await apiFetch(`${API_URL}/api/seller/products/draft`, {
+        method: "POST",
+      });
+
+      if (!response.ok) {
+        const text = await response.text().catch(() => "");
+        throw new Error(text || "Не удалось создать черновик");
+      }
+
+      const id: number = await response.json();
+      router.push(`/seller/products/${id}/edit`);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Не удалось создать товар");
+    } finally {
+      setCreatingProduct(false);
+    }
   }
 
   async function archiveProduct() {
@@ -884,25 +909,48 @@ export function ProductEditPageClient({ productId }: Props) {
     void message;
   }
 
-  const canPublish = isSellerReadyForPublish();
+  const activeProductWithoutModerationChanges =
+    product?.status === "ACTIVE" && !moderationChangesPending;
+  const canPublish =
+    isSellerReadyForPublish() && !activeProductWithoutModerationChanges;
 
   const publishBlockedReason =
     onboardingStatus && onboardingStatus.progress < 100
       ? "Заполните реквизиты и примите оферту продавца"
+      : activeProductWithoutModerationChanges
+        ? "Для цены, остатков и артикула продавца модерация не нужна"
       : undefined;
+  const storeName =
+    initialStoreName ||
+    brands[0]?.name?.trim() ||
+    product?.brand?.trim() ||
+    null;
 
   return (
     <div className="pageContainer">
-      <div className={styles.page}>
-        <nav className={styles.breadcrumbs} aria-label="Навигация">
-          <a href="/seller">Кабинет продавца</a>
-          <span>/</span>
-          <a href="/seller?tab=products">Товары</a>
-          <span>/</span>
-          <span>{title || "Редактирование товара"}</span>
-        </nav>
+      <div className={styles.sellerLayout}>
+        <SellerSidebar
+          currentTab="products"
+          ordersCount={initialOrdersCount}
+          productsCount={initialProductsCount}
+          storeName={storeName}
+          creatingProduct={creatingProduct}
+          onCreateProduct={() => void createDraftProduct()}
+        />
 
+        <div className={styles.editorContent}>
+          {loading ? (
+            <ProductEditSkeleton />
+          ) : (
+      <div className={styles.page}>
         <div className={styles.pageContent} ref={pageContentRef}>
+          <nav className={styles.breadcrumbs} aria-label="Навигация">
+            <Link href="/seller">Кабинет продавца</Link>
+            <span>/</span>
+            <Link href="/seller?tab=products">Товары</Link>
+            <span>/</span>
+            <span>Редактирование товара</span>
+          </nav>
         {onboardingStatus && onboardingStatus.progress < 100 ? (
           <div className={styles.onboardingWarning}>
             <strong>Магазин не готов к публикации</strong>
@@ -935,16 +983,16 @@ export function ProductEditPageClient({ productId }: Props) {
               onTitleChange={(value) => {
                 setTitle(value);
                 clearValidationError("title");
-                markDirty();
+                markDirty({ moderation: true });
               }}
               onDescriptionChange={(value) => {
                 setDescription(value);
                 clearValidationError("description");
-                markDirty();
+                markDirty({ moderation: true });
               }}
               onCompositionChange={(value) => {
                 setComposition(value);
-                markDirty();
+                markDirty({ moderation: true });
               }}
               onCategoryIdChange={(value) => {
                 setCategoryId(value);
@@ -952,7 +1000,7 @@ export function ProductEditPageClient({ productId }: Props) {
                   setSuggestedCategoryName("");
                 }
                 clearValidationError("categoryId");
-                markDirty();
+                markDirty({ moderation: true });
               }}
               onSuggestedCategoryNameChange={(value) => {
                 setSuggestedCategoryName(value);
@@ -960,11 +1008,11 @@ export function ProductEditPageClient({ productId }: Props) {
                   setCategoryId("");
                 }
                 clearValidationError("categoryId");
-                markDirty();
+                markDirty({ moderation: true });
               }}
               onAudienceChange={(value) => {
                 setAudience(value);
-                markDirty();
+                markDirty({ moderation: true });
               }}
             />
 
@@ -998,22 +1046,22 @@ export function ProductEditPageClient({ productId }: Props) {
             onPackageWidthCmChange={(value) => {
                 setPackageWidthCm(value);
                 clearValidationError("packageWidthCm");
-                markDirty();
+                markDirty({ moderation: true });
             }}
             onPackageHeightCmChange={(value) => {
                 setPackageHeightCm(value);
                 clearValidationError("packageHeightCm");
-                markDirty();
+                markDirty({ moderation: true });
             }}
             onPackageLengthCmChange={(value) => {
                 setPackageLengthCm(value);
                 clearValidationError("packageLengthCm");
-                markDirty();
+                markDirty({ moderation: true });
             }}
             onPackageWeightKgChange={(value) => {
                 setPackageWeightKg(value);
                 clearValidationError("packageWeightKg");
-                markDirty();
+                markDirty({ moderation: true });
             }}
             />
 
@@ -1066,12 +1114,14 @@ export function ProductEditPageClient({ productId }: Props) {
             brands={brands}
             product={product}
             images={images}
-            cardScore={cardScore}
             descriptionLength={description.length}
             packageWeightKg={packageWeightKg}
             variantsCount={variants.length}
             />
             </div>
+        </div>
+      </div>
+          )}
         </div>
       </div>
     </div>
@@ -1080,14 +1130,7 @@ export function ProductEditPageClient({ productId }: Props) {
 
 function ProductEditSkeleton() {
   return (
-    <div className="pageContainer">
       <div className={styles.page}>
-        <div className={styles.skeletonBreadcrumbs}>
-          <div />
-          <div />
-          <div />
-        </div>
-
         <div className={styles.pageContent}>
           <div className={styles.layout}>
             <main className={styles.main}>
@@ -1112,7 +1155,6 @@ function ProductEditSkeleton() {
           </div>
         </div>
       </div>
-    </div>
   );
 }
 
