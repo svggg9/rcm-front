@@ -60,7 +60,7 @@ export function ProductCarousel({ title, products }: Props) {
   if (!visibleProducts.length) return null;
 
   return (
-    <section className={styles.section}>
+    <div className={styles.section}>
       {title ? (
         <div className={styles.header}>
           <h2 className={styles.title}>{title}</h2>
@@ -118,6 +118,6 @@ export function ProductCarousel({ title, products }: Props) {
           </svg>
         </button>
       </div>
-    </section>
+    </div>
   );
 }

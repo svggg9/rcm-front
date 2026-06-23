@@ -19,6 +19,12 @@ export function AccountOrderCard({
   onClick,
 }: Props) {
   const extraItemsCount = Math.max(order.itemsCount - 1, 0);
+  const productTitles =
+    order.productTitles && order.productTitles.length > 0
+      ? order.productTitles.slice(0, 4)
+      : order.firstProductTitle
+        ? [order.firstProductTitle]
+        : [];
 
   return (
     <article
@@ -70,8 +76,14 @@ export function AccountOrderCard({
 
           <div className={styles.orderMeta}>
             <div>{formatItemsCount(order.itemsCount)}</div>
-            {order.firstProductTitle ? (
-              <div className={styles.orderProduct}>{order.firstProductTitle}</div>
+            {productTitles.length > 0 ? (
+              <div className={styles.orderProducts}>
+                {productTitles.map((title, index) => (
+                  <div className={styles.orderProduct} key={`${title}-${index}`}>
+                    {title}
+                  </div>
+                ))}
+              </div>
             ) : null}
           </div>
         </div>

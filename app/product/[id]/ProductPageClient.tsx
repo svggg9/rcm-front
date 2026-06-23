@@ -8,11 +8,10 @@ import styles from "./ProductPage.module.css";
 import { ensureCartId } from "../../lib/auth";
 import { emitCartChanged } from "../../lib/cartEvents";
 import { useFavorites } from "../../lib/FavoritesContext";
-import { ProductCarousel } from "../../components/ProductCarousel/ProductCarousel";
+import { ProductShowcase } from "../../components/ProductShowcase/ProductShowcase";
 
 import { ProductGallery } from "./components/ProductGallery";
 import { ProductInfoPanel } from "./components/ProductInfoPanel";
-import { ProductDetailsAccordion } from "./components/ProductDetailsAccordion";
 import { ProductImageViewer } from "./components/ProductImageViewer";
 
 import type { Product } from "./lib/types";
@@ -85,14 +84,20 @@ export default function ProductPageClient({
   }, [product.variants, selectedColorwayId]);
 
   const selectedVariant = useMemo(() => {
-    return (
-      visibleVariants.find((variant) => variant.id === selectedVariantId) ??
-      visibleVariants[0] ??
-      null
-    );
+    const selected = visibleVariants.find((variant) => variant.id === selectedVariantId);
+
+    if (selected) {
+      return selected;
+    }
+
+    return visibleVariants.length === 1 ? visibleVariants[0] : null;
   }, [visibleVariants, selectedVariantId]);
 
   const currentPrice = selectedVariant?.price ?? getMinPrice(product);
+  const sameBrandProducts = useMemo(
+    () => related.filter((item) => item.brand === product.brand),
+    [product.brand, related]
+  );
 
   const viewerProgress =
     displayImages.length > 1
@@ -130,16 +135,6 @@ export default function ProductPageClient({
       document.body.style.overflow = "";
     };
   }, [viewerOpen, displayImages]);
-
-  function handleChangeColorway(colorwayId: number) {
-    setSelectedColorwayId(colorwayId);
-
-    const nextVariant = product.variants.find(
-      (variant) => variant.colorwayId === colorwayId
-    );
-
-    setSelectedVariantId(nextVariant?.id ?? null);
-  }
 
   function handleChangeVariant(variantId: number) {
     const nextVariant = product.variants.find((variant) => variant.id === variantId);
@@ -252,9 +247,6 @@ export default function ProductPageClient({
       </li>
     ) : null}
 
-    <li className={styles.breadcrumbItem}>
-      <span className={styles.breadcrumbCurrent}>{product.title}</span>
-    </li>
   </ol>
           </nav>
           <div className={styles.top}>
@@ -268,9 +260,6 @@ export default function ProductPageClient({
             <ProductInfoPanel
               product={product}
               variants={visibleVariants}
-              colorways={product.colorways ?? []}
-              selectedColorwayId={selectedColorwayId}
-              onChangeColorway={handleChangeColorway}
               selectedVariantId={selectedVariantId}
               onChangeVariant={handleChangeVariant}
               selectedVariant={selectedVariant}
@@ -281,30 +270,20 @@ export default function ProductPageClient({
               onAddToCart={handleAddToCart}
               onToggleFavorite={handleToggleFavorite}
               onEditProduct={() => router.push(`/seller/products/${product.id}/edit`)}
+              openDescription={openDescription}
+              openShipping={openShipping}
+              onToggleDescription={() => setOpenDescription((prev) => !prev)}
+              onToggleShipping={() => setOpenShipping((prev) => !prev)}
             />
           </div>
 
-          {related.length > 0 ? (
-            <>
-              <ProductCarousel
-                title={`Еще от ${product.brand}`}
-                products={related.filter((item) => item.brand === product.brand)}
-              />
-              <ProductCarousel
-                title="Рекомендации"
-                products={related.filter((item) => item.brand !== product.brand)}
-              />
-            </>
-          ) : null}
-
-          <ProductDetailsAccordion
-            product={product}
-            selectedVariant={selectedVariant}
-            openDescription={openDescription}
-            openShipping={openShipping}
-            onToggleDescription={() => setOpenDescription((prev) => !prev)}
-            onToggleShipping={() => setOpenShipping((prev) => !prev)}
+          <ProductShowcase
+            className={styles.relatedSection}
+            variant="carousel"
+            title={`Еще от ${product.brand}`}
+            products={sameBrandProducts}
           />
+
         </div>
       </div>
 

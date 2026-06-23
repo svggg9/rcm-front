@@ -33,7 +33,7 @@ export function ProductDetailsAccordion({
           aria-expanded={openDescription}
         >
           <span>Описание</span>
-          <span className={styles.accIcon}>{openDescription ? "−" : "+"}</span>
+          <span className={styles.accIcon}>{openDescription ? "-" : "+"}</span>
         </button>
 
         {openDescription ? (
@@ -82,38 +82,16 @@ export function ProductDetailsAccordion({
           aria-expanded={openShipping}
         >
           <span>Доставка и возврат</span>
-          <span className={styles.accIcon}>{openShipping ? "−" : "+"}</span>
+          <span className={styles.accIcon}>{openShipping ? "-" : "+"}</span>
         </button>
 
         {openShipping ? (
           <div className={styles.accBody}>
             <div className={styles.shippingText}>
               <p>
-                Доставка рассчитывается при оформлении заказа и зависит от
-                выбранного города, способа получения и тарифов службы доставки.
-              </p>
-              <p>
-                Вы оплачиваете итоговую стоимость заказа на этапе оформления.
-                Если в заказе несколько товаров, условия доставки будут
-                рассчитаны для всей корзины.
-              </p>
-              <p>
-                Возврат возможен в течение 30 дней после получения заказа, если
+                Возврат возможен в течение 14 дней после получения заказа, если
                 товар сохранил товарный вид, бирки и упаковку.
               </p>
-              <p>
-                Точные правила возврата, сроки обработки и исключения мы
-                вынесем в отдельные разделы после финальной настройки политики
-                магазина.
-              </p>
-
-              <div className={styles.shippingLinks}>
-                <span>Заказы и доставка</span>
-                <span>Возврат</span>
-                <span>Оплата и пошлины</span>
-                <span>Данные продавца</span>
-                <span>Информация о производителе</span>
-              </div>
             </div>
           </div>
         ) : null}

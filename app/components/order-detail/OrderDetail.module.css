@@ -15,7 +15,7 @@
 }
 
 .breadcrumbs > span:last-child {
-  color: var(--gold-muted);
+  color: var(--content-primary);
 }
 
 .breadcrumbs a {

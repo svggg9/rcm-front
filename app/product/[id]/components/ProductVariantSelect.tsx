@@ -21,7 +21,8 @@ export function ProductVariantSelect({
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement | null>(null);
   const selectedVariant =
-    variants.find((variant) => variant.id === selectedVariantId) ?? null;
+    variants.find((variant) => variant.id === selectedVariantId) ??
+    (variants.length === 1 ? variants[0] : null);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {

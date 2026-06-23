@@ -1,44 +1,9 @@
 .section {
-  margin-top: 0;
   padding: 44px 0 0;
-}
-
-.header {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-
-  margin-bottom: 22px;
-}
-
-.title {
-  color: var(--black);
-
-  font-size: var(--font-xl);
-  font-weight: 400;
-  letter-spacing: 0;
-}
-
-.link {
-  width: 100%;
-  margin-top: 20px;
-  border-color: var(--black);
-  text-decoration: none;
-}
-
-.empty {
-  padding: 24px 0;
-
-  color: var(--muted);
-  font-size: var(--font-sm);
 }
 
 @media (max-width: 768px) {
   .section {
-    padding: 32px 0 0;
-  }
-
-  .title {
-    font-size: var(--font-xl);
+    padding-top: 32px;
   }
 }

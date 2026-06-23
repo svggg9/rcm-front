@@ -9,7 +9,7 @@ import { emitCartChanged } from "../lib/cartEvents";
 import { useCurrentUser } from "../lib/useCurrentUser";
 import { mapProductToCarouselProduct } from "../lib/productMappers";
 
-import { ProductCarousel } from "../components/ProductCarousel/ProductCarousel";
+import { ProductShowcase } from "../components/ProductShowcase/ProductShowcase";
 
 import type { CartItem } from "./lib/types";
 import { getCart, removeItem, updateQuantity } from "./lib/cartApi";
@@ -219,7 +219,8 @@ export default function CartPage() {
           </div>
         )}
 
-        <ProductCarousel
+        <ProductShowcase
+          variant="carousel"
           title="Вам может понравиться"
           products={recommendations.map(mapProductToCarouselProduct)}
         />

@@ -163,44 +163,51 @@ function ProductRow({
       </div>
 
       <div className={styles.productMain}>
-        <div className={styles.productStatus}>
-          <StatusBadge tone={getProductStatusTone(product.status)}>
-            {formatProductStatus(product.status)}
-          </StatusBadge>
-        </div>
+        <div className={styles.productContent}>
+          <div className={styles.productDetails}>
+            <div className={styles.productStatus}>
+              <StatusBadge tone={getProductStatusTone(product.status)}>
+                {formatProductStatus(product.status)}
+              </StatusBadge>
+            </div>
 
-        <div className={styles.productInfo}>
-          <h2 className={`${styles.productTitle} textBody`}>{product.title || "Без названия"}</h2>
+            <div className={styles.productInfo}>
+              <h2 className={styles.productTitle}>{product.title || "Без названия"}</h2>
 
-          <div className={`${styles.productMeta} textCaption`}>
-            <span>ID: {product.id}</span>
-            {product.categoryName ? (
-              <>
-                <span>•</span>
-                <span>{product.categoryName}</span>
-              </>
-            ) : null}
+              <div className={styles.productMeta}>
+                <span>ID: {product.id}</span>
+                {product.categoryName ? <span>{product.categoryName}</span> : null}
+              </div>
+            </div>
           </div>
 
-          <div className={`${styles.productTags} textCaption`}>
-            <span>{variantsCount} вариант(ов)</span>
-            <span>Остаток: {Number(totalStock).toLocaleString()}</span>
-          </div>
-        </div>
+          <div className={styles.productSide}>
+            <div className={styles.productPrice}>
+              <Price amount={Number(minPrice)} />
+            </div>
 
-        <div className={styles.productState}>
-          <div className={`${styles.productPrice} textPrice`}>
-            <Price amount={Number(minPrice)} />
+            <div className={styles.productTags}>
+              <span>{formatVariantsCount(variantsCount)}</span>
+              <span>Остаток: {Number(totalStock).toLocaleString()}</span>
+            </div>
           </div>
         </div>
       </div>
 
-      <span className={styles.productArrow} aria-hidden="true">
-        &gt;
-      </span>
-
     </article>
   );
+}
+
+function formatVariantsCount(count: number) {
+  const mod10 = count % 10;
+  const mod100 = count % 100;
+
+  if (mod10 === 1 && mod100 !== 11) return `${count} вариант`;
+  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) {
+    return `${count} варианта`;
+  }
+
+  return `${count} вариантов`;
 }
 
 function getProductStatusTone(status: SellerProductListItem["status"]) {
