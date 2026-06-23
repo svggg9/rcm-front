@@ -98,6 +98,7 @@ export type OrderListItem = {
   totalAmount: number;
   currency: string;
   firstProductTitle: string | null;
+  productTitles?: string[];
   firstImageUrl: string | null;
   itemsCount: number;
   createdAt: string;

@@ -1,6 +1,4 @@
-import Link from "next/link";
-
-import { ProductCarousel } from "../../components/ProductCarousel/ProductCarousel";
+import { ProductShowcase } from "../../components/ProductShowcase/ProductShowcase";
 import { ProductShowcaseData } from "../types";
 import styles from "./ProductRailSection.module.css";
 
@@ -10,20 +8,13 @@ type ProductRailSectionProps = {
 
 export function ProductRailSection({ block }: ProductRailSectionProps) {
   return (
-    <section className={styles.section}>
-      <div className={styles.header}>
-        <h2 className={styles.title}>{block.title}</h2>
-      </div>
-
-      {block.products.length > 0 ? (
-        <ProductCarousel title="" products={block.products} />
-      ) : (
-        <div className={styles.empty}>Пока нет товаров для этой подборки</div>
-      )}
-
-      <Link href={block.href} className={`buttonSecondary ${styles.link}`}>
-        Посмотреть подборку
-      </Link>
-    </section>
+    <ProductShowcase
+      className={styles.section}
+      variant="grid"
+      title={block.title}
+      products={block.products}
+      href={block.href}
+      emptyText="Пока нет товаров для этой подборки"
+    />
   );
 }

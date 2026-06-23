@@ -45,7 +45,7 @@
 }
 
 .breadcrumbCurrent {
-  color: var(--gold-muted);
+  color: var(--content-primary);
 }
 
 .headingWrap {

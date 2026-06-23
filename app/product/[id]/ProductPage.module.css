@@ -1,6 +1,10 @@
 .page {
   width: 100%;
-  margin: 24px 0 48px;
+  margin: 24px 0 56px;
+}
+
+.relatedSection {
+  margin-top: 40px;
 }
 
 .state {
@@ -14,7 +18,7 @@
   grid-template-columns:
     minmax(520px, 684px)
     minmax(360px, 684px);
-  gap: clamp(32px, 5vw, 72px);
+  gap: clamp(32px, 4.8vw, 68px);
   align-items: start;
   justify-content: center;
   max-width: 1440px;
@@ -23,7 +27,7 @@
 
 .gallery {
   display: grid;
-  grid-template-columns: 120px minmax(0, 1fr);
+  grid-template-columns: 128px minmax(0, 1fr);
   gap: 16px;
   align-items: start;
   width: 100%;
@@ -34,15 +38,15 @@
   position: relative;
   display: flex;
   flex-direction: column;
-  width: 120px;
+  width: 128px;
 }
 
 .galleryThumbs {
   display: flex;
   flex-direction: column;
   gap: 10px;
-  height: 670px;
-  max-height: 670px;
+  height: 640px;
+  max-height: 640px;
   overflow-y: auto;
   scrollbar-width: none;
 }
@@ -61,17 +65,19 @@
 .galleryMain {
   width: 100%;
   max-width: 480px;
+  height: 640px;
   aspect-ratio: 3 / 4;
 }
 
 .galleryThumb {
-  width: 120px;
-  min-width: 120px;
+  width: 128px;
+  min-width: 128px;
   height: 160px;
   flex: 0 0 160px;
   border: 0;
-  padding: 0;
+  padding: 0 8px 0 0;
   cursor: pointer;
+  background: transparent;
 }
 
 .galleryThumb:focus-visible {
@@ -82,6 +88,7 @@
   content: "";
   position: absolute;
   inset: 0;
+  right: 8px;
   z-index: 1;
   background: rgba(255, 255, 255, 0.34);
   pointer-events: none;
@@ -92,13 +99,17 @@
   content: "";
   position: absolute;
   top: 0;
-  right: 0;
+  right: 3px;
   bottom: 0;
   z-index: 2;
-  width: 2px;
-  background: var(--muted);
+  width: 0;
+  background: var(--gold-muted);
   opacity: 0;
   transition: opacity var(--transition-fast);
+}
+
+.galleryThumbActive::after {
+  width: 2px;
 }
 
 .galleryThumb:hover::before,
@@ -113,7 +124,7 @@
 .galleryThumbScroll {
   position: absolute;
   left: 0;
-  right: 0;
+  right: 8px;
   z-index: 4;
   width: 120px;
   height: 44px;
@@ -165,13 +176,18 @@
   height: 100%;
   border: 0;
   padding: 0;
-  cursor: zoom-in;
+  cursor: pointer;
   background: transparent;
 }
 
 .galleryImg {
   object-fit: cover;
   object-position: center;
+}
+
+.galleryThumb .galleryImg {
+  right: auto !important;
+  width: 120px !important;
 }
 
 .zoomBadge {
@@ -213,7 +229,7 @@
   scrollbar-width: none;
   overscroll-behavior-x: contain;
   -webkit-overflow-scrolling: touch;
-  touch-action: pan-x;
+  touch-action: pan-y pinch-zoom;
 }
 
 .galleryMobileTrack::-webkit-scrollbar {
@@ -259,7 +275,7 @@
 
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: 22px;
   width: 100%;
   max-width: 684px;
   justify-self: end;
@@ -270,13 +286,15 @@
 
   font-size: var(--font-xs);
   line-height: 1;
+  font-weight: 300;
+  letter-spacing: 0;
   text-transform: uppercase;
 }
 
 .heading {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 4px;
 }
 
 .brandRow {
@@ -289,54 +307,60 @@
 .brand {
   color: var(--black);
 
-  font-size: 24px;
-  line-height: 1.1;
-  font-weight: 500;
-  letter-spacing: -0.03em;
+  font-size: var(--font-xl);
+  line-height: 1.25;
+  font-weight: 400;
+  letter-spacing: 0;
 }
 
 .title {
   color: var(--black);
 
-  font-size: var(--font-lg);
-  line-height: 1.35;
+  font-size: var(--font-md);
+  line-height: 1.4;
   font-weight: 400;
+  letter-spacing: 0;
 }
 
 .priceBlock {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 5px;
 }
 
 .price {
   color: var(--black);
-  font-size: 28px;
-  line-height: 1.1;
+  font-size: var(--font-xl);
+  line-height: 1.2;
   font-weight: 300;
+  letter-spacing: 0;
 }
 
 .priceNote {
   color: var(--muted);
   font-size: var(--font-sm);
+  line-height: 1.4;
+  font-weight: 300;
 }
 
 .deliveryEstimate {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 4px;
 }
 
 .deliveryEstimateTitle {
-  color: var(--black);
-  font-size: var(--font-sm);
-  font-weight: 500;
+  color: var(--muted);
+  font-size: var(--font-xs);
+  line-height: 1.3;
+  font-weight: 300;
 }
 
 .deliveryEstimateValue {
   color: var(--black);
-  font-size: var(--font-lg);
-  line-height: 1.25;
+  font-size: var(--font-sm);
+  line-height: 1.4;
+  font-weight: 300;
 }
 
 .productModels {
@@ -347,13 +371,16 @@
 
 .productModelsTitle {
   color: var(--black);
-  font-size: var(--font-sm);
-  font-weight: 500;
+  font-size: var(--font-md);
+  line-height: 1.4;
+  font-weight: 400;
 }
 
 .productModelsCount {
   color: var(--muted);
   font-size: var(--font-sm);
+  line-height: 1.4;
+  font-weight: 300;
 }
 
 .productModelsList {
@@ -370,6 +397,7 @@
   color: var(--black);
   font-size: var(--font-sm);
   line-height: 1.45;
+  font-weight: 300;
   text-align: left;
   cursor: pointer;
 }
@@ -383,28 +411,33 @@
 .variantBlock {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 14px;
 }
 
 .variantHeader {
   color: var(--black);
 
   font-size: var(--font-md);
-  font-weight: 500;
+  font-weight: 400;
 }
 
 .variantSelect {
   position: relative;
   width: 100%;
-  border: 1px solid var(--black);
+  border: 1px solid var(--line-strong, var(--line));
   background: var(--white);
   z-index: 20;
+  transition: border-color var(--transition-fast);
+}
+
+.variantSelect[data-open="true"] {
+  border-color: var(--black);
 }
 
 .variantSelectButton {
   width: 100%;
-  height: 52px;
-  padding: 0 14px;
+  height: 48px;
+  padding: 0 12px;
 
   border: 0;
   background: var(--white);
@@ -415,7 +448,9 @@
   justify-content: space-between;
   gap: 14px;
 
-  font-size: var(--font-md);
+  font-size: var(--font-sm);
+  line-height: 1.4;
+  font-weight: 300;
   text-align: left;
   outline: none;
   cursor: pointer;
@@ -480,7 +515,7 @@
 }
 
 .variantSelectOption {
-  min-height: 38px;
+  min-height: 36px;
   padding: 0 12px;
 
   border: 0;
@@ -492,7 +527,9 @@
   justify-content: space-between;
   gap: 16px;
 
-  font-size: var(--font-md);
+  font-size: var(--font-sm);
+  line-height: 1.4;
+  font-weight: 300;
   text-align: left;
   cursor: pointer;
 }
@@ -507,18 +544,21 @@
 }
 
 .variantSelectSize {
-  font-weight: 600;
+  font-weight: 400;
 }
 
 .variantSelectPrice {
   color: var(--muted);
-  font-size: var(--font-md);
+  font-size: var(--font-sm);
+  font-weight: 300;
   text-align: right;
 }
 
 .variantText {
   color: var(--black);
   font-size: var(--font-md);
+  line-height: 1.4;
+  font-weight: 300;
 }
 
 .actions {
@@ -536,10 +576,15 @@
   background: var(--black);
   color: var(--white);
 
-  font-size: var(--font-md);
+  font-size: var(--font-sm);
   font-weight: 500;
+  line-height: 1.2;
 
   cursor: pointer;
+  transition:
+    background-color var(--transition-fast),
+    border-color var(--transition-fast),
+    color var(--transition-fast);
 }
 
 .addBtn:disabled {
@@ -559,7 +604,8 @@
   background: var(--white);
   color: var(--black);
 
-  font-size: var(--font-md);
+  font-size: var(--font-sm);
+  font-weight: 500;
   white-space: nowrap;
 
   cursor: pointer;
@@ -625,12 +671,13 @@
 }
 
 .accordion {
-  margin-top: 40px;
-  border-top: 1px solid var(--line);
+  width: 100%;
+  margin: 2px 0 0;
+  border-top: 0;
 }
 
 .accItem {
-  border-bottom: 1px solid var(--line);
+  border-bottom: 0;
 }
 
 .accBtn {
@@ -639,14 +686,16 @@
   justify-content: space-between;
 
   width: 100%;
-  min-height: 56px;
+  min-height: 42px;
   padding: 0;
 
   border: 0;
   background: transparent;
   color: var(--black);
 
-  font-size: var(--font-lg);
+  font-size: var(--font-md);
+  line-height: 1.4;
+  font-weight: 400;
 
   cursor: pointer;
 }
@@ -658,13 +707,13 @@
 
 .accBodyOpen,
 .accBody {
-  padding: 0 0 24px;
+  padding: 0 0 18px;
 }
 
 .descriptionGrid {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(260px, 340px);
-  gap: 40px;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 20px;
 }
 
 .descriptionGridSingle {
@@ -674,7 +723,7 @@
 .descriptionMain {
   display: flex;
   flex-direction: column;
-  gap: 22px;
+  gap: 20px;
 }
 
 .articleRows {
@@ -690,12 +739,15 @@
 .articleRows span {
   color: var(--muted);
   font-size: var(--font-xs);
+  line-height: 1.3;
+  font-weight: 300;
 }
 
 .articleRows strong {
   color: var(--black);
   font-size: var(--font-sm);
-  font-weight: 500;
+  line-height: 1.4;
+  font-weight: 300;
 }
 
 .compositionBlock {
@@ -708,7 +760,8 @@
   color: var(--black);
 
   font-size: var(--font-md);
-  font-weight: 500;
+  line-height: 1.4;
+  font-weight: 400;
 }
 
 .text,
@@ -716,7 +769,8 @@
   color: var(--black);
 
   font-size: var(--font-md);
-  line-height: 1.6;
+  line-height: 1.5;
+  font-weight: 300;
 }
 
 .list {
@@ -729,7 +783,8 @@
   max-width: 860px;
   color: var(--black);
   font-size: var(--font-md);
-  line-height: 1.6;
+  line-height: 1.5;
+  font-weight: 300;
 }
 
 .shippingText p {
@@ -743,7 +798,7 @@
   margin-top: 18px;
   color: var(--black);
   font-size: var(--font-sm);
-  font-weight: 500;
+  font-weight: 400;
 }
 
 .viewer {
@@ -755,7 +810,7 @@
   align-items: center;
   justify-content: center;
 
-  background: rgba(0, 0, 0, 0.92);
+  background: var(--white);
 }
 
 .viewerBody {
@@ -766,8 +821,19 @@
   align-items: center;
   justify-content: center;
 
-  width: min(1100px, calc(100% - 160px));
+  width: min(1100px, calc(100% - 48px));
   height: min(88vh, 900px);
+}
+
+.viewerStage {
+  display: grid;
+  grid-template-columns: 52px minmax(0, 1fr) 52px;
+  gap: 24px;
+  align-items: center;
+
+  width: 100%;
+  min-height: 0;
+  flex: 1;
 }
 
 .viewerImage {
@@ -785,7 +851,7 @@
 
   border: 0;
   background: transparent;
-  color: var(--white);
+  color: var(--black);
 
   font-size: 34px;
   line-height: 1;
@@ -794,50 +860,35 @@
 }
 
 .viewerArrow {
-  position: absolute;
-  top: 50%;
-  z-index: 2;
-
   width: 52px;
   height: 52px;
 
   border: 0;
-  background: rgba(255, 255, 255, 0.08);
-  color: var(--white);
+  background: transparent;
+  color: var(--black);
 
   font-size: 42px;
   line-height: 1;
 
   cursor: pointer;
-  transform: translateY(-50%);
 }
-
-.viewerArrowLeft { left: 24px; }
-.viewerArrowRight { right: 24px; }
 
 .viewerFooter {
   display: flex;
   flex-direction: column;
-  gap: 10px;
 
   width: min(520px, 100%);
   margin-top: 20px;
-}
-
-.viewerCounter {
-  color: rgba(255, 255, 255, 0.82);
-  text-align: center;
-  font-size: var(--font-sm);
 }
 
 .viewerTrack {
   position: relative;
 
   width: 100%;
-  height: 3px;
+  height: 2px;
 
   overflow: hidden;
-  background: rgba(255, 255, 255, 0.2);
+  background: var(--line);
 }
 
 .viewerProgress {
@@ -846,10 +897,9 @@
   left: 0;
 
   width: 25%;
-  max-width: 25%;
   height: 100%;
 
-  background: var(--white);
+  background: var(--black);
 
   transition: transform var(--transition);
 }
@@ -858,11 +908,17 @@
   .top {
     grid-template-columns: 1fr;
     gap: 32px;
+    max-width: 684px;
+  }
+
+  .galleryMain {
+    height: auto;
   }
 
   .info {
     position: static;
     justify-self: stretch;
+    max-width: none;
   }
 
   .descriptionGrid {
@@ -875,6 +931,18 @@
   .page,
   .state {
     margin-top: 16px;
+  }
+
+  .page {
+    margin-bottom: 40px;
+  }
+
+  .top {
+    gap: 22px;
+  }
+
+  .info {
+    gap: 18px;
   }
 
   .gallery {
@@ -898,39 +966,72 @@
   }
 
   .brand {
-    font-size: 20px;
+    font-size: var(--font-lg);
+    line-height: 1.25;
+    font-weight: 400;
+    letter-spacing: 0;
   }
 
   .title {
-    font-size: 15px;
+    font-size: var(--font-md);
+    line-height: 1.4;
   }
 
   .price {
-    font-size: 24px;
+    font-size: var(--font-xl);
     font-weight: 300;
+  }
+
+  .deliveryEstimate,
+  .productModels,
+  .variantBlock {
+    gap: 10px;
   }
 
   .actions {
     flex-direction: column;
   }
 
+  .accordion {
+    margin-top: 28px;
+  }
+
+  .accBtn {
+    min-height: 52px;
+  }
+
+  .descriptionGrid {
+    gap: 20px;
+  }
+
+  .viewer {
+    align-items: stretch;
+  }
+
   .viewerBody {
-    width: min(100%, calc(100% - 32px));
-    height: min(88vh, 900px);
+    width: 100%;
+    height: 100%;
+    padding: 56px 16px 24px;
+  }
+
+  .viewerStage {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0;
   }
 
   .viewerArrow {
-    width: 44px;
-    height: 44px;
-    font-size: 34px;
+    display: none;
   }
-
-  .viewerArrowLeft { left: 8px; }
-  .viewerArrowRight { right: 8px; }
 
   .viewerClose {
     top: 12px;
     right: 12px;
+    color: var(--black);
+  }
+
+  .viewerFooter {
+    width: 100%;
+    margin-top: 12px;
   }
 }
 
@@ -950,22 +1051,40 @@
   position: relative;
 
   width: 100%;
-  height: calc(100% - 80px);
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+  touch-action: pan-y pinch-zoom;
+}
+
+.viewerImageSlider {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  transition: transform 320ms ease;
+  will-change: transform;
+}
+
+.viewerImageSlide {
+  position: relative;
+  flex: 0 0 100%;
+  width: 100%;
+  height: 100%;
 }
 
 .brand {
   color: var(--black);
 
-  font-size: 24px;
-  line-height: 1.1;
-  font-weight: 500;
-  letter-spacing: -0.03em;
+  font-size: var(--font-xl);
+  line-height: 1.25;
+  font-weight: 400;
+  letter-spacing: 0;
   text-decoration: none;
 }
 
 a.brand:hover {
-  text-decoration: underline;
-  text-underline-offset: 4px;
+  color: var(--muted);
+  text-decoration: none;
 }
 
 .breadcrumbs {
@@ -977,6 +1096,9 @@ a.brand:hover {
   align-items: center;
   gap: 10px;
   flex-wrap: wrap;
+  max-height: calc(var(--font-sm) * 2.4);
+  overflow: hidden;
+  line-height: 1.2;
 }
 
 .breadcrumbItem {
@@ -984,17 +1106,18 @@ a.brand:hover {
   align-items: center;
   gap: 10px;
 
-  color: var(--muted);
+  color: var(--content-primary);
   font-size: var(--font-sm);
+  line-height: 1.2;
 }
 
 .breadcrumbItem:not(:last-child)::after {
-  content: "/";
-  color: var(--line);
+  content: ">";
+  color: currentColor;
 }
 
 .breadcrumbLink {
-  color: var(--muted);
+  color: var(--content-primary);
   text-decoration: none;
 }
 
@@ -1003,5 +1126,5 @@ a.brand:hover {
 }
 
 .breadcrumbCurrent {
-  color: var(--gold-muted);
+  color: var(--content-primary);
 }

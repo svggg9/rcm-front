@@ -152,6 +152,7 @@ export type SellerOrderListItem = {
   recipientName: string;
 
   firstProductTitle: string | null;
+  productTitles?: string[];
   firstImageUrl: string | null;
 
   itemsCount: number;

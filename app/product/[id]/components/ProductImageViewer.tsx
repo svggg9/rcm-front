@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import { useRef } from "react";
 import styles from "../ProductPage.module.css";
 
 type Props = {
@@ -24,7 +25,38 @@ export function ProductImageViewer({
   onPrev,
   onNext,
 }: Props) {
+  const touchStartRef = useRef<{ x: number; y: number } | null>(null);
+
   if (!open || !images.length) return null;
+
+  function handleTouchStart(event: React.TouchEvent<HTMLDivElement>) {
+    const touch = event.touches[0];
+
+    touchStartRef.current = {
+      x: touch.clientX,
+      y: touch.clientY,
+    };
+  }
+
+  function handleTouchEnd(event: React.TouchEvent<HTMLDivElement>) {
+    const start = touchStartRef.current;
+    const touch = event.changedTouches[0];
+
+    touchStartRef.current = null;
+
+    if (!start || images.length <= 1) return;
+
+    const deltaX = touch.clientX - start.x;
+    const deltaY = touch.clientY - start.y;
+
+    if (Math.abs(deltaX) < 42 || Math.abs(deltaX) < Math.abs(deltaY)) return;
+
+    if (deltaX < 0) {
+      onNext();
+    } else {
+      onPrev();
+    }
+  }
 
   return (
     <div
@@ -37,55 +69,71 @@ export function ProductImageViewer({
         ×
       </button>
 
-      <button
-        type="button"
-        className={`${styles.viewerArrow} ${styles.viewerArrowLeft}`}
-        onClick={(event) => {
-          event.stopPropagation();
-          onPrev();
-        }}
-      >
-        ‹
-      </button>
-
       <div
         className={styles.viewerBody}
         onClick={(event) => event.stopPropagation()}
       >
-        <div className={styles.viewerImageWrap}>
-          <Image
-            src={images[currentIndex]}
-            alt={`${title} ${currentIndex + 1}`}
-            fill
-            sizes="100vw"
-            className={styles.viewerImage}
-          />
+        <div className={styles.viewerStage}>
+          <button
+            type="button"
+            className={`${styles.viewerArrow} ${styles.viewerArrowLeft}`}
+            onClick={(event) => {
+              event.stopPropagation();
+              onPrev();
+            }}
+          >
+            ‹
+          </button>
+
+          <div
+            className={styles.viewerImageWrap}
+            onTouchStart={handleTouchStart}
+            onTouchEnd={handleTouchEnd}
+          >
+            <div
+              className={styles.viewerImageSlider}
+              style={{ transform: `translateX(-${currentIndex * 100}%)` }}
+            >
+              {images.map((image, index) => (
+                <div className={styles.viewerImageSlide} key={`${image}-${index}`}>
+                  <Image
+                    src={image}
+                    alt={`${title} ${index + 1}`}
+                    fill
+                    sizes="100vw"
+                    className={styles.viewerImage}
+                    priority={index === currentIndex}
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <button
+            type="button"
+            className={`${styles.viewerArrow} ${styles.viewerArrowRight}`}
+            onClick={(event) => {
+              event.stopPropagation();
+              onNext();
+            }}
+          >
+            ›
+          </button>
         </div>
 
         <div className={styles.viewerFooter}>
-          <div className={styles.viewerCounter}>
-            {currentIndex + 1} / {images.length}
-          </div>
-
           <div className={styles.viewerTrack}>
             <div
               className={styles.viewerProgress}
-              style={{ transform: `translateX(${progress}%)` }}
+              style={{
+                width: `${100 / images.length}%`,
+                maxWidth: `${100 / images.length}%`,
+                transform: `translateX(${progress * (images.length - 1)}%)`,
+              }}
             />
           </div>
         </div>
       </div>
-
-      <button
-        type="button"
-        className={`${styles.viewerArrow} ${styles.viewerArrowRight}`}
-        onClick={(event) => {
-          event.stopPropagation();
-          onNext();
-        }}
-      >
-        ›
-      </button>
     </div>
   );
 }

@@ -3,17 +3,15 @@
 import Link from "next/link";
 import styles from "../ProductPage.module.css";
 
-import type { Product, ProductColorway, Variant } from "../lib/types";
+import type { Product, Variant } from "../lib/types";
 import Image from "next/image";
 import { Price } from "../../../components/ui/Price";
 import { ProductVariantSelect } from "./ProductVariantSelect";
+import { ProductDetailsAccordion } from "./ProductDetailsAccordion";
 
 type Props = {
   product: Product;
   variants: Variant[];
-  colorways: ProductColorway[];
-  selectedColorwayId: number | null;
-  onChangeColorway: (colorwayId: number) => void;
   selectedVariantId: number | null;
   onChangeVariant: (variantId: number) => void;
   selectedVariant: Variant | null;
@@ -24,6 +22,10 @@ type Props = {
   onToggleFavorite: () => void | Promise<void>;
   isSellerView: boolean;
   onEditProduct: () => void;
+  openDescription: boolean;
+  openShipping: boolean;
+  onToggleDescription: () => void;
+  onToggleShipping: () => void;
 };
 
 function formatDeliveryDate(value: Date) {
@@ -46,9 +48,6 @@ function getEstimatedDeliveryRange() {
 export function ProductInfoPanel({
   product,
   variants,
-  colorways,
-  selectedColorwayId,
-  onChangeColorway,
   selectedVariantId,
   onChangeVariant,
   selectedVariant,
@@ -59,29 +58,15 @@ export function ProductInfoPanel({
   onToggleFavorite,
   isSellerView,
   onEditProduct,
+  openDescription,
+  openShipping,
+  onToggleDescription,
+  onToggleShipping,
 }: Props) {
   const deliveryRange = getEstimatedDeliveryRange();
-  const variantModels = colorways.length
-    ? colorways
-    : selectedVariant
-      ? [
-          {
-            id: selectedVariant.colorwayId ?? selectedVariant.id,
-            color: selectedVariant.color,
-            images: [],
-          },
-        ]
-      : [];
-  const selectedModelIndex = Math.max(
-    0,
-    variantModels.findIndex((model) => model.id === selectedColorwayId)
-  );
-  const shouldShowVariantModels = variantModels.length > 1;
 
   return (
     <aside className={styles.info}>
-      <div className={styles.label}>Новый сезон</div>
-
       <div className={styles.heading}>
         <div className={styles.brandRow}>
           {product.brandSlug ? (
@@ -118,49 +103,12 @@ export function ProductInfoPanel({
         <div className={styles.price}>
           <Price amount={currentPrice} />
         </div>
-        <div className={styles.priceNote}>
-          {selectedVariant
-            ? `Размер ${selectedVariant.size}${
-                selectedVariant.color ? ` · ${selectedVariant.color}` : ""
-              }`
-            : "Цена указана за базовый вариант"}
-        </div>
       </div>
-
-      <div className={styles.deliveryEstimate}>
-        <div className={styles.deliveryEstimateTitle}>Примерная дата доставки:</div>
-        <div className={styles.deliveryEstimateValue}>{deliveryRange}</div>
-      </div>
-
-      {shouldShowVariantModels ? (
-        <div className={styles.productModels}>
-          <div className={styles.productModelsTitle}>Другие варианты</div>
-          <div className={styles.productModelsCount}>
-            {selectedModelIndex + 1} из {variantModels.length} моделей
-          </div>
-
-          <div className={styles.productModelsList}>
-            {variantModels.map((model) => (
-              <button
-                key={model.id}
-                type="button"
-                className={`${styles.productModelOption} ${
-                  selectedColorwayId === model.id ? styles.productModelOptionActive : ""
-                }`.trim()}
-                onClick={() => onChangeColorway(model.id)}
-              >
-                {product.brand} {product.title}
-                {model.color ? `, ${model.color}` : ""}
-              </button>
-            ))}
-          </div>
-        </div>
-      ) : null}
 
       <div className={styles.variantBlock}>
         <ProductVariantSelect
           variants={variants}
-          selectedVariantId={selectedVariant?.id ?? selectedVariantId}
+          selectedVariantId={selectedVariantId}
           onChange={onChangeVariant}
         />
 
@@ -191,6 +139,20 @@ export function ProductInfoPanel({
 
         </div>
       </div>
+
+      <div className={styles.deliveryEstimate}>
+        <div className={styles.deliveryEstimateTitle}>Примерная дата доставки:</div>
+        <div className={styles.deliveryEstimateValue}>{deliveryRange}</div>
+      </div>
+
+      <ProductDetailsAccordion
+        product={product}
+        selectedVariant={selectedVariant}
+        openDescription={openDescription}
+        openShipping={openShipping}
+        onToggleDescription={onToggleDescription}
+        onToggleShipping={onToggleShipping}
+      />
     </aside>
   );
 }

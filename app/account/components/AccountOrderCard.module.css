@@ -78,8 +78,8 @@
 
 .orderNumber {
   color: var(--black);
-  font-size: var(--font-xl);
-  line-height: 1.25;
+  font-size: var(--font-md);
+  line-height: 1.4;
   font-weight: 400;
   letter-spacing: 0;
 }
@@ -117,9 +117,13 @@
   text-align: right;
 }
 
+.orderProducts {
+  margin-top: 5px;
+}
+
 .orderProduct {
   max-width: 220px;
-  margin-top: 5px;
+  margin-top: 3px;
   overflow: hidden;
   color: var(--muted);
   text-overflow: ellipsis;
