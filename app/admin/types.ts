@@ -40,6 +40,8 @@ export type AdminProduct = {
   moderationComment: string | null;
   variants: AdminProductVariant[];
   images: string[];
+  createdAt?: string | null;
+  updatedAt?: string | null;
 };
 
 export type AdminSeller = {
@@ -59,6 +61,8 @@ export type DictionaryItem = {
   slug?: string | null;
   sortOrder?: number | null;
   isActive?: boolean | null;
+  status?: "ACTIVE" | "MODERATION" | "DISABLED" | string | null;
+  moderationStatus?: "ACTIVE" | "MODERATION" | "DISABLED" | string | null;
 };
 
 export type DictionaryKind = "categories" | "brands" | "sizes";
@@ -83,4 +87,22 @@ export type AdminSellerApplication = {
   adminComment: string | null;
   createdAt: string;
   updatedAt: string;
+};
+
+export type AdminInitialData = {
+  tab: AdminTab;
+  productStatus: ProductStatus | "ALL";
+  applicationStatus: SellerApplicationStatus | "ALL";
+  selectedProductId: string | null;
+  products: AdminProduct[];
+  totalProducts: number;
+  productStatusCounts: Record<ProductStatus | "ALL", number>;
+  selectedProduct: AdminProduct | null;
+  sellerApplications: AdminSellerApplication[];
+  totalSellerApplications: number;
+  sellerApplicationStatusCounts: Record<SellerApplicationStatus | "ALL", number>;
+  categories: DictionaryItem[];
+  brands: DictionaryItem[];
+  sizes: DictionaryItem[];
+  error: string | null;
 };

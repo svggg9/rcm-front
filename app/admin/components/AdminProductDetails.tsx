@@ -1,10 +1,10 @@
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
+import Image from "next/image";
 
 import styles from "../Admin.module.css";
 import type { AdminProduct, DictionaryItem } from "../types";
 import { Price } from "../../components/ui/Price";
 import { StatusBadge } from "../../components/ui/StatusBadge";
-import Image from "next/image";
 
 type Props = {
   product: AdminProduct;
@@ -28,13 +28,13 @@ function formatStatus(status: string) {
     case "MODERATION":
       return "На модерации";
     case "NEEDS_REVISION":
-      return "warning";
+      return "На доработке";
     case "ACTIVE":
       return "Активен";
     case "ARCHIVED":
       return "В архиве";
     case "BLOCKED":
-      return "Заблокирован";
+      return "Отклонен";
     default:
       return status;
   }
@@ -45,13 +45,23 @@ function getProductStatusTone(status: string) {
     case "ACTIVE":
       return "success";
     case "MODERATION":
+    case "NEEDS_REVISION":
       return "warning";
     case "BLOCKED":
-    case "ARCHIVED":
       return "danger";
     default:
       return "default";
   }
+}
+
+function formatDate(value?: string | null) {
+  if (!value) return "—";
+
+  return new Intl.DateTimeFormat("ru-RU", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  }).format(new Date(value));
 }
 
 export function AdminProductDetails({
@@ -88,117 +98,147 @@ export function AdminProductDetails({
   return (
     <>
       <div className={styles.detailsHeader}>
-        <button type="button" className={styles.backBtn} onClick={onBack}>
-          ← Назад
+        <button
+          type="button"
+          className={`${styles.backBtn} textButton`}
+          onClick={onBack}
+        >
+          Назад
         </button>
-        <h1 className={styles.sectionTitleNoMargin}>{product.title}</h1>
-      </div>
 
-      <div className={styles.detailsMeta}>
-        <span>ID {product.id}</span>
-        <span className={styles.dot}>·</span>
-        <StatusBadge tone={getProductStatusTone(product.status)}>
-          {formatStatus(product.status)}
-        </StatusBadge>
-        <span className={styles.dot}>·</span>
-        <span>{product.brand || "Без бренда"}</span>
+        <div className={styles.detailsTitleBlock}>
+          <h1 className={`${styles.sectionTitleNoMargin} textTitle`}>
+            {product.title}
+          </h1>
+
+          <div className={`${styles.detailsMeta} textCaption`}>
+            <span>ID {product.id}</span>
+            <span>{product.brand || "Без бренда"}</span>
+            <StatusBadge tone={getProductStatusTone(product.status)}>
+              {formatStatus(product.status)}
+            </StatusBadge>
+          </div>
+        </div>
       </div>
 
       <div className={styles.detailsLayout}>
-        <section className={styles.detailsSection}>
-          <h2 className={styles.detailsSectionTitle}>Карточка товара</h2>
-
-          <div className={styles.gallery}>
-            {product.images?.length ? (
-              product.images.map((image) => (
-                <div key={image} className={styles.galleryImageWrap}>
-                  <Image
-                    src={image}
-                    alt={product.title}
-                    width={160}
-                    height={214}
-                    className={styles.galleryImage}
-                  />
-                </div>
-              ))
-            ) : (
-              <div className={styles.galleryEmpty}>Фото не загружены</div>
-            )}
-          </div>
-
-          <div className={styles.descriptionBlock}>
-            <div className={styles.infoLabel}>Описание</div>
-            <p>{product.description || "Описание не заполнено"}</p>
-          </div>
-
-          <h3 className={styles.subtitle}>Варианты</h3>
-
-          <div className={styles.variantList}>
-            {product.variants?.length ? (
-              product.variants.map((variant) => (
-                <div key={variant.id} className={styles.variantRow}>
-                  <div>
-                    <b>{variant.sku}</b>
-                    <div className={styles.muted}>
-                      Размер: {variant.size} · Цвет: {variant.color}
-                    </div>
-                  </div>
-                  <div className={styles.variantPrice}>
-                    <Price amount={variant.price} />
-                  </div>
-                  <div className={styles.muted}>
-                    Остаток: {variant.availableQuantity}
-                  </div>
-                </div>
-              ))
-            ) : (
-              <div className={styles.empty}>Варианты не заполнены</div>
-            )}
-          </div>
-        </section>
-
-        <aside className={styles.detailsAside}>
+        <main className={styles.detailsMain}>
           <section className={styles.detailsSection}>
-            <h2 className={styles.detailsSectionTitle}>Информация</h2>
+            <h2 className={`${styles.detailsSectionTitle} textBody`}>
+              Основные данные
+            </h2>
 
             <div className={styles.infoGrid}>
-              <div className={styles.infoRow}>
-                <span className={styles.infoLabel}>Статус</span>
-                <span className={styles.infoValue}>
-                  {formatStatus(product.status)}
-                </span>
-              </div>
-              <div className={styles.infoRow}>
-                <span className={styles.infoLabel}>Категория</span>
-                <span className={styles.infoValue}>
-                  {product.category || "—"}
-                </span>
-              </div>
+              <InfoRow label="Название" value={product.title} />
+              <InfoRow label="Бренд" value={product.brand || "—"} />
+              <InfoRow label="Категория" value={product.category || "—"} />
               {product.suggestedCategoryName ? (
-                <div className={styles.infoRow}>
-                  <span className={styles.infoLabel}>Предложена</span>
-                  <span className={styles.infoValue}>
-                    {product.suggestedCategoryName}
-                  </span>
-                </div>
+                <InfoRow
+                  label="Предложенная категория"
+                  value={product.suggestedCategoryName}
+                  valueClassName={styles.suggestedCategory}
+                />
               ) : null}
-              <div className={styles.infoRow}>
-                <span className={styles.infoLabel}>Бренд</span>
-                <span className={styles.infoValue}>{product.brand || "—"}</span>
-              </div>
-              <div className={styles.infoRow}>
-                <span className={styles.infoLabel}>Аудитория</span>
-                <span className={styles.infoValue}>{product.audience}</span>
-              </div>
+              <InfoRow label="Аудитория" value={product.audience || "—"} />
+            </div>
+
+            <div className={styles.descriptionBlock}>
+              <div className={`${styles.infoLabel} textSmall`}>Описание</div>
+              <p className="textSmall">
+                {product.description || "Описание не заполнено"}
+              </p>
             </div>
           </section>
 
           <section className={styles.detailsSection}>
-            <h2 className={styles.detailsSectionTitle}>Модерация категории</h2>
+            <h2 className={`${styles.detailsSectionTitle} textBody`}>Фото</h2>
 
-            <div className={styles.categoryModeration}>
+            <div className={styles.gallery}>
+              {product.images?.length ? (
+                product.images.map((image) => (
+                  <div key={image} className={styles.galleryImageWrap}>
+                    <Image
+                      src={image}
+                      alt={product.title}
+                      width={160}
+                      height={214}
+                      className={styles.galleryImage}
+                    />
+                  </div>
+                ))
+              ) : (
+                <div className={`${styles.galleryEmpty} textCaption`}>
+                  Фото не загружены
+                </div>
+              )}
+            </div>
+          </section>
+
+          <section className={styles.detailsSection}>
+            <h2 className={`${styles.detailsSectionTitle} textBody`}>
+              Варианты
+            </h2>
+
+            <div className={styles.variantList}>
+              {product.variants?.length ? (
+                product.variants.map((variant) => (
+                  <div key={variant.id} className={styles.variantRow}>
+                    <div>
+                      <span className="textSmall">{variant.sku}</span>
+                      <div className={`${styles.muted} textCaption`}>
+                        Размер: {variant.size || "—"} · Цвет: {variant.color || "—"}
+                      </div>
+                    </div>
+                    <div className={`${styles.variantPrice} textSmall`}>
+                      <Price amount={variant.price} />
+                    </div>
+                    <div className={`${styles.muted} textCaption`}>
+                      Остаток: {variant.availableQuantity}
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className={`${styles.empty} textCaption`}>
+                  Варианты не заполнены
+                </div>
+              )}
+            </div>
+          </section>
+
+          <section className={styles.detailsSection}>
+            <h2 className={`${styles.detailsSectionTitle} textBody`}>
+              Модерация
+            </h2>
+
+            {product.suggestedCategoryName ? (
+              <div className={styles.categoryProposal}>
+                <div>
+                  <span className={`${styles.infoLabel} textSmall`}>
+                    Предложенная категория
+                  </span>
+                  <div className={`${styles.categoryProposalValue} textBody`}>
+                    {product.suggestedCategoryName}
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  className={`${styles.secondaryBtn} textButton`}
+                  disabled={loading}
+                  onClick={() =>
+                    onAssignCategory({
+                      categoryName: product.suggestedCategoryName?.trim(),
+                    })
+                  }
+                >
+                  Создать и привязать
+                </button>
+              </div>
+            ) : null}
+
+            <div className={styles.moderationGrid}>
               <label className={styles.adminField}>
-                <span>Существующая категория</span>
+                <span className="textCaption">Привязать к существующей</span>
                 <select
                   value={selectedCategoryId}
                   onChange={(event) =>
@@ -206,7 +246,7 @@ export function AdminProductDetails({
                       event.target.value ? Number(event.target.value) : ""
                     )
                   }
-                  className={styles.adminSelect}
+                  className={`${styles.adminSelect} textSmall`}
                 >
                   <option value="">Выберите категорию</option>
                   {categories.map((category) => (
@@ -219,94 +259,130 @@ export function AdminProductDetails({
 
               <button
                 type="button"
-                className={styles.secondaryBtn}
+                className={`${styles.secondaryBtn} textButton`}
                 disabled={loading || !selectedCategoryId}
                 onClick={() =>
                   onAssignCategory({ categoryId: Number(selectedCategoryId) })
                 }
               >
-                Применить категорию
+                Привязать
               </button>
 
               <label className={styles.adminField}>
-                <span>Новая категория</span>
+                <span className="textCaption">Создать новую категорию</span>
                 <input
                   value={newCategoryName}
                   onChange={(event) => setNewCategoryName(event.target.value)}
-                  className={styles.adminInput}
+                  className={`${styles.adminInput} textSmall`}
                   placeholder="Например: футболки"
                 />
               </label>
 
               <button
                 type="button"
-                className={styles.primaryBtn}
+                className={`${styles.primaryBtn} textButton`}
                 disabled={loading || !newCategoryName.trim()}
                 onClick={() =>
                   onAssignCategory({ categoryName: newCategoryName.trim() })
                 }
               >
-                Создать и применить
+                Создать и привязать
               </button>
+            </div>
+
+            <label className={styles.adminTextareaField}>
+              <span className="textCaption">Комментарий модератора</span>
+              <textarea
+                value={revisionComment}
+                onChange={(event) => setRevisionComment(event.target.value)}
+                className={`${styles.textarea} textBody`}
+                rows={4}
+              />
+            </label>
+
+            {product.moderationComment ? (
+              <div className={styles.infoBlock}>
+                <span className={`${styles.infoLabel} textSmall`}>
+                  Последний комментарий
+                </span>
+                <span className={`${styles.infoValue} textSmall`}>
+                  {product.moderationComment}
+                </span>
+              </div>
+            ) : null}
+          </section>
+        </main>
+
+        <aside className={styles.detailsAside}>
+          <section className={styles.detailsSection}>
+            <h2 className={`${styles.detailsSectionTitle} textBody`}>
+              Информация
+            </h2>
+
+            <div className={styles.infoGrid}>
+              <InfoRow
+                label="Статус"
+                value={
+                  <StatusBadge tone={getProductStatusTone(product.status)}>
+                    {formatStatus(product.status)}
+                  </StatusBadge>
+                }
+              />
+              <InfoRow label="Создан" value={formatDate(product.createdAt)} />
+              <InfoRow label="Обновлен" value={formatDate(product.updatedAt)} />
+              <InfoRow label="Фото" value={String(product.images?.length ?? 0)} />
+              <InfoRow
+                label="Варианты"
+                value={String(product.variants?.length ?? 0)}
+              />
             </div>
           </section>
 
           <section className={styles.detailsSection}>
-            <h2 className={styles.detailsSectionTitle}>Действия</h2>
+            <h2 className={`${styles.detailsSectionTitle} textBody`}>
+              Действия
+            </h2>
 
             <div className={styles.detailsActions}>
               {product.status === "MODERATION" ? (
                 <>
                   <button
                     type="button"
-                    className={styles.primaryBtn}
+                    className={`${styles.primaryBtn} textButton`}
                     onClick={onApprove}
                     disabled={loading}
                   >
-                    {loading ? "Одобряем…" : "Одобрить товар"}
+                    {loading ? "Одобряем..." : "Одобрить"}
                   </button>
 
-                  <div className={styles.revisionForm}>
-                    <label>
-                      <span>Причина возврата</span>
-                      <textarea
-                        value={revisionComment}
-                        onChange={(event) => setRevisionComment(event.target.value)}
-                        placeholder="Например: добавьте фото на белом фоне, уточните состав, исправьте размерную сетку."
-                        className={styles.textarea}
-                        rows={5}
-                      />
-                    </label>
-
-                    <button
-                      type="button"
-                      className={styles.secondaryBtn}
-                      onClick={handleReturnToRevision}
-                      disabled={loading || !revisionComment.trim()}
-                    >
-                      {loading ? "Отправляем…" : "Вернуть на доработку"}
-                    </button>
-                  </div>
+                  <button
+                    type="button"
+                    className={`${styles.secondaryBtn} textButton`}
+                    onClick={handleReturnToRevision}
+                    disabled={loading || !revisionComment.trim()}
+                  >
+                    {loading ? "Отправляем..." : "На доработку"}
+                  </button>
                 </>
               ) : null}
 
               {product.status === "BLOCKED" ? (
                 <button
-                type="button"
-                  className={styles.secondaryBtn}
+                  type="button"
+                  className={`${styles.secondaryBtn} textButton`}
                   onClick={onUnblock}
                   disabled={loading}
                 >
-                  {loading ? "Разблокируем…" : "Разблокировать"}
+                  {loading ? "Возвращаем..." : "Вернуть в работу"}
                 </button>
               ) : (
                 <button
-                type="button"
-                  className={styles.dangerBtn}
+                  type="button"
+                  className={`${styles.dangerBtn} textButton`}
                   onClick={onBlock}
                   disabled={loading}
                 >
-                  {loading ? "Блокируем…" : "Заблокировать"}
+                  {loading ? "Отклоняем..." : "Отклонить"}
                 </button>
               )}
             </div>
@@ -314,5 +390,24 @@ export function AdminProductDetails({
         </aside>
       </div>
     </>
+  );
+}
+
+function InfoRow({
+  label,
+  value,
+  valueClassName,
+}: {
+  label: string;
+  value: ReactNode;
+  valueClassName?: string;
+}) {
+  return (
+    <div className={styles.infoRow}>
+      <span className={`${styles.infoLabel} textSmall`}>{label}</span>
+      <span className={`${styles.infoValue} ${valueClassName ?? ""} textSmall`}>
+        {value}
+      </span>
+    </div>
   );
 }

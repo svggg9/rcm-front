@@ -35,6 +35,29 @@ export async function getAdminProducts(
   return response.json();
 }
 
+export async function getAdminProductStatusCounts(): Promise<
+  Record<ProductStatus | "ALL", number>
+> {
+  const statuses: Array<ProductStatus | "ALL"> = [
+    "MODERATION",
+    "NEEDS_REVISION",
+    "ACTIVE",
+    "BLOCKED",
+    "DRAFT",
+    "ARCHIVED",
+    "ALL",
+  ];
+
+  const pairs = await Promise.all(
+    statuses.map(async (status) => {
+      const data = await getAdminProducts(status, 0, 1);
+      return [status, data.totalElements ?? 0] as const;
+    })
+  );
+
+  return Object.fromEntries(pairs) as Record<ProductStatus | "ALL", number>;
+}
+
 export async function getAdminProduct(id: number): Promise<AdminProduct> {
   const response = await apiFetch(`${API_URL}/api/admin/products/${id}`);
 
@@ -216,6 +239,29 @@ export async function getAdminSellerApplications(
   }
 
   return response.json();
+}
+
+export async function getAdminSellerApplicationStatusCounts(): Promise<
+  Record<SellerApplicationStatus | "ALL", number>
+> {
+  const statuses: Array<SellerApplicationStatus | "ALL"> = [
+    "NEW",
+    "APPROVED",
+    "REJECTED",
+    "ALL",
+  ];
+
+  const pairs = await Promise.all(
+    statuses.map(async (status) => {
+      const data = await getAdminSellerApplications(status, 0, 1);
+      return [status, data.totalElements ?? 0] as const;
+    })
+  );
+
+  return Object.fromEntries(pairs) as Record<
+    SellerApplicationStatus | "ALL",
+    number
+  >;
 }
 
 export async function approveSellerApplication(id: number): Promise<void> {

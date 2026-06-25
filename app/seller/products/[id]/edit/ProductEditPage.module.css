@@ -589,49 +589,6 @@
   color: var(--danger) !important;
 }
 
-/* status */
-
-.statusBadge {
-  padding: 4px 8px;
-  border: 1px solid rgba(201, 162, 79, 0.26);
-  background: rgba(201, 162, 79, 0.07);
-  color: var(--black);
-  font-size: var(--font-xs);
-  font-weight: 500;
-  white-space: nowrap;
-}
-
-.statusBadge_DRAFT {
-  border-color: var(--line);
-  background: var(--white);
-  color: var(--muted);
-}
-
-.statusBadge_MODERATION {
-  border-color: rgba(138, 106, 47, 0.26);
-  background: rgba(201, 162, 79, 0.08);
-  color: color-mix(in srgb, var(--warning) 72%, var(--black));
-}
-
-.statusBadge_NEEDS_REVISION,
-.statusBadge_BLOCKED {
-  border-color: rgba(155, 44, 44, 0.22);
-  background: rgba(155, 44, 44, 0.045);
-  color: var(--danger);
-}
-
-.statusBadge_ACTIVE {
-  border-color: rgba(33, 106, 67, 0.22);
-  background: rgba(33, 106, 67, 0.055);
-  color: var(--success);
-}
-
-.statusBadge_ARCHIVED {
-  border-color: var(--line);
-  background: var(--soft);
-  color: var(--muted);
-}
-
 /* images */
 
 .uploadPanel {
