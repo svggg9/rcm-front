@@ -13,6 +13,7 @@ import { SellerProductsTab } from "./components/SellerProductsTab";
 import { SellerBrandTab } from "./components/SellerBrandTab";
 import { SellerLegalTab } from "./components/SellerLegalTab";
 import { SellerOnboardingStatus } from "./components/SellerOnboardingStatus";
+import { SellerTelegramCard } from "./components/SellerTelegramCard";
 import { getSellerBrands } from "./lib/sellerBrandApi";
 
 import type {
@@ -304,6 +305,8 @@ function SellerPageContent({ initialProducts, initialOrders }: Props) {
           />
 
           <div className={styles.content}>
+            <SellerTelegramCard />
+
             <SellerOnboardingStatus />
 
             {error ? <div className={styles.error}>{error}</div> : null}

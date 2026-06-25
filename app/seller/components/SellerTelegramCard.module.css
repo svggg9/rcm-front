@@ -1,0 +1,50 @@
+.card {
+  width: 100%;
+  padding: 16px 0;
+  background: var(--white);
+}
+
+.header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.title {
+  margin: 0 0 5px;
+}
+
+.text {
+  margin: 0;
+  max-width: 520px;
+  color: var(--muted);
+}
+
+.actions {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.skeleton {
+  width: 72px;
+  height: 20px;
+  background: var(--soft);
+}
+
+@media (max-width: 640px) {
+  .card {
+    padding: 12px 0;
+  }
+
+  .header {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .actions {
+    grid-template-columns: 1fr;
+  }
+}
