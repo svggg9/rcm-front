@@ -1,8 +1,10 @@
 import styles from "./StatusBadge.module.css";
 
+export type StatusBadgeTone = "default" | "success" | "warning" | "danger";
+
 type Props = {
   children: React.ReactNode;
-  tone?: "default" | "success" | "warning" | "danger";
+  tone?: StatusBadgeTone;
 };
 
 export function StatusBadge({

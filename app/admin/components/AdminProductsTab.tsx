@@ -1,5 +1,6 @@
 import { EmptyState } from "../../components/ui/EmptyState";
 import { StatusBadge } from "../../components/ui/StatusBadge";
+import { CabinetTabs, type CabinetTabItem } from "../../components/ui/CabinetTabs";
 
 import styles from "../Admin.module.css";
 import type { AdminProduct, ProductStatus } from "../types";
@@ -11,6 +12,7 @@ type Props = {
   refreshing: boolean;
   actionProductId: number | null;
   totalElements: number;
+  statusCounts: Record<ProductStatus | "ALL", number>;
   onStatusChange: (status: ProductStatus | "ALL") => void;
   onRefresh: () => void;
   onOpenProduct: (id: number) => void;
@@ -59,11 +61,20 @@ function getProductStatusTone(status: string) {
     case "NEEDS_REVISION":
       return "warning";
     case "BLOCKED":
-    case "ARCHIVED":
       return "danger";
     default:
       return "default";
   }
+}
+
+function formatDate(value?: string | null) {
+  if (!value) return null;
+
+  return new Intl.DateTimeFormat("ru-RU", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  }).format(new Date(value));
 }
 
 export function AdminProductsTab({
@@ -72,6 +83,7 @@ export function AdminProductsTab({
   refreshing,
   actionProductId,
   totalElements,
+  statusCounts,
   onStatusChange,
   onRefresh,
   onOpenProduct,
@@ -79,17 +91,29 @@ export function AdminProductsTab({
   onBlock,
   onUnblock,
 }: Props) {
+  const statusTabs: Array<CabinetTabItem<ProductStatus | "ALL">> = STATUSES.map(
+    (value) => ({
+      value,
+      label: formatStatus(value),
+      count: statusCounts[value] ?? 0,
+    })
+  );
+
   return (
     <>
       <div className={styles.header}>
         <div>
-          <h1 className={styles.sectionTitleNoMargin}>Модерация товаров</h1>
-          <div className={styles.muted}>Найдено: {totalElements}</div>
+          <h1 className={`${styles.sectionTitleNoMargin} textTitle`}>
+            Модерация товаров
+          </h1>
+          <div className={`${styles.muted} textCaption`}>
+            Найдено: {totalElements}
+          </div>
         </div>
 
         <button
           type="button"
-          className={styles.refreshBtn}
+          className={`${styles.refreshBtn} textButton`}
           onClick={onRefresh}
           disabled={refreshing}
         >
@@ -98,18 +122,16 @@ export function AdminProductsTab({
       </div>
 
       <div className={styles.filters}>
-        {STATUSES.map((item) => (
-          <button
-            type="button"
-            key={item}
-            className={`${styles.filterBtn} ${
-              status === item ? styles.filterBtnActive : ""
-            }`}
-            onClick={() => onStatusChange(item)}
-          >
-            {formatStatus(item)}
-          </button>
-        ))}
+        <CabinetTabs
+          items={statusTabs}
+          value={status}
+          onChange={onStatusChange}
+          ariaLabel="Фильтр товаров по статусу"
+          fullBleedMobile
+          pinFirst
+          countTone="gold"
+          tone="gold"
+        />
       </div>
 
       {products.length === 0 ? (
@@ -122,60 +144,86 @@ export function AdminProductsTab({
           {products.map((product) => {
             const loading = actionProductId === product.id;
             const image = product.images?.[0];
+            const date = formatDate(product.updatedAt ?? product.createdAt);
 
             return (
-              <article key={product.id} className={styles.productCard}>
-                <button
+              <article
+                key={product.id}
+                className={styles.productCard}
+                role="button"
+                tabIndex={0}
+                onClick={() => onOpenProduct(product.id)}
+                onKeyDown={(event) => {
+                  const target = event.target as HTMLElement;
+
+                  if (target.closest("button, a, input, select, textarea")) {
+                    return;
+                  }
+
+                  if (event.key === "Enter" || event.key === " ") {
+                    event.preventDefault();
+                    onOpenProduct(product.id);
+                  }
+                }}
+              >
+                <div
                   className={styles.productPreview}
-                  onClick={() => onOpenProduct(product.id)}
-                  type="button"
                 >
                   {image ? (
                     <Image
                       src={image}
                       alt={product.title}
-                      width={88}
-                      height={116}
+                      width={90}
+                      height={112}
                     />
                   ) : (
-                    <div className={styles.productImagePlaceholder}>Нет фото</div>
+                    <div className={`${styles.productImagePlaceholder} textCaption`}>
+                      Нет фото
+                    </div>
                   )}
-                </button>
+                </div>
 
                 <div className={styles.productMain}>
-                  <div className={styles.productTop}>
-                    <div>
-                      <div className={styles.productTitle}>{product.title}</div>
-                      <div className={styles.muted}>
-                        ID {product.id} · {product.brand || "Без бренда"} ·{" "}
-                        {product.category || "Без категории"}
-                      </div>
-                    </div>
-
-                    <StatusBadge tone={getProductStatusTone(product.status)}>
-                      {formatStatus(product.status)}
-                    </StatusBadge>
+                  <div className={`${styles.productTitle} textBody`}>
+                    {product.title}
                   </div>
 
-                  <p className={styles.productDescription}>
-                    {product.description || "Описание не заполнено"}
-                  </p>
+                  <div className={`${styles.productMetaLine} textCaption`}>
+                    <span>ID {product.id}</span>
+                    <span>{product.brand || "Без бренда"}</span>
+                    {product.category ? (
+                      <span>{product.category}</span>
+                    ) : product.suggestedCategoryName ? (
+                      <span className={styles.suggestedCategory}>
+                        {product.suggestedCategoryName}
+                      </span>
+                    ) : (
+                      <span>Без категории</span>
+                    )}
+                  </div>
+                </div>
 
-                  <div className={styles.actions}>
-                    <button
-                      type="button"
-                      className={styles.secondaryBtn}
-                      onClick={() => onOpenProduct(product.id)}
-                    >
-                      Подробнее
-                    </button>
+                <div className={styles.productState}>
+                  <StatusBadge tone={getProductStatusTone(product.status)}>
+                    {formatStatus(product.status)}
+                  </StatusBadge>
 
+                  {date ? (
+                    <div className={`${styles.productDate} textCaption`}>
+                      {date}
+                    </div>
+                  ) : null}
+
+                  <div className={styles.productActions}>
                     {product.status === "MODERATION" ? (
                       <button
                         type="button"
-                        className={styles.primaryBtn}
+                        className={`${styles.primaryBtn} textButton`}
                         disabled={loading}
-                        onClick={() => onApprove(product.id)}
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          onApprove(product.id);
+                        }}
                       >
                         {loading ? "..." : "Одобрить"}
                       </button>
@@ -184,18 +232,24 @@ export function AdminProductsTab({
                     {product.status === "BLOCKED" ? (
                       <button
                         type="button"
-                        className={styles.secondaryBtn}
+                        className={`${styles.secondaryBtn} textButton`}
                         disabled={loading}
-                        onClick={() => onUnblock(product.id)}
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          onUnblock(product.id);
+                        }}
                       >
                         {loading ? "..." : "Разблокировать"}
                       </button>
                     ) : (
                       <button
                         type="button"
-                        className={styles.dangerBtn}
+                        className={`${styles.dangerBtn} textButton`}
                         disabled={loading}
-                        onClick={() => onBlock(product.id)}
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          onBlock(product.id);
+                        }}
                       >
                         {loading ? "..." : "Заблокировать"}
                       </button>

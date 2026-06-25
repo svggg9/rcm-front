@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
 import styles from "./Admin.module.css";
@@ -15,6 +15,7 @@ import {
   approveProduct,
   assignProductCategory,
   blockProduct,
+  getAdminProductStatusCounts,
   getAdminProduct,
   getAdminProducts,
   unblockProduct,
@@ -22,6 +23,7 @@ import {
   createAdminDictionaryItem,
   deleteAdminDictionaryItem,
   getAdminDictionary,
+  getAdminSellerApplicationStatusCounts,
   updateAdminDictionaryItem,
   approveSellerApplication,
   getAdminSellerApplications,
@@ -30,6 +32,7 @@ import {
 
 import type {
   AdminProduct,
+  AdminInitialData,
   AdminTab,
   ProductStatus,
   DictionaryItem,
@@ -44,43 +47,100 @@ function normalizeTab(raw: string | null): AdminTab {
   return "products";
 }
 
-function AdminPageContent() {
+function normalizeProductStatus(raw: string | null): ProductStatus | "ALL" {
+  if (
+    raw === "DRAFT" ||
+    raw === "MODERATION" ||
+    raw === "NEEDS_REVISION" ||
+    raw === "ACTIVE" ||
+    raw === "ARCHIVED" ||
+    raw === "BLOCKED" ||
+    raw === "ALL"
+  ) {
+    return raw;
+  }
+
+  return "MODERATION";
+}
+
+function normalizeApplicationStatus(
+  raw: string | null
+): SellerApplicationStatus | "ALL" {
+  if (raw === "NEW" || raw === "APPROVED" || raw === "REJECTED" || raw === "ALL") {
+    return raw;
+  }
+
+  return "NEW";
+}
+
+type Props = {
+  initialData?: AdminInitialData;
+};
+
+function AdminPageContent({ initialData }: Props) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const skippedInitialListLoadRef = useRef(false);
+  const skippedInitialDetailsLoadRef = useRef(false);
 
   const currentTab = normalizeTab(searchParams.get("tab"));
   const selectedProductId = searchParams.get("productId");
 
-  const statusParam = searchParams.get("status") as ProductStatus | "ALL" | null;
-  const currentStatus: ProductStatus | "ALL" = statusParam || "MODERATION";
-
-  const applicationStatusParam = searchParams.get("applicationStatus") as
-    | SellerApplicationStatus
-    | "ALL"
-    | null;
-
-  const currentApplicationStatus: SellerApplicationStatus | "ALL" =
-    applicationStatusParam || "NEW";
-
-  const [products, setProducts] = useState<AdminProduct[]>([]);
-  const [selectedProduct, setSelectedProduct] = useState<AdminProduct | null>(
-    null
+  const currentStatus = normalizeProductStatus(searchParams.get("status"));
+  const currentApplicationStatus = normalizeApplicationStatus(
+    searchParams.get("applicationStatus")
   );
-  const [totalProducts, setTotalProducts] = useState(0);
+
+  const [products, setProducts] = useState<AdminProduct[]>(
+    initialData?.products ?? []
+  );
+  const [selectedProduct, setSelectedProduct] = useState<AdminProduct | null>(
+    initialData?.selectedProduct ?? null
+  );
+  const [totalProducts, setTotalProducts] = useState(
+    initialData?.totalProducts ?? 0
+  );
+  const [productStatusCounts, setProductStatusCounts] = useState(
+    initialData?.productStatusCounts ?? {
+      MODERATION: 0,
+      NEEDS_REVISION: 0,
+      ACTIVE: 0,
+      BLOCKED: 0,
+      DRAFT: 0,
+      ARCHIVED: 0,
+      ALL: 0,
+    }
+  );
 
   const [sellerApplications, setSellerApplications] = useState<
     AdminSellerApplication[]
-  >([]);
-  const [totalSellerApplications, setTotalSellerApplications] = useState(0);
+  >(initialData?.sellerApplications ?? []);
+  const [totalSellerApplications, setTotalSellerApplications] = useState(
+    initialData?.totalSellerApplications ?? 0
+  );
+  const [
+    sellerApplicationStatusCounts,
+    setSellerApplicationStatusCounts,
+  ] = useState(
+    initialData?.sellerApplicationStatusCounts ?? {
+      NEW: 0,
+      APPROVED: 0,
+      REJECTED: 0,
+      ALL: 0,
+    }
+  );
 
-  const [categories, setCategories] = useState<DictionaryItem[]>([]);
-  const [brands, setBrands] = useState<DictionaryItem[]>([]);
-  const [sizes, setSizes] = useState<DictionaryItem[]>([]);
+  const [categories, setCategories] = useState<DictionaryItem[]>(
+    initialData?.categories ?? []
+  );
+  const [sizes, setSizes] = useState<DictionaryItem[]>(
+    initialData?.sizes ?? []
+  );
   const [dictionaryActionKey, setDictionaryActionKey] = useState<string | null>(
     null
   );
 
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!initialData);
   const [detailsLoading, setDetailsLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -89,7 +149,7 @@ function AdminPageContent() {
     null
   );
 
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(initialData?.error ?? null);
 
   const loadProducts = useCallback(
     async (options?: { silent?: boolean }) => {
@@ -101,14 +161,16 @@ function AdminPageContent() {
       setError(null);
 
       try {
-        const [data, categoriesData] = await Promise.all([
+        const [data, categoriesData, counts] = await Promise.all([
           getAdminProducts(currentStatus, 0, 50),
           getAdminDictionary("categories"),
+          getAdminProductStatusCounts(),
         ]);
 
         setProducts(Array.isArray(data.content) ? data.content : []);
         setTotalProducts(data.totalElements ?? 0);
         setCategories(categoriesData);
+        setProductStatusCounts(counts);
       } catch (e) {
         setError(e instanceof Error ? e.message : "Не удалось загрузить товары");
       } finally {
@@ -129,14 +191,14 @@ function AdminPageContent() {
       setError(null);
 
       try {
-        const data = await getAdminSellerApplications(
-          currentApplicationStatus,
-          0,
-          50
-        );
+        const [data, counts] = await Promise.all([
+          getAdminSellerApplications(currentApplicationStatus, 0, 50),
+          getAdminSellerApplicationStatusCounts(),
+        ]);
 
         setSellerApplications(Array.isArray(data.content) ? data.content : []);
         setTotalSellerApplications(data.totalElements ?? 0);
+        setSellerApplicationStatusCounts(counts);
       } catch (e) {
         setError(e instanceof Error ? e.message : "Не удалось загрузить заявки");
       } finally {
@@ -156,15 +218,13 @@ function AdminPageContent() {
     setError(null);
 
     try {
-      const [categoriesData, brandsData, sizesData] =
+      const [categoriesData, sizesData] =
         await Promise.all([
           getAdminDictionary("categories"),
-          getAdminDictionary("brands"),
           getAdminDictionary("sizes"),
         ]);
 
       setCategories(categoriesData);
-      setBrands(brandsData);
       setSizes(sizesData);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Не удалось загрузить справочники");
@@ -189,6 +249,21 @@ function AdminPageContent() {
   }, []);
 
   useEffect(() => {
+    if (
+      !skippedInitialListLoadRef.current &&
+      initialData?.tab === currentTab &&
+      (
+        (currentTab === "products" &&
+          initialData.productStatus === currentStatus) ||
+        (currentTab === "sellers" &&
+          initialData.applicationStatus === currentApplicationStatus) ||
+        currentTab === "dictionaries"
+      )
+    ) {
+      skippedInitialListLoadRef.current = true;
+      return;
+    }
+
     if (currentTab === "products") {
       void loadProducts();
       return;
@@ -200,9 +275,26 @@ function AdminPageContent() {
     }
 
     void loadDictionaries();
-  }, [currentTab, loadProducts, loadSellerApplications, loadDictionaries]);
+  }, [
+    currentTab,
+    currentStatus,
+    currentApplicationStatus,
+    initialData,
+    loadProducts,
+    loadSellerApplications,
+    loadDictionaries,
+  ]);
 
   useEffect(() => {
+    if (
+      !skippedInitialDetailsLoadRef.current &&
+      initialData?.tab === "products" &&
+      initialData.selectedProductId === selectedProductId
+    ) {
+      skippedInitialDetailsLoadRef.current = true;
+      return;
+    }
+
     if (currentTab !== "products" || !selectedProductId) {
       setSelectedProduct(null);
       return;
@@ -216,7 +308,7 @@ function AdminPageContent() {
     }
 
     void loadSelectedProduct(id);
-  }, [currentTab, selectedProductId, loadSelectedProduct]);
+  }, [currentTab, selectedProductId, initialData, loadSelectedProduct]);
 
   function changeProductStatus(status: ProductStatus | "ALL") {
     router.push(`/admin?tab=products&status=${status}`);
@@ -400,7 +492,6 @@ function AdminPageContent() {
             {currentTab === "dictionaries" ? (
               <AdminDictionariesTab
                 categories={categories}
-                brands={brands}
                 sizes={sizes}
                 actionKey={dictionaryActionKey}
                 onCreate={(kind, item) => void createDictionaryItem(kind, item)}
@@ -416,13 +507,16 @@ function AdminPageContent() {
                 totalElements={totalSellerApplications}
                 refreshing={refreshing}
                 actionApplicationId={actionApplicationId}
+                statusCounts={sellerApplicationStatusCounts}
                 onStatusChange={changeApplicationStatus}
                 onRefresh={() => void loadSellerApplications({ silent: true })}
                 onApprove={(id) =>
-                  void runSellerApplicationAction(id, approveSellerApplication)
+                  runSellerApplicationAction(id, approveSellerApplication)
                 }
-                onReject={(id) =>
-                  void runSellerApplicationAction(id, rejectSellerApplication)
+                onReject={(id, comment) =>
+                  runSellerApplicationAction(id, (applicationId) =>
+                    rejectSellerApplication(applicationId, comment)
+                  )
                 }
               />
             ) : detailsLoading ? (
@@ -457,6 +551,7 @@ function AdminPageContent() {
                 refreshing={refreshing}
                 actionProductId={actionProductId}
                 totalElements={totalProducts}
+                statusCounts={productStatusCounts}
                 onStatusChange={changeProductStatus}
                 onRefresh={() => void loadProducts({ silent: true })}
                 onOpenProduct={openProduct}
@@ -472,6 +567,6 @@ function AdminPageContent() {
   );
 }
 
-export function AdminPageClient() {
-  return <AdminPageContent />;
+export function AdminPageClient({ initialData }: Props) {
+  return <AdminPageContent initialData={initialData} />;
 }

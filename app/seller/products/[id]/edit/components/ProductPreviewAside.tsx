@@ -1,6 +1,8 @@
 import type { Option, ProductImageItem, SellerProduct } from "../types";
 import styles from "../ProductEditPage.module.css";
 import Image from "next/image";
+import { StatusBadge } from "../../../../../components/ui/StatusBadge";
+import { formatProductStatus, getProductStatusTone } from "../utils";
 
 type Props = {
   productId: number;
@@ -44,7 +46,11 @@ export function ProductPreviewAside({
 
         <div className={styles.previewTitleRow}>
           <h2 className="textTitle">{title || "Название товара"}</h2>
-          {product ? <StatusBadge status={product.status} /> : null}
+          {product ? (
+            <StatusBadge tone={getProductStatusTone(product.status)}>
+              {formatProductStatus(product.status)}
+            </StatusBadge>
+          ) : null}
         </div>
         <p className="textCaption">
           {brands.find((brand) => brand.id === brandId)?.name || product?.brand || "Бренд"}
@@ -67,22 +73,5 @@ export function ProductPreviewAside({
         </div>
       </div>
     </aside>
-  );
-}
-
-function StatusBadge({ status }: { status: NonNullable<SellerProduct["status"]> }) {
-  const label = {
-    DRAFT: "Черновик",
-    MODERATION: "На модерации",
-    NEEDS_REVISION: "Нужна доработка",
-    ACTIVE: "Активен",
-    ARCHIVED: "Архив",
-    BLOCKED: "Заблокирован",
-  }[status];
-
-  return (
-    <span className={`${styles.statusBadge} ${styles[`statusBadge_${status}`]}`}>
-      {label}
-    </span>
   );
 }

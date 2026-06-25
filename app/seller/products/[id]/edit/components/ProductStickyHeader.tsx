@@ -3,11 +3,12 @@ import Link from "next/link";
 import type {
   Option,
   ProductImageItem,
-  ProductStatus,
   SellerProduct,
 } from "../types";
 import styles from "../ProductEditPage.module.css";
 import Image from "next/image";
+import { StatusBadge } from "../../../../../components/ui/StatusBadge";
+import { formatProductStatus, getProductStatusTone } from "../utils";
 
 type Props = {
   productId: number;
@@ -82,7 +83,11 @@ export function ProductStickyHeader({
                 {title || "Название товара"}
               </Link>
 
-              {product ? <StatusBadge status={product.status} /> : null}
+              {product ? (
+                <StatusBadge tone={getProductStatusTone(product.status)}>
+                  {formatProductStatus(product.status)}
+                </StatusBadge>
+              ) : null}
             </div>
 
             <div className={styles.lockedMeta}>
@@ -174,22 +179,5 @@ export function ProductStickyHeader({
         </div>
       </div>
     </header>
-  );
-}
-
-function StatusBadge({ status }: { status: ProductStatus }) {
-  const label = {
-    DRAFT: "Черновик",
-    MODERATION: "На модерации",
-    NEEDS_REVISION: "Нужна доработка",
-    ACTIVE: "Активен",
-    ARCHIVED: "Архив",
-    BLOCKED: "Заблокирован",
-  }[status];
-
-  return (
-    <span className={`${styles.statusBadge} ${styles[`statusBadge_${status}`]}`}>
-      {label}
-    </span>
   );
 }

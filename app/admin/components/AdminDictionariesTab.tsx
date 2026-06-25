@@ -4,17 +4,25 @@ import { useState } from "react";
 
 import styles from "../Admin.module.css";
 
+import { StatusBadge, type StatusBadgeTone } from "../../components/ui/StatusBadge";
 import type { DictionaryItem, DictionaryKind } from "../types";
 
-type SectionConfig = {
-  kind: DictionaryKind;
-  title: string;
-  items: DictionaryItem[];
-};
+type SectionConfig =
+  | {
+      kind: DictionaryKind;
+      title: string;
+      items: DictionaryItem[];
+      editable: true;
+    }
+  | {
+      kind: "audience";
+      title: string;
+      items: DictionaryItem[];
+      editable: false;
+    };
 
 type Props = {
   categories: DictionaryItem[];
-  brands: DictionaryItem[];
   sizes: DictionaryItem[];
   actionKey: string | null;
   onCreate: (kind: DictionaryKind, item: Partial<DictionaryItem>) => void;
@@ -26,9 +34,14 @@ type Props = {
   onDelete: (kind: DictionaryKind, id: number) => void;
 };
 
+const audienceItems: DictionaryItem[] = [
+  { id: 1, name: "Для него", slug: "MEN", isActive: true },
+  { id: 2, name: "Для нее", slug: "WOMEN", isActive: true },
+  { id: 3, name: "Для всех", slug: "UNISEX", isActive: true },
+];
+
 export function AdminDictionariesTab({
   categories,
-  brands,
   sizes,
   actionKey,
   onCreate,
@@ -36,19 +49,18 @@ export function AdminDictionariesTab({
   onDelete,
 }: Props) {
   const sections: SectionConfig[] = [
-    { kind: "categories", title: "Категории", items: categories },
-    { kind: "brands", title: "Бренды", items: brands },
-    { kind: "sizes", title: "Размеры", items: sizes },
+    { kind: "categories", title: "Категории", items: categories, editable: true },
+    { kind: "sizes", title: "Размеры", items: sizes, editable: true },
+    { kind: "audience", title: "Аудитория", items: audienceItems, editable: false },
   ];
 
   return (
     <div>
       <div className={styles.header}>
         <div>
-          <h1 className={styles.sectionTitleNoMargin}>Справочники</h1>
-          <p className={styles.muted}>
-            Управление категориями, брендами и размерами.
-          </p>
+          <h1 className={`${styles.sectionTitleNoMargin} textTitle`}>
+            Словари
+          </h1>
         </div>
       </div>
 
@@ -82,63 +94,58 @@ function DictionarySection({
   onDelete: Props["onDelete"];
 }) {
   const [name, setName] = useState("");
-  const [sortOrder, setSortOrder] = useState(0);
 
   function submit() {
+    if (!section.editable) return;
+
     const cleanName = name.trim();
 
     if (!cleanName) return;
 
     onCreate(section.kind, {
       name: cleanName,
-      sortOrder,
+      sortOrder: section.items.length,
       isActive: true,
     });
 
     setName("");
-    setSortOrder(0);
   }
 
   return (
     <section className={styles.dictionarySection}>
       <div className={styles.dictionaryHeader}>
-        <h2>{section.title}</h2>
-        <span>{section.items.length}</span>
+        <h2 className="textBody">{section.title}</h2>
+        <span className="textSmall">{section.items.length}</span>
       </div>
 
-      <div className={styles.dictionaryForm}>
-        <input
-          value={name}
-          onChange={(event) => setName(event.target.value)}
-          className={styles.dictionaryInput}
-          placeholder="Название"
-        />
+      {section.editable ? (
+        <div className={styles.dictionaryForm}>
+          <input
+            value={name}
+            onChange={(event) => setName(event.target.value)}
+            className={`${styles.dictionaryInput} textSmall`}
+            placeholder="Название"
+          />
 
-        <input
-          type="number"
-          value={sortOrder}
-          onChange={(event) => setSortOrder(Number(event.target.value))}
-          className={styles.dictionaryInput}
-          placeholder="Сортировка"
-        />
-
-        <button
-          type="button"
-          onClick={submit}
-          className={styles.primaryBtn}
-          disabled={actionKey === `${section.kind}:create`}
-        >
-          Добавить
-        </button>
-      </div>
+          <button
+            type="button"
+            onClick={submit}
+            className={`${styles.primaryBtn} textButton`}
+            disabled={actionKey === `${section.kind}:create`}
+          >
+            Добавить
+          </button>
+        </div>
+      ) : null}
 
       <div className={styles.dictionaryList}>
         {section.items.map((item) => (
           <DictionaryRow
-            key={item.id}
+            key={`${section.kind}-${item.id}`}
             kind={section.kind}
             item={item}
             actionKey={actionKey}
+            editable={section.editable}
             onUpdate={onUpdate}
             onDelete={onDelete}
           />
@@ -152,68 +159,64 @@ function DictionaryRow({
   kind,
   item,
   actionKey,
+  editable,
   onUpdate,
   onDelete,
 }: {
-  kind: DictionaryKind;
+  kind: SectionConfig["kind"];
   item: DictionaryItem;
   actionKey: string | null;
+  editable: boolean;
   onUpdate: Props["onUpdate"];
   onDelete: Props["onDelete"];
 }) {
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState(item.name);
-  const [sortOrder, setSortOrder] = useState(item.sortOrder ?? 0);
-  const [isActive, setIsActive] = useState(item.isActive ?? true);
 
+  const status = getDictionaryStatus(item);
   const busy = actionKey === `${kind}:${item.id}`;
 
   function save() {
+    if (!editable || kind === "audience") return;
+
     onUpdate(kind, item.id, {
       name: name.trim(),
-      sortOrder,
-      isActive,
+      sortOrder: item.sortOrder ?? 0,
+      isActive: item.isActive ?? true,
     });
 
     setEditing(false);
   }
 
-  if (editing) {
+  if (editing && editable && kind !== "audience") {
     return (
       <div className={styles.dictionaryRow}>
         <input
           value={name}
           onChange={(event) => setName(event.target.value)}
-          className={styles.dictionaryInput}
+          className={`${styles.dictionaryInput} textSmall`}
         />
 
-        <input
-          type="number"
-          value={sortOrder}
-          onChange={(event) => setSortOrder(Number(event.target.value))}
-          className={styles.dictionaryInput}
-        />
+        <div className={styles.dictionaryActions}>
+          <button
+            type="button"
+            onClick={save}
+            className={`${styles.primaryBtn} textButton`}
+          >
+            Сохранить
+          </button>
 
-        <label className={styles.dictionaryCheck}>
-          <input
-            type="checkbox"
-            checked={isActive}
-            onChange={(event) => setIsActive(event.target.checked)}
-          />
-          Активно
-        </label>
-
-        <button type="button" onClick={save} className={styles.primaryBtn}>
-          Сохранить
-        </button>
-
-        <button
-          type="button"
-          onClick={() => setEditing(false)}
-          className={styles.secondaryBtn}
-        >
-          Отмена
-        </button>
+          <button
+            type="button"
+            onClick={() => {
+              setEditing(false);
+              setName(item.name);
+            }}
+            className={`${styles.secondaryBtn} textButton`}
+          >
+            Отмена
+          </button>
+        </div>
       </div>
     );
   }
@@ -221,30 +224,51 @@ function DictionaryRow({
   return (
     <div className={styles.dictionaryRow}>
       <div className={styles.dictionaryName}>
-        <span>{item.name}</span>
-        {item.slug ? <small>{item.slug}</small> : null}
+        <span className="textSmall">{item.name}</span>
+        {item.slug ? <small className="textCaption">{item.slug}</small> : null}
       </div>
 
-      <div className={styles.dictionaryMeta}>
-        {item.isActive === false ? "Выключено" : "Активно"}
+      <div className={styles.dictionaryStatus}>
+        <StatusBadge tone={status.tone}>{status.label}</StatusBadge>
       </div>
 
-      <button
-        type="button"
-        onClick={() => setEditing(true)}
-        className={styles.secondaryBtn}
-      >
-        Изменить
-      </button>
+      {editable && kind !== "audience" ? (
+        <div className={styles.dictionaryActions}>
+          <button
+            type="button"
+            onClick={() => setEditing(true)}
+            className={`${styles.secondaryBtn} textButton`}
+          >
+            Изменить
+          </button>
 
-      <button
-        type="button"
-        onClick={() => onDelete(kind, item.id)}
-        disabled={busy || item.isActive === false}
-        className={styles.dangerBtn}
-      >
-        Выключить
-      </button>
+          <button
+            type="button"
+            onClick={() => onDelete(kind, item.id)}
+            disabled={busy || item.isActive === false}
+            className={`${styles.dangerBtn} textButton`}
+          >
+            Отключить
+          </button>
+        </div>
+      ) : null}
     </div>
   );
+}
+
+function getDictionaryStatus(item: DictionaryItem): {
+  label: string;
+  tone: StatusBadgeTone;
+} {
+  const rawStatus = item.status ?? item.moderationStatus;
+
+  if (rawStatus === "MODERATION") {
+    return { label: "На модерации", tone: "warning" };
+  }
+
+  if (item.isActive === false || rawStatus === "DISABLED") {
+    return { label: "Выключено", tone: "default" };
+  }
+
+  return { label: "Активно", tone: "success" };
 }
