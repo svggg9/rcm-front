@@ -1,5 +1,6 @@
 "use client";
 
+import { PhoneInput } from "../../components/ui/PhoneInput";
 import styles from "./CheckoutContactSection.module.css";
 
 type Props = {
@@ -41,16 +42,13 @@ export function CheckoutContactSection({
       </div>
 
       <div className={styles.body}>
-        <div className={styles.fieldWrap}>
-          <span className={styles.fieldLabel}>Телефон</span>
-          <input
-            className={styles.textField}
-            value={phone}
-            onChange={(event) => onPhoneChange(event.target.value)}
-            inputMode="tel"
-            autoComplete="tel"
-          />
-        </div>
+        <PhoneInput
+          label="Телефон"
+          fieldVariant="boxed"
+          value={phone}
+          onChange={(event) => onPhoneChange(event.target.value)}
+          required
+        />
 
         <div className={styles.fieldWrap}>
           <span className={styles.fieldLabel}>Электронная почта</span>
@@ -100,18 +98,15 @@ export function CheckoutContactSection({
               />
             </div>
 
-            <div className={styles.fieldWrap}>
-              <span className={styles.fieldLabel}>Телефон получателя</span>
-              <input
-                className={styles.textField}
-                value={otherRecipientPhone}
-                onChange={(event) =>
-                  onOtherRecipientPhoneChange(event.target.value)
-                }
-                inputMode="tel"
-                autoComplete="tel"
-              />
-            </div>
+            <PhoneInput
+              label="Телефон получателя"
+              fieldVariant="boxed"
+              value={otherRecipientPhone}
+              onChange={(event) =>
+                onOtherRecipientPhoneChange(event.target.value)
+              }
+              required
+            />
           </div>
         ) : null}
       </div>

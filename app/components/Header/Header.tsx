@@ -266,7 +266,11 @@ function HeaderContent() {
                 <button
                   type="button"
                   className={styles.iconBtn}
-                  onClick={() => openAuth("login", "/account?tab=profile")}
+                  onClick={() =>
+                    openAuth("login", "/account?tab=profile", {
+                      placement: "anchored",
+                    })
+                  }
                   aria-label="Войти"
                 >
                   <Image src="/icons/user.svg" alt="" width={22} height={22} />

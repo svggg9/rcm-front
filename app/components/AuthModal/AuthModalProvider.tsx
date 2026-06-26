@@ -4,6 +4,7 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type FormEvent,
   type ReactNode,
@@ -17,32 +18,105 @@ import {
   getGuestFavoriteIds,
   syncFavoritesAfterLogin,
 } from "../../lib/favorites";
+import { useAutoFocusFirstField } from "../../lib/useAutoFocusFirstField";
 import { toast } from "sonner";
 
-import { AuthModalContext, type AuthModalMode } from "./useAuthModal";
+import { Button } from "../ui/Button";
+import { PhoneInput } from "../ui/PhoneInput";
+import { TextInput } from "../ui/TextInput";
+import {
+  AuthModalContext,
+  type AuthModalMode,
+  type AuthModalOptions,
+} from "./useAuthModal";
 import styles from "./AuthModal.module.css";
 
 type Props = {
   children: ReactNode;
 };
 
+function PasswordVisibilityIcon({ visible }: { visible: boolean }) {
+  return (
+    <svg
+      width="17"
+      height="17"
+      viewBox="0 0 17 17"
+      fill="none"
+      aria-hidden="true"
+      focusable="false"
+    >
+      <path
+        d="M1.8 8.5C3.05 5.95 5.42 4.25 8.5 4.25s5.45 1.7 6.7 4.25c-1.25 2.55-3.62 4.25-6.7 4.25s-5.45-1.7-6.7-4.25Z"
+        stroke="currentColor"
+        strokeWidth="1.2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M8.5 10.4a1.9 1.9 0 1 0 0-3.8 1.9 1.9 0 0 0 0 3.8Z"
+        stroke="currentColor"
+        strokeWidth="1.2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      {visible ? (
+        <path
+          d="M3.4 13.6 13.6 3.4"
+          stroke="currentColor"
+          strokeWidth="1.2"
+          strokeLinecap="round"
+        />
+      ) : null}
+    </svg>
+  );
+}
+
 export function AuthModalProvider({ children }: Props) {
   const router = useRouter();
+  const modalRef = useRef<HTMLDivElement>(null);
 
   const [open, setOpen] = useState(false);
   const [mode, setMode] = useState<AuthModalMode>("login");
-  const [next, setNext] = useState("/");
+  const [placement, setPlacement] =
+    useState<NonNullable<AuthModalOptions["placement"]>>("modal");
 
-  const [username, setUsername] = useState("");
+  const [phone, setPhone] = useState("");
+  const [code, setCode] = useState("");
   const [password, setPassword] = useState("");
-  const [newsletter, setNewsletter] = useState(true);
-  const [showPassword, setShowPassword] = useState(false);
-
+  const [passwordConfirmation, setPasswordConfirmation] = useState("");
+  const [passwordVisible, setPasswordVisible] = useState(false);
+  const [passwordConfirmationVisible, setPasswordConfirmationVisible] =
+    useState(false);
+  const [registerStep, setRegisterStep] = useState<"phone" | "code" | "password">("phone");
+  const [resetStep, setResetStep] = useState<"phone" | "code" | "password">("phone");
+  const [resetActive, setResetActive] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
-  const openAuth = useCallback((nextMode: AuthModalMode = "login", nextPath = "/") => {
+  useAutoFocusFirstField(modalRef, [open, mode, registerStep, resetStep, resetActive]);
+
+  function focusFirstFieldSoon() {
+    window.requestAnimationFrame(() => {
+      window.requestAnimationFrame(() => {
+        const field = modalRef.current?.querySelector<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>(
+          "input:not([type='hidden']):not(:disabled), textarea:not(:disabled), select:not(:disabled)"
+        );
+        field?.focus({ preventScroll: true });
+      });
+    });
+  }
+
+  const openAuth = useCallback((
+    nextMode: AuthModalMode = "login",
+    nextPath = "/",
+    options?: AuthModalOptions
+  ) => {
+    void nextPath;
     setMode(nextMode);
-    setNext(nextPath);
+    setPlacement(options?.placement ?? "modal");
+    setResetActive(false);
+    setPasswordConfirmation("");
+    setPasswordVisible(false);
+    setPasswordConfirmationVisible(false);
     setOpen(true);
   }, []);
 
@@ -68,15 +142,26 @@ export function AuthModalProvider({ children }: Props) {
     }
 
     window.addEventListener("keydown", onKeyDown);
-    document.body.style.overflow = "hidden";
+    if (placement === "modal") {
+      document.body.style.overflow = "hidden";
+    }
 
     return () => {
       window.removeEventListener("keydown", onKeyDown);
-      document.body.style.overflow = "";
+      if (placement === "modal") {
+        document.body.style.overflow = "";
+      }
     };
-  }, [open, closeAuth]);
+  }, [open, closeAuth, placement]);
 
   async function finishAuth(cartId: string) {
+    await applyAuth(cartId);
+
+    closeAuth();
+    router.refresh();
+  }
+
+  async function applyAuth(cartId: string) {
     const guestFavoriteIds = getGuestFavoriteIds();
 
     setAuth(cartId);
@@ -87,9 +172,6 @@ export function AuthModalProvider({ children }: Props) {
     }
 
     window.dispatchEvent(new Event("auth-changed"));
-    closeAuth();
-    router.replace(next);
-    router.refresh();
   }
 
   async function handleLogin(event: FormEvent<HTMLFormElement>) {
@@ -104,22 +186,20 @@ export function AuthModalProvider({ children }: Props) {
 
       const response = await apiFetch(`${API_URL}/api/auth/login`, {
         method: "POST",
-        body: JSON.stringify({ username, password, cartId }),
+        body: JSON.stringify({ phone, password, cartId }),
       });
 
       if (!response.ok) {
-        throw new Error("Неверный логин или пароль");
+        throw new Error("Неверный телефон или пароль");
       }
 
       const data: { cartId: string } = await response.json();
       await finishAuth(data.cartId);
-      } catch (error) {
-        toast.error(
-          error instanceof Error ? error.message : "Ошибка входа"
-        );
-      } finally {
-        setSubmitting(false);
-      }
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Ошибка входа");
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   async function handleRegister(event: FormEvent<HTMLFormElement>) {
@@ -130,37 +210,136 @@ export function AuthModalProvider({ children }: Props) {
     setSubmitting(true);
 
     try {
-      const registerResponse = await apiFetch(`${API_URL}/api/auth/register`, {
+      if (registerStep === "phone") {
+        const response = await apiFetch(`${API_URL}/api/auth/phone/register/start`, {
+          method: "POST",
+          body: JSON.stringify({ phone }),
+        });
+
+        if (!response.ok) {
+          const text = await response.text().catch(() => "");
+          throw new Error(text || "Не удалось отправить код");
+        }
+
+        await response.json().catch(() => null);
+        setCode("");
+        setRegisterStep("code");
+        return;
+      }
+
+      if (registerStep === "code") {
+        const cartId = await ensureCartId();
+
+        const response = await apiFetch(`${API_URL}/api/auth/phone/register/complete`, {
+          method: "POST",
+          body: JSON.stringify({ phone, code, cartId }),
+        });
+
+        if (!response.ok) {
+          const text = await response.text().catch(() => "");
+          throw new Error(text || "Не удалось создать аккаунт");
+        }
+
+        const data: { cartId: string } = await response.json();
+        await applyAuth(data.cartId);
+        router.refresh();
+        setPassword("");
+        setPasswordConfirmation("");
+        setRegisterStep("password");
+        return;
+      }
+
+      if (password !== passwordConfirmation) {
+        throw new Error("Пароли не совпадают");
+      }
+
+      const response = await apiFetch(`${API_URL}/api/profile/password`, {
         method: "POST",
-        body: JSON.stringify({ username, password }),
+        body: JSON.stringify({ password }),
       });
 
-      if (!registerResponse.ok) {
-        const text = await registerResponse.text().catch(() => "");
-        throw new Error(text || "Ошибка регистрации");
+      if (!response.ok) {
+        const text = await response.text().catch(() => "");
+        throw new Error(text || "Не удалось сохранить пароль");
+      }
+
+      closeAuth();
+      router.refresh();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Ошибка входа");
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  async function handlePasswordReset(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    if (submitting) return;
+
+    setSubmitting(true);
+
+    try {
+      if (resetStep === "phone") {
+        const response = await apiFetch(`${API_URL}/api/auth/phone/password/reset/start`, {
+          method: "POST",
+          body: JSON.stringify({ phone }),
+        });
+
+        if (!response.ok) {
+          const text = await response.text().catch(() => "");
+          throw new Error(text || "Не удалось отправить код");
+        }
+
+        await response.json().catch(() => null);
+        setCode("");
+        setResetStep("code");
+        return;
+      }
+
+      if (resetStep === "code") {
+        setPassword("");
+        setPasswordConfirmation("");
+        setResetStep("password");
+        return;
+      }
+
+      if (password !== passwordConfirmation) {
+        throw new Error("Пароли не совпадают");
       }
 
       const cartId = await ensureCartId();
 
-      const loginResponse = await apiFetch(`${API_URL}/api/auth/login`, {
+      const response = await apiFetch(`${API_URL}/api/auth/phone/password/reset/complete`, {
         method: "POST",
-        body: JSON.stringify({ username, password, cartId }),
+        body: JSON.stringify({ phone, code, password, cartId }),
       });
 
-      if (!loginResponse.ok) {
-        const text = await loginResponse.text().catch(() => "");
-        throw new Error(text || "Регистрация успешна, но вход не выполнен");
+      if (!response.ok) {
+        const text = await response.text().catch(() => "");
+        throw new Error(text || "Не удалось сохранить пароль");
       }
 
-      const data: { cartId: string } = await loginResponse.json();
+      const data: { cartId: string } = await response.json();
       await finishAuth(data.cartId);
-      } catch (error) {
-        toast.error(
-          error instanceof Error ? error.message : "Ошибка входа"
-        );
-      } finally {
-        setSubmitting(false);
-      }
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Не удалось восстановить пароль");
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  function switchMode(nextMode: AuthModalMode) {
+    setMode(nextMode);
+    setRegisterStep("phone");
+    setResetStep("phone");
+    setResetActive(false);
+    setCode("");
+    setPassword("");
+    setPasswordConfirmation("");
+    setPasswordVisible(false);
+    setPasswordConfirmationVisible(false);
+    focusFirstFieldSoon();
   }
 
   return (
@@ -169,29 +348,23 @@ export function AuthModalProvider({ children }: Props) {
 
       {open ? (
         <div
-          className={styles.overlay}
+          className={`${styles.overlay} ${
+            placement === "anchored" ? styles.overlayAnchored : ""
+          }`}
           role="presentation"
           onMouseDown={closeAuth}
         >
           <div
-            className={styles.modal}
+            ref={modalRef}
+            className={`${styles.modal} ${
+              placement === "anchored" ? styles.modalAnchored : ""
+            }`}
             role="dialog"
-            aria-modal="true"
+            aria-modal={placement === "modal"}
             aria-label="Вход или регистрация"
             onMouseDown={(event) => event.stopPropagation()}
           >
-            <button
-              type="button"
-              className={styles.close}
-              onClick={closeAuth}
-              aria-label="Закрыть"
-            >
-              ×
-            </button>
-
             <div className={styles.header}>
-              <h2 className={styles.title}>Войдите или создайте аккаунт</h2>
-
               <div className={styles.tabs} role="tablist">
                 <button
                   type="button"
@@ -201,7 +374,7 @@ export function AuthModalProvider({ children }: Props) {
                     mode === "login" ? styles.tabActive : ""
                   }`}
                   onClick={() => {
-                    setMode("login");
+                    switchMode("login");
                   }}
                 >
                   Войти
@@ -215,7 +388,7 @@ export function AuthModalProvider({ children }: Props) {
                     mode === "register" ? styles.tabActive : ""
                   }`}
                   onClick={() => {
-                    setMode("register");
+                    switchMode("register");
                   }}
                 >
                   Создать аккаунт
@@ -224,138 +397,288 @@ export function AuthModalProvider({ children }: Props) {
             </div>
 
             <div className={styles.body}>
-              {mode === "login" ? (
+              {mode === "login" && !resetActive ? (
                 <form className={styles.form} onSubmit={handleLogin}>
-                  <label className={styles.field}>
-                    <span className={styles.label}>Email или логин</span>
-                    <input
-                      className={styles.input}
-                      value={username}
-                      onChange={(event) => setUsername(event.target.value)}
-                      required
-                      autoComplete="username"
-                    />
-                  </label>
+                  <PhoneInput
+                    label="Телефон"
+                    fieldVariant="boxed"
+                    hideLabel
+                    value={phone}
+                    onChange={(event) => setPhone(event.target.value)}
+                    required
+                  />
 
-                  <label className={styles.field}>
-                    <span className={styles.label}>Пароль</span>
-                    <div className={styles.passwordWrap}>
-                      <input
-                        className={styles.input}
-                        type={showPassword ? "text" : "password"}
+                  <div className={styles.passwordLoginGroup}>
+                    <div className={styles.passwordFieldWrap}>
+                      <TextInput
+                        label="Пароль"
+                        fieldVariant="boxed"
+                        hideLabel
+                        placeholder="Пароль"
+                        type={passwordVisible ? "text" : "password"}
                         value={password}
                         onChange={(event) => setPassword(event.target.value)}
                         required
                         autoComplete="current-password"
+                        className={styles.passwordInput}
                       />
-
                       <button
                         type="button"
-                        className={styles.passwordToggle}
-                        onClick={() => setShowPassword((value) => !value)}
+                        className={styles.passwordVisibilityButton}
+                        onClick={() => setPasswordVisible((visible) => !visible)}
+                        aria-label={passwordVisible ? "Скрыть пароль" : "Показать пароль"}
+                        title={passwordVisible ? "Скрыть пароль" : "Показать пароль"}
                       >
-                        {showPassword ? "Скрыть" : "Показать"}
+                        <PasswordVisibilityIcon visible={passwordVisible} />
                       </button>
                     </div>
-                  </label>
 
-                  <button type="button" className={styles.forgot}>
-                    Забыли пароль?
-                  </button>
+                    <button
+                      type="button"
+                      className={styles.forgotInline}
+                      onClick={() => {
+                        setResetActive(true);
+                        setResetStep("phone");
+                        setCode("");
+                        setPassword("");
+                        setPasswordConfirmation("");
+                        focusFirstFieldSoon();
+                      }}
+                    >
+                      Забыли пароль?
+                    </button>
+                  </div>
 
-                  <button
+                  <Button
                     type="submit"
+                    variant="primaryShimmer"
                     className={styles.submit}
                     disabled={submitting}
                   >
-                    {submitting ? "Входим…" : "Войти"}
-                  </button>
+                    Войти
+                  </Button>
 
-                  <div className={styles.switchText}>
-                    Нет аккаунта?{" "}
-                    <button
-                      type="button"
-                      className={styles.switchButton}
-                      onClick={() => {
-                        setMode("register");
-                      }}
-                    >
-                      Создать аккаунт
-                    </button>
-                  </div>
+                </form>
+              ) : mode === "login" ? (
+                <form className={styles.form} onSubmit={handlePasswordReset}>
+                  <p className={styles.formHint}>
+                    Введите телефон, чтобы восстановить пароль
+                  </p>
+
+                  {resetStep === "phone" ? (
+                    <PhoneInput
+                      label="Телефон"
+                      fieldVariant="boxed"
+                      hideLabel
+                      value={phone}
+                      onChange={(event) => setPhone(event.target.value)}
+                      required
+                    />
+                  ) : null}
+
+                  {resetStep === "code" ? (
+                    <>
+                      <TextInput
+                        label="Код из смс"
+                        fieldVariant="boxed"
+                        hideLabel
+                        placeholder="Код из смс"
+                        value={code}
+                        onChange={(event) =>
+                          setCode(event.target.value.replace(/\D/g, "").slice(0, 6))
+                        }
+                        inputMode="numeric"
+                        required
+                      />
+                    </>
+                  ) : null}
+
+                  {resetStep === "password" ? (
+                    <>
+                      <div className={styles.passwordFieldWrap}>
+                        <TextInput
+                          label="Новый пароль"
+                          fieldVariant="boxed"
+                          hideLabel
+                          placeholder="Новый пароль"
+                          type={passwordVisible ? "text" : "password"}
+                          value={password}
+                          onChange={(event) => setPassword(event.target.value)}
+                          required
+                          autoComplete="new-password"
+                          className={styles.passwordInput}
+                        />
+                        <button
+                          type="button"
+                          className={styles.passwordVisibilityButton}
+                          onClick={() => setPasswordVisible((visible) => !visible)}
+                          aria-label={passwordVisible ? "Скрыть пароль" : "Показать пароль"}
+                          title={passwordVisible ? "Скрыть пароль" : "Показать пароль"}
+                        >
+                          <PasswordVisibilityIcon visible={passwordVisible} />
+                        </button>
+                      </div>
+
+                      <div className={styles.passwordFieldWrap}>
+                        <TextInput
+                          label="Повторите пароль"
+                          fieldVariant="boxed"
+                          hideLabel
+                          placeholder="Повторите пароль"
+                          type={passwordConfirmationVisible ? "text" : "password"}
+                          value={passwordConfirmation}
+                          onChange={(event) =>
+                            setPasswordConfirmation(event.target.value)
+                          }
+                          required
+                          autoComplete="new-password"
+                          className={styles.passwordInput}
+                        />
+                        <button
+                          type="button"
+                          className={styles.passwordVisibilityButton}
+                          onClick={() =>
+                            setPasswordConfirmationVisible((visible) => !visible)
+                          }
+                          aria-label={
+                            passwordConfirmationVisible ? "Скрыть пароль" : "Показать пароль"
+                          }
+                          title={
+                            passwordConfirmationVisible ? "Скрыть пароль" : "Показать пароль"
+                          }
+                        >
+                          <PasswordVisibilityIcon visible={passwordConfirmationVisible} />
+                        </button>
+                      </div>
+                    </>
+                  ) : null}
+
+                  <Button
+                    type="submit"
+                    variant="primaryShimmer"
+                    className={styles.submit}
+                    disabled={submitting}
+                  >
+                    {resetStep === "phone"
+                      ? "Получить код"
+                      : resetStep === "code"
+                        ? "Продолжить"
+                        : "Восстановить пароль"}
+                  </Button>
                 </form>
               ) : (
                 <form className={styles.form} onSubmit={handleRegister}>
-                  <label className={styles.field}>
-                    <span className={styles.label}>Email или логин</span>
-                    <input
-                      className={styles.input}
-                      value={username}
-                      onChange={(event) => setUsername(event.target.value)}
+                  {registerStep === "phone" ? (
+                    <PhoneInput
+                      label="Телефон"
+                      fieldVariant="boxed"
+                      hideLabel
+                      value={phone}
+                      onChange={(event) => setPhone(event.target.value)}
                       required
-                      autoComplete="username"
                     />
-                  </label>
+                  ) : null}
 
-                  <label className={styles.field}>
-                    <span className={styles.label}>Пароль</span>
-                    <div className={styles.passwordWrap}>
-                      <input
-                        className={styles.input}
-                        type={showPassword ? "text" : "password"}
-                        value={password}
-                        onChange={(event) => setPassword(event.target.value)}
+                  {registerStep === "code" ? (
+                    <>
+                      <TextInput
+                        label="Код из смс"
+                        fieldVariant="boxed"
+                        hideLabel
+                        placeholder="Код из смс"
+                        value={code}
+                        onChange={(event) =>
+                          setCode(event.target.value.replace(/\D/g, "").slice(0, 6))
+                        }
+                        inputMode="numeric"
                         required
-                        autoComplete="new-password"
                       />
+                    </>
+                  ) : null}
 
-                      <button
-                        type="button"
-                        className={styles.passwordToggle}
-                        onClick={() => setShowPassword((value) => !value)}
-                      >
-                        {showPassword ? "Скрыть" : "Показать"}
-                      </button>
-                    </div>
-                  </label>
+                  {registerStep === "password" ? (
+                    <>
+                      <div className={styles.passwordFieldWrap}>
+                        <TextInput
+                          label="Пароль"
+                          fieldVariant="boxed"
+                          hideLabel
+                          placeholder="Пароль"
+                          type={passwordVisible ? "text" : "password"}
+                          value={password}
+                          onChange={(event) => setPassword(event.target.value)}
+                          required
+                          autoComplete="new-password"
+                          className={styles.passwordInput}
+                        />
+                        <button
+                          type="button"
+                          className={styles.passwordVisibilityButton}
+                          onClick={() => setPasswordVisible((visible) => !visible)}
+                          aria-label={passwordVisible ? "Скрыть пароль" : "Показать пароль"}
+                          title={passwordVisible ? "Скрыть пароль" : "Показать пароль"}
+                        >
+                          <PasswordVisibilityIcon visible={passwordVisible} />
+                        </button>
+                      </div>
 
-                  <p className={styles.legal}>
-                    Регистрируясь, вы соглашаетесь с условиями пользования и
-                    политикой конфиденциальности.
-                  </p>
+                      <div className={styles.passwordFieldWrap}>
+                        <TextInput
+                          label="Повторите пароль"
+                          fieldVariant="boxed"
+                          hideLabel
+                          placeholder="Повторите пароль"
+                          type={passwordConfirmationVisible ? "text" : "password"}
+                          value={passwordConfirmation}
+                          onChange={(event) =>
+                            setPasswordConfirmation(event.target.value)
+                          }
+                          required
+                          autoComplete="new-password"
+                          className={styles.passwordInput}
+                        />
+                        <button
+                          type="button"
+                          className={styles.passwordVisibilityButton}
+                          onClick={() =>
+                            setPasswordConfirmationVisible((visible) => !visible)
+                          }
+                          aria-label={
+                            passwordConfirmationVisible ? "Скрыть пароль" : "Показать пароль"
+                          }
+                          title={
+                            passwordConfirmationVisible ? "Скрыть пароль" : "Показать пароль"
+                          }
+                        >
+                          <PasswordVisibilityIcon visible={passwordConfirmationVisible} />
+                        </button>
+                      </div>
+                    </>
+                  ) : null}
 
-                  <label className={`${styles.checkbox} ${styles.newsletter}`}>
-                    <input
-                      type="checkbox"
-                      checked={newsletter}
-                      onChange={(event) => setNewsletter(event.target.checked)}
-                    />
-                    <span>
-                      Подписаться на рассылку, чтобы не пропускать новые
-                      коллекции и привилегии.
-                    </span>
-                  </label>
+                  {registerStep !== "password" ? (
+                    <>
+                      <p className={styles.legal}>
+                        Регистрируясь, вы соглашаетесь с условиями пользования и
+                        политикой конфиденциальности
+                      </p>
 
-                  <button
+                    </>
+                  ) : null}
+
+                  <Button
                     type="submit"
+                    variant="primaryShimmer"
                     className={styles.submit}
                     disabled={submitting}
                   >
-                    {submitting ? "Регистрируем…" : "Зарегистрироваться"}
-                  </button>
+                    {registerStep === "phone"
+                      ? "Получить код"
+                      : registerStep === "code"
+                        ? "Создать аккаунт"
+                        : "Сохранить пароль"}
+                  </Button>
 
-                  <div className={styles.switchText}>
-                    Уже есть аккаунт?{" "}
-                    <button
-                      type="button"
-                      className={styles.switchButton}
-                      onClick={() => {
-                        setMode("login");
-                      }}
-                    >
-                      Войти
-                    </button>
-                  </div>
                 </form>
               )}
             </div>
