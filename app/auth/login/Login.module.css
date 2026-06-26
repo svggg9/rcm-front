@@ -1,33 +1,32 @@
 .page {
   width: 100%;
   min-height: calc(100vh - var(--site-header-height));
-  padding: 56px 0;
+  padding: 72px 0;
   display: flex;
   align-items: flex-start;
   justify-content: center;
 }
 
 .card {
-  width: min(420px, 100%);
-  padding: 32px 0;
-  border-top: 1px solid var(--black);
-  border-bottom: 1px solid var(--line);
+  width: min(380px, 100%);
+  padding: 0;
+  border: 0;
   background: var(--white);
 }
 
 .title {
-  margin-bottom: 24px;
+  margin: 0 0 18px;
   color: var(--black);
-  font-size: var(--font-2xl);
-  line-height: 1.1;
-  font-weight: 500;
-  letter-spacing: -0.03em;
+  font-size: var(--font-lg);
+  line-height: 1.2;
+  font-weight: 400;
+  letter-spacing: 0;
 }
 
 .form {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 12px;
 }
 
 .label {
@@ -55,8 +54,9 @@
 }
 
 .button {
-  height: 46px;
-  margin-top: 4px;
+  width: 100%;
+  height: 50px;
+  margin-top: 8px;
   border: 1px solid var(--black);
   background: var(--black);
   color: var(--white);
@@ -67,6 +67,51 @@
 
 .button:hover {
   opacity: 0.86;
+}
+
+.forgot {
+  align-self: flex-end;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  padding: 0;
+  font-size: 10px;
+  line-height: 1;
+  text-decoration: none;
+  cursor: pointer;
+  transition: color 0.16s ease;
+}
+
+.forgot:hover {
+  color: var(--black);
+}
+
+.passwordFieldWrap {
+  position: relative;
+}
+
+.passwordInput {
+  padding-right: 76px;
+}
+
+.passwordVisibilityButton {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  padding: 0;
+  font-size: var(--font-xs);
+  font-weight: 400;
+  line-height: 1;
+  cursor: pointer;
+  transition: color 0.16s ease;
+}
+
+.passwordVisibilityButton:hover {
+  color: var(--black);
 }
 
 .error {
@@ -90,10 +135,10 @@
 
 @media (max-width: 768px) {
   .page {
-    padding: 32px 0;
+    padding: 48px 0;
   }
 
   .card {
-    width: 100%;
+    width: min(380px, 100%);
   }
 }

@@ -1,7 +1,6 @@
 "use client";
 
-import Link from "next/link";
-import { Suspense, useState } from "react";
+import { Suspense, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
 import { apiFetch, API_URL } from "../../lib/api";
@@ -12,54 +11,97 @@ import {
   clearGuestFavoriteIds,
 } from "../../lib/favorites";
 import { toast } from "sonner";
+import { Button } from "../../components/ui/Button";
+import { PhoneInput } from "../../components/ui/PhoneInput";
+import { TextInput } from "../../components/ui/TextInput";
+import { useAutoFocusFirstField } from "../../lib/useAutoFocusFirstField";
 
 import styles from "./Register.module.css";
 
 function RegisterPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const formRef = useRef<HTMLFormElement>(null);
 
   const next = searchParams.get("next") || "/";
 
-  const [username, setUsername] = useState("");
+  const [phone, setPhone] = useState("");
+  const [code, setCode] = useState("");
   const [password, setPassword] = useState("");
+  const [passwordConfirmation, setPasswordConfirmation] = useState("");
+  const [passwordVisible, setPasswordVisible] = useState(false);
+  const [passwordConfirmationVisible, setPasswordConfirmationVisible] =
+    useState(false);
+  const [step, setStep] = useState<"phone" | "code" | "password">("phone");
+
+  useAutoFocusFirstField(formRef, [step]);
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
 
     try {
-      const registerResponse = await apiFetch(`${API_URL}/api/auth/register`, {
-        method: "POST",
-        body: JSON.stringify({ username, password }),
-      });
+      if (step === "phone") {
+        const response = await apiFetch(`${API_URL}/api/auth/phone/register/start`, {
+          method: "POST",
+          body: JSON.stringify({ phone }),
+        });
 
-      if (!registerResponse.ok) {
-        const text = await registerResponse.text().catch(() => "");
-        throw new Error(text || "Ошибка регистрации");
+        if (!response.ok) {
+          const text = await response.text().catch(() => "");
+          throw new Error(text || "Не удалось отправить код");
+        }
+
+        await response.json().catch(() => null);
+        setCode("");
+        setStep("code");
+        return;
       }
 
-      const cartId = await ensureCartId();
+      if (step === "code") {
+        const cartId = await ensureCartId();
 
-      const loginResponse = await apiFetch(`${API_URL}/api/auth/login`, {
-        method: "POST",
-        body: JSON.stringify({ username, password, cartId }),
-      });
+        const response = await apiFetch(`${API_URL}/api/auth/phone/register/complete`, {
+          method: "POST",
+          body: JSON.stringify({ phone, code, cartId }),
+        });
 
-      if (!loginResponse.ok) {
-        const text = await loginResponse.text().catch(() => "");
-        throw new Error(text || "Регистрация успешна, но вход не выполнен");
-      }
+        if (!response.ok) {
+          const text = await response.text().catch(() => "");
+          throw new Error(text || "Не удалось создать аккаунт");
+        }
 
-      const data: { cartId: string } = await loginResponse.json();
-      const guestFavoriteIds = getGuestFavoriteIds();
+        const data: { cartId: string } = await response.json();
+        const guestFavoriteIds = getGuestFavoriteIds();
 
-      setAuth(data.cartId);
+        setAuth(data.cartId);
 
-      if (guestFavoriteIds.length > 0) {
-        await syncFavoritesAfterLogin(guestFavoriteIds);
-        clearGuestFavoriteIds();
+        if (guestFavoriteIds.length > 0) {
+          await syncFavoritesAfterLogin(guestFavoriteIds);
+          clearGuestFavoriteIds();
+        }
+
         window.dispatchEvent(new Event("auth-changed"));
+        router.refresh();
+        setPassword("");
+        setPasswordConfirmation("");
+        setStep("password");
+        return;
       }
+
+      if (password !== passwordConfirmation) {
+        throw new Error("Пароли не совпадают");
+      }
+
+      const response = await apiFetch(`${API_URL}/api/profile/password`, {
+        method: "POST",
+        body: JSON.stringify({ password }),
+      });
+
+      if (!response.ok) {
+        const text = await response.text().catch(() => "");
+        throw new Error(text || "Не удалось сохранить пароль");
+      }
+
       toast.success("Аккаунт создан");
       router.replace(next);
     } catch (error) {
@@ -73,45 +115,98 @@ function RegisterPageContent() {
     <div className="pageContainer">
       <div className={styles.page}>
         <div className={styles.card}>
-          <h1 className={styles.title}>Регистрация</h1>
+          <h1 className={styles.title}>
+            {step === "password" ? "Задайте пароль" : "Регистрация"}
+          </h1>
 
-          <form onSubmit={handleSubmit} className={styles.form}>
-            <label className={styles.label}>
-              Логин
-              <input
-                className={styles.input}
-                value={username}
-                onChange={(event) => setUsername(event.target.value)}
+          <form ref={formRef} onSubmit={handleSubmit} className={styles.form}>
+            {step === "phone" ? (
+              <PhoneInput
+                label="Телефон"
+                fieldVariant="boxed"
+                hideLabel
+                value={phone}
+                onChange={(event) => setPhone(event.target.value)}
                 required
-                autoComplete="username"
               />
-            </label>
+            ) : null}
 
-            <label className={styles.label}>
-              Пароль
-              <input
-                className={styles.input}
-                type="password"
-                value={password}
-                onChange={(event) => setPassword(event.target.value)}
-                required
-                autoComplete="new-password"
-              />
-            </label>
+            {step === "code" ? (
+              <>
+                <TextInput
+                  label="Код из смс"
+                  fieldVariant="boxed"
+                  hideLabel
+                  placeholder="Код из смс"
+                  value={code}
+                  onChange={(event) =>
+                    setCode(event.target.value.replace(/\D/g, "").slice(0, 6))
+                  }
+                  inputMode="numeric"
+                  required
+                />
+              </>
+            ) : null}
 
-            <button type="submit" className={styles.button}>
-              Зарегистрироваться
-            </button>
+            {step === "password" ? (
+              <>
+                <div className={styles.passwordFieldWrap}>
+                  <TextInput
+                    label="Пароль"
+                    fieldVariant="boxed"
+                    hideLabel
+                    placeholder="Пароль"
+                    type={passwordVisible ? "text" : "password"}
+                    value={password}
+                    onChange={(event) => setPassword(event.target.value)}
+                    required
+                    autoComplete="new-password"
+                    className={styles.passwordInput}
+                  />
+                  <button
+                    type="button"
+                    className={styles.passwordVisibilityButton}
+                    onClick={() => setPasswordVisible((visible) => !visible)}
+                  >
+                    {passwordVisible ? "Скрыть" : "Показать"}
+                  </button>
+                </div>
 
-            <div className={styles.hint}>
-              Уже есть аккаунт?{" "}
-              <Link
-                className={styles.link}
-                href={`/auth/login?next=${encodeURIComponent(next)}`}
-              >
-                Войти
-              </Link>
-            </div>
+                <div className={styles.passwordFieldWrap}>
+                  <TextInput
+                    label="Повторите пароль"
+                    fieldVariant="boxed"
+                    hideLabel
+                    placeholder="Повторите пароль"
+                    type={passwordConfirmationVisible ? "text" : "password"}
+                    value={passwordConfirmation}
+                    onChange={(event) =>
+                      setPasswordConfirmation(event.target.value)
+                    }
+                    required
+                    autoComplete="new-password"
+                    className={styles.passwordInput}
+                  />
+                  <button
+                    type="button"
+                    className={styles.passwordVisibilityButton}
+                    onClick={() =>
+                      setPasswordConfirmationVisible((visible) => !visible)
+                    }
+                  >
+                    {passwordConfirmationVisible ? "Скрыть" : "Показать"}
+                  </button>
+                </div>
+              </>
+            ) : null}
+
+            <Button type="submit" variant="primaryShimmer" className={styles.button}>
+              {step === "phone"
+                ? "Получить код"
+                : step === "code"
+                  ? "Создать аккаунт"
+                  : "Сохранить пароль"}
+            </Button>
           </form>
         </div>
       </div>

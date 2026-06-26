@@ -1,15 +1,19 @@
 .buttonPrimary,
+.buttonPrimaryShimmer,
 .buttonSecondary,
+.buttonTertiary,
 .buttonGhost {
+  position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  overflow: hidden;
 
   height: 42px;
   padding: 0 16px;
 
-  font-size: var(--font-sm);
-  font-weight: 500;
+  font-size: var(--font-button);
+  font-weight: 400;
 
   cursor: pointer;
 
@@ -26,8 +30,39 @@
   color: var(--white);
 }
 
+.buttonPrimaryShimmer {
+  border: 1px solid var(--black);
+  background: var(--black);
+  color: var(--white);
+}
+
+.buttonContent {
+  position: relative;
+  z-index: 1;
+}
+
 .buttonPrimary:hover {
   opacity: 0.86;
+}
+
+@media (hover: hover) {
+  .buttonPrimaryShimmer:hover .buttonContent {
+    color: transparent;
+    background:
+      linear-gradient(
+        110deg,
+        var(--white) 0%,
+        var(--white) 34%,
+        var(--gold) 48%,
+        var(--white) 62%,
+        var(--white) 100%
+      );
+    background-size: 260% 100%;
+    background-position: 100% 0;
+    background-clip: text;
+    -webkit-background-clip: text;
+    animation: buttonTextShimmer 0.45s ease-out;
+  }
 }
 
 .buttonSecondary {
@@ -41,10 +76,23 @@
   background: var(--soft);
 }
 
+.buttonTertiary {
+  height: 36px;
+  padding: 0 12px;
+  border: 1px solid var(--black);
+  background: var(--black);
+  color: var(--white);
+  font-size: var(--font-sm);
+}
+
+.buttonTertiary:hover {
+  opacity: 0.86;
+}
+
 .buttonGhost {
   border: 1px solid transparent;
   background: transparent;
-  color: var(--muted);
+  color: var(--black);
 }
 
 .buttonGhost:hover {
@@ -52,7 +100,9 @@
 }
 
 .buttonPrimary:disabled,
+.buttonPrimaryShimmer:disabled,
 .buttonSecondary:disabled,
+.buttonTertiary:disabled,
 .buttonGhost:disabled {
   opacity: 0.4;
   cursor: default;
@@ -70,8 +120,8 @@
   background: var(--white);
   color: var(--danger);
 
-  font-size: var(--font-sm);
-  font-weight: 500;
+  font-size: var(--font-button);
+  font-weight: 400;
   cursor: pointer;
 
   transition:
@@ -88,4 +138,37 @@
 .buttonDanger:disabled {
   opacity: 0.4;
   cursor: default;
+}
+
+.buttonPair {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  width: 100%;
+  overflow: hidden;
+  border: 1px solid var(--black);
+}
+
+.buttonPairItem {
+  width: 100%;
+  border: 0;
+}
+
+.buttonPairItem + .buttonPairItem {
+  border-left: 1px solid var(--black);
+}
+
+@keyframes buttonTextShimmer {
+  0% {
+    background-position: 100% 0;
+  }
+
+  100% {
+    background-position: 0% 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .buttonPrimaryShimmer:hover .buttonContent {
+    animation: none;
+  }
 }

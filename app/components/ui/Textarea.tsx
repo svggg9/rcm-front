@@ -6,6 +6,7 @@ type Props = TextareaHTMLAttributes<HTMLTextAreaElement> & {
   label: string;
   error?: string | null;
   hint?: string;
+  fieldVariant?: "line" | "boxed";
 };
 
 export function Textarea({
@@ -13,17 +14,20 @@ export function Textarea({
   required,
   error,
   hint,
+  fieldVariant = "line",
   className = "",
   ...props
 }: Props) {
+  const visibleError = error?.trim();
+
   return (
-    <Field label={label} required={required} hint={hint}>
+    <Field label={label} required={required} hint={hint} variant={fieldVariant}>
       <textarea
         className={`textarea ${error ? "inputError" : ""} ${className}`.trim()}
         aria-invalid={error ? "true" : undefined}
         {...props}
       />
-      {error ? <div className="fieldError">{error}</div> : null}
+      {visibleError ? <div className="fieldError">{visibleError}</div> : null}
     </Field>
   );
 }

@@ -2,13 +2,16 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 
 import { Button } from "../../components/ui/Button";
+import { ButtonPair } from "../../components/ui/ButtonPair";
 import { FormError } from "../../components/ui/FormError";
 import { PhoneInput } from "../../components/ui/PhoneInput";
 import { Textarea } from "../../components/ui/Textarea";
 import { TextInput } from "../../components/ui/TextInput";
 import { useCurrentUser } from "../../lib/useCurrentUser";
+import { apiFetch, API_URL } from "../../lib/api";
 import { useAuthModal } from "../../components/AuthModal/useAuthModal";
 import {
   cleanText,
@@ -27,6 +30,13 @@ import styles from "./SellerApplyPage.module.css";
 import type { SellerApplication, SellerApplicationForm } from "./types";
 
 type FormErrors = Partial<Record<keyof SellerApplicationForm, string>>;
+
+type TelegramStatus = {
+  url: string | null;
+  expiresAt: string | null;
+  linked: boolean;
+  telegramUsername: string | null;
+};
 
 const INITIAL_FORM: SellerApplicationForm = {
   brandName: "",
@@ -54,6 +64,11 @@ export function SellerApplyPageClient() {
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [successOpen, setSuccessOpen] = useState(false);
+  const [applicationModalOpen, setApplicationModalOpen] = useState(false);
+  const [telegramStatus, setTelegramStatus] = useState<TelegramStatus | null>(
+    null
+  );
+  const [telegramLinking, setTelegramLinking] = useState(false);
 
   const isSeller = user?.role === "SELLER";
   const isAdmin = user?.role === "ADMIN";
@@ -114,6 +129,15 @@ export function SellerApplyPageClient() {
     void sendApplication();
   }, [isAuthenticated, userLoading]);
 
+  useEffect(() => {
+    if (!isAuthenticated) {
+      setTelegramStatus(null);
+      return;
+    }
+
+    void loadTelegramStatus();
+  }, [isAuthenticated]);
+
   const statusText = useMemo(() => {
     if (!application) return null;
 
@@ -148,48 +172,79 @@ export function SellerApplyPageClient() {
     const nextErrors: FormErrors = {};
 
     if (!isNonEmpty(form.brandName)) {
-      nextErrors.brandName = "Укажите название бренда";
-    }
-
-    if (!isNonEmpty(form.brandDescription)) {
-      nextErrors.brandDescription = "Кратко опишите бренд";
+      nextErrors.brandName = " ";
     }
 
     if (!isNonEmpty(form.category)) {
-      nextErrors.category = "Укажите категорию товаров";
-    }
-
-    if (!isNonEmpty(form.productionRegion)) {
-      nextErrors.productionRegion = "Укажите город или регион производства";
-    }
-
-    if (!isNonEmpty(form.contactName)) {
-      nextErrors.contactName = "Укажите контактное лицо";
+      nextErrors.category = " ";
     }
 
     if (!isValidPhone(form.phone)) {
-      nextErrors.phone = "Укажите корректный телефон";
+      nextErrors.phone = " ";
     }
 
     if (!isValidEmail(form.email)) {
-      nextErrors.email = "Укажите корректный e-mail";
+      nextErrors.email = " ";
     }
 
     return nextErrors;
+  }
+
+  async function loadTelegramStatus() {
+    try {
+      const response = await apiFetch(`${API_URL}/api/profile/telegram`);
+
+      if (!response.ok) {
+        return;
+      }
+
+      setTelegramStatus((await response.json()) as TelegramStatus);
+    } catch {
+      setTelegramStatus(null);
+    }
+  }
+
+  async function connectTelegram() {
+    if (telegramLinking) return;
+
+    setTelegramLinking(true);
+
+    try {
+      const response = await apiFetch(`${API_URL}/api/profile/telegram/link`, {
+        method: "POST",
+      });
+
+      if (!response.ok) {
+        return;
+      }
+
+      const data = (await response.json()) as TelegramStatus;
+      setTelegramStatus(data);
+
+      if (data.url) {
+        window.open(data.url, "_blank", "noopener,noreferrer");
+      }
+    } finally {
+      setTelegramLinking(false);
+    }
   }
 
   async function sendApplication() {
   setSubmitting(true);
 
   try {
+    const brandName = cleanText(form.brandName);
+
     const created = await createSellerApplication({
-      brandName: cleanText(form.brandName),
+      brandName,
       brandDescription: cleanText(form.brandDescription),
       category: cleanText(form.category),
-      productionRegion: cleanText(form.productionRegion),
+      productionRegion: "",
       website: cleanText(form.website),
-      telegram: cleanText(form.telegram),
-      contactName: cleanText(form.contactName),
+      telegram: telegramStatus?.telegramUsername
+        ? `@${telegramStatus.telegramUsername}`
+        : cleanText(form.telegram),
+      contactName: brandName || cleanText(form.email) || user?.username || "-",
       phone: cleanText(form.phone),
       email: cleanText(form.email),
       comment: cleanText(form.comment),
@@ -197,6 +252,7 @@ export function SellerApplyPageClient() {
 
     setApplication(created);
     setForm(INITIAL_FORM);
+    setApplicationModalOpen(false);
     setSuccessOpen(true);
   } catch (error) {
     setFormError(
@@ -244,9 +300,13 @@ export function SellerApplyPageClient() {
             </p>
 
             <div className={styles.heroActions}>
-              <a className="buttonPrimary" href="#seller-application-form">
+              <button
+                type="button"
+                className="buttonPrimary"
+                onClick={() => setApplicationModalOpen(true)}
+              >
                 Оставить заявку
-              </a>
+              </button>
 
               <Link className="buttonSecondary" href="/about">
                 О проекте
@@ -285,14 +345,12 @@ export function SellerApplyPageClient() {
               <div className={styles.sectionKicker}>Заявка</div>
               <h2>Стать продавцом</h2>
               <p>
-                Расскажите о бренде. После рассмотрения заявки мы откроем доступ
-                к кабинету продавца.
+                Оставьте короткую заявку. Подробные данные бренда и реквизиты
+                можно будет заполнить после одобрения.
               </p>
             </div>
 
-            {userLoading || loadingApplication ? (
-              null
-            ) : isSeller ? (
+            {userLoading || loadingApplication ? null : isSeller ? (
               <StatusBlock
                 title="Вы уже продавец"
                 text="Перейдите в кабинет продавца, чтобы управлять товарами, заказами и профилем производителя."
@@ -319,19 +377,90 @@ export function SellerApplyPageClient() {
                 actionLabel="Перейти в аккаунт"
               />
             ) : (
-              <form className={styles.form} onSubmit={submitApplication}>
+              <div className={styles.applyCta}>
+                <button
+                  type="button"
+                  className="buttonPrimary textButton"
+                  onClick={() => setApplicationModalOpen(true)}
+                >
+                  Оставить заявку
+                </button>
+                {!isAuthenticated ? (
+                  <p>Для отправки понадобится войти или зарегистрироваться.</p>
+                ) : null}
+              </div>
+            )}
+          </section>
+        </section>
+      </div>
+
+      {applicationModalOpen ? (
+        <div
+          className={styles.applyOverlay}
+          role="presentation"
+          onMouseDown={() => setApplicationModalOpen(false)}
+        >
+          <div
+            className={styles.applyModal}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="seller-apply-modal-title"
+            onMouseDown={(event) => event.stopPropagation()}
+          >
+            <button
+              type="button"
+              className={styles.applyClose}
+              onClick={() => setApplicationModalOpen(false)}
+              aria-label="Закрыть"
+            >
+              ×
+            </button>
+
+            <div className={styles.applyHeader}>
+              <h2 className={styles.applyTitle} id="seller-apply-modal-title">
+                Стать продавцом
+              </h2>
+            </div>
+
+            <div className={styles.applyBody}>
+              <form className={styles.applyForm} onSubmit={submitApplication}>
                 <FormError message={formError} />
 
                 {!isAuthenticated ? (
-                  <div className={styles.authNotice}>
-                    Форму можно заполнить сейчас. Для отправки заявки войдите или зарегистрируйтесь.
-                  </div>
-                ) : null}
+                  <div className={styles.applyAuthBlock}>
+                    <p className={styles.applyHint}>
+                      Войдите или зарегистрируйтесь
+                    </p>
 
-                <div className={styles.formGrid}>
+                    <ButtonPair
+                      primary={{
+                        type: "button",
+                        label: "Войти",
+                        className: "textButton",
+                        onClick: () => openAuth("login", "/seller/apply"),
+                      }}
+                      secondary={{
+                        type: "button",
+                        label: "Зарегистрироваться",
+                        className: "textButton",
+                        onClick: () => openAuth("register", "/seller/apply"),
+                      }}
+                    />
+                  </div>
+                ) : (
+                  <TelegramConnect
+                    linked={Boolean(telegramStatus?.linked)}
+                    username={telegramStatus?.telegramUsername ?? null}
+                    linking={telegramLinking}
+                    onConnect={() => void connectTelegram()}
+                  />
+                )}
+
+                <div className={styles.applyGrid}>
                   <TextInput
-                    label="Название бренда"
+                    label="Имя бренда"
                     required
+                    fieldVariant="boxed"
                     value={form.brandName}
                     error={errors.brandName}
                     onChange={(event) =>
@@ -342,8 +471,9 @@ export function SellerApplyPageClient() {
                   <TextInput
                     label="Категория товаров"
                     required
+                    fieldVariant="boxed"
                     value={form.category}
-                    placeholder="Например: одежда, аксессуары, дом"
+                    placeholder="Одежда, аксессуары, дом"
                     error={errors.category}
                     onChange={(event) =>
                       updateField("category", event.target.value)
@@ -351,113 +481,54 @@ export function SellerApplyPageClient() {
                   />
 
                   <TextInput
-                    label="Город / регион производства"
-                    required
-                    value={form.productionRegion}
-                    error={errors.productionRegion}
-                    onChange={(event) =>
-                      updateField("productionRegion", event.target.value)
-                    }
-                  />
-
-                  <TextInput
                     label="Сайт"
+                    fieldVariant="boxed"
                     value={form.website}
-                    placeholder="https://"
                     onChange={(event) =>
                       updateField("website", event.target.value)
                     }
                   />
 
-                  <TextInput
-                    label="Telegram"
-                    value={form.telegram}
-                    placeholder="@brand"
-                    onChange={(event) =>
-                      updateField("telegram", event.target.value)
-                    }
-                  />
-
-                  <TextInput
-                    label="Контактное лицо"
-                    required
-                    value={form.contactName}
-                    error={errors.contactName}
-                    onChange={(event) =>
-                      updateField("contactName", event.target.value)
-                    }
-                  />
-
                   <PhoneInput
                     required
+                    fieldVariant="boxed"
                     value={form.phone}
                     error={errors.phone}
-                    onChange={(event) =>
-                      updateField("phone", event.target.value)
-                    }
+                    onChange={(event) => updateField("phone", event.target.value)}
                   />
 
                   <TextInput
                     label="E-mail"
                     required
+                    fieldVariant="boxed"
                     type="email"
                     value={form.email}
                     error={errors.email}
-                    onChange={(event) =>
-                      updateField("email", event.target.value)
-                    }
+                    onChange={(event) => updateField("email", event.target.value)}
                   />
                 </div>
 
                 <Textarea
-                  label="Описание бренда"
-                  required
-                  value={form.brandDescription}
-                  error={errors.brandDescription}
-                  onChange={(event) =>
-                    updateField("brandDescription", event.target.value)
-                  }
-                />
-
-                <Textarea
                   label="Комментарий"
+                  fieldVariant="boxed"
                   value={form.comment}
-                  placeholder="Расскажите, что важно знать перед подключением"
-                  onChange={(event) =>
-                    updateField("comment", event.target.value)
-                  }
+                  placeholder="Что важно знать перед подключением"
+                  onChange={(event) => updateField("comment", event.target.value)}
                 />
 
-                <div className={styles.actions}>
-                  <Button type="submit" variant="primary" disabled={submitting}>
-                    {submitting ? "Отправляем…" : "Отправить заявку"}
-                  </Button>
-
-                {!isAuthenticated ? (
-                  <>
-                    <button
-                      type="button"
-                      className="buttonGhost"
-                      onClick={() => openAuth("login", "/seller/apply")}
-                    >
-                      Войти
-                    </button>
-
-                    <button
-                      type="button"
-                      className="buttonGhost"
-                      onClick={() => openAuth("register", "/seller/apply")}
-                    >
-                      Регистрация
-                    </button>
-                  </>
-                ) : null}
-                </div>
+                <Button
+                  type="submit"
+                  variant="primaryShimmer"
+                  className="textButton"
+                  disabled={submitting}
+                >
+                  {submitting ? "Отправляем…" : "Отправить заявку"}
+                </Button>
               </form>
-            )}
-          </section>
-        </section>
-      </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
 
       {successOpen ? (
         <div className="modalOverlay" role="presentation">
@@ -542,6 +613,66 @@ function StatusBlock({
       <Link className="buttonPrimary" href={actionHref}>
         {actionLabel}
       </Link>
+    </div>
+  );
+}
+
+function TelegramConnect({
+  linked,
+  username,
+  linking,
+  onConnect,
+}: {
+  linked: boolean;
+  username: string | null;
+  linking: boolean;
+  onConnect: () => void;
+}) {
+  const content = (
+    <>
+      <div>
+        <div className={styles.telegramTitleRow}>
+          <Image
+            src="/icons/telegram-svgrepo-com.svg"
+            alt=""
+            width={20}
+            height={20}
+            aria-hidden="true"
+            className={styles.telegramIcon}
+          />
+          <h3>Телеграм</h3>
+        </div>
+        <p>Подключите Телеграм, чтобы получать уведомления</p>
+      </div>
+
+      {linked ? (
+        <span className={styles.telegramStatus}>
+          {username ? `@${username}` : "Подключен"}
+        </span>
+      ) : (
+        <span className={styles.telegramAction} aria-hidden="true">
+          {linking ? "..." : "›"}
+        </span>
+      )}
+    </>
+  );
+
+  if (!linked) {
+    return (
+      <button
+        type="button"
+        className={`${styles.telegramPanel} ${styles.telegramPanelAction}`}
+        onClick={onConnect}
+        disabled={linking}
+      >
+        {content}
+      </button>
+    );
+  }
+
+  return (
+    <div className={styles.telegramPanel}>
+      {content}
     </div>
   );
 }

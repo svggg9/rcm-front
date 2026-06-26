@@ -6,7 +6,7 @@
 
 .label {
   color: var(--black);
-  font-size: var(--font-sm);
+  font-size: var(--font-input-label);
   font-weight: 500;
 }
 
@@ -43,6 +43,7 @@
 .input::placeholder,
 .textarea::placeholder {
   color: var(--muted);
+  font-size: var(--font-placeholder);
 }
 
 .input:focus,
@@ -67,4 +68,131 @@
   padding: 14px 0;
   border-top: 1px solid var(--danger);
   border-bottom: 1px solid var(--danger);
+}
+
+.fieldBoxed {
+  position: relative;
+  display: block;
+  gap: 0;
+}
+
+.fieldBoxed > .label {
+  position: absolute;
+  top: 7px;
+  left: 10px;
+  z-index: 1;
+  color: var(--black);
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1;
+  letter-spacing: 0;
+  pointer-events: none;
+}
+
+.visuallyHidden {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  padding: 0 !important;
+  margin: -1px !important;
+  overflow: hidden !important;
+  clip: rect(0, 0, 0, 0) !important;
+  white-space: nowrap !important;
+  border: 0 !important;
+}
+
+.fieldBoxed > .input,
+.fieldBoxed > .select,
+.fieldBoxed > .textarea,
+.fieldBoxed > .phoneInputShell {
+  border: 1px solid var(--line);
+  background: var(--white);
+  color: var(--black);
+  font-size: var(--font-input);
+  font-weight: 300;
+  line-height: 1.4;
+  letter-spacing: 0;
+  transition:
+    border-color var(--transition-fast),
+    background var(--transition-fast);
+}
+
+.fieldBoxed > .input,
+.fieldBoxed > .select,
+.fieldBoxed > .phoneInputShell {
+  height: 58px;
+  padding: 26px 10px 8px;
+}
+
+.fieldBoxed.fieldLabelHidden > .input,
+.fieldBoxed.fieldLabelHidden > .select,
+.fieldBoxed.fieldLabelHidden > .phoneInputShell {
+  height: 46px;
+  padding: 0 10px;
+}
+
+.fieldBoxed > .textarea {
+  min-height: 96px;
+  padding: 28px 10px 10px;
+}
+
+.fieldBoxed > .input:hover,
+.fieldBoxed > .select:hover,
+.fieldBoxed > .textarea:hover,
+.fieldBoxed > .phoneInputShell:hover,
+.fieldBoxed > .input:focus,
+.fieldBoxed > .select:focus,
+.fieldBoxed > .textarea:focus,
+.fieldBoxed > .phoneInputShell:focus-within {
+  border-color: var(--black);
+}
+
+.fieldBoxed > .inputError,
+.fieldBoxed > .phoneInputShell.inputError,
+.fieldBoxed > .inputError:hover,
+.fieldBoxed > .phoneInputShell.inputError:hover,
+.fieldBoxed > .inputError:focus,
+.fieldBoxed > .phoneInputShell.inputError:focus-within {
+  border-color: var(--danger);
+}
+
+.fieldBoxed > .fieldError {
+  margin-top: 6px;
+}
+
+.phoneInputShell {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  width: 100%;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  background: transparent;
+}
+
+.phoneInputPrefix {
+  flex: 0 0 auto;
+  color: var(--black);
+  font-size: var(--font-input);
+  font-weight: 300;
+  line-height: 1.4;
+}
+
+.phoneInput {
+  min-width: 0;
+  flex: 1 1 auto;
+  border: 0;
+  background: transparent;
+  color: var(--black);
+  font: inherit;
+  font-size: var(--font-input);
+  font-weight: 300;
+  line-height: 1.4;
+  letter-spacing: 0;
+  outline: none;
+}
+
+.phoneInput::placeholder {
+  color: var(--muted);
+  font-size: var(--font-placeholder);
 }

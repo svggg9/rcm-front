@@ -423,7 +423,7 @@ function AccountPageContent({ initialMe, initialOrders }: Props) {
           <div className={styles.content}>
             {currentTab === "profile" ? (
               <AccountProfileTab
-                email={me?.email?.trim() || me?.username || "—"}
+                email={me?.email?.trim() || "—"}
                 firstName={firstName}
                 phone={phone}
                 defaultDeliveryAddress={defaultDeliveryAddress}

@@ -3,6 +3,7 @@
 import type { InputHTMLAttributes } from "react";
 
 import { Button } from "../../components/ui/Button";
+import { PhoneInput } from "../../components/ui/PhoneInput";
 
 import styles from "./AccountProfileTab.module.css";
 
@@ -93,13 +94,11 @@ export function AccountProfileTab({
             onChange={(event) => onFirstNameChange(event.target.value)}
           />
 
-          <ProfileTextField
+          <PhoneInput
             label="Телефон"
-            type="tel"
-            inputMode="tel"
-            autoComplete="tel"
+            fieldVariant="boxed"
             value={phone}
-            placeholder="+7 999 123-45-67"
+            onChange={() => undefined}
             disabled
           />
 

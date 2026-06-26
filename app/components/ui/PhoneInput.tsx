@@ -1,6 +1,6 @@
 import type { InputHTMLAttributes } from "react";
 
-import { TextInput } from "./TextInput";
+import { Field } from "./Field";
 
 type Props = Omit<
   InputHTMLAttributes<HTMLInputElement>,
@@ -9,6 +9,8 @@ type Props = Omit<
   label?: string;
   error?: string | null;
   hint?: string;
+  fieldVariant?: "line" | "boxed";
+  hideLabel?: boolean;
   value: string;
   onChange: (event: React.ChangeEvent<HTMLInputElement>) => void;
 };
@@ -30,14 +32,17 @@ function getRussianPhoneDigits(value: string): string {
 function formatRussianPhone(value: string): string {
   const digits = getRussianPhoneDigits(value);
 
-  let result = "+7";
+  return digits.length > 0 ? `+7${digits}` : "";
+}
 
-  if (digits.length > 0) result += ` ${digits.slice(0, 3)}`;
-  if (digits.length > 3) result += ` ${digits.slice(3, 6)}`;
-  if (digits.length > 6) result += `-${digits.slice(6, 8)}`;
-  if (digits.length > 8) result += `-${digits.slice(8, 10)}`;
+function formatRussianPhoneInputValue(value: string): string {
+  const digits = getRussianPhoneDigits(value);
 
-  return result;
+  if (digits.length <= 3) {
+    return digits;
+  }
+
+  return `${digits.slice(0, 3)} ${digits.slice(3)}`;
 }
 
 function createChangeEvent(
@@ -61,30 +66,35 @@ function createChangeEvent(
 
 export function PhoneInput({
   label = "Телефон",
-  placeholder = "+7 999 123-45-67",
+  placeholder = "",
   inputMode = "tel",
   autoComplete = "tel",
+  title = "Введите 10 цифр номера телефона после +7",
+  fieldVariant = "line",
+  hideLabel = false,
+  hint,
   value,
   onChange,
   onFocus,
   onBlur,
+  className = "",
+  error,
+  required,
   ...props
 }: Props) {
+  const displayValue = formatRussianPhoneInputValue(value);
+
   function handleChange(event: React.ChangeEvent<HTMLInputElement>) {
     const formatted = formatRussianPhone(event.target.value);
     onChange(createChangeEvent(event, formatted));
   }
 
   function handleFocus(event: React.FocusEvent<HTMLInputElement>) {
-    if (!value) {
-      onChange(createChangeEvent(event, "+7"));
-    }
-
     onFocus?.(event);
   }
 
   function handleBlur(event: React.FocusEvent<HTMLInputElement>) {
-    if (value === "+7" || value === "+7 ") {
+    if (!getRussianPhoneDigits(value)) {
       onChange(createChangeEvent(event, ""));
     }
 
@@ -92,17 +102,35 @@ export function PhoneInput({
   }
 
   return (
-    <TextInput
-      {...props}
-      type="tel"
+    <Field
       label={label}
-      placeholder={placeholder}
-      inputMode={inputMode}
-      autoComplete={autoComplete}
-      value={value}
-      onChange={handleChange}
-      onFocus={handleFocus}
-      onBlur={handleBlur}
-    />
+      required={required}
+      hint={hint}
+      variant={fieldVariant}
+      hideLabel={hideLabel}
+    >
+      <span
+        className={`phoneInputShell ${error ? "inputError" : ""}`.trim()}
+      >
+        <span className="phoneInputPrefix">+7</span>
+        <input
+          {...props}
+          type="tel"
+          className={`phoneInput ${className}`.trim()}
+          placeholder={placeholder}
+          inputMode={inputMode}
+          autoComplete={autoComplete}
+          value={displayValue}
+          pattern="[0-9]{3} [0-9]{7}"
+          minLength={11}
+          maxLength={11}
+          title={title}
+          aria-invalid={error ? "true" : undefined}
+          onChange={handleChange}
+          onFocus={handleFocus}
+          onBlur={handleBlur}
+        />
+      </span>
+    </Field>
   );
 }

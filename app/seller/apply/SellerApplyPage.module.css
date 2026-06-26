@@ -191,6 +191,22 @@
   padding-top: 8px;
 }
 
+.applyCta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+  padding-top: 8px;
+}
+
+.applyCta p {
+  margin: 0;
+  color: var(--muted);
+  font-size: var(--font-sm);
+  font-weight: 300;
+  line-height: 1.45;
+}
+
 .stateText {
   color: var(--muted);
   font-size: var(--font-md);
@@ -223,6 +239,228 @@
 
 .successModal {
   max-width: 460px;
+}
+
+.applyOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(0, 0, 0, 0.38);
+}
+
+.applyModal {
+  position: relative;
+  width: min(560px, 100%);
+  max-height: calc(100vh - 48px);
+  display: flex;
+  flex-direction: column;
+  background: var(--white);
+  color: var(--black);
+  animation: modalIn 0.18s ease;
+}
+
+@keyframes modalIn {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.applyClose {
+  position: absolute;
+  top: 18px;
+  right: 18px;
+  width: 32px;
+  height: 32px;
+  border: 0;
+  background: transparent;
+  color: var(--black);
+  font-size: 28px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.applyHeader {
+  padding: 36px 40px 0;
+}
+
+.applyTitle {
+  padding-right: 40px;
+  color: var(--black);
+  font-size: var(--font-xl);
+  font-weight: 500;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+}
+
+.applyBody {
+  overflow-y: auto;
+  padding: 28px 40px 36px;
+}
+
+.applyForm {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.applyGrid {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.applyHint {
+  margin: 0;
+  color: var(--black);
+  font-size: var(--font-sm);
+  font-weight: 400;
+  line-height: 1.5;
+}
+
+.applyAuthBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.applyForm :global(.buttonPrimary) {
+  width: 100%;
+}
+
+.telegramPanel {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+  align-items: center;
+  padding: 18px;
+  width: 100%;
+  border: 0;
+  background:
+    linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--gold-muted) 18%, var(--white)) 0%,
+      color-mix(in srgb, var(--gold) 28%, var(--white)) 48%,
+      color-mix(in srgb, var(--gold-muted) 14%, var(--white)) 100%
+    );
+  text-align: left;
+}
+
+.telegramPanel::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: linear-gradient(
+    110deg,
+    transparent 0%,
+    color-mix(in srgb, var(--white) 70%, transparent) 42%,
+    transparent 72%
+  );
+  transform: translateX(-120%);
+  animation: telegramPanelShimmer 4.5s ease-in-out infinite;
+  pointer-events: none;
+}
+
+.telegramPanelAction {
+  cursor: pointer;
+  transition:
+    filter var(--transition-fast),
+    transform var(--transition-fast);
+}
+
+.telegramPanelAction:hover {
+  filter: saturate(1.08) contrast(1.02);
+}
+
+.telegramPanelAction:active {
+  transform: translateY(1px);
+}
+
+.telegramPanelAction:disabled {
+  cursor: default;
+  opacity: 0.72;
+}
+
+.telegramTitleRow {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.telegramIcon {
+  width: 20px;
+  height: 20px;
+  flex: 0 0 auto;
+}
+
+.telegramPanel h3 {
+  margin: 0;
+  color: var(--black);
+  font-size: var(--font-md);
+  font-weight: 500;
+  line-height: 1.25;
+}
+
+.telegramPanel p {
+  max-width: 420px;
+  margin: 6px 0 0;
+  color: var(--muted);
+  font-size: var(--font-sm);
+  font-weight: 300;
+  line-height: 1.45;
+}
+
+.telegramStatus {
+  flex: 0 0 auto;
+  padding: 8px 10px;
+  background: var(--black);
+  color: var(--white);
+  font-size: var(--font-xs);
+  font-weight: 500;
+  line-height: 1;
+}
+
+.telegramAction {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 24px;
+  color: var(--black);
+  font-size: 28px;
+  font-weight: 300;
+  line-height: 1;
+}
+
+@keyframes telegramPanelShimmer {
+  0%,
+  44% {
+    transform: translateX(-120%);
+  }
+
+  78%,
+  100% {
+    transform: translateX(120%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .telegramPanel::before {
+    animation: none;
+  }
 }
 
 .modalKicker {
@@ -289,5 +527,50 @@
 
   .formGrid {
     grid-template-columns: 1fr;
+  }
+
+  .applyOverlay {
+    padding: 0;
+  }
+
+  .applyModal {
+    width: 100%;
+    min-height: 100vh;
+    max-height: 100vh;
+  }
+
+  .applyHeader {
+    padding: 28px 20px 0;
+  }
+
+  .applyBody {
+    padding: 24px 20px 28px;
+  }
+
+  .telegramPanel {
+    align-items: center;
+    flex-direction: row;
+    gap: 12px;
+    padding: 14px;
+  }
+
+  .telegramIcon {
+    width: 18px;
+    height: 18px;
+  }
+
+  .telegramPanel h3 {
+    font-size: var(--font-sm);
+  }
+
+  .telegramPanel p {
+    margin-top: 4px;
+    font-size: var(--font-xs);
+    line-height: 1.35;
+  }
+
+  .telegramAction {
+    min-width: 18px;
+    font-size: 28px;
   }
 }

@@ -4,8 +4,12 @@ import { createContext, useContext } from "react";
 
 export type AuthModalMode = "login" | "register";
 
+export type AuthModalOptions = {
+  placement?: "modal" | "anchored";
+};
+
 export type AuthModalContextValue = {
-  openAuth: (mode?: AuthModalMode, next?: string) => void;
+  openAuth: (mode?: AuthModalMode, next?: string, options?: AuthModalOptions) => void;
   closeAuth: () => void;
 };
 
