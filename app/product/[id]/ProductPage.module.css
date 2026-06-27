@@ -309,7 +309,7 @@
 
   font-size: var(--font-xl);
   line-height: 1.25;
-  font-weight: 400;
+  font-weight: 300;
   letter-spacing: 0;
 }
 
@@ -353,14 +353,14 @@
   color: var(--muted);
   font-size: var(--font-xs);
   line-height: 1.3;
-  font-weight: 300;
+  font-weight: 400;
 }
 
 .deliveryEstimateValue {
   color: var(--black);
-  font-size: var(--font-sm);
+  font-size: 15px;
   line-height: 1.4;
-  font-weight: 300;
+  font-weight: 500;
 }
 
 .productModels {
@@ -424,14 +424,15 @@
 .variantSelect {
   position: relative;
   width: 100%;
-  border: 1px solid var(--line-strong, var(--line));
+  border: 0;
   background: var(--white);
+  box-shadow: inset 0 0 0 1px var(--line);
   z-index: 20;
-  transition: border-color var(--transition-fast);
+  transition: box-shadow var(--transition-fast);
 }
 
 .variantSelect[data-open="true"] {
-  border-color: var(--black);
+  box-shadow: inset 0 0 0 1px var(--black);
 }
 
 .variantSelectButton {
@@ -488,8 +489,8 @@
 
 .variantSelectMenu {
   position: absolute;
-  left: -1px;
-  right: -1px;
+  left: 0;
+  right: 0;
   top: 100%;
   z-index: 30;
 
@@ -505,7 +506,7 @@
 
 .variantSelect[data-open="true"] .variantSelectMenu {
   grid-template-rows: 1fr;
-  border-top-color: var(--line);
+  border-top-color: transparent;
   pointer-events: auto;
 }
 
@@ -577,7 +578,7 @@
   color: var(--white);
 
   font-size: var(--font-sm);
-  font-weight: 500;
+  font-weight: 600;
   line-height: 1.2;
 
   cursor: pointer;
@@ -690,24 +691,56 @@
   padding: 0;
 
   border: 0;
+  border-bottom: 1px solid var(--line);
   background: transparent;
   color: var(--black);
 
-  font-size: var(--font-md);
-  line-height: 1.4;
-  font-weight: 400;
+  font-size: var(--font-sm);
+  line-height: 1.2;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 
   cursor: pointer;
 }
 
 .accIcon {
-  font-size: 22px;
-  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 18px;
+  height: 18px;
+
+  transform: rotate(0deg);
+  transition: transform var(--transition-medium);
+}
+
+.accIcon svg {
+  display: block;
+  width: 16px;
+  height: 16px;
+}
+
+.accIcon path {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.accBtn[aria-expanded="true"] .accIcon {
+  transform: rotate(180deg);
+}
+
+.accBtn[aria-expanded="true"] {
+  border-bottom-color: transparent;
 }
 
 .accBodyOpen,
 .accBody {
-  padding: 0 0 18px;
+  padding: 2px 0 18px;
 }
 
 .descriptionGrid {
@@ -723,49 +756,59 @@
 .descriptionMain {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 12px;
 }
 
-.articleRows {
-  display: grid;
-  gap: 10px;
-}
-
-.articleRows div {
+.detailGroup {
   display: grid;
   gap: 4px;
 }
 
+.articleRows {
+  display: grid;
+  gap: 6px;
+}
+
+.articleRows div {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
 .articleRows span {
   color: var(--muted);
-  font-size: var(--font-xs);
+  font-size: var(--font-sm);
   line-height: 1.3;
   font-weight: 300;
 }
 
 .articleRows strong {
   color: var(--black);
-  font-size: var(--font-sm);
+  font-size: var(--font-md);
   line-height: 1.4;
   font-weight: 300;
 }
 
 .compositionBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
   min-width: 0;
 }
 
 .subTitle {
-  margin-bottom: 12px;
+  margin: 0;
 
   color: var(--black);
 
-  font-size: var(--font-md);
-  line-height: 1.4;
-  font-weight: 400;
+  font-size: var(--font-sm);
+  line-height: 1.3;
+  font-weight: 500;
 }
 
 .text,
 .list {
+  margin: 0;
   color: var(--black);
 
   font-size: var(--font-md);
@@ -782,7 +825,7 @@
 .shippingText {
   max-width: 860px;
   color: var(--black);
-  font-size: var(--font-md);
+  font-size: var(--font-lg);
   line-height: 1.5;
   font-weight: 300;
 }

@@ -13,6 +13,16 @@ type Props = {
   onToggleShipping: () => void;
 };
 
+function ChevronIcon() {
+  return (
+    <span className={styles.accIcon} aria-hidden="true">
+      <svg viewBox="0 0 16 16" focusable="false">
+        <path d="M4 6L8 10L12 6" />
+      </svg>
+    </span>
+  );
+}
+
 export function ProductDetailsAccordion({
   product,
   selectedVariant,
@@ -33,42 +43,39 @@ export function ProductDetailsAccordion({
           aria-expanded={openDescription}
         >
           <span>Описание</span>
-          <span className={styles.accIcon}>{openDescription ? "-" : "+"}</span>
+          <ChevronIcon />
         </button>
 
         {openDescription ? (
           <div className={styles.accBodyOpen}>
-            <div
-              className={`${styles.descriptionGrid} ${
-                composition ? "" : styles.descriptionGridSingle
-              }`.trim()}
-            >
-              <div className={styles.descriptionMain}>
+            <div className={styles.descriptionMain}>
+              <div className={styles.detailGroup}>
+                <h3 className={styles.subTitle}>Подробнее о товаре</h3>
                 <p className={styles.text}>
                   {product.description || "Описание пока не заполнено."}
                 </p>
-
-                <div className={styles.articleRows}>
-                  <div>
-                    <span>Артикул сайта</span>
-                    <strong>{selectedVariant?.sku || `RCM-${product.id}`}</strong>
-                  </div>
-
-                  {selectedVariant?.sellerArticle ? (
-                    <div>
-                      <span>Артикул продавца</span>
-                      <strong>{selectedVariant.sellerArticle}</strong>
-                    </div>
-                  ) : null}
-                </div>
               </div>
 
               {composition ? (
-                <div className={styles.compositionBlock}>
+                <div className={styles.detailGroup}>
                   <h3 className={styles.subTitle}>Состав</h3>
                   <p className={styles.text}>{composition}</p>
                 </div>
               ) : null}
+
+              <div className={styles.articleRows}>
+                <div>
+                  <span>Артикул сайта</span>
+                  <strong>{selectedVariant?.sku || `RCM-${product.id}`}</strong>
+                </div>
+
+                {selectedVariant?.sellerArticle ? (
+                  <div>
+                    <span>Артикул продавца</span>
+                    <strong>{selectedVariant.sellerArticle}</strong>
+                  </div>
+                ) : null}
+              </div>
             </div>
           </div>
         ) : null}
@@ -82,7 +89,7 @@ export function ProductDetailsAccordion({
           aria-expanded={openShipping}
         >
           <span>Доставка и возврат</span>
-          <span className={styles.accIcon}>{openShipping ? "-" : "+"}</span>
+          <ChevronIcon />
         </button>
 
         {openShipping ? (
