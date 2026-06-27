@@ -52,17 +52,17 @@
 
   /* typography */
 
-  --font-xs: 12px;
-  --font-sm: 14px;
+  --font-xs: 13px;
+  --font-sm: 15px;
   --font-md: 15px;
   --font-lg: 17px;
   --font-xl: 21px;
   --font-2xl: 28px;
   --font-3xl: 40px;
   --font-4xl: 56px;
-  --font-button: 16px;
-  --font-input: 16px;
-  --font-input-label: 16px;
+  --font-button: 15px;
+  --font-input: 15px;
+  --font-input-label: 15px;
   --font-placeholder: 14px;
 
   /* radius */

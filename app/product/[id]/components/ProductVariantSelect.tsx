@@ -21,8 +21,7 @@ export function ProductVariantSelect({
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement | null>(null);
   const selectedVariant =
-    variants.find((variant) => variant.id === selectedVariantId) ??
-    (variants.length === 1 ? variants[0] : null);
+    variants.find((variant) => variant.id === selectedVariantId) ?? null;
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -34,6 +33,10 @@ export function ProductVariantSelect({
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
+
+  if (variants.length <= 1) {
+    return null;
+  }
 
   return (
     <div className={styles.variantSelect} ref={rootRef} data-open={open}>

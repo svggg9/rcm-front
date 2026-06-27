@@ -14,7 +14,7 @@
 
 .title {
   color: var(--text);
-  font-size: var(--font-xl);
+  font-size: 22px;
   line-height: 1.25;
   font-weight: 400;
   letter-spacing: 0;

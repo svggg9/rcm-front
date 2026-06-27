@@ -42,7 +42,15 @@ function formatRussianPhoneInputValue(value: string): string {
     return digits;
   }
 
-  return `${digits.slice(0, 3)} ${digits.slice(3)}`;
+  if (digits.length <= 6) {
+    return `${digits.slice(0, 3)} ${digits.slice(3)}`;
+  }
+
+  if (digits.length <= 8) {
+    return `${digits.slice(0, 3)} ${digits.slice(3, 6)} ${digits.slice(6)}`;
+  }
+
+  return `${digits.slice(0, 3)} ${digits.slice(3, 6)} ${digits.slice(6, 8)}-${digits.slice(8)}`;
 }
 
 function createChangeEvent(
@@ -121,9 +129,9 @@ export function PhoneInput({
           inputMode={inputMode}
           autoComplete={autoComplete}
           value={displayValue}
-          pattern="[0-9]{3} [0-9]{7}"
-          minLength={11}
-          maxLength={11}
+          pattern="[0-9]{3} [0-9]{3} [0-9]{2}-[0-9]{2}"
+          minLength={13}
+          maxLength={13}
           title={title}
           aria-invalid={error ? "true" : undefined}
           onChange={handleChange}

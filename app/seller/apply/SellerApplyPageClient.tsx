@@ -114,15 +114,6 @@ export function SellerApplyPageClient() {
   }, [isAuthenticated]);
 
   useEffect(() => {
-    if (!user) return;
-
-    setForm((current) => ({
-      ...current,
-      email: current.email || user.username || "",
-    }));
-  }, [user]);
-
-  useEffect(() => {
     if (!isAuthenticated || userLoading || !pendingSubmitRef.current) return;
 
     pendingSubmitRef.current = false;
