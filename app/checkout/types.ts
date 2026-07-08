@@ -1,6 +1,7 @@
 export type CartItem = {
   productId: number;
   variantId: number;
+  sellerId?: number | null;
   title: string;
   size: string;
   color: string;
@@ -9,7 +10,7 @@ export type CartItem = {
   imageUrl: string | null;
 };
 
-export type PaymentMethod = "CARD" | "SBP" | "CASH_ON_DELIVERY";
+export type PaymentMethod = "CARD" | "SBP";
 
 export type DeliveryMethod = "PICKUP" | "COURIER";
 
@@ -58,6 +59,24 @@ export type DeliveryQuoteResponse = {
   calendarMaxDays: number | null;
 };
 
+export type SellerDeliveryCost = {
+  sellerId: number;
+  deliveryCostAmount: number;
+  buyerDeliveryAmount?: number;
+  subsidyAmount?: number;
+  currency?: string;
+  quoteToken?: string;
+  externalOfferId?: string | null;
+};
+
+export type SellerGroupDeliveryQuoteResponse = DeliveryQuoteResponse & {
+  deliveryCostAmount: number;
+  deliverySubsidyAmount: number;
+  commissionAmount: number;
+  platformNetAmount: number;
+  sellerDeliveryCosts: SellerDeliveryCost[];
+};
+
 export type CheckoutRequest = {
   cartId: string;
   recipientName: string;
@@ -80,6 +99,11 @@ export type CheckoutRequest = {
   deliveryOfferId?: string;
   deliveryPriceAmount?: number;
   deliveryCurrency?: string;
+  sellerDeliveryCosts?: {
+    sellerId: number;
+    deliveryCostAmount: number;
+    currency?: string;
+  }[];
   paymentMethod?: PaymentMethod;
   comment?: string;
 };

@@ -42,6 +42,12 @@ export function AdminSidebar({
           mobileLabel: "Словари",
           active: currentTab === "dictionaries",
         },
+        {
+          href: "/admin?tab=finance",
+          label: "Финансы",
+          mobileLabel: "Финансы",
+          active: currentTab === "finance",
+        },
       ]}
     />
   );

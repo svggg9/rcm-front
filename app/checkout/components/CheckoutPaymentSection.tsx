@@ -16,11 +16,6 @@ const paymentOptions: {
   text: string;
 }[] = [
   {
-    value: "CASH_ON_DELIVERY",
-    title: "Оплатить при получении",
-    text: "Оплата после получения заказа.",
-  },
-  {
     value: "SBP",
     title: "СБП",
     text: "Оплата через систему быстрых платежей.",

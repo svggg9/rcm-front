@@ -10,6 +10,7 @@ import { AdminProductsTab } from "./components/AdminProductsTab";
 import { AdminProductDetails } from "./components/AdminProductDetails";
 import { AdminSellersTab } from "./components/AdminSellersTab";
 import { AdminDictionariesTab } from "./components/AdminDictionariesTab";
+import { AdminFinanceTab } from "./components/AdminFinanceTab";
 
 import {
   approveProduct,
@@ -27,6 +28,7 @@ import {
   updateAdminDictionaryItem,
   approveSellerApplication,
   getAdminSellerApplications,
+  getAdminLedgerEntries,
   rejectSellerApplication,
 } from "./lib/adminApi";
 
@@ -39,11 +41,14 @@ import type {
   DictionaryKind,
   AdminSellerApplication,
   SellerApplicationStatus,
+  AdminFinancialLedgerEntry,
+  FinancialLedgerEntryType,
 } from "./types";
 
 function normalizeTab(raw: string | null): AdminTab {
   if (raw === "sellers") return "sellers";
   if (raw === "dictionaries") return "dictionaries";
+  if (raw === "finance") return "finance";
   return "products";
 }
 
@@ -73,6 +78,27 @@ function normalizeApplicationStatus(
   return "NEW";
 }
 
+function normalizeLedgerEntryType(
+  raw: string | null
+): FinancialLedgerEntryType | "ALL" {
+  if (
+    raw === "COMMISSION_ACCRUED" ||
+    raw === "BUYER_DELIVERY_FEE" ||
+    raw === "DELIVERY_COST_FORWARD" ||
+    raw === "DELIVERY_SUBSIDY" ||
+    raw === "DELIVERY_COST_RETURN" ||
+    raw === "REFUND_ITEM" ||
+    raw === "REFUND_DELIVERY" ||
+    raw === "SELLER_DEBIT" ||
+    raw === "SELLER_PAYOUT" ||
+    raw === "ACQUIRING_FEE"
+  ) {
+    return raw;
+  }
+
+  return "ALL";
+}
+
 type Props = {
   initialData?: AdminInitialData;
 };
@@ -90,6 +116,10 @@ function AdminPageContent({ initialData }: Props) {
   const currentApplicationStatus = normalizeApplicationStatus(
     searchParams.get("applicationStatus")
   );
+  const currentLedgerEntryType = normalizeLedgerEntryType(
+    searchParams.get("entryType")
+  );
+  const currentLedgerOrderGroupId = searchParams.get("orderGroupId") ?? "";
 
   const [products, setProducts] = useState<AdminProduct[]>(
     initialData?.products ?? []
@@ -128,6 +158,12 @@ function AdminPageContent({ initialData }: Props) {
       REJECTED: 0,
       ALL: 0,
     }
+  );
+  const [ledgerEntries, setLedgerEntries] = useState<
+    AdminFinancialLedgerEntry[]
+  >(initialData?.ledgerEntries ?? []);
+  const [totalLedgerEntries, setTotalLedgerEntries] = useState(
+    initialData?.totalLedgerEntries ?? 0
   );
 
   const [categories, setCategories] = useState<DictionaryItem[]>(
@@ -234,6 +270,35 @@ function AdminPageContent({ initialData }: Props) {
     }
   }, []);
 
+  const loadLedger = useCallback(
+    async (options?: { silent?: boolean }) => {
+      const silent = options?.silent ?? false;
+
+      if (silent) setRefreshing(true);
+      else setLoading(true);
+
+      setError(null);
+
+      try {
+        const data = await getAdminLedgerEntries({
+          entryType: currentLedgerEntryType,
+          orderGroupId: currentLedgerOrderGroupId,
+          page: 0,
+          size: 50,
+        });
+
+        setLedgerEntries(Array.isArray(data.content) ? data.content : []);
+        setTotalLedgerEntries(data.totalElements ?? 0);
+      } catch (e) {
+        setError(e instanceof Error ? e.message : "Не удалось загрузить финансы");
+      } finally {
+        setLoading(false);
+        setRefreshing(false);
+      }
+    },
+    [currentLedgerEntryType, currentLedgerOrderGroupId]
+  );
+
   const loadSelectedProduct = useCallback(async (id: number) => {
     setDetailsLoading(true);
     setError(null);
@@ -257,6 +322,9 @@ function AdminPageContent({ initialData }: Props) {
           initialData.productStatus === currentStatus) ||
         (currentTab === "sellers" &&
           initialData.applicationStatus === currentApplicationStatus) ||
+        (currentTab === "finance" &&
+          currentLedgerEntryType === "ALL" &&
+          !currentLedgerOrderGroupId.trim()) ||
         currentTab === "dictionaries"
       )
     ) {
@@ -274,14 +342,22 @@ function AdminPageContent({ initialData }: Props) {
       return;
     }
 
+    if (currentTab === "finance") {
+      void loadLedger();
+      return;
+    }
+
     void loadDictionaries();
   }, [
     currentTab,
     currentStatus,
     currentApplicationStatus,
+    currentLedgerEntryType,
+    currentLedgerOrderGroupId,
     initialData,
     loadProducts,
     loadSellerApplications,
+    loadLedger,
     loadDictionaries,
   ]);
 
@@ -316,6 +392,28 @@ function AdminPageContent({ initialData }: Props) {
 
   function changeApplicationStatus(status: SellerApplicationStatus | "ALL") {
     router.push(`/admin?tab=sellers&applicationStatus=${status}`);
+  }
+
+  function changeLedgerEntryType(status: FinancialLedgerEntryType | "ALL") {
+    const query = new URLSearchParams();
+    query.set("tab", "finance");
+    if (status !== "ALL") query.set("entryType", status);
+    if (currentLedgerOrderGroupId.trim()) {
+      query.set("orderGroupId", currentLedgerOrderGroupId.trim());
+    }
+    router.push(`/admin?${query.toString()}`);
+  }
+
+  function changeLedgerOrderGroupId(value: string) {
+    const query = new URLSearchParams();
+    query.set("tab", "finance");
+    if (currentLedgerEntryType !== "ALL") {
+      query.set("entryType", currentLedgerEntryType);
+    }
+    if (value.trim()) {
+      query.set("orderGroupId", value.trim());
+    }
+    router.push(`/admin?${query.toString()}`);
   }
 
   function openProduct(productId: number) {
@@ -499,6 +597,17 @@ function AdminPageContent({ initialData }: Props) {
                   void updateDictionaryItem(kind, id, item)
                 }
                 onDelete={(kind, id) => void deleteDictionaryItem(kind, id)}
+              />
+            ) : currentTab === "finance" ? (
+              <AdminFinanceTab
+                entries={ledgerEntries}
+                totalElements={totalLedgerEntries}
+                refreshing={refreshing}
+                entryType={currentLedgerEntryType}
+                orderGroupId={currentLedgerOrderGroupId}
+                onEntryTypeChange={changeLedgerEntryType}
+                onOrderGroupIdChange={changeLedgerOrderGroupId}
+                onRefresh={() => void loadLedger({ silent: true })}
               />
             ) : currentTab === "sellers" ? (
               <AdminSellersTab

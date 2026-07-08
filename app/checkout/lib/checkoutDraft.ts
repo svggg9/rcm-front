@@ -63,10 +63,9 @@ export function loadCheckoutDraft(): CheckoutDraft | null {
 
     const paymentMethod: PaymentMethod =
       parsed.paymentMethod === "CARD" ||
-      parsed.paymentMethod === "SBP" ||
-      parsed.paymentMethod === "CASH_ON_DELIVERY"
+      parsed.paymentMethod === "SBP"
         ? parsed.paymentMethod
-        : "CASH_ON_DELIVERY";
+        : "CARD";
 
     return {
       email:

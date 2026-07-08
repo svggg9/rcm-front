@@ -9,6 +9,8 @@ import type {
   SellerFilter,
   AdminSellerApplication,
   SellerApplicationStatus,
+  AdminFinancialLedgerEntry,
+  FinancialLedgerEntryType,
 } from "../types";
 
 async function readError(response: Response, fallback: string) {
@@ -236,6 +238,35 @@ export async function getAdminSellerApplications(
 
   if (!response.ok) {
     throw new Error(await readError(response, "Не удалось загрузить заявки"));
+  }
+
+  return response.json();
+}
+
+export async function getAdminLedgerEntries(params?: {
+  entryType?: FinancialLedgerEntryType | "ALL";
+  orderGroupId?: string;
+  page?: number;
+  size?: number;
+}): Promise<PageResponse<AdminFinancialLedgerEntry>> {
+  const query = new URLSearchParams();
+  query.set("page", String(params?.page ?? 0));
+  query.set("size", String(params?.size ?? 50));
+
+  if (params?.entryType && params.entryType !== "ALL") {
+    query.set("entryType", params.entryType);
+  }
+
+  if (params?.orderGroupId?.trim()) {
+    query.set("orderGroupId", params.orderGroupId.trim());
+  }
+
+  const response = await apiFetch(
+    `${API_URL}/api/admin/finance/ledger?${query.toString()}`
+  );
+
+  if (!response.ok) {
+    throw new Error(await readError(response, "Не удалось загрузить движения средств"));
   }
 
   return response.json();

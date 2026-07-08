@@ -17,7 +17,7 @@
   display: grid;
   grid-template-columns:
     minmax(520px, 684px)
-    minmax(360px, 684px);
+    minmax(360px, 520px);
   gap: clamp(32px, 4.8vw, 68px);
   align-items: start;
   justify-content: center;
@@ -277,7 +277,7 @@
   flex-direction: column;
   gap: 22px;
   width: 100%;
-  max-width: 684px;
+  max-width: 520px;
   justify-self: end;
 }
 
@@ -345,22 +345,25 @@
 
 .deliveryEstimate {
   display: flex;
-  flex-direction: column;
-  gap: 4px;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 14px;
+  padding-top: 2px;
 }
 
 .deliveryEstimateTitle {
   color: var(--muted);
-  font-size: var(--font-xs);
+  font-size: var(--font-sm);
   line-height: 1.3;
-  font-weight: 400;
+  font-weight: 300;
 }
 
 .deliveryEstimateValue {
   color: var(--black);
-  font-size: 15px;
+  font-size: var(--font-sm);
   line-height: 1.4;
-  font-weight: 500;
+  font-weight: 400;
+  text-align: right;
 }
 
 .productModels {
@@ -455,6 +458,10 @@
   text-align: left;
   outline: none;
   cursor: pointer;
+}
+
+.variantSelectButton:focus-visible {
+  box-shadow: inset 0 0 0 1px var(--black);
 }
 
 .variantSelectPlaceholder {
@@ -562,6 +569,26 @@
   font-weight: 300;
 }
 
+.variantSingle {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  min-height: 36px;
+  color: var(--black);
+  font-size: var(--font-sm);
+  line-height: 1.4;
+}
+
+.variantSingle span {
+  color: var(--muted);
+  font-weight: 300;
+}
+
+.variantSingle strong {
+  font-weight: 400;
+}
+
 .actions {
   display: flex;
   gap: 12px;
@@ -570,7 +597,7 @@
 .addBtn {
   flex: 1 1 auto;
 
-  min-height: 48px;
+  min-height: 52px;
   padding: 0 20px;
 
   border: 1px solid var(--black);
@@ -586,6 +613,11 @@
     background-color var(--transition-fast),
     border-color var(--transition-fast),
     color var(--transition-fast);
+}
+
+.addBtn:hover:not(:disabled) {
+  background: var(--black-soft);
+  border-color: var(--black-soft);
 }
 
 .addBtn:disabled {
@@ -634,8 +666,10 @@
 
   border: 0;
   background: transparent;
+  color: var(--black);
 
   cursor: pointer;
+  transition: background-color var(--transition-fast);
 }
 
 .favoriteIconBtn img {
@@ -652,6 +686,11 @@
 
 .favoriteIconBtn:hover img {
   transform: scale(1.04);
+}
+
+.favoriteIconBtn:focus-visible {
+  outline: 1px solid var(--black);
+  outline-offset: 3px;
 }
 
 .delivery {
@@ -740,7 +779,7 @@
 
 .accBodyOpen,
 .accBody {
-  padding: 2px 0 18px;
+  padding: 4px 0 20px;
 }
 
 .descriptionGrid {
@@ -825,7 +864,7 @@
 .shippingText {
   max-width: 860px;
   color: var(--black);
-  font-size: var(--font-lg);
+  font-size: var(--font-md);
   line-height: 1.5;
   font-weight: 300;
 }
@@ -1025,7 +1064,16 @@
     font-weight: 300;
   }
 
-  .deliveryEstimate,
+  .deliveryEstimate {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .deliveryEstimateValue {
+    text-align: left;
+  }
+
   .productModels,
   .variantBlock {
     gap: 10px;
@@ -1036,11 +1084,11 @@
   }
 
   .accordion {
-    margin-top: 28px;
+    margin-top: 8px;
   }
 
   .accBtn {
-    min-height: 52px;
+    min-height: 48px;
   }
 
   .descriptionGrid {

@@ -1,4 +1,4 @@
-export type AdminTab = "products" | "sellers" | "dictionaries";
+export type AdminTab = "products" | "sellers" | "dictionaries" | "finance";
 
 export type ProductStatus =
   | "DRAFT"
@@ -69,6 +69,41 @@ export type DictionaryKind = "categories" | "brands" | "sizes";
 
 export type SellerApplicationStatus = "NEW" | "APPROVED" | "REJECTED";
 
+export type FinancialLedgerEntryType =
+  | "COMMISSION_ACCRUED"
+  | "BUYER_DELIVERY_FEE"
+  | "DELIVERY_COST_FORWARD"
+  | "DELIVERY_SUBSIDY"
+  | "DELIVERY_COST_RETURN"
+  | "REFUND_ITEM"
+  | "REFUND_DELIVERY"
+  | "SELLER_DEBIT"
+  | "SELLER_PAYOUT"
+  | "ACQUIRING_FEE";
+
+export type FinancialLedgerDirection = "CREDIT" | "DEBIT";
+
+export type AdminFinancialLedgerEntry = {
+  id: number;
+  entryType: FinancialLedgerEntryType;
+  accountType: "PLATFORM" | "SELLER" | "BUYER";
+  accountUserId: number | null;
+  direction: FinancialLedgerDirection;
+  amount: number;
+  currency: string;
+  orderId: number | null;
+  orderGroupId: string | null;
+  sellerId: number | null;
+  buyerId: number | null;
+  paymentId: number | null;
+  refundId: number | null;
+  deliveryShipmentId: number | null;
+  idempotencyKey: string | null;
+  description: string | null;
+  metadataJson: string | null;
+  createdAt: string;
+};
+
 export type AdminSellerApplication = {
   id: number;
   userId: number;
@@ -101,6 +136,8 @@ export type AdminInitialData = {
   sellerApplications: AdminSellerApplication[];
   totalSellerApplications: number;
   sellerApplicationStatusCounts: Record<SellerApplicationStatus | "ALL", number>;
+  ledgerEntries: AdminFinancialLedgerEntry[];
+  totalLedgerEntries: number;
   categories: DictionaryItem[];
   brands: DictionaryItem[];
   sizes: DictionaryItem[];

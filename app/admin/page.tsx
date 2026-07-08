@@ -7,6 +7,7 @@ import {
   getAdminProductServer,
   getAdminProductStatusCountsServer,
   getAdminProductsServer,
+  getAdminLedgerEntriesServer,
   getAdminSellerApplicationStatusCountsServer,
   getAdminSellerApplicationsServer,
 } from "./lib/adminServerApi";
@@ -29,6 +30,7 @@ type Props = {
 function normalizeTab(raw?: string): AdminTab {
   if (raw === "sellers") return "sellers";
   if (raw === "dictionaries") return "dictionaries";
+  if (raw === "finance") return "finance";
   return "products";
 }
 
@@ -89,6 +91,8 @@ async function getInitialData(params: Awaited<Props["searchParams"]>) {
       REJECTED: 0,
       ALL: 0,
     },
+    ledgerEntries: [],
+    totalLedgerEntries: 0,
     categories: [],
     brands: [],
     sizes: [],
@@ -140,6 +144,15 @@ async function getInitialData(params: Awaited<Props["searchParams"]>) {
 
       initialData.categories = categories;
       initialData.sizes = sizes;
+    }
+
+    if (tab === "finance") {
+      const ledgerData = await getAdminLedgerEntriesServer(0, 50);
+
+      initialData.ledgerEntries = Array.isArray(ledgerData?.content)
+        ? ledgerData.content
+        : [];
+      initialData.totalLedgerEntries = ledgerData?.totalElements ?? 0;
     }
   } catch {
     initialData.error = "Не удалось загрузить данные админки";

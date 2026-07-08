@@ -4,6 +4,7 @@ import { API_URL } from "../../lib/config";
 import type {
   AdminProduct,
   AdminSellerApplication,
+  AdminFinancialLedgerEntry,
   DictionaryItem,
   DictionaryKind,
   PageResponse,
@@ -116,4 +117,13 @@ export async function getAdminSellerApplicationStatusCountsServer(): Promise<
     SellerApplicationStatus | "ALL",
     number
   >;
+}
+
+export async function getAdminLedgerEntriesServer(
+  page = 0,
+  size = 50
+): Promise<PageResponse<AdminFinancialLedgerEntry> | null> {
+  return serverFetch<PageResponse<AdminFinancialLedgerEntry>>(
+    `/api/admin/finance/ledger?page=${page}&size=${size}`
+  );
 }

@@ -22,6 +22,7 @@ export function ProductVariantSelect({
   const rootRef = useRef<HTMLDivElement | null>(null);
   const selectedVariant =
     variants.find((variant) => variant.id === selectedVariantId) ?? null;
+  const singleVariant = variants[0] ?? null;
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -35,7 +36,12 @@ export function ProductVariantSelect({
   }, []);
 
   if (variants.length <= 1) {
-    return null;
+    return singleVariant?.size ? (
+      <div className={styles.variantSingle}>
+        <span>Размер</span>
+        <strong>{singleVariant.size}</strong>
+      </div>
+    ) : null;
   }
 
   return (

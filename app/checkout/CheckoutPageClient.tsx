@@ -26,7 +26,8 @@ import type {
   PaymentInitResponse,
   PaymentMethod,
   PickupPointSearchResponse,
-  DeliveryQuoteResponse,
+  SellerDeliveryCost,
+  SellerGroupDeliveryQuoteResponse,
   DeliveryCityOption,
 } from "./types";
 
@@ -179,6 +180,9 @@ function CheckoutPageContent() {
   const [deliveryOfferId, setDeliveryOfferId] = useState("");
   const [deliveryPrice, setDeliveryPrice] = useState(0);
   const [deliveryCurrency, setDeliveryCurrency] = useState("RUB");
+  const [sellerDeliveryCosts, setSellerDeliveryCosts] = useState<
+    SellerDeliveryCost[]
+  >([]);
   const [deliveryPeriodMinDays, setDeliveryPeriodMinDays] =
     useState<number | null>(null);
 
@@ -199,7 +203,7 @@ function CheckoutPageContent() {
   const [comment, setComment] = useState("");
 
   const [paymentMethod, setPaymentMethod] =
-    useState<PaymentMethod>("CASH_ON_DELIVERY");
+    useState<PaymentMethod>("CARD");
 
   const selectedPickupPoint = useMemo(
     () => deliveryOptions.find((option) => option.id === selectedAddressId) ?? null,
@@ -519,6 +523,16 @@ function CheckoutPageContent() {
     toast.error(message);
   }
 
+  function resetDeliveryQuote() {
+    setDeliveryPrice(0);
+    setDeliveryCurrency("RUB");
+    setSellerDeliveryCosts([]);
+    setDeliveryQuoteToken("");
+    setDeliveryOfferId("");
+    setDeliveryPeriodMinDays(null);
+    setDeliveryPeriodMaxDays(null);
+  }
+
   async function searchPickupPoints() {
   if (!selectedCity) {
     showError("Выберите город из списка");
@@ -658,36 +672,41 @@ function CheckoutPageContent() {
       setQuoteLoading(true);
       setError(null);
 
-      const response = await apiFetch(`${API_URL}/api/delivery/quotes`, {
+      const quotePayload = {
+        method: deliveryMethod === "PICKUP" ? "PICKUP_POINT" : "COURIER",
+        recipientName: fullName.trim(),
+        recipientPhone: phone.trim(),
+        pickupPointId:
+          deliveryMethod === "PICKUP" ? selectedAddressId : undefined,
+        address:
+          deliveryMethod === "PICKUP"
+            ? {
+                fullText:
+                  selectedPickupPoint?.label ??
+                  selectedCity?.fullName ??
+                  "",
+                cityCode:
+                  selectedPickupPoint?.cityCode ??
+                  selectedCity?.code ??
+                  undefined,
+              }
+            : {
+                fullText:
+                  deliveryAddress.trim() ||
+                  selectedCity?.fullName ||
+                  "",
+                cityCode: selectedCity?.code ?? undefined,
+                lat: addressLat ?? undefined,
+                lon: addressLon ?? undefined,
+              },
+        comment: comment.trim() || undefined,
+      };
+
+      const response = await apiFetch(`${API_URL}/api/delivery/seller-group-quotes`, {
         method: "POST",
         body: JSON.stringify({
-          method: deliveryMethod === "PICKUP" ? "PICKUP_POINT" : "COURIER",
-          recipientName: fullName.trim(),
-          recipientPhone: phone.trim(),
-          pickupPointId:
-            deliveryMethod === "PICKUP" ? selectedAddressId : undefined,
-          address:
-            deliveryMethod === "PICKUP"
-              ? {
-                  fullText:
-                    selectedPickupPoint?.label ??
-                    selectedCity?.fullName ??
-                    "",
-                  cityCode:
-                    selectedPickupPoint?.cityCode ??
-                    selectedCity?.code ??
-                    undefined,
-                }
-              : {
-                  fullText:
-                    deliveryAddress.trim() ||
-                    selectedCity?.fullName ||
-                    "",
-                  cityCode: selectedCity?.code ?? undefined,
-                  lat: addressLat ?? undefined,
-                  lon: addressLon ?? undefined,
-                },
-          comment: comment.trim() || undefined,
+          cartId,
+          quote: quotePayload,
         }),
       });
 
@@ -696,12 +715,17 @@ function CheckoutPageContent() {
         throw new Error(text || "Не удалось рассчитать доставку");
       }
 
-      const quote = (await response.json()) as DeliveryQuoteResponse;
+      const quote = (await response.json()) as SellerGroupDeliveryQuoteResponse;
 
       setDeliveryQuoteToken(quote.quoteToken);
       setDeliveryOfferId(quote.externalOfferId || quote.quoteToken);
       setDeliveryPrice(Number(quote.priceAmount || 0));
       setDeliveryCurrency(quote.currency || "RUB");
+      setSellerDeliveryCosts(
+        Array.isArray(quote.sellerDeliveryCosts)
+          ? quote.sellerDeliveryCosts
+          : []
+      );
       setDeliveryPeriodMinDays(quote.periodMinDays ?? null);
       setDeliveryPeriodMaxDays(quote.periodMaxDays ?? null);
 
@@ -709,6 +733,7 @@ function CheckoutPageContent() {
     } catch (e) {
       const message =
         e instanceof Error ? e.message : "Не удалось рассчитать доставку";
+      resetDeliveryQuote();
 
       if (!options?.silent) {
         showError(message);
@@ -722,6 +747,7 @@ function CheckoutPageContent() {
   useEffect(() => {
     if (!selectedCity || items.length === 0) {
       setQuotePending(false);
+      setSellerDeliveryCosts([]);
       return;
     }
 
@@ -924,6 +950,13 @@ function CheckoutPageContent() {
         deliveryOfferId: deliveryOfferId || deliveryQuoteToken || undefined,
         deliveryPriceAmount: deliveryPrice,
         deliveryCurrency,
+        sellerDeliveryCosts: sellerDeliveryCosts
+          .filter((item) => item.sellerId && item.deliveryCostAmount != null)
+          .map((item) => ({
+            sellerId: item.sellerId,
+            deliveryCostAmount: Number(item.deliveryCostAmount),
+            currency: item.currency || deliveryCurrency,
+          })),
         paymentMethod,
         comment:
           [
@@ -963,18 +996,6 @@ function CheckoutPageContent() {
 
       clearCheckoutDraft();
       emitCartChanged();
-
-      if (paymentMethod === "CASH_ON_DELIVERY") {
-        toast.success("Заказ оформлен");
-
-        router.push(
-          orderGroupId
-            ? `/checkout/result?orderGroupId=${encodeURIComponent(orderGroupId)}`
-            : "/account?tab=orders"
-        );
-
-        return;
-      }
 
       if (!orderGroupId) {
         throw new Error("Не найден orderGroupId для оплаты");
@@ -1098,12 +1119,7 @@ function CheckoutPageContent() {
                   setIntercom("");
                   setAddressSearchEnabled(false);
                   setAddressOptions([]);
-                  setDeliveryPrice(0);
-                  setDeliveryCurrency("RUB");
-                  setDeliveryQuoteToken("");
-                  setDeliveryOfferId("");
-                  setDeliveryPeriodMinDays(null);
-                  setDeliveryPeriodMaxDays(null);
+                  resetDeliveryQuote();
                 }}
                 onCityQueryChange={(value) => {
                   setCityTouched(true);
@@ -1122,12 +1138,7 @@ function CheckoutPageContent() {
                     setIntercom("");
                     setAddressSearchEnabled(false);
                     setAddressOptions([]);
-                    setDeliveryPrice(0);
-                    setDeliveryCurrency("RUB");
-                    setDeliveryQuoteToken("");
-                    setDeliveryOfferId("");
-                    setDeliveryPeriodMinDays(null);
-                    setDeliveryPeriodMaxDays(null);
+                    resetDeliveryQuote();
                   }
                 }}
                 onCitySuggestionsClose={() => {
@@ -1146,12 +1157,7 @@ function CheckoutPageContent() {
                   setIntercom("");
                   setAddressSearchEnabled(false);
                   setAddressOptions([]);
-                  setDeliveryPrice(0);
-                  setDeliveryCurrency("RUB");
-                  setDeliveryQuoteToken("");
-                  setDeliveryOfferId("");
-                  setDeliveryPeriodMinDays(null);
-                  setDeliveryPeriodMaxDays(null);
+                  resetDeliveryQuote();
                 }}
                 comment={comment}
                 enabled={true}
@@ -1159,12 +1165,7 @@ function CheckoutPageContent() {
                   setDeliveryMethod(value);
                   setAddressSearchEnabled(false);
                   setAddressOptions([]);
-                  setDeliveryPrice(0);
-                  setDeliveryCurrency("RUB");
-                  setDeliveryQuoteToken("");
-                  setDeliveryOfferId("");
-                  setDeliveryPeriodMinDays(null);
-                  setDeliveryPeriodMaxDays(null);
+                  resetDeliveryQuote();
                 }}
                 onAddressChange={(value) => {
                   setSelectedAddressId(value);
@@ -1177,12 +1178,7 @@ function CheckoutPageContent() {
                   setDeliveryAddress(value);
                   setAddressLat(null);
                   setAddressLon(null);
-                  setDeliveryPrice(0);
-                  setDeliveryCurrency("RUB");
-                  setDeliveryQuoteToken("");
-                  setDeliveryOfferId("");
-                  setDeliveryPeriodMinDays(null);
-                  setDeliveryPeriodMaxDays(null);
+                  resetDeliveryQuote();
                 }}
                 onAddressSuggestionsClose={() => {
                   setAddressOptions([]);
@@ -1252,11 +1248,7 @@ function CheckoutPageContent() {
                   disabled={submitting || quoteLoading || quotePending}
                   className={`${styles.finalSubmitButton} buttonPrimary`}
                 >
-                  {submitting
-                    ? paymentMethod === "CASH_ON_DELIVERY"
-                      ? "Оформляем заказ..."
-                      : "Переходим к оплате..."
-                    : "Подтвердить заказ"}
+                  {submitting ? "Переходим к оплате..." : "Подтвердить заказ"}
                 </button>
 
                 <div className={styles.disclaimer}>

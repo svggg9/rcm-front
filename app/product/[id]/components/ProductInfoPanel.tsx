@@ -133,7 +133,7 @@ export function ProductInfoPanel({
                   selectedVariant.availableQuantity <= 0)
               }
             >
-              {adding ? "Добавляем…" : "Добавить в корзину"}
+              {adding ? "Добавляем..." : "Добавить в корзину"}
             </button>
           )}
 
@@ -141,7 +141,7 @@ export function ProductInfoPanel({
       </div>
 
       <div className={styles.deliveryEstimate}>
-        <div className={styles.deliveryEstimateTitle}>Примерная дата доставки:</div>
+        <div className={styles.deliveryEstimateTitle}>Примерная доставка</div>
         <div className={styles.deliveryEstimateValue}>{deliveryRange}</div>
       </div>
 
