@@ -5,6 +5,7 @@ import type {
   AdminProduct,
   AdminSellerApplication,
   AdminFinancialLedgerEntry,
+  AdminCdekWebhookEvent,
   DictionaryItem,
   DictionaryKind,
   PageResponse,
@@ -125,5 +126,14 @@ export async function getAdminLedgerEntriesServer(
 ): Promise<PageResponse<AdminFinancialLedgerEntry> | null> {
   return serverFetch<PageResponse<AdminFinancialLedgerEntry>>(
     `/api/admin/finance/ledger?page=${page}&size=${size}`
+  );
+}
+
+export async function getAdminCdekWebhookEventsServer(
+  page = 0,
+  size = 50
+): Promise<PageResponse<AdminCdekWebhookEvent> | null> {
+  return serverFetch<PageResponse<AdminCdekWebhookEvent>>(
+    `/api/admin/delivery/cdek/webhook-events?page=${page}&size=${size}`
   );
 }

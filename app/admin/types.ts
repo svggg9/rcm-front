@@ -1,4 +1,4 @@
-export type AdminTab = "products" | "sellers" | "dictionaries" | "finance";
+export type AdminTab = "products" | "sellers" | "dictionaries" | "finance" | "delivery";
 
 export type ProductStatus =
   | "DRAFT"
@@ -104,6 +104,29 @@ export type AdminFinancialLedgerEntry = {
   createdAt: string;
 };
 
+export type CdekWebhookProcessingStatus =
+  | "RECEIVED"
+  | "PROCESSED"
+  | "IGNORED"
+  | "FAILED";
+
+export type AdminCdekWebhookEvent = {
+  id: number;
+  eventType: string | null;
+  cdekOrderUuid: string | null;
+  cdekOrderCode: string | null;
+  statusCode: string | null;
+  statusReasonCode: string | null;
+  isReturn: boolean | null;
+  isReverse: boolean | null;
+  isClientReturn: boolean | null;
+  processingStatus: CdekWebhookProcessingStatus;
+  processingError: string | null;
+  rawPayload: string;
+  receivedAt: string;
+  processedAt: string | null;
+};
+
 export type AdminSellerApplication = {
   id: number;
   userId: number;
@@ -138,6 +161,8 @@ export type AdminInitialData = {
   sellerApplicationStatusCounts: Record<SellerApplicationStatus | "ALL", number>;
   ledgerEntries: AdminFinancialLedgerEntry[];
   totalLedgerEntries: number;
+  cdekWebhookEvents: AdminCdekWebhookEvent[];
+  totalCdekWebhookEvents: number;
   categories: DictionaryItem[];
   brands: DictionaryItem[];
   sizes: DictionaryItem[];

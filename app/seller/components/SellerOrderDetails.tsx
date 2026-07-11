@@ -70,6 +70,7 @@ export function SellerOrderDetails({
           <OrderDetailSection title="Доставка">
             <OrderDetailFields>
               <OrderDetailField label="Способ доставки" value={formatDeliveryMethod(order.deliveryMethod)} />
+              <OrderDetailField label="Примерка" value={formatFittingMode(order.fittingMode)} />
               <OrderDetailField label="Адрес / ПВЗ" value={order.deliveryAddress} wide />
 
               {order.delivery?.cdekNumber ? (
@@ -154,6 +155,12 @@ function formatDeliveryMethod(value: string) {
   if (value === "COURIER") return "Курьер";
   if (value === "PICKUP_POINT" || value === "PICKUP") return "ПВЗ СДЭК";
   return value;
+}
+
+function formatFittingMode(value?: string | null) {
+  if (value === "WITH_FITTING") return "С примеркой";
+  if (value === "WITHOUT_FITTING") return "Без примерки";
+  return null;
 }
 
 function getOrderTone(order: SellerOrder) {

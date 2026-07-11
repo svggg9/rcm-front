@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
@@ -111,7 +112,17 @@ export function SellerTelegramCard() {
     <section className={styles.card} aria-label="Telegram уведомления">
       <div className={styles.header}>
         <div>
-          <h2 className={`${styles.title} textTitle`}>Telegram уведомления</h2>
+          <div className={styles.titleRow}>
+            <Image
+              src="/icons/telegram.svg"
+              alt=""
+              width={20}
+              height={20}
+              aria-hidden="true"
+              className={styles.icon}
+            />
+            <h2 className={`${styles.title} textTitle`}>Telegram уведомления</h2>
+          </div>
           <p className={`${styles.text} textSmall`}>
             Новые заказы будут приходить в Telegram после подключения бота.
           </p>

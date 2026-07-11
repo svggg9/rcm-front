@@ -676,6 +676,7 @@ function CheckoutPageContent() {
         method: deliveryMethod === "PICKUP" ? "PICKUP_POINT" : "COURIER",
         recipientName: fullName.trim(),
         recipientPhone: phone.trim(),
+        fittingMode,
         pickupPointId:
           deliveryMethod === "PICKUP" ? selectedAddressId : undefined,
         address:
@@ -758,6 +759,7 @@ function CheckoutPageContent() {
       address: deliveryMethod === "COURIER" ? deliveryAddress.trim() : "",
       lat: addressLat,
       lon: addressLon,
+      fittingMode,
     });
 
     if (quoteRequestKeyRef.current === requestKey) return;
@@ -783,6 +785,7 @@ function CheckoutPageContent() {
     deliveryAddress,
     addressLat,
     addressLon,
+    fittingMode,
   ]);
 
   async function selectAddressSuggestion(value: string) {
@@ -961,7 +964,6 @@ function CheckoutPageContent() {
         comment:
           [
             comment.trim(),
-            fittingMode === "WITH_FITTING" ? "С примеркой" : "Без примерки",
             otherRecipientEnabled
               ? `Заберет другой человек: ${actualRecipientName}, ${actualRecipientPhone}`
               : "",

@@ -10,6 +10,7 @@ import type {
   AdminSellerApplication,
   SellerApplicationStatus,
   AdminFinancialLedgerEntry,
+  AdminCdekWebhookEvent,
   FinancialLedgerEntryType,
 } from "../types";
 
@@ -267,6 +268,25 @@ export async function getAdminLedgerEntries(params?: {
 
   if (!response.ok) {
     throw new Error(await readError(response, "Не удалось загрузить движения средств"));
+  }
+
+  return response.json();
+}
+
+export async function getAdminCdekWebhookEvents(params?: {
+  page?: number;
+  size?: number;
+}): Promise<PageResponse<AdminCdekWebhookEvent>> {
+  const query = new URLSearchParams();
+  query.set("page", String(params?.page ?? 0));
+  query.set("size", String(params?.size ?? 50));
+
+  const response = await apiFetch(
+    `${API_URL}/api/admin/delivery/cdek/webhook-events?${query.toString()}`
+  );
+
+  if (!response.ok) {
+    throw new Error(await readError(response, "Не удалось загрузить события СДЭК"));
   }
 
   return response.json();

@@ -48,6 +48,12 @@ export function AdminSidebar({
           mobileLabel: "Финансы",
           active: currentTab === "finance",
         },
+        {
+          href: "/admin?tab=delivery",
+          label: "СДЭК",
+          mobileLabel: "СДЭК",
+          active: currentTab === "delivery",
+        },
       ]}
     />
   );

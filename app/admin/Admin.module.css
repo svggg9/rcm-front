@@ -903,6 +903,52 @@
   color: var(--danger) !important;
 }
 
+.statusProcessed,
+.statusFailed,
+.statusIgnored,
+.statusReceived {
+  font-weight: 500;
+}
+
+.statusProcessed {
+  color: var(--success) !important;
+}
+
+.statusFailed,
+.cdekError {
+  color: var(--danger) !important;
+}
+
+.statusIgnored,
+.statusReceived {
+  color: var(--muted) !important;
+}
+
+.rawDetails {
+  min-width: 220px;
+}
+
+.rawDetails summary {
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.rawPayload {
+  max-width: 520px;
+  max-height: 240px;
+  margin-top: 8px;
+  padding: 10px;
+
+  overflow: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+
+  background: var(--soft);
+  color: var(--black);
+  font-size: var(--font-xs);
+  line-height: 1.4;
+}
+
 @media (max-width: 768px) {
   .financeSummary,
   .financeFilters {

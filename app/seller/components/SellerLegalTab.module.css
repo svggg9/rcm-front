@@ -142,6 +142,58 @@
   display: block;
 }
 
+.suggestField {
+  position: relative;
+  min-width: 0;
+}
+
+.suggestList {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(100% + 4px);
+  z-index: 10;
+  max-height: 280px;
+  overflow: auto;
+  border: 1px solid var(--line);
+  background: var(--white);
+  box-shadow: 0 14px 30px rgba(0, 0, 0, 0.08);
+}
+
+.suggestItem {
+  width: 100%;
+  min-height: 42px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 3px;
+  padding: 8px 10px;
+  border: 0;
+  background: var(--white);
+  color: var(--black);
+  font-family: inherit;
+  font-size: var(--font-sm);
+  line-height: 1.25;
+  font-weight: 300;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.18s ease;
+}
+
+.suggestItem:hover,
+.suggestItem:focus-visible {
+  background: var(--soft);
+  outline: none;
+}
+
+.suggestItem small {
+  color: var(--muted);
+  font-size: var(--font-xs);
+  line-height: 1.3;
+  font-weight: 300;
+}
+
 .input,
 .textarea {
   width: 100%;

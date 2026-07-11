@@ -624,7 +624,7 @@ function TelegramConnect({
       <div>
         <div className={styles.telegramTitleRow}>
           <Image
-            src="/icons/telegram-svgrepo-com.svg"
+            src="/icons/telegram.svg"
             alt=""
             width={20}
             height={20}

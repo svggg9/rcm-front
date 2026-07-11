@@ -8,6 +8,7 @@ import {
   getAdminProductStatusCountsServer,
   getAdminProductsServer,
   getAdminLedgerEntriesServer,
+  getAdminCdekWebhookEventsServer,
   getAdminSellerApplicationStatusCountsServer,
   getAdminSellerApplicationsServer,
 } from "./lib/adminServerApi";
@@ -31,6 +32,7 @@ function normalizeTab(raw?: string): AdminTab {
   if (raw === "sellers") return "sellers";
   if (raw === "dictionaries") return "dictionaries";
   if (raw === "finance") return "finance";
+  if (raw === "delivery") return "delivery";
   return "products";
 }
 
@@ -93,6 +95,8 @@ async function getInitialData(params: Awaited<Props["searchParams"]>) {
     },
     ledgerEntries: [],
     totalLedgerEntries: 0,
+    cdekWebhookEvents: [],
+    totalCdekWebhookEvents: 0,
     categories: [],
     brands: [],
     sizes: [],
@@ -153,6 +157,16 @@ async function getInitialData(params: Awaited<Props["searchParams"]>) {
         ? ledgerData.content
         : [];
       initialData.totalLedgerEntries = ledgerData?.totalElements ?? 0;
+    }
+
+    if (tab === "delivery") {
+      const webhookEventsData = await getAdminCdekWebhookEventsServer(0, 50);
+
+      initialData.cdekWebhookEvents = Array.isArray(webhookEventsData?.content)
+        ? webhookEventsData.content
+        : [];
+      initialData.totalCdekWebhookEvents =
+        webhookEventsData?.totalElements ?? 0;
     }
   } catch {
     initialData.error = "Не удалось загрузить данные админки";

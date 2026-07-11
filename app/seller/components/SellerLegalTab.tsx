@@ -17,7 +17,11 @@ import { emitSellerOnboardingChanged } from "../lib/sellerOnboardingEvents";
 
 import {
   getSellerLegalInfo,
+  getCdekReceptionPoints,
   saveSellerLegalInfo,
+  searchDeliveryCities,
+  type CdekReceptionPoint,
+  type DeliveryCityOption,
   type SellerLegalInfo,
   type SellerLegalInfoForm,
   type SellerType,
@@ -69,6 +73,11 @@ const INITIAL_FORM: SellerLegalInfoForm = {
   companyName: "",
   legalName: "",
   legalAddress: "",
+  shippingCountryCode: "RU",
+  shippingCityCode: "",
+  shippingCityName: "",
+  shippingAddress: "",
+  cdekShipmentPoint: "",
   bankName: "",
   bik: "",
   checkingAccount: "",
@@ -85,6 +94,11 @@ function mapLegalInfoToForm(info: SellerLegalInfo): SellerLegalInfoForm {
     companyName: info.companyName ?? "",
     legalName: info.legalName ?? "",
     legalAddress: info.legalAddress ?? "",
+    shippingCountryCode: info.shippingCountryCode ?? "RU",
+    shippingCityCode: info.shippingCityCode ? String(info.shippingCityCode) : "",
+    shippingCityName: info.shippingCityName ?? "",
+    shippingAddress: info.shippingAddress ?? "",
+    cdekShipmentPoint: info.cdekShipmentPoint ?? "",
     bankName: info.bankName ?? "",
     bik: info.bik ?? "",
     checkingAccount: info.checkingAccount ?? "",
@@ -115,6 +129,11 @@ export function SellerLegalTab() {
   const [saving, setSaving] = useState(false);
   const [creatingProduct, setCreatingProduct] = useState(false);
   const [successOpen, setSuccessOpen] = useState(false);
+  const [cityOptions, setCityOptions] = useState<DeliveryCityOption[]>([]);
+  const [cityOptionsOpen, setCityOptionsOpen] = useState(false);
+  const [pointOptions, setPointOptions] = useState<CdekReceptionPoint[]>([]);
+  const [pointOptionsOpen, setPointOptionsOpen] = useState(false);
+  const [pointQuery, setPointQuery] = useState("");
 
   const [error, setError] = useState<string | null>(null);
   const [savedMessage, setSavedMessage] = useState<string | null>(null);
@@ -133,10 +152,12 @@ export function SellerLegalTab() {
           const nextForm = mapLegalInfoToForm(info);
           setForm(nextForm);
           setSavedForm(nextForm);
+          setPointQuery(nextForm.shippingAddress || nextForm.cdekShipmentPoint);
         }
 
         if (!cancelled && !info) {
           setSavedForm(INITIAL_FORM);
+          setPointQuery("");
         }
       } catch (e) {
         if (!cancelled) {
@@ -155,6 +176,47 @@ export function SellerLegalTab() {
       cancelled = true;
     };
   }, []);
+
+  useEffect(() => {
+    const query = form.shippingCityName.trim();
+
+    if (query.length < 2 || form.shippingCityCode) {
+      setCityOptions([]);
+      return;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      void searchDeliveryCities(query)
+        .then((cities) => {
+          setCityOptions(cities.slice(0, 8));
+          setCityOptionsOpen(cities.length > 0);
+        });
+    }, 250);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [form.shippingCityName, form.shippingCityCode]);
+
+  useEffect(() => {
+    const cityCode = Number(form.shippingCityCode);
+    const query = pointQuery.trim();
+
+    if (!Number.isFinite(cityCode) || cityCode <= 0) {
+      setPointOptions([]);
+      return;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      void getCdekReceptionPoints(cityCode, query.length >= 2 ? query : undefined)
+        .then((points) => {
+          setPointOptions(points);
+          setPointOptionsOpen(points.length > 0 && !form.cdekShipmentPoint);
+        });
+    }, query.length >= 2 ? 250 : 0);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [form.shippingCityCode, pointQuery, form.cdekShipmentPoint]);
+
+  const visiblePointOptions = pointOptions.slice(0, 12);
 
   function updateField<K extends keyof SellerLegalInfoForm>(
     key: K,
@@ -190,63 +252,153 @@ export function SellerLegalTab() {
     setSavedMessage(null);
   }
 
+  function selectShippingCity(city: DeliveryCityOption) {
+    setForm((prev) => ({
+      ...prev,
+      shippingCountryCode: city.countryCode ?? "RU",
+      shippingCityCode: String(city.code),
+      shippingCityName: city.fullName,
+      shippingAddress: "",
+      cdekShipmentPoint: "",
+    }));
+    setPointQuery("");
+    setCityOptions([]);
+    setCityOptionsOpen(false);
+    setPointOptionsOpen(true);
+    setErrors((prev) => {
+      const next = { ...prev };
+      delete next.shippingCityName;
+      delete next.shippingCityCode;
+      delete next.cdekShipmentPoint;
+      return next;
+    });
+    setSavedMessage(null);
+  }
+
+  function updateShippingCityInput(value: string) {
+    setForm((prev) => ({
+      ...prev,
+      shippingCityName: value,
+      shippingCityCode: "",
+      shippingAddress: "",
+      cdekShipmentPoint: "",
+    }));
+    setPointQuery("");
+    setPointOptions([]);
+    setPointOptionsOpen(false);
+    setErrors((prev) => {
+      const next = { ...prev };
+      delete next.shippingCityName;
+      delete next.shippingCityCode;
+      delete next.cdekShipmentPoint;
+      return next;
+    });
+    setSavedMessage(null);
+  }
+
+  function selectReceptionPoint(point: CdekReceptionPoint) {
+    setForm((prev) => ({
+      ...prev,
+      cdekShipmentPoint: point.id,
+      shippingAddress: point.fullAddress ?? prev.shippingAddress,
+    }));
+    setPointQuery(point.fullAddress || point.name || point.id);
+    setPointOptionsOpen(false);
+    setErrors((prev) => {
+      const next = { ...prev };
+      delete next.cdekShipmentPoint;
+      return next;
+    });
+    setSavedMessage(null);
+  }
+
+  function updateReceptionPointInput(value: string) {
+    setPointQuery(value);
+    setForm((prev) => ({
+      ...prev,
+      cdekShipmentPoint: "",
+      shippingAddress: "",
+    }));
+    setPointOptionsOpen(Boolean(form.shippingCityCode));
+    setErrors((prev) => {
+      const next = { ...prev };
+      delete next.cdekShipmentPoint;
+      return next;
+    });
+    setSavedMessage(null);
+  }
+
   const formChanged = JSON.stringify(form) !== JSON.stringify(savedForm);
   const hasValidationErrors = Object.keys(errors).length > 0;
 
   function validateForm(values: SellerLegalInfoForm): FormErrors {
-    function error(key: keyof SellerLegalInfoForm, message: string): FormErrors {
-      return { [key]: message };
+    const nextErrors: FormErrors = {};
+
+    function addError(key: keyof SellerLegalInfoForm, message: string) {
+      nextErrors[key] = message;
     }
 
     if (!isValidInn(values.inn, values.sellerType)) {
-      return error("inn", "Укажите ИНН");
+      addError("inn", "Укажите ИНН");
     }
 
     if (values.sellerType === "IP" && !isValidOgrnip(values.ogrnip)) {
-      return error("ogrnip", "Укажите ОГРНИП");
+      addError("ogrnip", "Укажите ОГРНИП");
     }
 
     if (values.sellerType === "OOO") {
       if (!isNonEmpty(values.companyName)) {
-        return error("companyName", "Укажите название компании");
+        addError("companyName", "Укажите название компании");
       }
 
       if (!isValidOgrn(values.ogrn)) {
-        return error("ogrn", "Укажите ОГРН");
+        addError("ogrn", "Укажите ОГРН");
       }
     }
 
     if (!isNonEmpty(values.legalName)) {
-      return error(
+      addError(
         "legalName",
         values.sellerType === "OOO" ? "Укажите юр. название" : "Укажите ФИО"
       );
     }
 
+    if (!isNonEmpty(values.shippingCityName)) {
+      addError("shippingCityName", "Укажите город отправления");
+    }
+
+    if (!onlyDigits(values.shippingCityCode)) {
+      addError("shippingCityCode", "Укажите код города СДЭК");
+    }
+
+    if (!isNonEmpty(values.cdekShipmentPoint)) {
+      addError("cdekShipmentPoint", "Укажите пункт приема СДЭК");
+    }
+
     if (!isNonEmpty(values.bankName)) {
-      return error("bankName", "Укажите банк");
+      addError("bankName", "Укажите банк");
     }
 
     if (!isValidBik(values.bik)) {
-      return error("bik", "Укажите БИК");
+      addError("bik", "Укажите БИК");
     }
 
     if (!isValidBankAccount(values.checkingAccount, values.bik)) {
-      return error("checkingAccount", "Укажите расчетный счет");
+      addError("checkingAccount", "Укажите расчетный счет");
     }
 
     if (
       isNonEmpty(values.correspondentAccount) &&
       !isValidCorrespondentAccount(values.correspondentAccount, values.bik)
     ) {
-      return error("correspondentAccount", "Укажите корреспондентский счет");
+      addError("correspondentAccount", "Укажите корреспондентский счет");
     }
 
     if (!values.agreementAccepted) {
-      return error("agreementAccepted", "Необходимо принять оферту продавца");
+      addError("agreementAccepted", "Необходимо принять оферту продавца");
     }
 
-    return {};
+    return nextErrors;
   }
 
   async function submit(event: FormEvent<HTMLFormElement>) {
@@ -259,6 +411,19 @@ export function SellerLegalTab() {
     setSavedMessage(null);
 
     if (Object.keys(nextErrors).length > 0) {
+      window.requestAnimationFrame(() => {
+        const firstInvalidField = document.querySelector<HTMLElement>(
+          '[aria-invalid="true"]'
+        );
+
+        firstInvalidField?.scrollIntoView({
+          behavior: "smooth",
+          block: "center",
+        });
+
+        firstInvalidField?.focus({ preventScroll: true });
+      });
+
       return;
     }
 
@@ -441,6 +606,76 @@ export function SellerLegalTab() {
 
         <section className={styles.card}>
           <div className={styles.cardHeader}>
+            <h2>Адрес отправления</h2>
+            <p>Нужен для точного расчета доставки и создания отправлений СДЭК.</p>
+          </div>
+
+          <div className={styles.grid}>
+            <div className={styles.suggestField}>
+              <LegalTextField
+                label="Город отправления"
+                required
+                suppressRequiredHighlight={hasValidationErrors}
+                value={form.shippingCityName}
+                error={errors.shippingCityName || errors.shippingCityCode}
+                onFocus={() => setCityOptionsOpen(cityOptions.length > 0)}
+                onChange={(event) => {
+                  updateShippingCityInput(event.target.value);
+                }}
+              />
+              {cityOptionsOpen && cityOptions.length > 0 ? (
+                <div className={styles.suggestList}>
+                  {cityOptions.map((city) => (
+                    <button
+                      type="button"
+                      key={`${city.code}-${city.fullName}`}
+                      className={styles.suggestItem}
+                      onMouseDown={(event) => event.preventDefault()}
+                      onClick={() => selectShippingCity(city)}
+                    >
+                      {city.fullName}
+                    </button>
+                  ))}
+                </div>
+              ) : null}
+            </div>
+
+            <div className={styles.suggestField}>
+              <LegalTextField
+                label="Пункт приема СДЭК"
+                required
+                suppressRequiredHighlight={hasValidationErrors}
+                value={pointQuery}
+                error={errors.cdekShipmentPoint}
+                disabled={!form.shippingCityCode}
+                onFocus={() => setPointOptionsOpen(visiblePointOptions.length > 0)}
+                onChange={(event) => updateReceptionPointInput(event.target.value)}
+                placeholder={
+                  form.shippingCityCode ? "Улица или адрес пункта" : "Сначала город"
+                }
+              />
+              {pointOptionsOpen && visiblePointOptions.length > 0 ? (
+                <div className={styles.suggestList}>
+                  {visiblePointOptions.map((point) => (
+                    <button
+                      type="button"
+                      key={point.id}
+                      className={styles.suggestItem}
+                      onMouseDown={(event) => event.preventDefault()}
+                      onClick={() => selectReceptionPoint(point)}
+                    >
+                      <span>{point.name || point.id}</span>
+                      {point.fullAddress ? <small>{point.fullAddress}</small> : null}
+                    </button>
+                  ))}
+                </div>
+              ) : null}
+            </div>
+          </div>
+        </section>
+
+        <section className={styles.card}>
+          <div className={styles.cardHeader}>
             <h2>Банковские реквизиты</h2>
             <p>Нужны для выплат продавцу и финансового учета.</p>
           </div>
@@ -502,6 +737,7 @@ export function SellerLegalTab() {
               <input
                 type="checkbox"
                 checked={form.agreementAccepted}
+                aria-invalid={errors.agreementAccepted ? "true" : undefined}
                 onChange={(event) =>
                   updateField("agreementAccepted", event.target.checked)
                 }
@@ -519,7 +755,7 @@ export function SellerLegalTab() {
 
         <div className={styles.actions}>
           <Button type="submit" variant="primary" disabled={saving || !formChanged}>
-            {savedMessage && !formChanged ? "Реквизиты сохранены" : "Сохранить реквизиты"}
+            {savedMessage && !formChanged ? "Реквизиты сохранены" : "Сохранить"}
           </Button>
         </div>
       </form>

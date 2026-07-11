@@ -83,6 +83,7 @@ export type Order = {
   recipientPhone: string;
   deliveryAddress: string;
   deliveryMethod: string;
+  fittingMode: string | null;
   trackingNumber: string | null;
   createdAt: string;
   items: OrderItem[];

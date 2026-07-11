@@ -11,6 +11,7 @@ import { AdminProductDetails } from "./components/AdminProductDetails";
 import { AdminSellersTab } from "./components/AdminSellersTab";
 import { AdminDictionariesTab } from "./components/AdminDictionariesTab";
 import { AdminFinanceTab } from "./components/AdminFinanceTab";
+import { AdminCdekTab } from "./components/AdminCdekTab";
 
 import {
   approveProduct,
@@ -29,6 +30,7 @@ import {
   approveSellerApplication,
   getAdminSellerApplications,
   getAdminLedgerEntries,
+  getAdminCdekWebhookEvents,
   rejectSellerApplication,
 } from "./lib/adminApi";
 
@@ -42,6 +44,7 @@ import type {
   AdminSellerApplication,
   SellerApplicationStatus,
   AdminFinancialLedgerEntry,
+  AdminCdekWebhookEvent,
   FinancialLedgerEntryType,
 } from "./types";
 
@@ -49,6 +52,7 @@ function normalizeTab(raw: string | null): AdminTab {
   if (raw === "sellers") return "sellers";
   if (raw === "dictionaries") return "dictionaries";
   if (raw === "finance") return "finance";
+  if (raw === "delivery") return "delivery";
   return "products";
 }
 
@@ -164,6 +168,12 @@ function AdminPageContent({ initialData }: Props) {
   >(initialData?.ledgerEntries ?? []);
   const [totalLedgerEntries, setTotalLedgerEntries] = useState(
     initialData?.totalLedgerEntries ?? 0
+  );
+  const [cdekWebhookEvents, setCdekWebhookEvents] = useState<
+    AdminCdekWebhookEvent[]
+  >(initialData?.cdekWebhookEvents ?? []);
+  const [totalCdekWebhookEvents, setTotalCdekWebhookEvents] = useState(
+    initialData?.totalCdekWebhookEvents ?? 0
   );
 
   const [categories, setCategories] = useState<DictionaryItem[]>(
@@ -299,6 +309,33 @@ function AdminPageContent({ initialData }: Props) {
     [currentLedgerEntryType, currentLedgerOrderGroupId]
   );
 
+  const loadCdekWebhookEvents = useCallback(
+    async (options?: { silent?: boolean }) => {
+      const silent = options?.silent ?? false;
+
+      if (silent) setRefreshing(true);
+      else setLoading(true);
+
+      setError(null);
+
+      try {
+        const data = await getAdminCdekWebhookEvents({
+          page: 0,
+          size: 50,
+        });
+
+        setCdekWebhookEvents(Array.isArray(data.content) ? data.content : []);
+        setTotalCdekWebhookEvents(data.totalElements ?? 0);
+      } catch (e) {
+        setError(e instanceof Error ? e.message : "Не удалось загрузить события СДЭК");
+      } finally {
+        setLoading(false);
+        setRefreshing(false);
+      }
+    },
+    []
+  );
+
   const loadSelectedProduct = useCallback(async (id: number) => {
     setDetailsLoading(true);
     setError(null);
@@ -325,6 +362,7 @@ function AdminPageContent({ initialData }: Props) {
         (currentTab === "finance" &&
           currentLedgerEntryType === "ALL" &&
           !currentLedgerOrderGroupId.trim()) ||
+        currentTab === "delivery" ||
         currentTab === "dictionaries"
       )
     ) {
@@ -347,6 +385,11 @@ function AdminPageContent({ initialData }: Props) {
       return;
     }
 
+    if (currentTab === "delivery") {
+      void loadCdekWebhookEvents();
+      return;
+    }
+
     void loadDictionaries();
   }, [
     currentTab,
@@ -358,6 +401,7 @@ function AdminPageContent({ initialData }: Props) {
     loadProducts,
     loadSellerApplications,
     loadLedger,
+    loadCdekWebhookEvents,
     loadDictionaries,
   ]);
 
@@ -608,6 +652,13 @@ function AdminPageContent({ initialData }: Props) {
                 onEntryTypeChange={changeLedgerEntryType}
                 onOrderGroupIdChange={changeLedgerOrderGroupId}
                 onRefresh={() => void loadLedger({ silent: true })}
+              />
+            ) : currentTab === "delivery" ? (
+              <AdminCdekTab
+                events={cdekWebhookEvents}
+                totalElements={totalCdekWebhookEvents}
+                refreshing={refreshing}
+                onRefresh={() => void loadCdekWebhookEvents({ silent: true })}
               />
             ) : currentTab === "sellers" ? (
               <AdminSellersTab
