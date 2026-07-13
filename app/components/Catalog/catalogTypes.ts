@@ -20,6 +20,13 @@ export type CatalogProduct = {
   inStock?: boolean;
 };
 
+export type PaginatedProducts = {
+  items: CatalogProduct[];
+  page: number;
+  totalPages: number;
+  totalProducts: number;
+};
+
 export type CatalogSearchParams = {
   category?: string;
   audience?: string;
