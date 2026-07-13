@@ -11,6 +11,7 @@ type Variant = {
 
 type Product = {
   id: number;
+  publicId?: string | null;
   title: string;
   images: string[];
   variants: Variant[];
@@ -23,9 +24,10 @@ export function ProductCard({ product }: { product: Product }) {
 
   const prices = product.variants.map((v) => v.price);
   const minPrice = prices.length ? Math.min(...prices) : 0;
+  const productHref = `/product/${product.publicId ?? product.id}`;
 
   return (
-    <Link href={`/product/${product.id}`} className="block">
+    <Link href={productHref} className="block">
       <div className={styles.productCard}>
         <div className={styles.imageWrapper}>
           {mainImage ? (

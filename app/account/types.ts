@@ -45,6 +45,7 @@ export type OrderItemPreview = {
 
 export type OrderItem = {
   productId: number;
+  productPublicId?: string | null;
   variantId: number;
   sellerId: number;
   sku: string;

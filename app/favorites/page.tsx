@@ -24,6 +24,7 @@ type ProductVariantApi = {
 
 type ProductApi = {
   id: number;
+  publicId?: string | null;
   title: string;
   brand: string | null;
   category: string | null;
@@ -36,6 +37,7 @@ type ProductApi = {
 
 type FavoriteProductDto = {
   id: number;
+  publicId?: string | null;
   title: string;
   brand: string | null;
   category: string | null;
@@ -73,6 +75,7 @@ function toTileProduct(product: ProductApi): FavoriteProductDto {
 
   return {
     id: product.id,
+    publicId: product.publicId,
     title: product.title,
     brand: product.brand ?? null,
     category: product.category ?? null,
@@ -163,8 +166,10 @@ export default function FavoritesPage() {
   }, []);
 
   async function handleAddToCart(product: FavoriteProductDto) {
+    const productHref = `/product/${product.publicId ?? product.id}`;
+
     if (product.variants.length === 0) {
-      window.location.href = `/product/${product.id}`;
+      window.location.href = productHref;
       return;
     }
 
@@ -179,7 +184,7 @@ export default function FavoritesPage() {
     }
 
     if (availableVariants.length > 1) {
-      window.location.href = `/product/${product.id}`;
+      window.location.href = productHref;
       return;
     }
 
@@ -249,6 +254,7 @@ export default function FavoritesPage() {
         ) : (
       <ul className={styles.grid}>
         {products.map((product) => {
+          const productHref = `/product/${product.publicId ?? product.id}`;
           const hasVariants = product.variants.length > 0;
 
           const availableVariants = product.variants.filter(
@@ -262,7 +268,7 @@ export default function FavoritesPage() {
 
           return (
             <li key={product.id} className={styles.card}>
-              <Link href={`/product/${product.id}`} className={styles.cardLink}>
+              <Link href={productHref} className={styles.cardLink}>
                 <div className={styles.imageBox}>
                   {product.images[0] ? (
                     <Image

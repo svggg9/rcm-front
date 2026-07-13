@@ -8,6 +8,7 @@ export type SortValue = "" | "newest" | "price-asc" | "price-desc";
 
 export type CatalogProduct = {
   id: number;
+  publicId?: string | null;
   title: string;
   brand: string;
   brandSlug?: string | null;

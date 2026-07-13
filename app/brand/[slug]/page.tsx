@@ -251,6 +251,7 @@ export default async function BrandPage({
                 key={product.id}
                 product={{
                   id: product.id,
+                  publicId: product.publicId,
                   title: product.title,
                   brand: product.brand,
                   brandSlug: product.brandSlug,

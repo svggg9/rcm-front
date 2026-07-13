@@ -11,6 +11,7 @@ import { useFavorites } from "../../lib/FavoritesContext";
 
 type Product = {
   id: number;
+  publicId?: string | null;
   title: string;
   images: string[];
   brand: string | null;
@@ -31,12 +32,13 @@ export function ProductTile({ product }: { product: Product }) {
 
   const imageSizes =
     "(max-width: 599px) 50vw, (max-width: 899px) 50vw, (max-width: 1199px) 33vw, 25vw";
+  const productHref = `/product/${product.publicId ?? product.id}`;
 
   function prefetchProduct() {
     if (prefetchedRef.current) return;
     prefetchedRef.current = true;
     if (window.innerWidth > 768) {
-      router.prefetch(`/product/${product.id}`);
+      router.prefetch(productHref);
     }
   }
 
@@ -50,7 +52,7 @@ export function ProductTile({ product }: { product: Product }) {
       <article className={styles.card}>
         <div className={styles.mediaWrap}>
           <Link
-            href={`/product/${product.id}`}
+            href={productHref}
             className={styles.mediaLink}
             onMouseEnter={prefetchProduct}
             onFocus={prefetchProduct}

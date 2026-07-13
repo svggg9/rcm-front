@@ -8,6 +8,7 @@ import styles from "./OrderDetail.module.css";
 
 export type OrderDetailProductItem = {
   productId: number;
+  productPublicId?: string | null;
   productTitle: string;
   size?: string | null;
   color?: string | null;
@@ -108,7 +109,7 @@ export function OrderDetailProductList({ items }: { items: OrderDetailProductIte
       {items.map((item, index) => (
         <Link
           key={`${item.productId}-${item.productTitle}-${index}`}
-          href={`/product/${item.productId}`}
+          href={`/product/${item.productPublicId ?? item.productId}`}
           className={styles.product}
         >
           <div className={styles.imageWrap}>

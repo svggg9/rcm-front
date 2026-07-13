@@ -58,6 +58,7 @@ export async function generateMetadata({
   const title = product.brand
     ? `${product.brand} ${product.title} | RCM`
     : `${product.title} | RCM`;
+  const productPath = `/product/${product.publicId ?? product.id}`;
 
   return {
     title,
@@ -65,7 +66,7 @@ export async function generateMetadata({
       product.description ||
       `Купить ${product.title} на RCM Marketplace.`,
     alternates: {
-      canonical: `/product/${product.id}`,
+      canonical: productPath,
     },
     openGraph: {
       title,
@@ -73,7 +74,7 @@ export async function generateMetadata({
         product.description ||
         `Купить ${product.title} на RCM Marketplace.`,
       type: "website",
-      url: `/product/${product.id}`,
+      url: productPath,
       images: product.images?.[0] ? [{ url: product.images[0] }] : undefined,
     },
   };

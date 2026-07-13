@@ -14,6 +14,7 @@ export const sortLabels: Record<Exclude<SortValue, "">, string> = {
 
 type RawProduct = {
   id?: unknown;
+  publicId?: unknown;
   title?: unknown;
   brand?: unknown;
   brandSlug?: unknown;
@@ -117,6 +118,10 @@ export function normalizeProducts(data: unknown): CatalogProduct[] {
 
       return {
         id: product.id,
+        publicId:
+          typeof product.publicId === "string" && product.publicId.length > 0
+            ? product.publicId
+            : null,
         title: product.title,
         brand,
         brandSlug,

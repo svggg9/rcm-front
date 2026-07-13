@@ -22,6 +22,7 @@ export type ProductColorway = {
 
 export type Product = {
   id: number;
+  publicId?: string | null;
   sellerId: number;
   title: string;
   description: string;

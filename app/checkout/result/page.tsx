@@ -29,6 +29,7 @@ type PaymentResponse = {
 
 type OrderItem = {
   productId: number;
+  productPublicId?: string | null;
   productTitle: string;
   size?: string | null;
   color?: string | null;
@@ -302,7 +303,7 @@ function CheckoutResultContent() {
               {orderItems.map((item, index) => (
                 <Link
                   key={`${item.productId}-${index}`}
-                  href={`/product/${item.productId}`}
+                  href={`/product/${item.productPublicId ?? item.productId}`}
                   className={styles.product}
                 >
                   <div className={styles.productImageWrap}>

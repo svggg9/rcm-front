@@ -2,6 +2,7 @@ import type { CarouselProduct } from "../components/ProductCarousel/types";
 
 type ProductLike = {
   id: number;
+  publicId?: string | null;
   title: string;
   brand: string | null;
   images?: string[];
@@ -31,6 +32,7 @@ export function mapProductToCarouselProduct(
 
   return {
     id: product.id,
+    publicId: product.publicId,
     title: product.title,
     brand: product.brand,
     images,

@@ -47,6 +47,7 @@ export type SellerDeliveryStatus =
 
 export type SellerOrderItem = {
   productId: number;
+  productPublicId?: string | null;
   variantId: number;
   sellerId: number;
   sku: string;
