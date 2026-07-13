@@ -8,6 +8,7 @@ import type {
 import styles from "../ProductEditPage.module.css";
 import Image from "next/image";
 import { StatusBadge } from "../../../../../components/ui/StatusBadge";
+import { productPath } from "../../../../../lib/productUrls";
 import { formatProductStatus, getProductStatusTone } from "../utils";
 
 type Props = {
@@ -55,6 +56,13 @@ export function ProductStickyHeader({
   onArchive,
   onActionsOpenChange,
 }: Props) {
+  const publicProductHref = productPath({
+    id: productId,
+    publicId: product?.publicId,
+    title: title || product?.title,
+    brand: product?.brand,
+  });
+
   return (
     <header className={styles.lockedHeader}>
       <div className={styles.lockedHeaderInner}>
@@ -79,7 +87,7 @@ export function ProductStickyHeader({
 
           <div className={styles.lockedInfo}>
             <div className={styles.lockedTitleRow}>
-              <Link href={`/product/${productId}`} target="_blank" className={styles.lockedTitle}>
+              <Link href={publicProductHref} target="_blank" className={styles.lockedTitle}>
                 {title || "Название товара"}
               </Link>
 
@@ -143,7 +151,7 @@ export function ProductStickyHeader({
             {actionsOpen ? (
               <div className={styles.lockedMenu}>
                 {product?.status === "ACTIVE" ? (
-                  <Link href={`/product/${productId}`} target="_blank">
+                  <Link href={publicProductHref} target="_blank">
                     Открыть карточку
                   </Link>
                 ) : (

@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import styles from "./ProductCard.module.css";
 import { Price } from "../ui/Price";
+import { productPath } from "../../lib/productUrls";
 
 type Variant = {
   price: number;
@@ -24,7 +25,7 @@ export function ProductCard({ product }: { product: Product }) {
 
   const prices = product.variants.map((v) => v.price);
   const minPrice = prices.length ? Math.min(...prices) : 0;
-  const productHref = `/product/${product.publicId ?? product.id}`;
+  const productHref = productPath(product);
 
   return (
     <Link href={productHref} className="block">

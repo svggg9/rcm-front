@@ -1010,17 +1010,17 @@ function CheckoutPageContent() {
         throw new Error("Backend не вернул созданные заказы");
       }
 
-      const orderGroupId = orders[0]?.orderGroupId;
+      const firstOrderId = orders[0]?.id;
 
       clearCheckoutDraft();
       emitCartChanged();
 
-      if (!orderGroupId) {
-        throw new Error("Не найден orderGroupId для оплаты");
+      if (!firstOrderId) {
+        throw new Error("Order id is required for payment");
       }
 
       const payResponse = await apiFetch(
-        `${API_URL}/api/payments/group/${encodeURIComponent(orderGroupId)}`,
+        `${API_URL}/api/payments/order/${encodeURIComponent(firstOrderId)}/group`,
         {
           method: "POST",
         }

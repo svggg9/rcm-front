@@ -1,11 +1,10 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 
 import styles from "./Catalog.module.css";
 import { ProductTile } from "../ProductTile/ProductTile";
-import { ChevronDownIcon } from "../icons/ChevronDownIcon";
 import { EmptyState } from "../ui/EmptyState";
 
 import type {
@@ -17,7 +16,6 @@ import {
   audienceLabels,
   buildCatalogQuery,
   getMinPrice,
-  sortLabels,
 } from "./catalogUtils";
 
 type Props = {
@@ -71,47 +69,16 @@ export function CatalogClient({
   hasError,
 }: Props) {
   const [sortBy, setSortBy] = useState<SortValue>(initialSort);
-  const [sortOpen, setSortOpen] = useState(false);
-  const sortDropdownRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     setSortBy(initialSort);
   }, [initialSort]);
 
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      const target = event.target as Node;
-
-      if (
-        sortDropdownRef.current &&
-        !sortDropdownRef.current.contains(target)
-      ) {
-        setSortOpen(false);
-      }
-    }
-
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
   const breadcrumbAudienceLabel = audienceLabels[selectedAudience];
-  const sortButtonText = sortBy ? sortLabels[sortBy] : "Сортировка";
   const paginationItems = useMemo(
     () => getPaginationItems(currentPage, totalPages),
     [currentPage, totalPages]
   );
-
-  function toggleSortDropdown() {
-    setSortOpen((prev) => !prev);
-  }
-
-  function getSortHref(value: Exclude<SortValue, "">) {
-    return buildCatalogQuery({
-      audience: selectedAudience,
-      category: selectedCategory,
-      q: searchQuery,
-      sort: sortBy === value ? "" : value,
-    });
-  }
 
   return (
     <div className={styles.catalogPage}>
@@ -139,50 +106,6 @@ export function CatalogClient({
         </nav>
       </div>
 
-      <div className={styles.catalogActions}>
-        <div className={styles.catalogControls}>
-          <div
-            className={`${styles.sortWrap} ${sortOpen ? styles.sortOpen : ""}`}
-            ref={sortDropdownRef}
-          >
-            <button
-              type="button"
-              className={styles.sortButton}
-              onClick={toggleSortDropdown}
-              aria-expanded={sortOpen}
-              aria-haspopup="menu"
-            >
-              <span
-                className={`${styles.sortButtonText} ${
-                  !sortBy ? styles.sortButtonTextMuted : ""
-                }`}
-              >
-                {sortButtonText}
-              </span>
-              <ChevronDownIcon className={styles.chevron} />
-            </button>
-
-            <div className={styles.sortMenu} role="menu">
-              <div className={styles.sortOptions}>
-                {(["price-desc", "price-asc", "newest"] as const).map((value) => (
-                  <Link
-                    key={value}
-                    href={getSortHref(value)}
-                    className={`${styles.dropdownItem} ${
-                      sortBy === value ? styles.dropdownItemActive : ""
-                    }`}
-                    onClick={() => setSortOpen(false)}
-                    prefetch={false}
-                  >
-                    {sortLabels[value]}
-                  </Link>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
       <section className={styles.results}>
         <ul className={styles.grid} aria-busy="false">
           {products.map((product) => (
@@ -190,6 +113,7 @@ export function CatalogClient({
               key={product.id}
               product={{
                 id: product.id,
+                publicId: product.publicId,
                 title: product.title,
                 brand: product.brand,
                 brandSlug: product.brandSlug,

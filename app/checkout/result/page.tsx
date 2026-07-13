@@ -7,6 +7,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 
 import { StatusBadge, type StatusBadgeTone } from "../../components/ui/StatusBadge";
 import { API_URL, apiFetch } from "../../lib/api";
+import { productPath } from "../../lib/productUrls";
 import styles from "./CheckoutResult.module.css";
 
 type PaymentStatus = "PENDING" | "SUCCEEDED" | "CANCELED" | "FAILED";
@@ -65,11 +66,11 @@ function getPaymentTone(status?: PaymentStatus | null): StatusBadgeTone {
   return "default";
 }
 
-function CheckoutResultContent() {
+export function CheckoutResultContent({ orderId: routeOrderId }: { orderId?: string }) {
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  const orderGroupId = searchParams.get("orderGroupId") ?? "";
+  const orderId = routeOrderId ?? searchParams.get("orderId") ?? "";
   const externalPaymentId = searchParams.get("externalPaymentId") ?? "";
 
   const [payment, setPayment] = useState<PaymentResponse | null>(null);
@@ -78,7 +79,7 @@ function CheckoutResultContent() {
   const [checking, setChecking] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const canLoad = Boolean(orderGroupId);
+  const canLoad = Boolean(orderId);
 
   const statusView = useMemo(() => {
     if (!payment) {
@@ -122,7 +123,7 @@ function CheckoutResultContent() {
 
   const loadResult = useCallback(async () => {
     if (!canLoad) {
-      setError("Не найден orderGroupId в ссылке");
+      setError("Не найден номер заказа в ссылке");
       setLoading(false);
       return;
     }
@@ -131,8 +132,8 @@ function CheckoutResultContent() {
 
     try {
       const [paymentResponse, ordersResponse] = await Promise.all([
-        apiFetch(`${API_URL}/api/payments/group/${encodeURIComponent(orderGroupId)}/last`),
-        apiFetch(`${API_URL}/api/orders/group/${encodeURIComponent(orderGroupId)}`),
+        apiFetch(`${API_URL}/api/payments/order/${encodeURIComponent(orderId)}/group-last`),
+        apiFetch(`${API_URL}/api/orders/${encodeURIComponent(orderId)}/group`),
       ]);
 
       if (!paymentResponse.ok) {
@@ -156,7 +157,7 @@ function CheckoutResultContent() {
       setLoading(false);
       setChecking(false);
     }
-  }, [canLoad, orderGroupId]);
+  }, [canLoad, orderId]);
 
   useEffect(() => {
     void loadResult();
@@ -171,14 +172,15 @@ function CheckoutResultContent() {
   }, [loadResult, payment?.status]);
 
   async function retryPayment() {
-    if (!orderGroupId) return;
+    const paymentOrderId = orderId || payment?.orderId?.toString();
+    if (!paymentOrderId) return;
 
     setChecking(true);
     setError(null);
 
     try {
       const response = await apiFetch(
-        `${API_URL}/api/payments/group/${encodeURIComponent(orderGroupId)}`,
+        `${API_URL}/api/payments/order/${encodeURIComponent(paymentOrderId)}/group`,
         { method: "POST" }
       );
 
@@ -303,7 +305,11 @@ function CheckoutResultContent() {
               {orderItems.map((item, index) => (
                 <Link
                   key={`${item.productId}-${index}`}
-                  href={`/product/${item.productPublicId ?? item.productId}`}
+                  href={productPath({
+                    id: item.productId,
+                    publicId: item.productPublicId,
+                    title: item.productTitle,
+                  })}
                   className={styles.product}
                 >
                   <div className={styles.productImageWrap}>

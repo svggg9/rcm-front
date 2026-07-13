@@ -14,7 +14,7 @@ export type HomeProduct = {
 };
 
 export type HeroBlock = {
-  eyebrow: string;
+  eyebrow?: string;
   title: string;
   text: string;
   buttonLabel: string;

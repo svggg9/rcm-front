@@ -1,18 +1,15 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import styles from "./Favorites.module.css";
-import Link from "next/link";
-import Image from "next/image";
-import { ensureCartId } from "../lib/auth";
-import { emitCartChanged } from "../lib/cartEvents";
-import { addVariantToCart } from "../product/[id]/lib/productPageApi";
-import { apiFetch, API_URL } from "../lib/api";
-import { getGuestFavoriteIds } from "../lib/favorites";
-import { getClientSession } from "../lib/client-session";
 import { toast } from "sonner";
+
+import styles from "./Favorites.module.css";
+import { apiFetch, API_URL } from "../lib/api";
+import { getClientSession } from "../lib/client-session";
+import { getGuestFavoriteIds } from "../lib/favorites";
 import { Loader } from "../components/ui/Loader";
-import { Price } from "../components/ui/Price";
+import { EmptyState } from "../components/ui/EmptyState";
+import { ProductTile } from "../components/ProductTile/ProductTile";
 
 type ProductVariantApi = {
   id: number;
@@ -27,6 +24,7 @@ type ProductApi = {
   publicId?: string | null;
   title: string;
   brand: string | null;
+  brandSlug?: string | null;
   category: string | null;
   coverImage?: string | null;
   hoverImage?: string | null;
@@ -35,16 +33,14 @@ type ProductApi = {
   variants?: ProductVariantApi[];
 };
 
-type FavoriteProductDto = {
+type FavoriteProduct = {
   id: number;
   publicId?: string | null;
   title: string;
   brand: string | null;
-  category: string | null;
+  brandSlug?: string | null;
   images: string[];
   minPrice: number;
-  variants: ProductVariantApi[];
-  isFavorite: boolean;
 };
 
 function resolveMinPrice(product: ProductApi): number {
@@ -65,7 +61,7 @@ function resolveMinPrice(product: ProductApi): number {
   return 0;
 }
 
-function toTileProduct(product: ProductApi): FavoriteProductDto {
+function toTileProduct(product: ProductApi): FavoriteProduct {
   const images = [
     product.coverImage,
     product.hoverImage && product.hoverImage !== product.coverImage
@@ -78,16 +74,14 @@ function toTileProduct(product: ProductApi): FavoriteProductDto {
     publicId: product.publicId,
     title: product.title,
     brand: product.brand ?? null,
-    category: product.category ?? null,
+    brandSlug: product.brandSlug ?? null,
     images: images.length > 0 ? images : Array.isArray(product.images) ? product.images : [],
     minPrice: resolveMinPrice(product),
-    variants: Array.isArray(product.variants) ? product.variants : [],
-    isFavorite: true,
   };
 }
 
 export default function FavoritesPage() {
-  const [products, setProducts] = useState<FavoriteProductDto[]>([]);
+  const [products, setProducts] = useState<FavoriteProduct[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -131,7 +125,6 @@ export default function FavoritesPage() {
         if (!alive) return;
 
         const idSet = new Set(guestIds);
-
         const filtered = (Array.isArray(data) ? data : [])
           .filter((product) => idSet.has(product.id))
           .sort((a, b) => guestIds.indexOf(a.id) - guestIds.indexOf(b.id))
@@ -165,173 +158,40 @@ export default function FavoritesPage() {
     };
   }, []);
 
-  async function handleAddToCart(product: FavoriteProductDto) {
-    const productHref = `/product/${product.publicId ?? product.id}`;
+  function handleFavoriteChange(productId: number, isFavorite: boolean) {
+    if (isFavorite) return;
 
-    if (product.variants.length === 0) {
-      window.location.href = productHref;
-      return;
-    }
-
-    const availableVariants = product.variants.filter(
-      (variant) =>
-        variant.availableQuantity === null || variant.availableQuantity > 0
-    );
-
-    if (availableVariants.length === 0) {
-      toast.error("Товар распродан");
-      return;
-    }
-
-    if (availableVariants.length > 1) {
-      window.location.href = productHref;
-      return;
-    }
-
-    try {
-      const cartId = await ensureCartId();
-
-      if (!cartId) {
-        toast.error("Не удалось создать корзину");
-        return;
-      }
-
-      await addVariantToCart({
-        cartId,
-        variantId: availableVariants[0].id,
-        qty: 1,
-      });
-
-      emitCartChanged();
-      toast.success("Товар добавлен в корзину");
-    } catch (error) {
-      toast.error(
-        error instanceof Error ? error.message : "Не удалось добавить в корзину"
-      );
-    }
-  }
-
-  async function handleToggleFavorite(productId: number) {
-    const target = products.find((product) => product.id === productId);
-    if (!target) return;
-
-    const nextIsFavorite = !target.isFavorite;
-
-    setProducts((current) =>
-      current.map((product) =>
-        product.id === productId
-          ? { ...product, isFavorite: nextIsFavorite }
-          : product
-      )
-    );
-
-    window.dispatchEvent(new Event("favorites-changed"));
-
-    toast(nextIsFavorite ? "Добавлено в избранное" : "Удалено из избранного");
+    setProducts((current) => current.filter((product) => product.id !== productId));
   }
 
   return (
     <div className="pageContainer">
       <div className={styles.page}>
-      <div className={styles.header}>
-        <h1 className={styles.pageTitle}>Избранное</h1>
+        <div className={styles.header}>
+          <h1 className={styles.pageTitle}>Избранное</h1>
 
-        {!loading ? (
-          <div className={styles.count}>
-            Всего товаров: {products.length}
-          </div>
-        ) : null}
+          {!loading ? (
+            <div className={styles.count}>Товаров: {products.length}</div>
+          ) : null}
         </div>
+
         {loading ? (
           <Loader />
         ) : products.length === 0 ? (
-        <div className="emptyState">
-          <div className="emptyStateTitle">В избранном пока пусто</div>
-          <div className="emptyStateText">
-            Сохраняйте товары, чтобы вернуться к ним позже.
-          </div>
-        </div>
+          <EmptyState
+            title="В избранном пока пусто"
+            text="Сохраняйте товары, чтобы вернуться к ним позже"
+          />
         ) : (
-      <ul className={styles.grid}>
-        {products.map((product) => {
-          const productHref = `/product/${product.publicId ?? product.id}`;
-          const hasVariants = product.variants.length > 0;
-
-          const availableVariants = product.variants.filter(
-            (variant) =>
-              variant.availableQuantity === null || variant.availableQuantity > 0
-          );
-
-          const isSoldOut = hasVariants && availableVariants.length === 0;
-          const shouldSelectSize = !hasVariants || availableVariants.length > 1;
-          const hasSingleVariant = availableVariants.length === 1;
-
-          return (
-            <li key={product.id} className={styles.card}>
-              <Link href={productHref} className={styles.cardLink}>
-                <div className={styles.imageBox}>
-                  {product.images[0] ? (
-                    <Image
-                      src={product.images[0]}
-                      alt={product.title}
-                      fill
-                      sizes="(max-width: 900px) 50vw, 25vw"
-                      className={styles.image}
-                    />
-                  ) : (
-                    <div className={styles.placeholder}>Нет фото</div>
-                  )}
-                </div>
-
-                <div className={styles.info}>
-                  <div className={styles.brand}>{product.brand || "Без бренда"}</div>
-                  <div className={styles.name}>{product.title}</div>
-
-                  <div className={isSoldOut ? styles.soldOut : styles.price}>
-                    {isSoldOut ? "Распродано" : <Price amount={product.minPrice} />}
-                  </div>
-                </div>
-              </Link>
-
-              <button
-                type="button"
-                className={styles.removeFavorite}
-                onClick={() => void handleToggleFavorite(product.id)}
-                aria-label={
-                  product.isFavorite
-                    ? "Убрать из избранного"
-                    : "Добавить в избранное"
-                }
-              >
-                <Image
-                  src={product.isFavorite ? "/icons/like-filled.svg" : "/icons/like.svg"}
-                  alt=""
-                  width={18}
-                  height={18}
-                />
-              </button>
-
-              {!isSoldOut ? (
-                <div className={styles.cardActions}>
-                  {hasSingleVariant ? (
-                    <div className={styles.sizeHint}>
-                      Доступно только в одном размере
-                    </div>
-                  ) : null}
-
-                  <button
-                    type="button"
-                    className="buttonSecondary wFull"
-                    onClick={() => void handleAddToCart(product)}
-                  >
-                    {shouldSelectSize ? "Выбрать размер" : "Добавить в корзину"}
-                  </button>
-                </div>
-              ) : null}
-            </li>
-          );
-        })}
-      </ul>
+          <ul className={styles.grid}>
+            {products.map((product) => (
+              <ProductTile
+                key={product.id}
+                product={product}
+                onFavoriteChange={handleFavoriteChange}
+              />
+            ))}
+          </ul>
         )}
       </div>
     </div>

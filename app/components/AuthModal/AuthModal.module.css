@@ -376,3 +376,52 @@
     margin-inline: 0;
   }
 }
+
+.oauthButton {
+  position: relative;
+
+  width: auto;
+  min-height: 48px;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+
+  border: 1px solid var(--black);
+  background: var(--white);
+  color: var(--black);
+
+  font-size: var(--font-sm);
+  font-weight: 500;
+
+  cursor: pointer;
+  transition: background 0.16s ease, color 0.16s ease;
+}
+
+.oauthButton::before {
+  content: "Я";
+
+  width: 24px;
+  height: 24px;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  background: #fc3f1d;
+  color: #fff;
+
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1;
+}
+
+.oauthButton:hover {
+  background: var(--soft);
+}
+
+.oauthButton:disabled {
+  opacity: 0.45;
+  cursor: default;
+}

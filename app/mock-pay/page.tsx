@@ -12,7 +12,6 @@ function MockPayPageContent() {
   const searchParams = useSearchParams();
 
   const orderId = searchParams.get("orderId") ?? "";
-  const orderGroupId = searchParams.get("orderGroupId") ?? "";
   const externalPaymentId = searchParams.get("externalPaymentId") ?? "";
 
   const [submitting, setSubmitting] = useState<PaymentResult | null>(null);
@@ -20,8 +19,8 @@ function MockPayPageContent() {
   const [error, setError] = useState<string | null>(null);
 
   const canSubmit = useMemo(() => {
-    return Boolean(orderId && orderGroupId && externalPaymentId);
-  }, [orderId, orderGroupId, externalPaymentId]);
+    return Boolean(orderId && externalPaymentId);
+  }, [orderId, externalPaymentId]);
 
   useEffect(() => {
     if (!externalPaymentId) return;
@@ -77,11 +76,7 @@ function MockPayPageContent() {
         throw new Error(text || `Ошибка mock-оплаты (${response.status})`);
       }
 
-      router.replace(
-        `/checkout/result?orderGroupId=${encodeURIComponent(
-          orderGroupId
-        )}&externalPaymentId=${encodeURIComponent(externalPaymentId)}`
-      );
+      router.replace(`/checkout/result/${encodeURIComponent(orderId)}`);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Не удалось завершить mock-оплату");
     } finally {
@@ -106,9 +101,6 @@ function MockPayPageContent() {
             <strong>Заказ:</strong> #{orderId || "—"}
           </div>
           <div>
-            <strong>Группа:</strong> {orderGroupId || "—"}
-          </div>
-          <div>
             <strong>PaymentId:</strong> {externalPaymentId || "—"}
           </div>
           <div>
@@ -119,8 +111,7 @@ function MockPayPageContent() {
 
         {!canSubmit ? (
           <div style={styles.error}>
-            В ссылке не хватает <code>orderId</code>, <code>orderGroupId</code> или{" "}
-            <code>externalPaymentId</code>.
+            В ссылке не хватает <code>orderId</code> или <code>externalPaymentId</code>.
           </div>
         ) : null}
 
@@ -158,13 +149,7 @@ function MockPayPageContent() {
         <button
           type="button"
           onClick={() =>
-            orderGroupId
-              ? router.push(
-                  `/checkout/result?orderGroupId=${encodeURIComponent(
-                    orderGroupId
-                  )}&externalPaymentId=${encodeURIComponent(externalPaymentId)}`
-                )
-              : router.push("/account?tab=orders")
+            orderId ? router.push(`/checkout/result/${encodeURIComponent(orderId)}`) : router.push("/account?tab=orders")
           }
           style={styles.linkBtn}
         >

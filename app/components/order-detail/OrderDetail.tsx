@@ -3,6 +3,7 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 
 import { Price } from "../ui/Price";
+import { productPath } from "../../lib/productUrls";
 
 import styles from "./OrderDetail.module.css";
 
@@ -109,7 +110,11 @@ export function OrderDetailProductList({ items }: { items: OrderDetailProductIte
       {items.map((item, index) => (
         <Link
           key={`${item.productId}-${item.productTitle}-${index}`}
-          href={`/product/${item.productPublicId ?? item.productId}`}
+          href={productPath({
+            id: item.productId,
+            publicId: item.productPublicId,
+            title: item.productTitle,
+          })}
           className={styles.product}
         >
           <div className={styles.imageWrap}>

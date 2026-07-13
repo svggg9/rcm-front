@@ -28,14 +28,14 @@
   width: min(560px, calc(100% - 48px));
   margin-left: clamp(24px, 7vw, 96px);
   padding: 56px 0;
-  color: var(--white);
-  text-shadow: 0 1px 18px rgba(0, 0, 0, 0.18);
+  color: var(--black);
+  text-shadow: none;
 }
 
 .eyebrow {
   margin-bottom: 18px;
 
-  color: var(--white);
+  color: var(--black);
 
   font-size: 11px;
   font-weight: 500;
@@ -46,7 +46,7 @@
 .title {
   margin-bottom: 24px;
 
-  color: var(--white);
+  color: var(--black);
 
   font-size: clamp(38px, 6vw, 82px);
   line-height: 0.92;
@@ -57,7 +57,7 @@
 .text {
   max-width: 460px;
 
-  color: rgba(255, 255, 255, 0.9);
+  color: var(--black);
 
   font-size: var(--font-lg);
   line-height: 1.55;

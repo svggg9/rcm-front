@@ -22,7 +22,9 @@ export function HeroSection({ block }: HeroSectionProps) {
       </div>
 
       <div className={styles.content}>
-        <span className={styles.eyebrow}>{block.eyebrow}</span>
+        {block.eyebrow ? (
+          <span className={styles.eyebrow}>{block.eyebrow}</span>
+        ) : null}
         <h1 className={styles.title}>{block.title}</h1>
         <p className={styles.text}>{block.text}</p>
 

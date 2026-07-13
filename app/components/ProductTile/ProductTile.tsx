@@ -8,6 +8,7 @@ import { useRouter } from "next/navigation";
 import styles from "./ProductTile.module.css";
 import { Price } from "../ui/Price";
 import { useFavorites } from "../../lib/FavoritesContext";
+import { productPath } from "../../lib/productUrls";
 
 type Product = {
   id: number;
@@ -19,7 +20,13 @@ type Product = {
   minPrice: number;
 };
 
-export function ProductTile({ product }: { product: Product }) {
+export function ProductTile({
+  product,
+  onFavoriteChange,
+}: {
+  product: Product;
+  onFavoriteChange?: (productId: number, isFavorite: boolean) => void;
+}) {
   const router = useRouter();
   const mainImage = product.images?.[0];
   const hoverImage = product.images?.[1];
@@ -32,7 +39,7 @@ export function ProductTile({ product }: { product: Product }) {
 
   const imageSizes =
     "(max-width: 599px) 50vw, (max-width: 899px) 50vw, (max-width: 1199px) 33vw, 25vw";
-  const productHref = `/product/${product.publicId ?? product.id}`;
+  const productHref = productPath(product);
 
   function prefetchProduct() {
     if (prefetchedRef.current) return;
@@ -44,7 +51,9 @@ export function ProductTile({ product }: { product: Product }) {
 
   async function onLike(e: React.MouseEvent<HTMLButtonElement>) {
     e.stopPropagation();
+    const nextFavorite = !fav;
     await toggle(product.id);
+    onFavoriteChange?.(product.id, nextFavorite);
   }
 
   return (

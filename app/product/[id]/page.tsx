@@ -5,6 +5,7 @@ import { mapProductToCarouselProduct } from "../../lib/productMappers";
 import type { CarouselProduct } from "../../components/ProductCarousel/types";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
+import { productPath } from "../../lib/productUrls";
 
 export const dynamic = "force-dynamic";
 
@@ -58,7 +59,7 @@ export async function generateMetadata({
   const title = product.brand
     ? `${product.brand} ${product.title} | RCM`
     : `${product.title} | RCM`;
-  const productPath = `/product/${product.publicId ?? product.id}`;
+  const canonicalPath = productPath(product);
 
   return {
     title,
@@ -66,7 +67,7 @@ export async function generateMetadata({
       product.description ||
       `Купить ${product.title} на RCM Marketplace.`,
     alternates: {
-      canonical: productPath,
+      canonical: canonicalPath,
     },
     openGraph: {
       title,
@@ -74,7 +75,7 @@ export async function generateMetadata({
         product.description ||
         `Купить ${product.title} на RCM Marketplace.`,
       type: "website",
-      url: productPath,
+      url: canonicalPath,
       images: product.images?.[0] ? [{ url: product.images[0] }] : undefined,
     },
   };

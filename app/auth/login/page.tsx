@@ -6,13 +6,13 @@ import { toast } from "sonner";
 
 import { setAuth, ensureCartId } from "../../lib/auth";
 import { apiFetch, API_URL } from "../../lib/api";
+import { startYandexAuth } from "../../lib/yandexAuth";
 import {
   getGuestFavoriteIds,
   syncFavoritesAfterLogin,
   clearGuestFavoriteIds,
 } from "../../lib/favorites";
 import { Button } from "../../components/ui/Button";
-import { PhoneInput } from "../../components/ui/PhoneInput";
 import { TextInput } from "../../components/ui/TextInput";
 import { useAutoFocusFirstField } from "../../lib/useAutoFocusFirstField";
 
@@ -25,17 +25,11 @@ function LoginPageContent() {
 
   const next = searchParams.get("next") || "/";
 
-  const [mode, setMode] = useState<"login" | "reset">("login");
-  const [resetStep, setResetStep] = useState<"phone" | "code" | "password">("phone");
-  const [phone, setPhone] = useState("");
-  const [code, setCode] = useState("");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [passwordConfirmation, setPasswordConfirmation] = useState("");
   const [passwordVisible, setPasswordVisible] = useState(false);
-  const [passwordConfirmationVisible, setPasswordConfirmationVisible] =
-    useState(false);
 
-  useAutoFocusFirstField(formRef, [mode, resetStep]);
+  useAutoFocusFirstField(formRef, []);
 
   async function finishAuth(cartId: string) {
     const guestFavoriteIds = getGuestFavoriteIds();
@@ -51,80 +45,37 @@ function LoginPageContent() {
     router.replace(next);
   }
 
+  async function handleYandexLogin() {
+    try {
+      await startYandexAuth(next);
+    } catch (error) {
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Не удалось открыть вход через Яндекс"
+      );
+    }
+  }
+
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
-
 
     try {
       const cartId = await ensureCartId();
 
       const response = await apiFetch(`${API_URL}/api/auth/login`, {
         method: "POST",
-        body: JSON.stringify({ phone, password, cartId }),
+        body: JSON.stringify({ username: email, password, cartId }),
       });
 
       if (!response.ok) {
-        throw new Error("Неверный телефон или пароль");
+        throw new Error("Неверная почта или пароль");
       }
 
       const data: { cartId: string } = await response.json();
       await finishAuth(data.cartId);
     } catch (error) {
-        toast.error(
-          error instanceof Error ? error.message : "Ошибка входа"
-        );
-    }
-  }
-
-  async function handleResetSubmit(event: React.FormEvent) {
-    event.preventDefault();
-
-    try {
-      if (resetStep === "phone") {
-        const response = await apiFetch(`${API_URL}/api/auth/phone/password/reset/start`, {
-          method: "POST",
-          body: JSON.stringify({ phone }),
-        });
-
-        if (!response.ok) {
-          const text = await response.text().catch(() => "");
-          throw new Error(text || "Не удалось отправить код");
-        }
-
-        await response.json().catch(() => null);
-        setCode("");
-        setResetStep("code");
-        return;
-      }
-
-      if (resetStep === "code") {
-        setPassword("");
-        setPasswordConfirmation("");
-        setResetStep("password");
-        return;
-      }
-
-      if (password !== passwordConfirmation) {
-        throw new Error("Пароли не совпадают");
-      }
-
-      const cartId = await ensureCartId();
-      const response = await apiFetch(`${API_URL}/api/auth/phone/password/reset/complete`, {
-        method: "POST",
-        body: JSON.stringify({ phone, code, password, cartId }),
-      });
-
-      if (!response.ok) {
-        const text = await response.text().catch(() => "");
-        throw new Error(text || "Не удалось сохранить пароль");
-      }
-
-      const data: { cartId: string } = await response.json();
-      await finishAuth(data.cartId);
-    } catch (error) {
-      toast.error(
-        error instanceof Error ? error.message : "Не удалось восстановить пароль"
-      );
+      toast.error(error instanceof Error ? error.message : "Ошибка входа");
     }
   }
 
@@ -132,152 +83,55 @@ function LoginPageContent() {
     <div className="pageContainer">
       <div className={styles.page}>
         <div className={styles.card}>
-          <h1 className={styles.title}>
-            {mode === "reset" ? "Восстановление пароля" : "Вход"}
-          </h1>
+          <h1 className={styles.title}>Вход</h1>
 
-          {mode === "login" ? (
-            <form ref={formRef} onSubmit={handleSubmit} className={styles.form}>
-              <PhoneInput
-                label="Телефон"
+          <form ref={formRef} onSubmit={handleSubmit} className={styles.form}>
+            <button
+              type="button"
+              className={styles.oauthButton}
+              onClick={handleYandexLogin}
+            >
+              Войти с Яндекс ID
+            </button>
+
+            <TextInput
+              label="Электронная почта"
+              fieldVariant="boxed"
+              hideLabel
+              placeholder="Электронная почта"
+              type="email"
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
+              required
+              autoComplete="email"
+            />
+
+            <div className={styles.passwordFieldWrap}>
+              <TextInput
+                label="Пароль"
                 fieldVariant="boxed"
                 hideLabel
-                value={phone}
-                onChange={(event) => setPhone(event.target.value)}
+                placeholder="Пароль"
+                type={passwordVisible ? "text" : "password"}
+                value={password}
+                onChange={(event) => setPassword(event.target.value)}
                 required
+                autoComplete="current-password"
+                className={styles.passwordInput}
               />
-
-              <div className={styles.passwordFieldWrap}>
-                <TextInput
-                  label="Пароль"
-                  fieldVariant="boxed"
-                  hideLabel
-                  placeholder="Пароль"
-                  type={passwordVisible ? "text" : "password"}
-                  value={password}
-                  onChange={(event) => setPassword(event.target.value)}
-                  required
-                  autoComplete="current-password"
-                  className={styles.passwordInput}
-                />
-                <button
-                  type="button"
-                  className={styles.passwordVisibilityButton}
-                  onClick={() => setPasswordVisible((visible) => !visible)}
-                >
-                  {passwordVisible ? "Скрыть" : "Показать"}
-                </button>
-              </div>
-
               <button
                 type="button"
-                className={styles.forgot}
-                onClick={() => {
-                  setMode("reset");
-                  setResetStep("phone");
-                  setCode("");
-                  setPassword("");
-                  setPasswordConfirmation("");
-                }}
+                className={styles.passwordVisibilityButton}
+                onClick={() => setPasswordVisible((visible) => !visible)}
               >
-                Забыли пароль?
+                {passwordVisible ? "Скрыть" : "Показать"}
               </button>
+            </div>
 
-              <Button type="submit" variant="primaryShimmer" className={styles.button}>
-                Войти
-              </Button>
-            </form>
-          ) : (
-            <form ref={formRef} onSubmit={handleResetSubmit} className={styles.form}>
-              {resetStep === "phone" ? (
-                <PhoneInput
-                  label="Телефон"
-                  fieldVariant="boxed"
-                  hideLabel
-                  value={phone}
-                  onChange={(event) => setPhone(event.target.value)}
-                  required
-                />
-              ) : null}
-
-              {resetStep === "code" ? (
-                <>
-                  <TextInput
-                    label="Код из смс"
-                    fieldVariant="boxed"
-                    hideLabel
-                    placeholder="Код из смс"
-                    value={code}
-                    onChange={(event) =>
-                      setCode(event.target.value.replace(/\D/g, "").slice(0, 6))
-                    }
-                    inputMode="numeric"
-                    required
-                  />
-                </>
-              ) : null}
-
-              {resetStep === "password" ? (
-                <>
-                  <div className={styles.passwordFieldWrap}>
-                    <TextInput
-                      label="Новый пароль"
-                      fieldVariant="boxed"
-                      hideLabel
-                      placeholder="Новый пароль"
-                      type={passwordVisible ? "text" : "password"}
-                      value={password}
-                      onChange={(event) => setPassword(event.target.value)}
-                      required
-                      autoComplete="new-password"
-                      className={styles.passwordInput}
-                    />
-                    <button
-                      type="button"
-                      className={styles.passwordVisibilityButton}
-                      onClick={() => setPasswordVisible((visible) => !visible)}
-                    >
-                      {passwordVisible ? "Скрыть" : "Показать"}
-                    </button>
-                  </div>
-
-                  <div className={styles.passwordFieldWrap}>
-                    <TextInput
-                      label="Повторите пароль"
-                      fieldVariant="boxed"
-                      hideLabel
-                      placeholder="Повторите пароль"
-                      type={passwordConfirmationVisible ? "text" : "password"}
-                      value={passwordConfirmation}
-                      onChange={(event) =>
-                        setPasswordConfirmation(event.target.value)
-                      }
-                      required
-                      autoComplete="new-password"
-                      className={styles.passwordInput}
-                    />
-                    <button
-                      type="button"
-                      className={styles.passwordVisibilityButton}
-                      onClick={() =>
-                        setPasswordConfirmationVisible((visible) => !visible)
-                      }
-                    >
-                      {passwordConfirmationVisible ? "Скрыть" : "Показать"}
-                    </button>
-                  </div>
-                </>
-              ) : null}
-
-              <Button type="submit" variant="primaryShimmer" className={styles.button}>
-                {resetStep === "phone"
-                  ? "Получить код"
-                  : resetStep === "code"
-                    ? "Продолжить"
-                    : "Сохранить пароль"}
-              </Button>
-            </form>
-          )}
+            <Button type="submit" variant="primaryShimmer" className={styles.button}>
+              Войти
+            </Button>
+          </form>
         </div>
       </div>
     </div>
@@ -291,3 +145,4 @@ export default function LoginPage() {
     </Suspense>
   );
 }
+

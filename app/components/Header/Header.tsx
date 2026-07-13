@@ -206,7 +206,7 @@ function HeaderContent() {
           <div className={styles.actions}>
             {isAuth === true && isSellerRole(role) ? (
               <Link
-                href="/seller?tab=orders"
+                href="/seller?tab=products"
                 className={styles.iconBtn}
                 aria-label="Кабинет продавца"
               >

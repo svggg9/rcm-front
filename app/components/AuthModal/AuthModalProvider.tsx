@@ -10,19 +10,18 @@ import {
   type ReactNode,
 } from "react";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 
 import { apiFetch, API_URL } from "../../lib/api";
+import { startYandexAuth } from "../../lib/yandexAuth";
 import { ensureCartId, setAuth } from "../../lib/auth";
 import {
   clearGuestFavoriteIds,
   getGuestFavoriteIds,
   syncFavoritesAfterLogin,
 } from "../../lib/favorites";
-import { useAutoFocusFirstField } from "../../lib/useAutoFocusFirstField";
-import { toast } from "sonner";
 
 import { Button } from "../ui/Button";
-import { PhoneInput } from "../ui/PhoneInput";
 import { TextInput } from "../ui/TextInput";
 import {
   AuthModalContext,
@@ -79,44 +78,24 @@ export function AuthModalProvider({ children }: Props) {
   const [mode, setMode] = useState<AuthModalMode>("login");
   const [placement, setPlacement] =
     useState<NonNullable<AuthModalOptions["placement"]>>("modal");
+  const [returnPath, setReturnPath] = useState("/");
 
-  const [phone, setPhone] = useState("");
+  const [email, setEmail] = useState("");
   const [code, setCode] = useState("");
   const [password, setPassword] = useState("");
-  const [passwordConfirmation, setPasswordConfirmation] = useState("");
   const [passwordVisible, setPasswordVisible] = useState(false);
-  const [passwordConfirmationVisible, setPasswordConfirmationVisible] =
-    useState(false);
-  const [registerStep, setRegisterStep] = useState<"phone" | "code" | "password">("phone");
-  const [resetStep, setResetStep] = useState<"phone" | "code" | "password">("phone");
-  const [resetActive, setResetActive] = useState(false);
+  const [registerStep, setRegisterStep] = useState<"email" | "code">("email");
   const [submitting, setSubmitting] = useState(false);
-
-  useAutoFocusFirstField(modalRef, [open, mode, registerStep, resetStep, resetActive]);
-
-  function focusFirstFieldSoon() {
-    window.requestAnimationFrame(() => {
-      window.requestAnimationFrame(() => {
-        const field = modalRef.current?.querySelector<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>(
-          "input:not([type='hidden']):not(:disabled), textarea:not(:disabled), select:not(:disabled)"
-        );
-        field?.focus({ preventScroll: true });
-      });
-    });
-  }
 
   const openAuth = useCallback((
     nextMode: AuthModalMode = "login",
     nextPath = "/",
     options?: AuthModalOptions
   ) => {
-    void nextPath;
+    setReturnPath(nextPath);
     setMode(nextMode);
     setPlacement(options?.placement ?? "modal");
-    setResetActive(false);
-    setPasswordConfirmation("");
     setPasswordVisible(false);
-    setPasswordConfirmationVisible(false);
     setOpen(true);
   }, []);
 
@@ -186,11 +165,11 @@ export function AuthModalProvider({ children }: Props) {
 
       const response = await apiFetch(`${API_URL}/api/auth/login`, {
         method: "POST",
-        body: JSON.stringify({ phone, password, cartId }),
+        body: JSON.stringify({ username: email, password, cartId }),
       });
 
       if (!response.ok) {
-        throw new Error("Неверный телефон или пароль");
+        throw new Error("Неверная почта или пароль");
       }
 
       const data: { cartId: string } = await response.json();
@@ -198,6 +177,22 @@ export function AuthModalProvider({ children }: Props) {
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Ошибка входа");
     } finally {
+      setSubmitting(false);
+    }
+  }
+
+  async function handleYandexLogin() {
+    if (submitting) return;
+
+    setSubmitting(true);
+    try {
+      await startYandexAuth(returnPath);
+    } catch (error) {
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Не удалось открыть вход через Яндекс"
+      );
       setSubmitting(false);
     }
   }
@@ -210,10 +205,18 @@ export function AuthModalProvider({ children }: Props) {
     setSubmitting(true);
 
     try {
-      if (registerStep === "phone") {
-        const response = await apiFetch(`${API_URL}/api/auth/phone/register/start`, {
+      if (registerStep === "email") {
+        if (!password.trim()) {
+          throw new Error("Введите пароль");
+        }
+
+        if (password.length < 8) {
+          throw new Error("Пароль должен быть от 8 символов");
+        }
+
+        const response = await apiFetch(`${API_URL}/api/auth/email/register/start`, {
           method: "POST",
-          body: JSON.stringify({ phone }),
+          body: JSON.stringify({ email, password }),
         });
 
         if (!response.ok) {
@@ -227,103 +230,22 @@ export function AuthModalProvider({ children }: Props) {
         return;
       }
 
-      if (registerStep === "code") {
-        const cartId = await ensureCartId();
-
-        const response = await apiFetch(`${API_URL}/api/auth/phone/register/complete`, {
-          method: "POST",
-          body: JSON.stringify({ phone, code, cartId }),
-        });
-
-        if (!response.ok) {
-          const text = await response.text().catch(() => "");
-          throw new Error(text || "Не удалось создать аккаунт");
-        }
-
-        const data: { cartId: string } = await response.json();
-        await applyAuth(data.cartId);
-        router.refresh();
-        setPassword("");
-        setPasswordConfirmation("");
-        setRegisterStep("password");
-        return;
-      }
-
-      if (password !== passwordConfirmation) {
-        throw new Error("Пароли не совпадают");
-      }
-
-      const response = await apiFetch(`${API_URL}/api/profile/password`, {
-        method: "POST",
-        body: JSON.stringify({ password }),
-      });
-
-      if (!response.ok) {
-        const text = await response.text().catch(() => "");
-        throw new Error(text || "Не удалось сохранить пароль");
-      }
-
-      closeAuth();
-      router.refresh();
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Ошибка входа");
-    } finally {
-      setSubmitting(false);
-    }
-  }
-
-  async function handlePasswordReset(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-
-    if (submitting) return;
-
-    setSubmitting(true);
-
-    try {
-      if (resetStep === "phone") {
-        const response = await apiFetch(`${API_URL}/api/auth/phone/password/reset/start`, {
-          method: "POST",
-          body: JSON.stringify({ phone }),
-        });
-
-        if (!response.ok) {
-          const text = await response.text().catch(() => "");
-          throw new Error(text || "Не удалось отправить код");
-        }
-
-        await response.json().catch(() => null);
-        setCode("");
-        setResetStep("code");
-        return;
-      }
-
-      if (resetStep === "code") {
-        setPassword("");
-        setPasswordConfirmation("");
-        setResetStep("password");
-        return;
-      }
-
-      if (password !== passwordConfirmation) {
-        throw new Error("Пароли не совпадают");
-      }
-
       const cartId = await ensureCartId();
 
-      const response = await apiFetch(`${API_URL}/api/auth/phone/password/reset/complete`, {
+      const response = await apiFetch(`${API_URL}/api/auth/email/register/complete`, {
         method: "POST",
-        body: JSON.stringify({ phone, code, password, cartId }),
+        body: JSON.stringify({ email, code, cartId }),
       });
 
       if (!response.ok) {
         const text = await response.text().catch(() => "");
-        throw new Error(text || "Не удалось сохранить пароль");
+        throw new Error(text || "Не удалось создать аккаунт");
       }
 
       const data: { cartId: string } = await response.json();
       await finishAuth(data.cartId);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Не удалось восстановить пароль");
+      toast.error(error instanceof Error ? error.message : "Ошибка регистрации");
     } finally {
       setSubmitting(false);
     }
@@ -331,15 +253,10 @@ export function AuthModalProvider({ children }: Props) {
 
   function switchMode(nextMode: AuthModalMode) {
     setMode(nextMode);
-    setRegisterStep("phone");
-    setResetStep("phone");
-    setResetActive(false);
+    setRegisterStep("email");
     setCode("");
     setPassword("");
-    setPasswordConfirmation("");
     setPasswordVisible(false);
-    setPasswordConfirmationVisible(false);
-    focusFirstFieldSoon();
   }
 
   return (
@@ -373,9 +290,7 @@ export function AuthModalProvider({ children }: Props) {
                   className={`${styles.tab} ${
                     mode === "login" ? styles.tabActive : ""
                   }`}
-                  onClick={() => {
-                    switchMode("login");
-                  }}
+                  onClick={() => switchMode("login")}
                 >
                   Войти
                 </button>
@@ -387,9 +302,7 @@ export function AuthModalProvider({ children }: Props) {
                   className={`${styles.tab} ${
                     mode === "register" ? styles.tabActive : ""
                   }`}
-                  onClick={() => {
-                    switchMode("register");
-                  }}
+                  onClick={() => switchMode("register")}
                 >
                   Создать аккаунт
                 </button>
@@ -397,15 +310,27 @@ export function AuthModalProvider({ children }: Props) {
             </div>
 
             <div className={styles.body}>
-              {mode === "login" && !resetActive ? (
+              {mode === "login" ? (
                 <form className={styles.form} onSubmit={handleLogin}>
-                  <PhoneInput
-                    label="Телефон"
+                  <button
+                    type="button"
+                    className={styles.oauthButton}
+                    onClick={handleYandexLogin}
+                    disabled={submitting}
+                  >
+                    Войти с Яндекс ID
+                  </button>
+
+                  <TextInput
+                    label="Электронная почта"
                     fieldVariant="boxed"
                     hideLabel
-                    value={phone}
-                    onChange={(event) => setPhone(event.target.value)}
+                    placeholder="Электронная почта"
+                    type="email"
+                    value={email}
+                    onChange={(event) => setEmail(event.target.value)}
                     required
+                    autoComplete="email"
                   />
 
                   <div className={styles.passwordLoginGroup}>
@@ -432,21 +357,6 @@ export function AuthModalProvider({ children }: Props) {
                         <PasswordVisibilityIcon visible={passwordVisible} />
                       </button>
                     </div>
-
-                    <button
-                      type="button"
-                      className={styles.forgotInline}
-                      onClick={() => {
-                        setResetActive(true);
-                        setResetStep("phone");
-                        setCode("");
-                        setPassword("");
-                        setPasswordConfirmation("");
-                        focusFirstFieldSoon();
-                      }}
-                    >
-                      Забыли пароль?
-                    </button>
                   </div>
 
                   <Button
@@ -457,147 +367,23 @@ export function AuthModalProvider({ children }: Props) {
                   >
                     Войти
                   </Button>
-
-                </form>
-              ) : mode === "login" ? (
-                <form className={styles.form} onSubmit={handlePasswordReset}>
-                  <p className={styles.formHint}>
-                    Введите телефон, чтобы восстановить пароль
-                  </p>
-
-                  {resetStep === "phone" ? (
-                    <PhoneInput
-                      label="Телефон"
-                      fieldVariant="boxed"
-                      hideLabel
-                      value={phone}
-                      onChange={(event) => setPhone(event.target.value)}
-                      required
-                    />
-                  ) : null}
-
-                  {resetStep === "code" ? (
-                    <>
-                      <TextInput
-                        label="Код из смс"
-                        fieldVariant="boxed"
-                        hideLabel
-                        placeholder="Код из смс"
-                        value={code}
-                        onChange={(event) =>
-                          setCode(event.target.value.replace(/\D/g, "").slice(0, 6))
-                        }
-                        inputMode="numeric"
-                        required
-                      />
-                    </>
-                  ) : null}
-
-                  {resetStep === "password" ? (
-                    <>
-                      <div className={styles.passwordFieldWrap}>
-                        <TextInput
-                          label="Новый пароль"
-                          fieldVariant="boxed"
-                          hideLabel
-                          placeholder="Новый пароль"
-                          type={passwordVisible ? "text" : "password"}
-                          value={password}
-                          onChange={(event) => setPassword(event.target.value)}
-                          required
-                          autoComplete="new-password"
-                          className={styles.passwordInput}
-                        />
-                        <button
-                          type="button"
-                          className={styles.passwordVisibilityButton}
-                          onClick={() => setPasswordVisible((visible) => !visible)}
-                          aria-label={passwordVisible ? "Скрыть пароль" : "Показать пароль"}
-                          title={passwordVisible ? "Скрыть пароль" : "Показать пароль"}
-                        >
-                          <PasswordVisibilityIcon visible={passwordVisible} />
-                        </button>
-                      </div>
-
-                      <div className={styles.passwordFieldWrap}>
-                        <TextInput
-                          label="Повторите пароль"
-                          fieldVariant="boxed"
-                          hideLabel
-                          placeholder="Повторите пароль"
-                          type={passwordConfirmationVisible ? "text" : "password"}
-                          value={passwordConfirmation}
-                          onChange={(event) =>
-                            setPasswordConfirmation(event.target.value)
-                          }
-                          required
-                          autoComplete="new-password"
-                          className={styles.passwordInput}
-                        />
-                        <button
-                          type="button"
-                          className={styles.passwordVisibilityButton}
-                          onClick={() =>
-                            setPasswordConfirmationVisible((visible) => !visible)
-                          }
-                          aria-label={
-                            passwordConfirmationVisible ? "Скрыть пароль" : "Показать пароль"
-                          }
-                          title={
-                            passwordConfirmationVisible ? "Скрыть пароль" : "Показать пароль"
-                          }
-                        >
-                          <PasswordVisibilityIcon visible={passwordConfirmationVisible} />
-                        </button>
-                      </div>
-                    </>
-                  ) : null}
-
-                  <Button
-                    type="submit"
-                    variant="primaryShimmer"
-                    className={styles.submit}
-                    disabled={submitting}
-                  >
-                    {resetStep === "phone"
-                      ? "Получить код"
-                      : resetStep === "code"
-                        ? "Продолжить"
-                        : "Восстановить пароль"}
-                  </Button>
                 </form>
               ) : (
                 <form className={styles.form} onSubmit={handleRegister}>
-                  {registerStep === "phone" ? (
-                    <PhoneInput
-                      label="Телефон"
-                      fieldVariant="boxed"
-                      hideLabel
-                      value={phone}
-                      onChange={(event) => setPhone(event.target.value)}
-                      required
-                    />
-                  ) : null}
-
-                  {registerStep === "code" ? (
+                  {registerStep === "email" ? (
                     <>
                       <TextInput
-                        label="Код из смс"
+                        label="Электронная почта"
                         fieldVariant="boxed"
                         hideLabel
-                        placeholder="Код из смс"
-                        value={code}
-                        onChange={(event) =>
-                          setCode(event.target.value.replace(/\D/g, "").slice(0, 6))
-                        }
-                        inputMode="numeric"
+                        placeholder="Электронная почта"
+                        type="email"
+                        value={email}
+                        onChange={(event) => setEmail(event.target.value)}
                         required
+                        autoComplete="email"
                       />
-                    </>
-                  ) : null}
 
-                  {registerStep === "password" ? (
-                    <>
                       <div className={styles.passwordFieldWrap}>
                         <TextInput
                           label="Пароль"
@@ -622,49 +408,28 @@ export function AuthModalProvider({ children }: Props) {
                         </button>
                       </div>
 
-                      <div className={styles.passwordFieldWrap}>
-                        <TextInput
-                          label="Повторите пароль"
-                          fieldVariant="boxed"
-                          hideLabel
-                          placeholder="Повторите пароль"
-                          type={passwordConfirmationVisible ? "text" : "password"}
-                          value={passwordConfirmation}
-                          onChange={(event) =>
-                            setPasswordConfirmation(event.target.value)
-                          }
-                          required
-                          autoComplete="new-password"
-                          className={styles.passwordInput}
-                        />
-                        <button
-                          type="button"
-                          className={styles.passwordVisibilityButton}
-                          onClick={() =>
-                            setPasswordConfirmationVisible((visible) => !visible)
-                          }
-                          aria-label={
-                            passwordConfirmationVisible ? "Скрыть пароль" : "Показать пароль"
-                          }
-                          title={
-                            passwordConfirmationVisible ? "Скрыть пароль" : "Показать пароль"
-                          }
-                        >
-                          <PasswordVisibilityIcon visible={passwordConfirmationVisible} />
-                        </button>
-                      </div>
+                      
                     </>
                   ) : null}
 
-                  {registerStep !== "password" ? (
-                    <>
-                      <p className={styles.legal}>
-                        Регистрируясь, вы соглашаетесь с условиями пользования и
-                        политикой конфиденциальности
-                      </p>
-
-                    </>
+                  {registerStep === "code" ? (
+                    <TextInput
+                      label="Код из письма"
+                      fieldVariant="boxed"
+                      hideLabel
+                      placeholder="Код из письма"
+                      value={code}
+                      onChange={(event) =>
+                        setCode(event.target.value.replace(/\D/g, "").slice(0, 6))
+                      }
+                      inputMode="numeric"
+                      required
+                    />
                   ) : null}
+
+                  <p className={styles.legal}>
+                    Регистрируясь, вы соглашаетесь с условиями пользования и политикой конфиденциальности
+                  </p>
 
                   <Button
                     type="submit"
@@ -672,13 +437,8 @@ export function AuthModalProvider({ children }: Props) {
                     className={styles.submit}
                     disabled={submitting}
                   >
-                    {registerStep === "phone"
-                      ? "Получить код"
-                      : registerStep === "code"
-                        ? "Создать аккаунт"
-                        : "Сохранить пароль"}
+                    {registerStep === "email" ? "Получить код" : "Создать аккаунт"}
                   </Button>
-
                 </form>
               )}
             </div>
@@ -688,3 +448,4 @@ export function AuthModalProvider({ children }: Props) {
     </AuthModalContext.Provider>
   );
 }
+
