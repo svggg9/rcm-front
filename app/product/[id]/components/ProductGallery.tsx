@@ -170,10 +170,6 @@ export function ProductGallery({ title, images, onOpenImage }: Props) {
           className={styles.galleryImg}
           priority
         />
-
-        <span className={styles.zoomBadge} aria-hidden="true">
-          <Image src="/icons/search.svg" alt="" width={16} height={16} />
-        </span>
       </button>
 
       <div className={styles.galleryMobile}>

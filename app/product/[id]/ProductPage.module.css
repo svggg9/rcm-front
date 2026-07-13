@@ -190,33 +190,6 @@
   width: 120px !important;
 }
 
-.zoomBadge {
-  position: absolute;
-  right: 12px;
-  bottom: 12px;
-
-  display: flex;
-  align-items: center;
-  justify-content: center;
-
-  width: 36px;
-  height: 36px;
-
-  border: 1px solid var(--line);
-  background: var(--white);
-
-  opacity: 0;
-  pointer-events: none;
-
-  transition: opacity var(--transition);
-}
-
-.zoomBadge img {
-  display: block;
-  width: 18px;
-  height: 18px;
-}
-
 .galleryMobile {
   display: none;
 }
@@ -263,10 +236,6 @@
 
 .galleryMobileIndicatorPartActive {
   background: var(--black);
-}
-
-.galleryButton:hover .zoomBadge {
-  opacity: 1;
 }
 
 .info {
