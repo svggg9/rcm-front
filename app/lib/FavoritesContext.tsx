@@ -9,6 +9,7 @@ import {
 } from "react";
 
 import { apiFetch, API_URL } from "./api";
+import { getClientSession } from "./client-session";
 import {
   getGuestFavoriteIds,
   addGuestFavorite,
@@ -29,8 +30,7 @@ type FavoritesContextType = {
 const FavoritesContext = createContext<FavoritesContextType | null>(null);
 
 async function hasSession() {
-  const response = await apiFetch(`${API_URL}/api/auth/session`);
-  return response.ok;
+  return (await getClientSession()) !== null;
 }
 
 export function FavoritesProvider({

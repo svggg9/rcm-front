@@ -14,11 +14,20 @@
 
 .cardHeader h2 {
   margin: 0;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 8px;
   color: var(--black);
   font-size: var(--font-xl);
   line-height: 1.25;
   font-weight: 400;
   letter-spacing: 0;
+}
+
+.ordersCount {
+  color: var(--gold-deep);
+  font-size: var(--font-xs);
+  font-weight: 300;
 }
 
 .list {

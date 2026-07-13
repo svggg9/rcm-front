@@ -1,10 +1,4 @@
-import type {
-  Audience,
-  CatalogProduct,
-  PaginatedProducts,
-  SelectedAudience,
-  SortValue,
-} from "./catalogTypes";
+import type { CatalogProduct, SelectedAudience, SortValue } from "./catalogTypes";
 
 export const audienceLabels: Record<SelectedAudience, string> = {
   men: "Для него",
@@ -42,32 +36,6 @@ export function getMinPrice(product: CatalogProduct): number {
 export function normalizeAudience(value: string | null): SelectedAudience {
   if (value === "men" || value === "women") return value;
   return "all";
-}
-
-export function matchesAudience(
-  productAudience: Audience,
-  selectedAudience: SelectedAudience
-): boolean {
-  if (selectedAudience === "all") return true;
-  if (selectedAudience === "men") {
-    return productAudience === "MEN" || productAudience === "UNISEX";
-  }
-  return productAudience === "WOMEN" || productAudience === "UNISEX";
-}
-
-export function buildCatalogTitle(
-  category: string,
-  selectedAudience: SelectedAudience
-): string {
-  if (!category) {
-    if (selectedAudience === "men") return "Все товары для мужчин";
-    if (selectedAudience === "women") return "Все товары для женщин";
-    return "Все товары";
-  }
-
-  if (selectedAudience === "men") return `${category} для мужчин`;
-  if (selectedAudience === "women") return `${category} для женщин`;
-  return category;
 }
 
 export function normalizeProducts(data: unknown): CatalogProduct[] {
@@ -165,89 +133,15 @@ export function normalizeProducts(data: unknown): CatalogProduct[] {
     .filter((product): product is CatalogProduct => product !== null);
 }
 
-export function filterProducts(
-  products: CatalogProduct[],
-  params: {
-    selectedAudience: SelectedAudience;
-    selectedCategory: string;
-    selectedBrand: string;
-    searchQuery: string;
-  }
-): CatalogProduct[] {
-  const { selectedAudience, selectedCategory, selectedBrand, searchQuery } =
-    params;
-
-  return products.filter((product) => {
-    if (!matchesAudience(product.audience, selectedAudience)) return false;
-    if (selectedCategory && product.category !== selectedCategory) return false;
-    if (selectedBrand && product.brand !== selectedBrand) return false;
-
-    if (searchQuery) {
-      const haystack =
-        `${product.title} ${product.brand} ${product.category}`.toLowerCase();
-
-      if (!haystack.includes(searchQuery)) return false;
-    }
-
-    return true;
-  });
-}
-
-export function sortProducts(
-  products: CatalogProduct[],
-  sortBy: SortValue
-): CatalogProduct[] {
-  switch (sortBy) {
-    case "price-asc":
-      return [...products].sort((a, b) => getMinPrice(a) - getMinPrice(b));
-    case "price-desc":
-      return [...products].sort((a, b) => getMinPrice(b) - getMinPrice(a));
-    case "newest":
-      return [...products].sort((a, b) => b.id - a.id);
-    default:
-      return products;
-  }
-}
-
-export function getBrands(products: CatalogProduct[]): string[] {
-  return Array.from(
-    new Set(
-      products
-        .map((product) => product.brand)
-        .filter((brand) => brand.trim().length > 0)
-    )
-  ).sort((a, b) => a.localeCompare(b));
-}
-
 export function parsePage(value?: string): number {
   const page = Number(value);
   if (!Number.isFinite(page) || page < 1) return 1;
   return Math.floor(page);
 }
 
-export function paginateProducts(
-  products: CatalogProduct[],
-  page: number,
-  perPage: number
-): PaginatedProducts {
-  const totalPages = Math.max(1, Math.ceil(products.length / perPage));
-  const safePage = Math.min(Math.max(1, page), totalPages);
-
-  const start = (safePage - 1) * perPage;
-  const end = start + perPage;
-
-  return {
-    items: products.slice(start, end),
-    page: safePage,
-    totalPages,
-    totalProducts: products.length,
-  };
-}
-
 export function buildCatalogQuery(params: {
   audience?: string;
   category?: string;
-  brand?: string;
   q?: string;
   page?: number;
   sort?: SortValue;
@@ -260,10 +154,6 @@ export function buildCatalogQuery(params: {
 
   if (params.category) {
     searchParams.set("category", params.category);
-  }
-
-  if (params.brand) {
-    searchParams.set("brand", params.brand);
   }
 
   if (params.q) {
@@ -290,14 +180,3 @@ export function normalizeSort(value?: string): SortValue {
   return "";
 }
 
-export function getProductsCountText(count: number): string {
-  const mod10 = count % 10;
-  const mod100 = count % 100;
-
-  if (mod10 === 1 && mod100 !== 11) return `${count} товар`;
-  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) {
-    return `${count} товара`;
-  }
-
-  return `${count} товаров`;
-}

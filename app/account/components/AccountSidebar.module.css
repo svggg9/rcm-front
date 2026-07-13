@@ -1,14 +1,13 @@
 .logout {
   width: 100%;
   min-height: 42px;
-  padding: 0 12px 0 16px;
+  padding: 0 8px 0 12px;
   border: 0;
-  background: var(--surface-hover);
+  background: transparent;
   color: var(--content-primary);
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 12px;
+  justify-content: flex-start;
   cursor: pointer;
   font: inherit;
   font-size: var(--font-sm);
@@ -18,25 +17,17 @@
 }
 
 .logout:hover {
-  background: var(--soft);
-  color: var(--content-primary-hover-icon);
-}
-
-.logout svg {
-  display: block;
+  background: transparent;
+  color: var(--black);
 }
 
 @media (max-width: 900px) {
   .logout {
     flex-shrink: 0;
-    width: 42px;
+    width: auto;
     height: 42px;
     min-height: 42px;
-    padding: 0;
+    padding: 0 14px;
     justify-content: center;
-  }
-
-  .logoutText {
-    display: none;
   }
 }

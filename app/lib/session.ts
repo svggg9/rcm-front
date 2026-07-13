@@ -18,7 +18,7 @@ export async function getServerSession(): Promise<SessionUser | null> {
     cache: "no-store",
   });
 
-  if (!response.ok) {
+  if (response.status === 204 || !response.ok) {
     return null;
   }
 

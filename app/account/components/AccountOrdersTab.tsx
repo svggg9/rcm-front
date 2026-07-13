@@ -21,7 +21,10 @@ export function AccountOrdersTab({
   return (
     <section className={styles.page}>
       <div className={styles.cardHeader}>
-        <h2>История заказов</h2>
+        <h2>
+          <span>Заказы</span>
+          <span className={styles.ordersCount}>{orders.length}</span>
+        </h2>
       </div>
 
       {orders.length === 0 ? (

@@ -438,14 +438,7 @@ export function SellerApplyPageClient() {
                       }}
                     />
                   </div>
-                ) : (
-                  <TelegramConnect
-                    linked={Boolean(telegramStatus?.linked)}
-                    username={telegramStatus?.telegramUsername ?? null}
-                    linking={telegramLinking}
-                    onConnect={() => void connectTelegram()}
-                  />
-                )}
+                ) : null}
 
                 <div className={styles.applyGrid}>
                   <TextInput
@@ -506,6 +499,15 @@ export function SellerApplyPageClient() {
                   placeholder="Что важно знать перед подключением"
                   onChange={(event) => updateField("comment", event.target.value)}
                 />
+
+                {isAuthenticated ? (
+                  <TelegramConnect
+                    linked={Boolean(telegramStatus?.linked)}
+                    username={telegramStatus?.telegramUsername ?? null}
+                    linking={telegramLinking}
+                    onConnect={() => void connectTelegram()}
+                  />
+                ) : null}
 
                 <Button
                   type="submit"
@@ -633,7 +635,7 @@ function TelegramConnect({
           />
           <h3>Телеграм</h3>
         </div>
-        <p>Подключите Телеграм, чтобы получать уведомления</p>
+        <p>Подключите Телеграм, чтобы получить уведомление по результатам заявки</p>
       </div>
 
       {linked ? (

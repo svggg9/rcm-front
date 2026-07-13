@@ -139,12 +139,6 @@ function HeaderContent() {
     return query ? `/catalog?${query}` : "/catalog";
   }
 
-  function handleAudienceClick(audience: string) {
-    setMenuOpen(false);
-    router.push(buildCatalogUrl({ audience }));
-  }
-
-
   function openMobileMenu() {
     setMenuAudience(activeAudience);
     setMenuOpen(true);
@@ -171,7 +165,17 @@ function HeaderContent() {
 
   return (
     <header className={styles.header} ref={headerRef}>
-      <div className={styles.promoBar}>Подписаться на нас</div>
+      <div className={styles.promoBar}>
+        <a
+          href="https://t.me/durov"
+          className={styles.promoLink}
+          target="_blank"
+          rel="noreferrer"
+        >
+          <span>Российский центральный маркетплейс</span>
+          <Image src="/icons/telegram.svg" alt="" width={14} height={14} />
+        </a>
+      </div>
 
       <div className={styles.top}>
         <div className={styles.inner}>
@@ -186,21 +190,6 @@ function HeaderContent() {
             <span />
             <span />
           </button>
-
-          <nav className={styles.audience} aria-label="Разделы">
-            {audienceItems.map((item) => (
-              <button
-                key={item.key}
-                type="button"
-                className={`${styles.audienceBtn} ${
-                  activeAudience === item.key ? styles.audienceBtnActive : ""
-                }`}
-                onClick={() => handleAudienceClick(item.key)}
-              >
-                {item.label}
-              </button>
-            ))}
-          </nav>
 
           <Link href="/" className={styles.logo} aria-label="РЦМ">
             <Image

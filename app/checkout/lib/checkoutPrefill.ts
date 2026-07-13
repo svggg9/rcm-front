@@ -58,6 +58,17 @@ function normalizeFittingMode(value?: string | null): FittingMode | null {
   return null;
 }
 
+function isEmailLike(value?: string | null): boolean {
+  return Boolean(value?.trim().match(/^[^\s@]+@[^\s@]+\.[^\s@]+$/));
+}
+
+function isPhoneLike(value?: string | null): boolean {
+  const trimmed = value?.trim() ?? "";
+  const digits = trimmed.replace(/\D/g, "");
+
+  return digits.length >= 10 && /^[+\d\s\-()]+$/.test(trimmed);
+}
+
 function buildCityOption(me: Me | null): DeliveryCityOption | null {
   if (!me?.defaultDeliveryCityCode || !me.defaultDeliveryCityName?.trim()) {
     return null;
@@ -82,18 +93,20 @@ export function buildCheckoutPrefill(params: {
     existing.deliveryMethod ||
     normalizeDeliveryMethod(me?.defaultDeliveryMethod) ||
     "PICKUP";
+  const existingEmail = (existing.email ?? "").trim();
+  const profileEmail = me?.email?.trim() ?? "";
+  const existingFullName = (existing.fullName ?? "").trim();
+  const profileDisplayName = me?.displayName?.trim() ?? "";
 
   return {
     email:
-      (existing.email ?? "").trim() ||
-      me?.email?.trim() ||
-      me?.username?.trim() ||
+      (isEmailLike(existingEmail) ? existingEmail : "") ||
+      (isEmailLike(profileEmail) ? profileEmail : "") ||
       "",
 
     fullName:
-      (existing.fullName ?? "").trim() ||
-      me?.displayName?.trim() ||
-      me?.username?.trim() ||
+      (!isPhoneLike(existingFullName) ? existingFullName : "") ||
+      (!isPhoneLike(profileDisplayName) ? profileDisplayName : "") ||
       "",
 
     phone:

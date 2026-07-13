@@ -24,7 +24,6 @@ type Props = {
   products: CatalogProduct[];
   selectedCategory: string;
   selectedAudience: SelectedAudience;
-  initialBrand: string;
   searchQuery: string;
   currentPage: number;
   totalPages: number;
@@ -65,21 +64,15 @@ export function CatalogClient({
   products,
   selectedCategory,
   selectedAudience,
-  initialBrand,
   searchQuery,
   currentPage,
   totalPages,
   initialSort,
   hasError,
 }: Props) {
-  const [selectedBrand, setSelectedBrand] = useState(initialBrand);
   const [sortBy, setSortBy] = useState<SortValue>(initialSort);
   const [sortOpen, setSortOpen] = useState(false);
   const sortDropdownRef = useRef<HTMLDivElement | null>(null);
-
-  useEffect(() => {
-    setSelectedBrand(initialBrand);
-  }, [initialBrand]);
 
   useEffect(() => {
     setSortBy(initialSort);
@@ -115,7 +108,6 @@ export function CatalogClient({
     return buildCatalogQuery({
       audience: selectedAudience,
       category: selectedCategory,
-      brand: selectedBrand,
       q: searchQuery,
       sort: sortBy === value ? "" : value,
     });
@@ -143,20 +135,16 @@ export function CatalogClient({
                 </span>
               </li>
             ) : null}
-
-            {selectedBrand ? (
-              <li className={styles.breadcrumbItem}>
-                <span className={styles.breadcrumbCurrent}>{selectedBrand}</span>
-              </li>
-            ) : null}
           </ol>
         </nav>
-
       </div>
 
       <div className={styles.catalogActions}>
         <div className={styles.catalogControls}>
-          <div className={`${styles.sortWrap} ${sortOpen ? styles.sortOpen : ""}`} ref={sortDropdownRef}>
+          <div
+            className={`${styles.sortWrap} ${sortOpen ? styles.sortOpen : ""}`}
+            ref={sortDropdownRef}
+          >
             <button
               type="button"
               className={styles.sortButton}
@@ -164,7 +152,13 @@ export function CatalogClient({
               aria-expanded={sortOpen}
               aria-haspopup="menu"
             >
-              <span className={`${styles.sortButtonText} ${!sortBy ? styles.sortButtonTextMuted : ""}`}>{sortButtonText}</span>
+              <span
+                className={`${styles.sortButtonText} ${
+                  !sortBy ? styles.sortButtonTextMuted : ""
+                }`}
+              >
+                {sortButtonText}
+              </span>
               <ChevronDownIcon className={styles.chevron} />
             </button>
 
@@ -186,14 +180,6 @@ export function CatalogClient({
               </div>
             </div>
           </div>
-
-          <Link
-            href={buildCatalogQuery({ audience: selectedAudience })}
-            className={styles.clearButton}
-            prefetch={false}
-          >
-            Очистить
-          </Link>
         </div>
       </div>
 
@@ -243,7 +229,6 @@ export function CatalogClient({
                 href={buildCatalogQuery({
                   audience: selectedAudience,
                   category: selectedCategory,
-                  brand: selectedBrand,
                   q: searchQuery,
                   page: item,
                   sort: sortBy,

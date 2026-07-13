@@ -79,11 +79,14 @@ function isActiveAccountOrder(order: OrderListItem): boolean {
 }
 
 function buildOrderStatusLabel(order: Order | OrderListItem): string {
+  if (order.status === "CANCELED") return "Отменён";
+  if (order.paymentStatus === "CANCELED") return "Оплата отменена";
   if (order.paymentStatus === "PENDING") return "Ожидает оплаты";
   if (order.paymentStatus === "FAILED") return "Ошибка оплаты";
-  if (order.deliveryStatus === "IN_TRANSIT") return "В пути";
   if (order.deliveryStatus === "DELIVERED") return "Доставлен";
-  if (order.deliveryStatus === "READY_FOR_SHIPMENT") return "Готов к отправке";
+  if (order.deliveryStatus === "IN_TRANSIT") return "В пути";
+  if (order.deliveryStatus === "READY_FOR_SHIPMENT") return "Готовится к отправке";
+  if (order.paymentStatus === "PAID") return "Оплачен";
 
   return formatOrderStatus(order.status);
 }

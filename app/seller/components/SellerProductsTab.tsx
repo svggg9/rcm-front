@@ -25,7 +25,10 @@ type ProductFilter =
   | "DRAFT"
   | "ARCHIVED";
 
-export function SellerProductsTab({ products, loading }: Props) {
+export function SellerProductsTab({
+  products,
+  loading,
+}: Props) {
   const [items, setItems] = useState(products);
   const [filter, setFilter] = useState<ProductFilter>("ALL");
 

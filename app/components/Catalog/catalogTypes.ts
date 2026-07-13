@@ -23,15 +23,7 @@ export type CatalogProduct = {
 export type CatalogSearchParams = {
   category?: string;
   audience?: string;
-  brand?: string;
   q?: string;
   page?: string;
   sort?: string;
-};
-
-export type PaginatedProducts = {
-  items: CatalogProduct[];
-  page: number;
-  totalPages: number;
-  totalProducts: number;
 };

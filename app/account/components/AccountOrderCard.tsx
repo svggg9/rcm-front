@@ -62,15 +62,15 @@ export function AccountOrderCard({
       <div className={styles.orderMain}>
         <div className={styles.orderContent}>
           <div className={styles.orderDetails}>
-            <div className={styles.orderStatus}>
-              <StatusBadge tone={getOrderTone(order)}>{statusLabel}</StatusBadge>
-            </div>
-
             <div className={styles.orderInfo}>
               <div className={styles.orderNumber}>Заказ {order.id}</div>
               <div className={styles.orderDate}>
                 {new Date(order.createdAt).toLocaleString("ru-RU")}
               </div>
+            </div>
+
+            <div className={styles.orderStatus}>
+              <StatusBadge tone={getOrderTone(order)}>{statusLabel}</StatusBadge>
             </div>
           </div>
 
@@ -114,7 +114,11 @@ function getOrderTone(order: OrderListItem) {
   }
 
   if (order.paymentStatus === "PENDING") return "warning";
-  if (order.status === "COMPLETED" || order.deliveryStatus === "DELIVERED") {
+  if (
+    order.paymentStatus === "PAID" ||
+    order.status === "COMPLETED" ||
+    order.deliveryStatus === "DELIVERED"
+  ) {
     return "success";
   }
 

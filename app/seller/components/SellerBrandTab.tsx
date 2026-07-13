@@ -13,6 +13,7 @@ import {
   uploadSellerBrandLogo,
 } from "../lib/sellerBrandApi";
 
+import { SellerTelegramCard } from "./SellerTelegramCard";
 import styles from "./SellerBrandTab.module.css";
 
 type FormState = {
@@ -300,17 +301,9 @@ export function SellerBrandTab() {
                 placeholder="brand.ru"
               />
             </BrandField>
-
-            <BrandField label="Telegram">
-              <input
-                className={styles.input}
-                value={form.telegram}
-                onChange={(event) => updateField("telegram", event.target.value)}
-                placeholder="@username"
-              />
-            </BrandField>
-
           </div>
+
+          <SellerTelegramCard />
         </div>
 
         <div className={styles.actionsBar}>

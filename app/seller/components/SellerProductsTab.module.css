@@ -24,7 +24,7 @@
   display: grid;
   grid-template-columns: 90px minmax(0, 1fr);
   gap: 18px;
-  align-items: stretch;
+  align-items: center;
   background: var(--white);
   border: 0;
   padding: 0 14px 10px 0;
@@ -76,7 +76,7 @@
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   gap: 18px;
-  align-items: start;
+  align-items: center;
 }
 
 .productDetails {

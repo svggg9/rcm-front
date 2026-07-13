@@ -11,7 +11,6 @@ import { ProductVariantsCard } from "./components/ProductVariantsCard";
 import { ProductShippingCard } from "./components/ProductShippingCard";
 import { ProductPreviewAside } from "./components/ProductPreviewAside";
 import { SellerSidebar } from "../../../components/SellerSidebar";
-import { getSellerBrands } from "../../../lib/sellerBrandApi";
 import { toast } from "sonner";
 
 import type {
@@ -146,7 +145,6 @@ export function ProductEditPageClient({
   const [publishing, setPublishing] = useState(false);
   const [archiving, setArchiving] = useState(false);
   const [deleting, setDeleting] = useState(false);
-  const [creatingProduct, setCreatingProduct] = useState(false);
   const [onboardingStatus, setOnboardingStatus] =
     useState<SellerOnboardingStatus | null>(null);
 
@@ -804,37 +802,6 @@ export function ProductEditPageClient({
     markDirty({ moderation: true });
   }
 
-  async function createDraftProduct() {
-    if (creatingProduct) return;
-
-    setCreatingProduct(true);
-
-    try {
-      const sellerBrands = brands.length > 0 ? brands : await getSellerBrands();
-
-      if (!Array.isArray(sellerBrands) || sellerBrands.length === 0) {
-        router.push("/seller?tab=brand");
-        return;
-      }
-
-      const response = await apiFetch(`${API_URL}/api/seller/products/draft`, {
-        method: "POST",
-      });
-
-      if (!response.ok) {
-        const text = await response.text().catch(() => "");
-        throw new Error(text || "Не удалось создать черновик");
-      }
-
-      const id: number = await response.json();
-      router.push(`/seller/products/${id}/edit`);
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Не удалось создать товар");
-    } finally {
-      setCreatingProduct(false);
-    }
-  }
-
   async function archiveProduct() {
     if (archiving || product?.status === "ARCHIVED") return;
 
@@ -934,8 +901,6 @@ export function ProductEditPageClient({
           ordersCount={initialOrdersCount}
           productsCount={initialProductsCount}
           storeName={storeName}
-          creatingProduct={creatingProduct}
-          onCreateProduct={() => void createDraftProduct()}
         />
 
         <div className={styles.editorContent}>

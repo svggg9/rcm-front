@@ -39,6 +39,13 @@
   border-top: 0;
 }
 
+.itemRow {
+  width: 100%;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+}
+
 .item {
   position: relative;
   width: 100%;
@@ -48,15 +55,19 @@
   align-items: center;
   justify-content: flex-start;
   gap: 6px;
-  padding: 0 8px;
+  padding: 0 8px 0 12px;
   border: 0;
-  background: var(--surface-hover);
+  background: transparent;
   color: var(--content-primary);
   text-decoration: none;
   font-family: inherit;
   transition:
     background var(--transition-fast),
     color var(--transition-fast);
+}
+
+.itemWithAction {
+  padding-right: 6px;
 }
 
 .item span:first-child {
@@ -72,28 +83,70 @@
 }
 
 .item:hover {
-  background: var(--soft);
-  color: var(--content-primary-hover-label);
+  background: transparent;
+  color: var(--black);
 }
 
 .item:active {
   background: transparent;
-  color: var(--content-primary-hover-label);
+  color: var(--black);
 }
 
 .itemActive {
   background: transparent;
-  color: var(--content-primary-hover-label);
+  color: var(--black);
 }
 
 .itemActive:hover {
   background: transparent;
-  color: var(--content-primary-hover-label);
+  color: var(--black);
+}
+
+.itemActive::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 12px;
+  bottom: 12px;
+  width: 1px;
+  background: var(--black);
 }
 
 .item:disabled {
   cursor: default;
   opacity: 0.45;
+}
+
+.itemAction {
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 1px solid var(--black);
+  background: var(--white);
+  color: var(--black);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition:
+    background var(--transition-fast),
+    color var(--transition-fast),
+    opacity var(--transition-fast);
+}
+
+.itemAction:hover {
+  background: var(--black);
+  color: var(--white);
+}
+
+.itemAction:disabled {
+  cursor: default;
+  opacity: 0.45;
+}
+
+.itemAction:disabled:hover {
+  background: var(--white);
+  color: var(--black);
 }
 
 .count {
@@ -163,6 +216,11 @@
     overflow-x: auto;
   }
 
+  .mobileInline .itemRow {
+    flex: 1 1 0;
+    min-width: 0;
+  }
+
   .mobileInline .item {
     width: 100%;
     min-height: 44px;
@@ -172,16 +230,31 @@
     gap: 6px;
   }
 
+  .mobileInline .itemWithAction {
+    padding-right: 4px;
+  }
+
+  .mobileInline .itemAction {
+    width: 22px;
+    height: 22px;
+    margin-right: 8px;
+  }
+
+  .mobileInline .item::before {
+    left: 8px;
+    right: 8px;
+    top: auto;
+    bottom: 0;
+    width: auto;
+    height: 1px;
+  }
+
   .mobileInline .desktopLabel {
     display: none;
   }
 
   .mobileInline .mobileLabel {
     display: inline;
-  }
-
-  .mobileInline .item::before {
-    display: none;
   }
 
   .mobileInline .count {

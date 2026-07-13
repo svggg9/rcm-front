@@ -13,7 +13,6 @@ import { SellerProductsTab } from "./components/SellerProductsTab";
 import { SellerBrandTab } from "./components/SellerBrandTab";
 import { SellerLegalTab } from "./components/SellerLegalTab";
 import { SellerOnboardingStatus } from "./components/SellerOnboardingStatus";
-import { SellerTelegramCard } from "./components/SellerTelegramCard";
 import { getSellerBrands } from "./lib/sellerBrandApi";
 
 import type {
@@ -122,9 +121,9 @@ function SellerPageContent({ initialProducts, initialOrders }: Props) {
   const tabParam = searchParams.get("tab");
 
   const currentTab: SellerTab =
-    tabParam === "products" || tabParam === "brand" || tabParam === "legal"
+    tabParam === "orders" || tabParam === "brand" || tabParam === "legal"
       ? tabParam
-      : "orders";
+      : "products";
 
   const selectedOrderId = searchParams.get("orderId");
 
@@ -305,8 +304,6 @@ function SellerPageContent({ initialProducts, initialOrders }: Props) {
           />
 
           <div className={styles.content}>
-            <SellerTelegramCard />
-
             <SellerOnboardingStatus />
 
             {error ? <div className={styles.error}>{error}</div> : null}
@@ -316,7 +313,10 @@ function SellerPageContent({ initialProducts, initialOrders }: Props) {
             ) : currentTab === "legal" ? (
               <SellerLegalTab />
             ) : currentTab === "products" ? (
-              <SellerProductsTab products={products} loading={false} />
+              <SellerProductsTab
+                products={products}
+                loading={false}
+              />
             ) : detailsLoading ? (
               null
             ) : selectedOrder ? (

@@ -12,6 +12,12 @@ type SidebarItem = {
   mobileLabel?: string;
   active?: boolean;
   count?: number;
+  action?: {
+    label: string;
+    mobileLabel?: string;
+    onClick: () => void;
+    disabled?: boolean;
+  };
   onClick?: () => void;
   disabled?: boolean;
 };
@@ -61,25 +67,39 @@ export function CabinetSidebar({
             : item.active;
 
           return item.href ? (
-            <Link
-              key={itemKey}
-              href={item.href}
-              className={`${styles.item} textSmall ${isActive ? styles.itemActive : ""}`}
-              aria-current={isActive ? "page" : undefined}
-              prefetch={false}
-              onClick={() => setPendingActiveKey(itemKey)}
-            >
-              <span>
-                <span className={styles.desktopLabel}>{item.label}</span>
-                <span className={styles.mobileLabel}>
-                  {item.mobileLabel ?? item.label}
+            <div key={itemKey} className={styles.itemRow}>
+              <Link
+                href={item.href}
+                className={`${styles.item} textSmall ${item.action ? styles.itemWithAction : ""} ${isActive ? styles.itemActive : ""}`}
+                aria-current={isActive ? "page" : undefined}
+                prefetch={false}
+                onClick={() => setPendingActiveKey(itemKey)}
+              >
+                <span>
+                  <span className={styles.desktopLabel}>{item.label}</span>
+                  <span className={styles.mobileLabel}>
+                    {item.mobileLabel ?? item.label}
+                  </span>
                 </span>
-              </span>
 
-              {typeof item.count === "number" && item.count > 0 ? (
-                <span className={`${styles.count} textMicro`}>{item.count}</span>
+                {typeof item.count === "number" && item.count > 0 ? (
+                  <span className={`${styles.count} textMicro`}>{item.count}</span>
+                ) : null}
+              </Link>
+
+              {item.action ? (
+                <button
+                  type="button"
+                  className={`${styles.itemAction} textMicro`}
+                  onClick={item.action.onClick}
+                  disabled={item.action.disabled}
+                  aria-label={item.action.label}
+                  title={item.action.label}
+                >
+                  <span aria-hidden="true">{item.action.mobileLabel ?? "+"}</span>
+                </button>
               ) : null}
-            </Link>
+            </div>
           ) : (
             <button
               key={itemKey}

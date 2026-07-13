@@ -9,6 +9,7 @@ import { emitCartChanged } from "../lib/cartEvents";
 import { addVariantToCart } from "../product/[id]/lib/productPageApi";
 import { apiFetch, API_URL } from "../lib/api";
 import { getGuestFavoriteIds } from "../lib/favorites";
+import { getClientSession } from "../lib/client-session";
 import { toast } from "sonner";
 import { Loader } from "../components/ui/Loader";
 import { Price } from "../components/ui/Price";
@@ -26,6 +27,8 @@ type ProductApi = {
   title: string;
   brand: string | null;
   category: string | null;
+  coverImage?: string | null;
+  hoverImage?: string | null;
   images: string[];
   minPrice?: number;
   variants?: ProductVariantApi[];
@@ -61,12 +64,19 @@ function resolveMinPrice(product: ProductApi): number {
 }
 
 function toTileProduct(product: ProductApi): FavoriteProductDto {
+  const images = [
+    product.coverImage,
+    product.hoverImage && product.hoverImage !== product.coverImage
+      ? product.hoverImage
+      : null,
+  ].filter((image): image is string => typeof image === "string" && image.length > 0);
+
   return {
     id: product.id,
     title: product.title,
     brand: product.brand ?? null,
     category: product.category ?? null,
-    images: Array.isArray(product.images) ? product.images : [],
+    images: images.length > 0 ? images : Array.isArray(product.images) ? product.images : [],
     minPrice: resolveMinPrice(product),
     variants: Array.isArray(product.variants) ? product.variants : [],
     isFavorite: true,
@@ -84,9 +94,9 @@ export default function FavoritesPage() {
       setLoading(true);
 
       try {
-          const profileResponse = await apiFetch(`${API_URL}/api/profile`);
+        const session = await getClientSession();
 
-          if (profileResponse.ok) {
+        if (session) {
           const response = await apiFetch(`${API_URL}/api/favorites`);
           if (!response.ok) {
             throw new Error("favorites load failed");
@@ -107,7 +117,9 @@ export default function FavoritesPage() {
           return;
         }
 
-        const response = await apiFetch(`${API_URL}/api/products/list`);
+        const response = await apiFetch(
+          `${API_URL}/api/products/public-by-ids?ids=${guestIds.join(",")}`
+        );
         if (!response.ok) {
           throw new Error("products load failed");
         }

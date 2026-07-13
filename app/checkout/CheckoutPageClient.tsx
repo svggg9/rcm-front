@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { apiFetch, API_URL } from "../lib/api";
 import { ensureCartId } from "../lib/auth";
 import { emitCartChanged } from "../lib/cartEvents";
+import { getClientSession } from "../lib/client-session";
 
 import { CheckoutContactSection } from "./components/CheckoutContactSection";
 import { CheckoutDeliverySection } from "./components/CheckoutDeliverySection";
@@ -340,23 +341,24 @@ function CheckoutPageContent() {
 
         setCartId(resolvedCartId);
 
-        const [profileResponse, cartResponse] =
-          await Promise.all([
-            apiFetch(`${API_URL}/api/profile`),
-
-            apiFetch(
-              `${API_URL}/api/cart?cartId=${encodeURIComponent(
-                resolvedCartId
-              )}`
-            ),
-          ]);
+        const [session, cartResponse] = await Promise.all([
+          getClientSession(),
+          apiFetch(
+            `${API_URL}/api/cart?cartId=${encodeURIComponent(resolvedCartId)}`
+          ),
+        ]);
 
         if (!active) return;
 
         let me: Me | null = null;
 
-        if (profileResponse.ok) {
-          me = (await profileResponse.json()) as Me;
+        if (session) {
+          const profileResponse = await apiFetch(`${API_URL}/api/profile`);
+          if (!active) return;
+
+          if (profileResponse.ok) {
+            me = (await profileResponse.json()) as Me;
+          }
         }
 
         const existing = checkoutSnapshotRef.current;
@@ -667,7 +669,9 @@ function CheckoutPageContent() {
     };
   }, [draftHydrated, loading, selectedCity, cityQuery]);
 
-  async function createDeliveryQuote(options?: { silent?: boolean }) {
+  async function createDeliveryQuote(options?: {
+    silent?: boolean;
+  }): Promise<SellerGroupDeliveryQuoteResponse | null> {
     try {
       setQuoteLoading(true);
       setError(null);
@@ -730,7 +734,7 @@ function CheckoutPageContent() {
       setDeliveryPeriodMinDays(quote.periodMinDays ?? null);
       setDeliveryPeriodMaxDays(quote.periodMaxDays ?? null);
 
-      return true;
+      return quote;
     } catch (e) {
       const message =
         e instanceof Error ? e.message : "Не удалось рассчитать доставку";
@@ -739,7 +743,7 @@ function CheckoutPageContent() {
       if (!options?.silent) {
         showError(message);
       }
-      return false;
+      return null;
     } finally {
       setQuoteLoading(false);
     }
@@ -905,10 +909,22 @@ function CheckoutPageContent() {
       return;
     }
 
-    if (!deliveryQuoteToken && !deliveryOfferId) {
-      const quoted = await createDeliveryQuote();
+    let activeDeliveryOfferId = deliveryOfferId || deliveryQuoteToken;
+    let activeDeliveryPrice = deliveryPrice;
+    let activeDeliveryCurrency = deliveryCurrency;
+    let activeSellerDeliveryCosts = sellerDeliveryCosts;
 
-      if (!quoted) return;
+    if (!activeDeliveryOfferId) {
+      const quote = await createDeliveryQuote();
+
+      if (!quote) return;
+
+      activeDeliveryOfferId = quote.externalOfferId || quote.quoteToken;
+      activeDeliveryPrice = Number(quote.priceAmount || 0);
+      activeDeliveryCurrency = quote.currency || "RUB";
+      activeSellerDeliveryCosts = Array.isArray(quote.sellerDeliveryCosts)
+        ? quote.sellerDeliveryCosts
+        : [];
     }
 
     const pickupPointLabel =
@@ -950,15 +966,15 @@ function CheckoutPageContent() {
         deliveryIntercom:
           deliveryMethod === "COURIER" ? intercom.trim() || undefined : undefined,
         fittingMode,
-        deliveryOfferId: deliveryOfferId || deliveryQuoteToken || undefined,
-        deliveryPriceAmount: deliveryPrice,
-        deliveryCurrency,
-        sellerDeliveryCosts: sellerDeliveryCosts
+        deliveryOfferId: activeDeliveryOfferId || undefined,
+        deliveryPriceAmount: activeDeliveryPrice,
+        deliveryCurrency: activeDeliveryCurrency,
+        sellerDeliveryCosts: activeSellerDeliveryCosts
           .filter((item) => item.sellerId && item.deliveryCostAmount != null)
           .map((item) => ({
             sellerId: item.sellerId,
             deliveryCostAmount: Number(item.deliveryCostAmount),
-            currency: item.currency || deliveryCurrency,
+            currency: item.currency || activeDeliveryCurrency,
           })),
         paymentMethod,
         comment:

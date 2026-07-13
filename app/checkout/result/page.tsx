@@ -1,8 +1,11 @@
 "use client";
 
 import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
+import Image from "next/image";
+import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 
+import { StatusBadge, type StatusBadgeTone } from "../../components/ui/StatusBadge";
 import { API_URL, apiFetch } from "../../lib/api";
 import styles from "./CheckoutResult.module.css";
 
@@ -24,15 +27,42 @@ type PaymentResponse = {
   canceledAt?: string | null;
 };
 
+type OrderItem = {
+  productId: number;
+  productTitle: string;
+  size?: string | null;
+  color?: string | null;
+  imageUrl?: string | null;
+  quantity: number;
+};
+
 type OrderResponse = {
   id: number;
-  orderGroupId: string;
-  status: string;
-  paymentStatus: string;
-  totalAmount: number;
-  currency: string;
-  createdAt: string;
+  items?: OrderItem[];
 };
+
+function formatPaymentStatus(status?: string | null): string {
+  switch (status) {
+    case "SUCCEEDED":
+    case "PAID":
+      return "Оплачено";
+    case "PENDING":
+      return "Ожидает оплаты";
+    case "CANCELED":
+      return "Отменено";
+    case "FAILED":
+      return "Ошибка оплаты";
+    default:
+      return "Проверяем";
+  }
+}
+
+function getPaymentTone(status?: PaymentStatus | null): StatusBadgeTone {
+  if (status === "SUCCEEDED") return "success";
+  if (status === "PENDING") return "warning";
+  if (status === "CANCELED" || status === "FAILED") return "danger";
+  return "default";
+}
 
 function CheckoutResultContent() {
   const router = useRouter();
@@ -53,41 +83,41 @@ function CheckoutResultContent() {
     if (!payment) {
       return {
         title: "Проверяем оплату",
-        text: "Получаем актуальный статус платежа.",
-        toneClass: styles.neutral,
+        text: "Получаем актуальный статус платежа",
       };
     }
 
     if (payment.status === "SUCCEEDED") {
       return {
         title: "Оплата прошла успешно",
-        text: "Заказ оплачен. Мы обновили статус заказов в группе.",
-        toneClass: styles.success,
+        text: "Заказ оплачен, мы начали обработку",
       };
     }
 
     if (payment.status === "PENDING") {
       return {
         title: "Платеж обрабатывается",
-        text: "Банк еще не прислал финальный статус. Страница обновит данные автоматически.",
-        toneClass: styles.pending,
+        text: "Банк еще не прислал финальный статус, страница обновится автоматически",
       };
     }
 
     if (payment.status === "CANCELED") {
       return {
         title: "Оплата отменена",
-        text: "Платеж был отменен. Можно попробовать оплатить снова.",
-        toneClass: styles.canceled,
+        text: "Платеж отменен, можно попробовать оплатить снова",
       };
     }
 
     return {
       title: "Оплата не прошла",
-      text: "Платеж отклонен или завершился ошибкой. Можно попробовать еще раз.",
-      toneClass: styles.failed,
+      text: "Платеж отклонен или завершился ошибкой, можно попробовать еще раз",
     };
   }, [payment]);
+
+  const orderItems = useMemo(
+    () => orders.flatMap((order) => order.items || []),
+    [orders]
+  );
 
   const loadResult = useCallback(async () => {
     if (!canLoad) {
@@ -111,7 +141,7 @@ function CheckoutResultContent() {
 
       if (!ordersResponse.ok) {
         const text = await ordersResponse.text().catch(() => "");
-        throw new Error(text || `Не удалось загрузить заказы (${ordersResponse.status})`);
+        throw new Error(text || `Не удалось загрузить заказ (${ordersResponse.status})`);
       }
 
       const paymentData = (await paymentResponse.json()) as PaymentResponse;
@@ -204,103 +234,111 @@ function CheckoutResultContent() {
 
   return (
     <div className={styles.page}>
-      <div className={styles.card}>
-        <div className={`${styles.statusBadge} ${statusView.toneClass}`}>
-          {payment?.providerStatus || payment?.status || "UNKNOWN"}
-        </div>
-
-        <h1 className={styles.title}>{statusView.title}</h1>
-        <p className={styles.text}>{statusView.text}</p>
-
-        {error ? <div className={styles.error}>{error}</div> : null}
-
-        <div className={styles.metaBox}>
-          <div>
-            <strong>Группа заказа:</strong> {orderGroupId || "—"}
+      <main className={styles.shell}>
+        <section className={styles.hero}>
+          <div className={styles.heroHeader}>
+            <StatusBadge tone={getPaymentTone(payment?.status)}>
+              {formatPaymentStatus(payment?.status)}
+            </StatusBadge>
           </div>
-          <div>
-            <strong>Платеж:</strong> {payment?.externalId || externalPaymentId || "—"}
-          </div>
-          <div>
-            <strong>Статус:</strong> {payment?.status || "—"}
-          </div>
-          <div>
-            <strong>Провайдер:</strong> {payment?.provider || "—"}
-          </div>
-          {payment ? (
-            <div>
-              <strong>Сумма:</strong> {Number(payment.amount).toLocaleString()} {payment.currency}
-            </div>
-          ) : null}
-        </div>
 
-        {orders.length > 0 ? (
-          <div className={styles.orders}>
-            <h2 className={styles.subtitle}>Заказы в группе</h2>
+          <h1 className={`${styles.title} textPageTitle`}>{statusView.title}</h1>
+          <p className={`${styles.text} textBody`}>{statusView.text}</p>
 
-            {orders.map((order) => (
-              <div key={order.id} className={styles.orderRow}>
-                <div>
-                  <strong>Заказ #{order.id}</strong>
-                  <div className={styles.muted}>
-                    {order.status} / {order.paymentStatus}
+          {error ? <div className={`${styles.error} textSmall`}>{error}</div> : null}
+
+          <div className={styles.actions}>
+            {payment?.status === "PENDING" ? (
+              <button
+                type="button"
+                onClick={() => {
+                  setChecking(true);
+                  void loadResult();
+                }}
+                disabled={checking}
+                className="buttonPrimary textButton"
+              >
+                {checking ? "Проверяем..." : "Проверить снова"}
+              </button>
+            ) : null}
+
+            {payment?.status === "FAILED" || payment?.status === "CANCELED" ? (
+              <button
+                type="button"
+                onClick={retryPayment}
+                disabled={checking}
+                className="buttonPrimary textButton"
+              >
+                {checking ? "Создаем платеж..." : "Оплатить снова"}
+              </button>
+            ) : null}
+
+            <button
+              type="button"
+              onClick={() => router.push("/account?tab=orders")}
+              className="buttonSecondary textButton"
+            >
+              Перейти к заказам
+            </button>
+
+            {process.env.NODE_ENV !== "production" ? (
+              <button
+                type="button"
+                onClick={debugSyncPayment}
+                disabled={checking}
+                className="buttonSecondary textButton"
+              >
+                {checking ? "Синхронизируем..." : "Синхронизировать"}
+              </button>
+            ) : null}
+          </div>
+        </section>
+
+        {orderItems.length > 0 ? (
+          <section className={styles.contents}>
+            <h2 className={`${styles.sectionTitle} textTitle`}>Состав заказа</h2>
+
+            <div className={styles.productList}>
+              {orderItems.map((item, index) => (
+                <Link
+                  key={`${item.productId}-${index}`}
+                  href={`/product/${item.productId}`}
+                  className={styles.product}
+                >
+                  <div className={styles.productImageWrap}>
+                    {item.imageUrl ? (
+                      <Image
+                        src={item.imageUrl}
+                        alt={item.productTitle}
+                        width={96}
+                        height={120}
+                        className={styles.productImage}
+                      />
+                    ) : (
+                      <div className={styles.productImagePlaceholder} />
+                    )}
                   </div>
-                </div>
 
-                <div>
-                  {Number(order.totalAmount).toLocaleString()} {order.currency}
-                </div>
-              </div>
-            ))}
-          </div>
+                  <div className={styles.productInfo}>
+                    <div className={`${styles.productTitle} textBody`}>
+                      {item.productTitle}
+                    </div>
+                    {item.size || item.color ? (
+                      <div className={`${styles.productMeta} textSmall`}>
+                        {[item.size, item.color].filter(Boolean).join(" · ")}
+                      </div>
+                    ) : null}
+                  </div>
+
+                  <div className={`${styles.productQuantity} textSmall`}>
+                    × {item.quantity}
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </section>
         ) : null}
-
-        <div className={styles.actions}>
-          {payment?.status === "PENDING" ? (
-            <button
-              type="button"
-              onClick={() => {
-                setChecking(true);
-                void loadResult();
-              }}
-              disabled={checking}
-              className={styles.primaryBtn}
-            >
-              {checking ? "Проверяем…" : "Проверить снова"}
-            </button>
-          ) : null}
-
-          {payment?.status === "FAILED" || payment?.status === "CANCELED" ? (
-            <button
-              type="button"
-              onClick={retryPayment}
-              disabled={checking}
-              className={styles.primaryBtn}
-            >
-              {checking ? "Создаем платеж…" : "Попробовать оплатить снова"}
-            </button>
-          ) : null}
-
-          <button
-            type="button"
-            onClick={() => router.push("/account?tab=orders")}
-            className={styles.secondaryBtn}
-          >
-            Перейти к заказам
-          </button>
-
-          {process.env.NODE_ENV !== "production" ? (
-            <button
-              type="button"
-              onClick={debugSyncPayment}
-              disabled={checking}
-              className={styles.debugBtn}
-            >
-              {checking ? "Синхронизируем…" : "DEBUG SYNC"}
-            </button>
-          ) : null}
-        </div>
-      </div>
+      </main>
     </div>
   );
 }

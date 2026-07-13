@@ -143,51 +143,6 @@
   flex-shrink: 0;
 }
 
-.chip,
-.clearButton {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-
-  min-height: 38px;
-  padding: 0 14px;
-
-  border: 1px solid var(--line);
-  background: var(--white);
-  color: var(--black);
-
-  font-size: var(--font-sm);
-  line-height: 1;
-  white-space: nowrap;
-  text-decoration: none;
-  cursor: pointer;
-
-  transition:
-    background var(--transition-fast),
-    border-color var(--transition-fast),
-    color var(--transition-fast);
-}
-
-.clearButton {
-  border-color: var(--black);
-}
-
-.chip:hover,
-.clearButton:hover,
-.chipActive {
-  border-color: var(--black);
-}
-
-.chip:hover,
-.clearButton:hover {
-  background: var(--soft);
-}
-
-.chipActive {
-  background: var(--soft);
-}
-
 .chevron {
   width: 16px;
   height: 16px;
@@ -448,8 +403,6 @@
     font-size: 28px;
   }
 
-  .chip,
-  .clearButton,
   .sortButton {
     min-height: 36px;
     padding: 0 12px;

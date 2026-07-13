@@ -4,7 +4,7 @@ import type { SessionUser } from "./session";
 export async function getClientSession(): Promise<SessionUser | null> {
   const response = await apiFetch(`${API_URL}/api/auth/session`);
 
-  if (!response.ok) {
+  if (response.status === 204 || !response.ok) {
     return null;
   }
 

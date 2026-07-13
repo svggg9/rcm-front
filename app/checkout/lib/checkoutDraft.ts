@@ -7,6 +7,17 @@ import type {
 
 const CHECKOUT_DRAFT_KEY = "checkout_draft_v1";
 
+function isEmailLike(value: string): boolean {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
+}
+
+function isPhoneLike(value: string): boolean {
+  const trimmed = value.trim();
+  const digits = trimmed.replace(/\D/g, "");
+
+  return digits.length >= 10 && /^[+\d\s\-()]+$/.test(trimmed);
+}
+
 function getCheckoutDraftKey(): string {
   if (typeof window === "undefined") return CHECKOUT_DRAFT_KEY;
 
@@ -69,12 +80,12 @@ export function loadCheckoutDraft(): CheckoutDraft | null {
 
     return {
       email:
-        typeof parsed.email === "string"
+        typeof parsed.email === "string" && isEmailLike(parsed.email)
           ? parsed.email
           : "",
 
       fullName:
-        typeof parsed.fullName === "string"
+        typeof parsed.fullName === "string" && !isPhoneLike(parsed.fullName)
           ? parsed.fullName
           : "",
 

@@ -1,4 +1,5 @@
 import { apiFetch, API_URL } from "./api";
+import { getClientSession } from "./client-session";
 
 const GUEST_FAVORITES_KEY = "guest_favorite_ids";
 
@@ -67,9 +68,7 @@ export function toggleGuestFavorite(productId: number): number[] {
 }
 
 async function hasSession(): Promise<boolean> {
-  const response = await apiFetch(`${API_URL}/api/auth/session`);
-
-  return response.ok;
+  return (await getClientSession()) !== null;
 }
 
 export async function addFavorite(productId: number): Promise<void> {

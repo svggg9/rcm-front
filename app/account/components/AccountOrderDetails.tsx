@@ -184,7 +184,11 @@ function getOrderTone(order: Order) {
   }
 
   if (order.paymentStatus === "PENDING") return "warning";
-  if (order.status === "COMPLETED" || order.deliveryStatus === "DELIVERED") {
+  if (
+    order.paymentStatus === "PAID" ||
+    order.status === "COMPLETED" ||
+    order.deliveryStatus === "DELIVERED"
+  ) {
     return "success";
   }
 

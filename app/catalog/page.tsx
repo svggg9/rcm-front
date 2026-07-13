@@ -21,15 +21,10 @@ const SITE_NAME = "RCMarket";
 function buildCatalogSeoTitle(params: {
   category: string;
   audience: SelectedAudience;
-  brand: string;
   q: string;
 }): string {
   if (params.q) {
     return `Поиск: ${params.q} | ${SITE_NAME}`;
-  }
-
-  if (params.brand) {
-    return `${params.brand} — товары производителя | ${SITE_NAME}`;
   }
 
   if (params.category) {
@@ -58,15 +53,10 @@ function buildCatalogSeoTitle(params: {
 function buildCatalogSeoDescription(params: {
   category: string;
   audience: SelectedAudience;
-  brand: string;
   q: string;
 }): string {
   if (params.q) {
     return `Результаты поиска «${params.q}» в каталоге RCMarket — маркетплейсе отечественных производителей.`;
-  }
-
-  if (params.brand) {
-    return `Товары производителя ${params.brand} в каталоге RCMarket — маркетплейсе отечественных производителей.`;
   }
 
   if (params.category) {
@@ -87,7 +77,6 @@ function buildCatalogSeoDescription(params: {
 function buildCatalogCanonical(params: {
   category: string;
   audience: SelectedAudience;
-  brand: string;
   q: string;
   page: number;
   sort: SortValue;
@@ -100,10 +89,6 @@ function buildCatalogCanonical(params: {
 
   if (params.category) {
     search.set("category", params.category);
-  }
-
-  if (params.brand) {
-    search.set("brand", params.brand);
   }
 
   if (params.q) {
@@ -126,7 +111,6 @@ function buildCatalogCanonical(params: {
 function normalizeCatalogParams(params: CatalogSearchParams) {
   const selectedCategory = params.category ?? "";
   const selectedAudience = normalizeAudience(params.audience ?? null);
-  const selectedBrand = params.brand ?? "";
   const searchQuery = (params.q ?? "").trim();
   const page = parsePage(params.page);
   const sortBy = normalizeSort(params.sort);
@@ -134,7 +118,6 @@ function normalizeCatalogParams(params: CatalogSearchParams) {
   return {
     selectedCategory,
     selectedAudience,
-    selectedBrand,
     searchQuery,
     page,
     sortBy,
@@ -150,7 +133,6 @@ export async function generateMetadata({
   const {
     selectedCategory,
     selectedAudience,
-    selectedBrand,
     searchQuery,
     page,
     sortBy,
@@ -159,21 +141,18 @@ export async function generateMetadata({
   const title = buildCatalogSeoTitle({
     category: selectedCategory,
     audience: selectedAudience,
-    brand: selectedBrand,
     q: searchQuery,
   });
 
   const description = buildCatalogSeoDescription({
     category: selectedCategory,
     audience: selectedAudience,
-    brand: selectedBrand,
     q: searchQuery,
   });
 
   const canonical = buildCatalogCanonical({
     category: selectedCategory,
     audience: selectedAudience,
-    brand: selectedBrand,
     q: searchQuery,
     page,
     sort: sortBy,
@@ -197,7 +176,6 @@ export async function generateMetadata({
 async function getCatalogProducts(params: {
   audience: string;
   category: string;
-  brand: string;
   q: string;
   sort: string;
   page: number;
@@ -216,10 +194,6 @@ async function getCatalogProducts(params: {
 
     if (params.category) {
       search.set("category", params.category);
-    }
-
-    if (params.brand) {
-      search.set("brand", params.brand);
     }
 
     if (params.q) {
@@ -296,7 +270,6 @@ export default async function CatalogPage({
   const {
     selectedCategory,
     selectedAudience,
-    selectedBrand,
     searchQuery,
     page,
     sortBy,
@@ -305,7 +278,6 @@ export default async function CatalogPage({
   const { products, totalPages, totalProducts, hasError } = await getCatalogProducts({
     audience: selectedAudience,
     category: selectedCategory,
-    brand: selectedBrand,
     q: searchQuery,
     sort: sortBy,
     page,
@@ -316,7 +288,6 @@ export default async function CatalogPage({
       buildCatalogCanonical({
         category: selectedCategory,
         audience: selectedAudience,
-        brand: selectedBrand,
         q: searchQuery,
         page: totalPages,
         sort: sortBy,
@@ -330,7 +301,6 @@ export default async function CatalogPage({
         products={products}
         selectedCategory={selectedCategory}
         selectedAudience={selectedAudience}
-        initialBrand={selectedBrand}
         searchQuery={searchQuery}
         currentPage={page}
         totalPages={totalPages}
