@@ -4,6 +4,7 @@ export type ProductVariant = {
 
 export type HomeProduct = {
   id: number;
+  publicId?: string | null;
   title: string;
   images: string[];
   brand: string | null;

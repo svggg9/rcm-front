@@ -2,6 +2,7 @@
 
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 
+import { Icon } from "./Icon";
 import styles from "./FormControl.module.css";
 
 type Option = {
@@ -156,7 +157,7 @@ export function FormCombobox({
         <button
           type="button"
           className={styles.chevron}
-          aria-label={open ? "??????? ??????" : "??????? ??????"}
+          aria-label={open ? "Свернуть список" : "Раскрыть список"}
           tabIndex={-1}
           onMouseDown={(event) => event.preventDefault()}
           onClick={() => {
@@ -165,9 +166,7 @@ export function FormCombobox({
             setQuery("");
           }}
         >
-          <svg viewBox="0 0 16 16" focusable="false" aria-hidden="true">
-            <path d="M4 6L8 10L12 6" />
-          </svg>
+          <Icon name="chevron-down" size={18} strokeWidth={1.8} />
         </button>
 
         <div className={styles.menu} id={listboxId} role="listbox">

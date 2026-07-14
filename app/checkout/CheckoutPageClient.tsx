@@ -15,6 +15,7 @@ import { CheckoutSummary } from "./components/CheckoutSummary";
 
 import { toast } from "sonner";
 import { Loader } from "../components/ui/Loader";
+import { EmptyState } from "../components/ui/EmptyState";
 
 import type {
   CartItem,
@@ -1077,17 +1078,12 @@ function CheckoutPageContent() {
     <div className="pageContainer">
       <div className={styles.page}>
         {items.length === 0 ? (
-          <div className="emptyState">
-            <h2 className="emptyStateTitle">
-              Корзина пуста
-            </h2>
-
-            <p className="emptyStateText">
-              Добавьте товары, чтобы перейти к
-              оформлению заказа
-            </p>
-
-            <div className="emptyStateActions">
+          <EmptyState
+            icon="cart"
+            tone="gold"
+            title="Корзина пуста"
+            text="Добавьте товары, чтобы перейти к оформлению заказа"
+            actions={
               <button
                 type="button"
                 className="buttonPrimary"
@@ -1097,8 +1093,8 @@ function CheckoutPageContent() {
               >
                 Перейти в каталог
               </button>
-            </div>
-          </div>
+            }
+          />
         ) : (
           <div className={styles.layout}>
             <div className={styles.main}>
@@ -1266,7 +1262,7 @@ function CheckoutPageContent() {
                   disabled={submitting || quoteLoading || quotePending}
                   className={`${styles.finalSubmitButton} buttonPrimary`}
                 >
-                  {submitting ? "Переходим к оплате..." : "Подтвердить заказ"}
+                  Подтвердить заказ
                 </button>
 
                 <div className={styles.disclaimer}>

@@ -755,7 +755,7 @@ export function SellerLegalTab() {
 
         <div className={styles.actions}>
           <Button type="submit" variant="primary" disabled={saving || !formChanged}>
-            {savedMessage && !formChanged ? "Реквизиты сохранены" : "Сохранить"}
+            Сохранить
           </Button>
         </div>
       </form>
@@ -805,7 +805,7 @@ export function SellerLegalTab() {
                 disabled={creatingProduct}
                 onClick={() => void createProductDraft()}
               >
-                {creatingProduct ? "Создаем..." : "Создать товар"}
+                Создать товар
               </button>
             </div>
           </div>

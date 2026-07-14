@@ -1037,7 +1037,7 @@ export function ProductEditPageClient({
                 disabled={saving || !dirty}
                 className={`${styles.primaryBtn} textButton`}
               >
-                {!dirty && !saving ? "Сохранено" : "Сохранить"}
+                Сохранить
               </button>
 
               <button
@@ -1047,7 +1047,7 @@ export function ProductEditPageClient({
                 className={`${styles.secondaryBtn} textButton`}
                 title={!canPublish ? publishBlockedReason : undefined}
               >
-                {publishing ? "Отправляем..." : "Опубликовать"}
+                Опубликовать
               </button>
 
               {product?.status !== "ARCHIVED" ? (
@@ -1057,7 +1057,7 @@ export function ProductEditPageClient({
                   disabled={archiving}
                   className={`${styles.archiveBtn} textButton`}
                 >
-                  {archiving ? "Переносим..." : "В архив"}
+                  В архив
                 </button>
               ) : null}
 

@@ -21,7 +21,9 @@
     background var(--transition),
     color var(--transition),
     border-color var(--transition),
-    opacity var(--transition);
+    opacity var(--transition),
+    transform var(--transition-fast),
+    box-shadow var(--transition-fast);
 }
 
 .buttonPrimary {
@@ -41,12 +43,29 @@
   z-index: 1;
 }
 
-.buttonPrimary:hover {
-  opacity: 0.86;
-}
-
 @media (hover: hover) {
-  .buttonPrimaryShimmer:hover .buttonContent {
+  .buttonPrimary:hover:not(:disabled),
+  .buttonPrimaryShimmer:hover:not(:disabled) {
+    color: transparent;
+    background:
+      linear-gradient(
+        110deg,
+        var(--white) 0%,
+        var(--white) 34%,
+        var(--gold) 48%,
+        var(--white) 62%,
+        var(--white) 100%
+      );
+    background-size: 260% 100%;
+    background-position: 100% 0;
+    background-clip: text;
+    -webkit-background-clip: text;
+    box-shadow: inset 0 0 0 999px var(--black);
+    animation: buttonTextShimmer 0.45s ease-out;
+  }
+
+  .buttonPrimary:hover:not(:disabled) .buttonContent,
+  .buttonPrimaryShimmer:hover:not(:disabled) .buttonContent {
     color: transparent;
     background:
       linear-gradient(
@@ -71,7 +90,7 @@
   color: var(--black);
 }
 
-.buttonSecondary:hover {
+.buttonSecondary:hover:not(:disabled) {
   border-color: var(--black);
   background: var(--soft);
 }
@@ -85,7 +104,7 @@
   font-size: var(--font-sm);
 }
 
-.buttonTertiary:hover {
+.buttonTertiary:hover:not(:disabled) {
   opacity: 0.86;
 }
 
@@ -95,17 +114,36 @@
   color: var(--black);
 }
 
-.buttonGhost:hover {
+.buttonGhost:hover:not(:disabled) {
   color: var(--black);
 }
 
-.buttonPrimary:disabled,
-.buttonPrimaryShimmer:disabled,
 .buttonSecondary:disabled,
 .buttonTertiary:disabled,
 .buttonGhost:disabled {
   opacity: 0.4;
   cursor: default;
+}
+
+.buttonPrimary:active:not(:disabled),
+.buttonPrimaryShimmer:active:not(:disabled),
+.buttonTertiary:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.buttonPrimary:disabled,
+.buttonPrimaryShimmer:disabled {
+  border-color: var(--black-soft);
+  background: var(--black);
+  color: rgba(255, 255, 255, 0.46);
+  box-shadow: none;
+  cursor: default;
+}
+
+.buttonPrimary:disabled .buttonContent,
+.buttonPrimaryShimmer:disabled .buttonContent {
+  color: inherit;
+  background: none;
 }
 
 .buttonDanger {
@@ -168,6 +206,9 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .buttonPrimary:hover,
+  .buttonPrimaryShimmer:hover,
+  .buttonPrimary:hover .buttonContent,
   .buttonPrimaryShimmer:hover .buttonContent {
     animation: none;
   }

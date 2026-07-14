@@ -149,7 +149,7 @@ export function AccountOrderDetails({
                   onClick={() => void handlePay()}
                   disabled={paying}
                 >
-                  {paying ? "Переходим к оплате..." : "Оплатить"}
+                  Оплатить
                 </Button>
 
                 {payError ? <div className={orderDetailStyles.payError}>{payError}</div> : null}

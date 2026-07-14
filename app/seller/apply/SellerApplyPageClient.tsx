@@ -515,7 +515,7 @@ export function SellerApplyPageClient() {
                   className="textButton"
                   disabled={submitting}
                 >
-                  {submitting ? "Отправляем…" : "Отправить заявку"}
+                  Отправить заявку
                 </Button>
               </form>
             </div>

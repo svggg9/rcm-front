@@ -352,7 +352,7 @@ export function AdminProductDetails({
                     onClick={onApprove}
                     disabled={loading}
                   >
-                    {loading ? "Одобряем..." : "Одобрить"}
+                    Одобрить
                   </button>
 
                   <button
@@ -361,7 +361,7 @@ export function AdminProductDetails({
                     onClick={handleReturnToRevision}
                     disabled={loading || !revisionComment.trim()}
                   >
-                    {loading ? "Отправляем..." : "На доработку"}
+                    На доработку
                   </button>
                 </>
               ) : null}
@@ -373,7 +373,7 @@ export function AdminProductDetails({
                   onClick={onUnblock}
                   disabled={loading}
                 >
-                  {loading ? "Возвращаем..." : "Вернуть в работу"}
+                  Вернуть в работу
                 </button>
               ) : (
                 <button
@@ -382,7 +382,7 @@ export function AdminProductDetails({
                   onClick={onBlock}
                   disabled={loading}
                 >
-                  {loading ? "Отклоняем..." : "Отклонить"}
+                  Отклонить
                 </button>
               )}
             </div>

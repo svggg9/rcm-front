@@ -172,6 +172,7 @@ export function AdminFinanceTab({
 
       {entries.length === 0 ? (
         <EmptyState
+          icon="money"
           title="Движений нет"
           text="По выбранным фильтрам финансовые записи не найдены."
         />

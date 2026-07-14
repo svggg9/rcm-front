@@ -1,7 +1,8 @@
 "use client";
 
-import styles from "../Cart.module.css";
+import { Button } from "../../components/ui/Button";
 import { Price } from "../../components/ui/Price";
+import styles from "../Cart.module.css";
 
 type Props = {
   subtotal: number;
@@ -17,28 +18,35 @@ export function CartSummary({ subtotal, onCheckout, disabled }: Props) {
       <div className={styles.summaryBlock}>
         <div className={styles.summaryRow}>
           <span>Товары</span>
-          <span><Price amount={subtotal} /></span>
+          <span>
+            <Price amount={subtotal} />
+          </span>
         </div>
 
         <div className={styles.summaryRow}>
           <span>Доставка</span>
-          <span><Price amount={0} /></span>
+          <span>
+            <Price amount={0} />
+          </span>
         </div>
       </div>
 
       <div className={styles.summaryTotal}>
         <span>Итого</span>
-        <span><Price amount={subtotal} /></span>
+        <span>
+          <Price amount={subtotal} />
+        </span>
       </div>
 
-    <button
-      type="button"
-      className="buttonPrimary wFull"
-      onClick={onCheckout}
-      disabled={disabled}
-    >
-      Перейти к оплате
-    </button>
+      <Button
+        type="button"
+        variant="primaryShimmer"
+        className={styles.checkoutBtn}
+        onClick={onCheckout}
+        disabled={disabled}
+      >
+        Перейти к оплате
+      </Button>
     </aside>
   );
 }

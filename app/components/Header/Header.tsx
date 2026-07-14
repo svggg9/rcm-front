@@ -165,18 +165,6 @@ function HeaderContent() {
 
   return (
     <header className={styles.header} ref={headerRef}>
-      <div className={styles.promoBar}>
-        <a
-          href="https://t.me/durov"
-          className={styles.promoLink}
-          target="_blank"
-          rel="noreferrer"
-        >
-          <span>Российский центральный маркетплейс</span>
-          <Image src="/icons/telegram.svg" alt="" width={14} height={14} />
-        </a>
-      </div>
-
       <div className={styles.top}>
         <div className={styles.inner}>
           <button

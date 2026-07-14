@@ -261,7 +261,7 @@ export function CheckoutResultContent({ orderId: routeOrderId }: { orderId?: str
                 disabled={checking}
                 className="buttonPrimary textButton"
               >
-                {checking ? "Проверяем..." : "Проверить снова"}
+                Проверить снова
               </button>
             ) : null}
 
@@ -272,7 +272,7 @@ export function CheckoutResultContent({ orderId: routeOrderId }: { orderId?: str
                 disabled={checking}
                 className="buttonPrimary textButton"
               >
-                {checking ? "Создаем платеж..." : "Оплатить снова"}
+                Оплатить снова
               </button>
             ) : null}
 
@@ -291,7 +291,7 @@ export function CheckoutResultContent({ orderId: routeOrderId }: { orderId?: str
                 disabled={checking}
                 className="buttonSecondary textButton"
               >
-                {checking ? "Синхронизируем..." : "Синхронизировать"}
+                Синхронизировать
               </button>
             ) : null}
           </div>

@@ -1,24 +1,12 @@
-"use client";
-
-import { useRouter } from "next/navigation";
+import { EmptyState } from "../../components/ui/EmptyState";
 
 export function EmptyCart() {
-  const router = useRouter();
-
   return (
-    <div className="emptyState">
-      <h2 className="emptyStateTitle">Корзина пуста</h2>
-      <p className="emptyStateText">Добавьте товары, чтобы оформить заказ</p>
-
-      <div className="emptyStateActions">
-        <button
-          type="button"
-          className="buttonPrimary"
-          onClick={() => router.push("/catalog")}
-        >
-          Перейти в каталог
-        </button>
-      </div>
-    </div>
+    <EmptyState
+      icon="cart"
+      tone="gold"
+      title="Корзина пуста"
+      text="Добавьте товары, чтобы оформить заказ"
+    />
   );
 }

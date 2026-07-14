@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import styles from "./ProductPage.module.css";
+import { Icon } from "../../components/ui/Icon";
 import { ensureCartId } from "../../lib/auth";
 import { emitCartChanged } from "../../lib/cartEvents";
 import { useFavorites } from "../../lib/FavoritesContext";
@@ -234,6 +235,12 @@ export default function ProductPageClient({
         Каталог
       </Link>
     </li>
+
+    {product.brand ? (
+      <li className={styles.breadcrumbSeparator} aria-hidden="true">
+        <Icon name="chevron-right" size={13} strokeWidth={1.4} />
+      </li>
+    ) : null}
 
     {product.brandSlug ? (
       <li className={styles.breadcrumbItem}>

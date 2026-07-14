@@ -98,6 +98,25 @@
   color: var(--white);
 }
 
+.primaryBtn:hover:not(:disabled) {
+  color: transparent;
+  background:
+    linear-gradient(
+      110deg,
+      var(--white) 0%,
+      var(--white) 34%,
+      var(--gold) 48%,
+      var(--white) 62%,
+      var(--white) 100%
+    );
+  background-size: 260% 100%;
+  background-position: 100% 0;
+  background-clip: text;
+  -webkit-background-clip: text;
+  box-shadow: inset 0 0 0 999px var(--black);
+  animation: buttonTextShimmer 0.45s ease-out;
+}
+
 .dangerBtn {
   border: 1px solid var(--black);
   background: rgba(155, 44, 44, 0.045);

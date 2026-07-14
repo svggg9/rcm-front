@@ -97,6 +97,8 @@ export function AdminCdekTab({
 
       {events.length === 0 ? (
         <EmptyState
+          icon="truck"
+          tone="gold"
           title="Событий пока нет"
           text="Когда СДЭК пришлет webhook, он появится здесь вместе со статусом обработки."
         />

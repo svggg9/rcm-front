@@ -53,9 +53,11 @@ export function ProductShowcase({
 
   if (!visibleProducts.length && !emptyText) return null;
 
+  const variantClass = styles[variant] ?? "";
+
   return (
     <section
-      className={`${styles.section} ${styles[variant]} ${className ?? ""}`.trim()}
+      className={[styles.section, variantClass, className].filter(Boolean).join(" ")}
       data-variant={variant}
     >
       <div className={styles.header}>

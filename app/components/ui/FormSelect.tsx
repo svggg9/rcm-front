@@ -2,6 +2,7 @@
 
 import { useEffect, useId, useRef, useState } from "react";
 
+import { Icon } from "./Icon";
 import styles from "./FormControl.module.css";
 
 type SelectValue = string | number;
@@ -90,9 +91,7 @@ export function FormSelect<TValue extends SelectValue>({
         >
           <span className={hasValue ? styles.selectValue : styles.selectPlaceholderValue}>{displayValue}</span>
           <span className={styles.chevron} aria-hidden="true">
-            <svg viewBox="0 0 16 16" focusable="false">
-              <path d="M4 6L8 10L12 6" />
-            </svg>
+            <Icon name="chevron-down" size={18} strokeWidth={1.8} />
           </span>
         </button>
 

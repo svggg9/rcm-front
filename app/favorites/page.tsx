@@ -179,6 +179,8 @@ export default function FavoritesPage() {
           <Loader />
         ) : products.length === 0 ? (
           <EmptyState
+            icon="heart"
+            tone="gold"
             title="В избранном пока пусто"
             text="Сохраняйте товары, чтобы вернуться к ним позже"
           />

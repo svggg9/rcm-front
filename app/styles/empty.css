@@ -7,6 +7,16 @@
   text-align: center;
 }
 
+.emptyStateIcon {
+  width: auto;
+  height: auto;
+  margin: 0 auto 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--black);
+}
+
 .emptyStateTitle {
   color: var(--black);
 

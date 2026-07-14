@@ -122,7 +122,7 @@ function MockPayPageContent() {
             disabled={!canSubmit || submitting !== null}
             style={styles.primaryBtn}
           >
-            {submitting === "CONFIRMED" ? "Подтверждаем…" : "Оплатить успешно"}
+            Оплатить успешно
           </button>
 
           <button
@@ -131,7 +131,7 @@ function MockPayPageContent() {
             disabled={!canSubmit || submitting !== null}
             style={styles.secondaryBtn}
           >
-            {submitting === "REJECTED" ? "Отклоняем…" : "Ошибка оплаты"}
+            Ошибка оплаты
           </button>
 
           <button
@@ -140,7 +140,7 @@ function MockPayPageContent() {
             disabled={!canSubmit || submitting !== null}
             style={styles.secondaryBtn}
           >
-            {submitting === "CANCELED" ? "Отменяем…" : "Отменить оплату"}
+            Отменить оплату
           </button>
         </div>
 

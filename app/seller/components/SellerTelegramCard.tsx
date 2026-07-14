@@ -154,7 +154,7 @@ export function SellerTelegramCard() {
             onClick={() => void createLink()}
             disabled={loading || linking}
           >
-            {linking ? "Создаем ссылку" : "Подключить"}
+            Подключить
           </button>
         )}
 

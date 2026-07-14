@@ -3,7 +3,6 @@
 .errorState,
 .noticeState {
   padding: 24px 0;
-  border-bottom: 1px solid var(--line);
 
   font-size: var(--font-md);
   line-height: 1.5;
@@ -24,7 +23,28 @@
 
 .emptyStateLarge {
   padding: 48px 0;
-  border-bottom: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.emptyStateIcon {
+  width: auto;
+  height: auto;
+  margin: 0 auto 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--black);
+}
+
+.emptyStateLarge[data-tone="gold"] .emptyStateIcon {
+  color: var(--gold-deep);
+}
+
+.emptyStateLarge[data-tone="danger"] .emptyStateIcon {
+  color: var(--danger);
 }
 
 .emptyStateTitle {

@@ -29,6 +29,8 @@ export function AccountOrdersTab({
 
       {orders.length === 0 ? (
         <EmptyState
+          icon="shopping-bag"
+          tone="gold"
           title="Пока нет заказов"
           text="Когда вы оформите заказ, он появится здесь."
         />

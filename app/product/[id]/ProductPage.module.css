@@ -565,33 +565,8 @@
 
 .addBtn {
   flex: 1 1 auto;
-
-  min-height: 52px;
-  padding: 0 20px;
-
-  border: 1px solid var(--black);
-  background: var(--black);
-  color: var(--white);
-
-  font-size: var(--font-sm);
-  font-weight: 600;
-  line-height: 1.2;
-
-  cursor: pointer;
-  transition:
-    background-color var(--transition-fast),
-    border-color var(--transition-fast),
-    color var(--transition-fast);
-}
-
-.addBtn:hover:not(:disabled) {
-  background: var(--black-soft);
-  border-color: var(--black-soft);
-}
-
-.addBtn:disabled {
-  opacity: 0.4;
-  cursor: default;
+  width: 100%;
+  height: 52px;
 }
 
 .favoriteBtn {
@@ -1171,14 +1146,16 @@ a.brand:hover {
   line-height: 1.2;
 }
 
-.breadcrumbItem:not(:last-child)::after {
-  content: ">";
-  color: currentColor;
-}
-
 .breadcrumbLink {
   color: var(--content-primary);
   text-decoration: none;
+}
+
+.breadcrumbSeparator {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--content-primary);
 }
 
 .breadcrumbLink:hover {

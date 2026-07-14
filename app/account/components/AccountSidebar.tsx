@@ -24,11 +24,13 @@ export function AccountSidebar({
         {
           href: "/account?tab=profile",
           label: "Профиль",
+          icon: "user",
           active: currentTab === "profile",
         },
         {
           href: "/account?tab=orders",
           label: "Заказы",
+          icon: "shopping-bag",
           active: currentTab === "orders",
           count: ordersCount,
         },

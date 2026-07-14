@@ -82,11 +82,14 @@ export function SellerOrdersTab({
 
       {orders.length === 0 ? (
         <EmptyState
+          icon="shopping-bag"
+          tone="gold"
           title="Пока нет заказов"
           text="Когда покупатели оформят заказы, они появятся здесь."
         />
       ) : filteredOrders.length === 0 ? (
         <EmptyState
+          icon="search"
           title="Заказов нет"
           text="По выбранному статусу ничего не найдено."
         />

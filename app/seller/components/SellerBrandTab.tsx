@@ -322,7 +322,7 @@ export function SellerBrandTab() {
             onClick={() => void save()}
             disabled={saving || saved}
           >
-            {saved ? "Сохранено" : "Сохранить"}
+            Сохранить
           </Button>
         </div>
       </div>

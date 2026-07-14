@@ -1,13 +1,14 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
+import { Button } from "../../../components/ui/Button";
+import { Price } from "../../../components/ui/Price";
+import { ProductDetailsAccordion } from "./ProductDetailsAccordion";
+import { ProductVariantSelect } from "./ProductVariantSelect";
 import styles from "../ProductPage.module.css";
 
 import type { Product, Variant } from "../lib/types";
-import Image from "next/image";
-import { Price } from "../../../components/ui/Price";
-import { ProductVariantSelect } from "./ProductVariantSelect";
-import { ProductDetailsAccordion } from "./ProductDetailsAccordion";
 
 type Props = {
   product: Product;
@@ -114,16 +115,18 @@ export function ProductInfoPanel({
 
         <div className={styles.actions}>
           {isSellerView ? (
-            <button
+            <Button
               type="button"
+              variant="primaryShimmer"
               className={styles.addBtn}
               onClick={onEditProduct}
             >
               Редактировать
-            </button>
+            </Button>
           ) : (
-            <button
+            <Button
               type="button"
+              variant="primaryShimmer"
               className={styles.addBtn}
               onClick={onAddToCart}
               disabled={
@@ -133,10 +136,9 @@ export function ProductInfoPanel({
                   selectedVariant.availableQuantity <= 0)
               }
             >
-              {adding ? "Добавляем..." : "Добавить в корзину"}
-            </button>
+              Добавить в корзину
+            </Button>
           )}
-
         </div>
       </div>
 

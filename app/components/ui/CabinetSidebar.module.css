@@ -66,11 +66,17 @@
     color var(--transition-fast);
 }
 
+.itemIcon {
+  flex: 0 0 auto;
+  color: var(--muted);
+  transition: color var(--transition-fast);
+}
+
 .itemWithAction {
   padding-right: 6px;
 }
 
-.item span:first-child {
+.labelWrap {
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -84,6 +90,11 @@
 
 .item:hover {
   background: transparent;
+  color: var(--black);
+}
+
+.item:hover .itemIcon,
+.itemActive .itemIcon {
   color: var(--black);
 }
 

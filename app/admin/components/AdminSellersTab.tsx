@@ -216,6 +216,8 @@ export function AdminSellersTab({
 
       {applications.length === 0 ? (
         <EmptyState
+          icon="store"
+          tone="gold"
           title="Заявок нет"
           text="По выбранному фильтру ничего не найдено."
         />
@@ -478,7 +480,7 @@ function SellerApplicationDetails({
                     disabled={loading}
                     onClick={onApprove}
                   >
-                    {loading ? "Одобряем..." : "Одобрить"}
+                    Одобрить
                   </button>
 
                   <button
@@ -487,7 +489,7 @@ function SellerApplicationDetails({
                     disabled={loading || !adminComment.trim()}
                     onClick={onRequestChanges}
                   >
-                    {loading ? "Отправляем..." : "Запросить правки"}
+                    Запросить правки
                   </button>
 
                   <button
@@ -496,7 +498,7 @@ function SellerApplicationDetails({
                     disabled={loading}
                     onClick={onReject}
                   >
-                    {loading ? "Отклоняем..." : "Отклонить"}
+                    Отклонить
                   </button>
                 </>
               ) : (

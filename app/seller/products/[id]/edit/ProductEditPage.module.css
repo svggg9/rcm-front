@@ -402,6 +402,27 @@
   opacity: 0.78;
 }
 
+.primaryBtn:hover:not(:disabled),
+.lockedPrimaryBtn:hover:not(:disabled) {
+  color: transparent;
+  background:
+    linear-gradient(
+      110deg,
+      var(--white) 0%,
+      var(--white) 34%,
+      var(--gold) 48%,
+      var(--white) 62%,
+      var(--white) 100%
+    );
+  background-size: 260% 100%;
+  background-position: 100% 0;
+  background-clip: text;
+  -webkit-background-clip: text;
+  box-shadow: inset 0 0 0 999px var(--black);
+  opacity: 1;
+  animation: buttonTextShimmer 0.45s ease-out;
+}
+
 .deleteProductBtn:hover {
   background: var(--white);
   border-color: var(--black);

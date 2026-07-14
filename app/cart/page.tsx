@@ -186,14 +186,6 @@ export default function CartPage() {
       <div className={styles.page}>
         <div className={styles.top}>
           <h1 className={styles.title}>КОРЗИНА</h1>
-
-          <button
-            type="button"
-            className={styles.continue}
-            onClick={() => router.push("/catalog")}
-          >
-            Продолжить покупки
-          </button>
         </div>
 
         {items.length === 0 ? (
@@ -205,6 +197,7 @@ export default function CartPage() {
                 <CartItemRow
                   key={item.variantId}
                   item={item}
+                  showQuantityControls={item.quantity > 1}
                   onChangeQty={handleQty}
                   onRemove={handleRemove}
                 />

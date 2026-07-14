@@ -6,6 +6,7 @@ type ProductAudience = "MEN" | "WOMEN" | "UNISEX";
 
 type RawProduct = {
   id?: unknown;
+  publicId?: unknown;
   title?: unknown;
   brand?: unknown;
   category?: unknown;
@@ -47,6 +48,7 @@ function normalizeProducts(data: unknown): HomeProduct[] {
 
       return {
         id: product.id,
+        publicId: typeof product.publicId === "string" ? product.publicId : null,
         title: product.title,
         images: [coverImage, hoverImage].filter(
           (image): image is string => typeof image === "string"

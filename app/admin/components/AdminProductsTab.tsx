@@ -136,6 +136,7 @@ export function AdminProductsTab({
 
       {products.length === 0 ? (
         <EmptyState
+          icon="package"
           title="Товаров нет"
           text="По выбранному статусу ничего не найдено."
         />

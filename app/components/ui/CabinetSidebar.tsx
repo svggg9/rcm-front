@@ -4,12 +4,14 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { useState } from "react";
 
+import { Icon, type IconName } from "./Icon";
 import styles from "./CabinetSidebar.module.css";
 
 type SidebarItem = {
   href?: string;
   label: string;
   mobileLabel?: string;
+  icon?: IconName;
   active?: boolean;
   count?: number;
   action?: {
@@ -75,7 +77,11 @@ export function CabinetSidebar({
                 prefetch={false}
                 onClick={() => setPendingActiveKey(itemKey)}
               >
-                <span>
+                {item.icon ? (
+                  <Icon name={item.icon} size={17} className={styles.itemIcon} />
+                ) : null}
+
+                <span className={styles.labelWrap}>
                   <span className={styles.desktopLabel}>{item.label}</span>
                   <span className={styles.mobileLabel}>
                     {item.mobileLabel ?? item.label}
@@ -93,11 +99,15 @@ export function CabinetSidebar({
                   className={`${styles.itemAction} textMicro`}
                   onClick={item.action.onClick}
                   disabled={item.action.disabled}
-                  aria-label={item.action.label}
-                  title={item.action.label}
-                >
-                  <span aria-hidden="true">{item.action.mobileLabel ?? "+"}</span>
-                </button>
+                aria-label={item.action.label}
+                title={item.action.label}
+              >
+                {item.action.mobileLabel === "+" || !item.action.mobileLabel ? (
+                  <Icon name="plus" size={15} />
+                ) : (
+                  <span aria-hidden="true">{item.action.mobileLabel}</span>
+                )}
+              </button>
               ) : null}
             </div>
           ) : (
@@ -110,7 +120,11 @@ export function CabinetSidebar({
               }}
               disabled={item.disabled}
             >
-              <span>
+              {item.icon ? (
+                <Icon name={item.icon} size={17} className={styles.itemIcon} />
+              ) : null}
+
+              <span className={styles.labelWrap}>
                 <span className={styles.desktopLabel}>{item.label}</span>
                 <span className={styles.mobileLabel}>
                   {item.mobileLabel ?? item.label}

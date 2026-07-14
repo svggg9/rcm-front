@@ -22,6 +22,7 @@ import {
 } from "../../lib/favorites";
 
 import { Button } from "../ui/Button";
+import { Icon } from "../ui/Icon";
 import { TextInput } from "../ui/TextInput";
 import {
   AuthModalContext,
@@ -33,42 +34,6 @@ import styles from "./AuthModal.module.css";
 type Props = {
   children: ReactNode;
 };
-
-function PasswordVisibilityIcon({ visible }: { visible: boolean }) {
-  return (
-    <svg
-      width="17"
-      height="17"
-      viewBox="0 0 17 17"
-      fill="none"
-      aria-hidden="true"
-      focusable="false"
-    >
-      <path
-        d="M1.8 8.5C3.05 5.95 5.42 4.25 8.5 4.25s5.45 1.7 6.7 4.25c-1.25 2.55-3.62 4.25-6.7 4.25s-5.45-1.7-6.7-4.25Z"
-        stroke="currentColor"
-        strokeWidth="1.2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <path
-        d="M8.5 10.4a1.9 1.9 0 1 0 0-3.8 1.9 1.9 0 0 0 0 3.8Z"
-        stroke="currentColor"
-        strokeWidth="1.2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      {visible ? (
-        <path
-          d="M3.4 13.6 13.6 3.4"
-          stroke="currentColor"
-          strokeWidth="1.2"
-          strokeLinecap="round"
-        />
-      ) : null}
-    </svg>
-  );
-}
 
 export function AuthModalProvider({ children }: Props) {
   const router = useRouter();
@@ -354,7 +319,7 @@ export function AuthModalProvider({ children }: Props) {
                         aria-label={passwordVisible ? "Скрыть пароль" : "Показать пароль"}
                         title={passwordVisible ? "Скрыть пароль" : "Показать пароль"}
                       >
-                        <PasswordVisibilityIcon visible={passwordVisible} />
+                        <Icon name={passwordVisible ? "eye-off" : "eye"} size={17} strokeWidth={1.6} />
                       </button>
                     </div>
                   </div>
@@ -404,7 +369,7 @@ export function AuthModalProvider({ children }: Props) {
                           aria-label={passwordVisible ? "Скрыть пароль" : "Показать пароль"}
                           title={passwordVisible ? "Скрыть пароль" : "Показать пароль"}
                         >
-                          <PasswordVisibilityIcon visible={passwordVisible} />
+                          <Icon name={passwordVisible ? "eye-off" : "eye"} size={17} strokeWidth={1.6} />
                         </button>
                       </div>
 

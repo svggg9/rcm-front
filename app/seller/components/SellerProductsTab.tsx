@@ -97,11 +97,14 @@ export function SellerProductsTab({
         null
       ) : items.length === 0 ? (
         <EmptyState
+          icon="package"
+          tone="gold"
           title="Товаров пока нет"
           text="Создай первую карточку товара, добавь фото и отправь её на публикацию."
         />
       ) : filteredProducts.length === 0 ? (
         <EmptyState
+          icon="search"
           title="Товаров нет"
           text="По выбранному фильтру ничего не найдено."
         />

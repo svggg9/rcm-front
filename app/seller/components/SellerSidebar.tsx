@@ -32,6 +32,7 @@ export function SellerSidebar({
         {
           href: "/seller?tab=products",
           label: "Товары",
+          icon: "package",
           active: currentTab === "products",
           count: productsCount,
           action: onCreateProduct
@@ -46,17 +47,20 @@ export function SellerSidebar({
         {
           href: "/seller?tab=orders",
           label: "Заказы",
+          icon: "shopping-bag",
           active: currentTab === "orders",
           count: ordersCount,
         },
         {
           href: "/seller?tab=brand",
           label: "Производитель",
+          icon: "store",
           active: currentTab === "brand",
         },
         {
           href: "/seller?tab=legal",
           label: "Реквизиты",
+          icon: "file",
           active: currentTab === "legal",
         },
       ]}

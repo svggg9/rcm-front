@@ -135,7 +135,7 @@ export function ProductStickyHeader({
               className={styles.lockedSecondaryBtn}
               title={!canPublish ? publishBlockedReason : undefined}
             >
-              {publishing ? "Отправляем…" : "Опубликовать"}
+              Опубликовать
             </button>
 
           <div className={styles.lockedMenuWrap}>
@@ -170,7 +170,7 @@ export function ProductStickyHeader({
                   disabled={archiving}
                   className={styles.lockedMenuDanger}
                 >
-                  {archiving ? "Переносим…" : "Перенести в архив"}
+                  Перенести в архив
                 </button>
               </div>
             ) : null}
@@ -182,7 +182,7 @@ export function ProductStickyHeader({
             disabled={saving || !dirty}
             className={styles.lockedPrimaryBtn}
           >
-            {saving ? "Сохраняем…" : "Сохранить"}
+            Сохранить
           </button>
         </div>
       </div>

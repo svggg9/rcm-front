@@ -370,6 +370,11 @@ function AccountPageContent({ initialMe, initialOrders }: Props) {
     setProfileSavedMessage(null);
   }
 
+  function updatePhone(value: string) {
+    setPhone(value);
+    setProfileSavedMessage(null);
+  }
+
   function updateDeliveryFullName(value: string) {
     setDeliveryFullName(value);
     setProfileSavedMessage(null);
@@ -429,23 +434,11 @@ function AccountPageContent({ initialMe, initialOrders }: Props) {
                 email={me?.email?.trim() || "—"}
                 firstName={firstName}
                 phone={phone}
-                defaultDeliveryAddress={defaultDeliveryAddress}
-                defaultDeliveryMethod={me?.defaultDeliveryMethod ?? null}
-                defaultDeliveryCityName={defaultDeliveryCityName}
-                deliveryFullName={deliveryFullName}
-                defaultDeliveryApartment={defaultDeliveryApartment}
-                defaultDeliveryFloor={defaultDeliveryFloor}
-                defaultDeliveryIntercom={defaultDeliveryIntercom}
                 saving={profileSaving}
                 changed={profileChanged}
                 savedMessage={profileSavedMessage}
                 onFirstNameChange={updateFirstName}
-                onDeliveryFullNameChange={updateDeliveryFullName}
-                onDefaultDeliveryAddressChange={updateDefaultDeliveryAddress}
-                onDefaultDeliveryCityNameChange={updateDefaultDeliveryCityName}
-                onDefaultDeliveryApartmentChange={updateDefaultDeliveryApartment}
-                onDefaultDeliveryFloorChange={updateDefaultDeliveryFloor}
-                onDefaultDeliveryIntercomChange={updateDefaultDeliveryIntercom}
+                onPhoneChange={updatePhone}
                 onSave={() => void saveProfile()}
               />
             ) : detailsLoading ? (

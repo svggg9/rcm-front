@@ -126,6 +126,8 @@ export function CatalogClient({
 
         {products.length === 0 ? (
           <EmptyState
+            icon={hasError ? "alert" : "search"}
+            tone={hasError ? "danger" : "default"}
             title={hasError ? "Не удалось загрузить каталог" : "Ничего не найдено"}
             text={
               hasError
