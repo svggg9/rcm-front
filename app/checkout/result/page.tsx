@@ -131,22 +131,35 @@ export function CheckoutResultContent({ orderId: routeOrderId }: { orderId?: str
     setError(null);
 
     try {
-      const [paymentResponse, ordersResponse] = await Promise.all([
-        apiFetch(`${API_URL}/api/payments/order/${encodeURIComponent(orderId)}/group-last`),
-        apiFetch(`${API_URL}/api/orders/${encodeURIComponent(orderId)}/group`),
-      ]);
+      const paymentResponse = await apiFetch(
+        `${API_URL}/api/payments/order/${encodeURIComponent(orderId)}/group-last`
+      );
 
       if (!paymentResponse.ok) {
         const text = await paymentResponse.text().catch(() => "");
         throw new Error(text || `Не удалось загрузить платеж (${paymentResponse.status})`);
       }
 
+      let paymentData = (await paymentResponse.json()) as PaymentResponse;
+
+      if (paymentData.status === "PENDING" && paymentData.externalId) {
+        const syncResponse = await apiFetch(
+          `${API_URL}/api/payments/${encodeURIComponent(paymentData.externalId)}/sync`,
+          { method: "POST" }
+        );
+
+        if (syncResponse.ok) {
+          paymentData = (await syncResponse.json()) as PaymentResponse;
+        }
+      }
+
+      const ordersResponse = await apiFetch(`${API_URL}/api/orders/${encodeURIComponent(orderId)}/group`);
+
       if (!ordersResponse.ok) {
         const text = await ordersResponse.text().catch(() => "");
         throw new Error(text || `Не удалось загрузить заказ (${ordersResponse.status})`);
       }
 
-      const paymentData = (await paymentResponse.json()) as PaymentResponse;
       const ordersData = (await ordersResponse.json()) as OrderResponse[];
 
       setPayment(paymentData);
