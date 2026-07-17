@@ -4,6 +4,8 @@ import { getServerSession } from "../lib/session";
 import { AdminPageClient } from "./AdminPageClient";
 import {
   getAdminDictionaryServer,
+  getAdminOrderServer,
+  getAdminOrdersServer,
   getAdminProductServer,
   getAdminProductStatusCountsServer,
   getAdminProductsServer,
@@ -25,10 +27,12 @@ type Props = {
     status?: string;
     applicationStatus?: string;
     productId?: string;
+    orderId?: string;
   }>;
 };
 
 function normalizeTab(raw?: string): AdminTab {
+  if (raw === "orders") return "orders";
   if (raw === "sellers") return "sellers";
   if (raw === "dictionaries") return "dictionaries";
   if (raw === "finance") return "finance";
@@ -67,12 +71,14 @@ async function getInitialData(params: Awaited<Props["searchParams"]>) {
   const productStatus = normalizeProductStatus(params?.status);
   const applicationStatus = normalizeApplicationStatus(params?.applicationStatus);
   const selectedProductId = params?.productId ?? null;
+  const selectedOrderId = params?.orderId ?? null;
 
   const initialData: AdminInitialData = {
     tab,
     productStatus,
     applicationStatus,
     selectedProductId,
+    selectedOrderId,
     products: [],
     totalProducts: 0,
     productStatusCounts: {
@@ -85,6 +91,9 @@ async function getInitialData(params: Awaited<Props["searchParams"]>) {
       ALL: 0,
     },
     selectedProduct: null,
+    orders: [],
+    totalOrders: 0,
+    selectedOrder: null,
     sellerApplications: [],
     totalSellerApplications: 0,
     sellerApplicationStatusCounts: {
@@ -121,6 +130,20 @@ async function getInitialData(params: Awaited<Props["searchParams"]>) {
       const id = selectedProductId ? Number(selectedProductId) : NaN;
       if (Number.isFinite(id)) {
         initialData.selectedProduct = await getAdminProductServer(id);
+      }
+    }
+
+    if (tab === "orders") {
+      const ordersData = await getAdminOrdersServer(0, 50);
+
+      initialData.orders = Array.isArray(ordersData?.content)
+        ? ordersData.content
+        : [];
+      initialData.totalOrders = ordersData?.totalElements ?? 0;
+
+      const id = selectedOrderId ? Number(selectedOrderId) : NaN;
+      if (Number.isFinite(id)) {
+        initialData.selectedOrder = await getAdminOrderServer(id);
       }
     }
 

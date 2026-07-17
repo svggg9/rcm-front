@@ -1,6 +1,8 @@
 import { API_URL, apiFetch } from "../../lib/api";
 import type {
   AdminProduct,
+  AdminOrder,
+  AdminOrderListItem,
   AdminSeller,
   DictionaryItem,
   DictionaryKind,
@@ -69,6 +71,41 @@ export async function getAdminProduct(id: number): Promise<AdminProduct> {
   }
 
   return response.json();
+}
+
+export async function getAdminOrders(
+  page = 0,
+  size = 50
+): Promise<PageResponse<AdminOrderListItem>> {
+  const response = await apiFetch(
+    `${API_URL}/api/admin/orders/list?page=${page}&size=${size}`
+  );
+
+  if (!response.ok) {
+    throw new Error(await readError(response, "Не удалось загрузить заказы"));
+  }
+
+  return response.json();
+}
+
+export async function getAdminOrder(id: number): Promise<AdminOrder> {
+  const response = await apiFetch(`${API_URL}/api/admin/orders/${id}`);
+
+  if (!response.ok) {
+    throw new Error(await readError(response, "Не удалось загрузить заказ"));
+  }
+
+  return response.json();
+}
+
+export async function refundAdminOrder(id: number): Promise<void> {
+  const response = await apiFetch(`${API_URL}/api/admin/orders/${id}/refund`, {
+    method: "POST",
+  });
+
+  if (!response.ok) {
+    throw new Error(await readError(response, "Не удалось вернуть оплату"));
+  }
 }
 
 export async function approveProduct(id: number): Promise<void> {

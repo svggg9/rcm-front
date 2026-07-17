@@ -7,12 +7,14 @@ import type { AdminTab } from "../types";
 type Props = {
   currentTab: AdminTab;
   productsCount: number;
+  ordersCount: number;
   sellersCount: number;
 };
 
 export function AdminSidebar({
   currentTab,
   productsCount,
+  ordersCount,
   sellersCount,
 }: Props) {
   return (
@@ -29,6 +31,14 @@ export function AdminSidebar({
           icon: "package",
           active: currentTab === "products",
           count: productsCount,
+        },
+        {
+          href: "/admin?tab=orders",
+          label: "Заказы",
+          mobileLabel: "Заказы",
+          icon: "shopping-bag",
+          active: currentTab === "orders",
+          count: ordersCount,
         },
         {
           href: "/admin?tab=sellers",

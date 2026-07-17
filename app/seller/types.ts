@@ -34,7 +34,12 @@ export type CreateProductReq = {
 
 export type SellerOrderStatus = "NEW" | "CONFIRMED" | "CANCELED" | "COMPLETED";
 
-export type SellerPaymentStatus = "PENDING" | "PAID" | "FAILED" | "CANCELED";
+export type SellerPaymentStatus =
+  | "PENDING"
+  | "PAID"
+  | "FAILED"
+  | "CANCELED"
+  | "REFUNDED";
 
 export type SellerDeliveryStatus =
   | "PENDING"

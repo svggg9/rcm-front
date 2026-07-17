@@ -31,7 +31,12 @@ export type PageResponse<T> = {
 
 export type OrderStatus = "NEW" | "CONFIRMED" | "CANCELED" | "COMPLETED";
 
-export type PaymentStatus = "PENDING" | "PAID" | "FAILED" | "CANCELED";
+export type PaymentStatus =
+  | "PENDING"
+  | "PAID"
+  | "FAILED"
+  | "CANCELED"
+  | "REFUNDED";
 
 export type DeliveryStatus =
   | "PENDING"

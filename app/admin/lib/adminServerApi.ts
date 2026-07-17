@@ -2,6 +2,8 @@ import { cookies } from "next/headers";
 
 import { API_URL } from "../../lib/config";
 import type {
+  AdminOrder,
+  AdminOrderListItem,
   AdminProduct,
   AdminSellerApplication,
   AdminFinancialLedgerEntry,
@@ -70,6 +72,21 @@ export async function getAdminProductServer(
   id: number
 ): Promise<AdminProduct | null> {
   return serverFetch<AdminProduct>(`/api/admin/products/${id}`);
+}
+
+export async function getAdminOrdersServer(
+  page = 0,
+  size = 50
+): Promise<PageResponse<AdminOrderListItem> | null> {
+  return serverFetch<PageResponse<AdminOrderListItem>>(
+    `/api/admin/orders/list?page=${page}&size=${size}`
+  );
+}
+
+export async function getAdminOrderServer(
+  id: number
+): Promise<AdminOrder | null> {
+  return serverFetch<AdminOrder>(`/api/admin/orders/${id}`);
 }
 
 export async function getAdminDictionaryServer(

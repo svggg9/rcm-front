@@ -6,6 +6,8 @@ import { useRouter, useSearchParams } from "next/navigation";
 import styles from "./Admin.module.css";
 
 import { AdminSidebar } from "./components/AdminSidebar";
+import { AdminOrdersTab } from "./components/AdminOrdersTab";
+import { AdminOrderDetails } from "./components/AdminOrderDetails";
 import { AdminProductsTab } from "./components/AdminProductsTab";
 import { AdminProductDetails } from "./components/AdminProductDetails";
 import { AdminSellersTab } from "./components/AdminSellersTab";
@@ -17,9 +19,12 @@ import {
   approveProduct,
   assignProductCategory,
   blockProduct,
+  getAdminOrder,
+  getAdminOrders,
   getAdminProductStatusCounts,
   getAdminProduct,
   getAdminProducts,
+  refundAdminOrder,
   unblockProduct,
   returnProductToRevision,
   createAdminDictionaryItem,
@@ -36,6 +41,8 @@ import {
 
 import type {
   AdminProduct,
+  AdminOrder,
+  AdminOrderListItem,
   AdminInitialData,
   AdminTab,
   ProductStatus,
@@ -49,6 +56,7 @@ import type {
 } from "./types";
 
 function normalizeTab(raw: string | null): AdminTab {
+  if (raw === "orders") return "orders";
   if (raw === "sellers") return "sellers";
   if (raw === "dictionaries") return "dictionaries";
   if (raw === "finance") return "finance";
@@ -103,6 +111,73 @@ function normalizeLedgerEntryType(
   return "ALL";
 }
 
+function formatOrderStatus(status: AdminOrder["status"]): string {
+  switch (status) {
+    case "NEW":
+      return "Новый";
+    case "CONFIRMED":
+      return "Подтвержден";
+    case "COMPLETED":
+      return "Завершен";
+    case "CANCELED":
+      return "Отменен";
+    default:
+      return status;
+  }
+}
+
+function formatPaymentStatus(status: AdminOrder["paymentStatus"]): string {
+  switch (status) {
+    case "PENDING":
+      return "Ожидает оплаты";
+    case "PAID":
+      return "Оплачен";
+    case "FAILED":
+      return "Ошибка оплаты";
+    case "CANCELED":
+      return "Оплата отменена";
+    case "REFUNDED":
+      return "Возвращен";
+    default:
+      return status;
+  }
+}
+
+function formatDeliveryStatus(status: AdminOrder["deliveryStatus"]): string {
+  switch (status) {
+    case "PENDING":
+      return "Ожидает обработки";
+    case "READY_FOR_SHIPMENT":
+      return "Готов к отправке";
+    case "READY_FOR_PICKUP":
+      return "Готов к выдаче";
+    case "IN_TRANSIT":
+      return "В пути";
+    case "DELIVERED":
+      return "Доставлен";
+    case "RETURNED":
+      return "Возвращен";
+    case "CANCELLED":
+      return "Отменен";
+    default:
+      return status;
+  }
+}
+
+function buildAdminOrderStatusLabel(order: AdminOrder | AdminOrderListItem): string {
+  if (order.paymentStatus === "PENDING") return "Ожидает оплаты";
+  if (order.paymentStatus === "FAILED") return "Ошибка оплаты";
+  if (order.paymentStatus === "REFUNDED") return "Возврат оформлен";
+  if (order.deliveryStatus === "READY_FOR_SHIPMENT") return "Готов к отправке";
+  if (order.deliveryStatus === "READY_FOR_PICKUP") return "Готов к выдаче";
+  if (order.deliveryStatus === "IN_TRANSIT") return "В пути";
+  if (order.deliveryStatus === "DELIVERED") return "Доставлен";
+  if (order.deliveryStatus === "RETURNED") return "Возвращен";
+  if (order.deliveryStatus === "CANCELLED") return "Отменен";
+
+  return formatOrderStatus(order.status);
+}
+
 type Props = {
   initialData?: AdminInitialData;
 };
@@ -112,9 +187,11 @@ function AdminPageContent({ initialData }: Props) {
   const searchParams = useSearchParams();
   const skippedInitialListLoadRef = useRef(false);
   const skippedInitialDetailsLoadRef = useRef(false);
+  const skippedInitialOrderDetailsLoadRef = useRef(false);
 
   const currentTab = normalizeTab(searchParams.get("tab"));
   const selectedProductId = searchParams.get("productId");
+  const selectedOrderId = searchParams.get("orderId");
 
   const currentStatus = normalizeProductStatus(searchParams.get("status"));
   const currentApplicationStatus = normalizeApplicationStatus(
@@ -131,8 +208,17 @@ function AdminPageContent({ initialData }: Props) {
   const [selectedProduct, setSelectedProduct] = useState<AdminProduct | null>(
     initialData?.selectedProduct ?? null
   );
+  const [orders, setOrders] = useState<AdminOrderListItem[]>(
+    initialData?.orders ?? []
+  );
+  const [selectedOrder, setSelectedOrder] = useState<AdminOrder | null>(
+    initialData?.selectedOrder ?? null
+  );
   const [totalProducts, setTotalProducts] = useState(
     initialData?.totalProducts ?? 0
+  );
+  const [totalOrders, setTotalOrders] = useState(
+    initialData?.totalOrders ?? 0
   );
   const [productStatusCounts, setProductStatusCounts] = useState(
     initialData?.productStatusCounts ?? {
@@ -191,6 +277,7 @@ function AdminPageContent({ initialData }: Props) {
   const [refreshing, setRefreshing] = useState(false);
 
   const [actionProductId, setActionProductId] = useState<number | null>(null);
+  const [actionOrderId, setActionOrderId] = useState<number | null>(null);
   const [actionApplicationId, setActionApplicationId] = useState<number | null>(
     null
   );
@@ -226,6 +313,27 @@ function AdminPageContent({ initialData }: Props) {
     },
     [currentStatus]
   );
+
+  const loadOrders = useCallback(async (options?: { silent?: boolean }) => {
+    const silent = options?.silent ?? false;
+
+    if (silent) setRefreshing(true);
+    else setLoading(true);
+
+    setError(null);
+
+    try {
+      const data = await getAdminOrders(0, 50);
+
+      setOrders(Array.isArray(data.content) ? data.content : []);
+      setTotalOrders(data.totalElements ?? 0);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Не удалось загрузить заказы");
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  }, []);
 
   const loadSellerApplications = useCallback(
     async (options?: { silent?: boolean }) => {
@@ -350,6 +458,20 @@ function AdminPageContent({ initialData }: Props) {
     }
   }, []);
 
+  const loadSelectedOrder = useCallback(async (id: number) => {
+    setDetailsLoading(true);
+    setError(null);
+
+    try {
+      const data = await getAdminOrder(id);
+      setSelectedOrder(data);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Не удалось загрузить заказ");
+    } finally {
+      setDetailsLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
     if (
       !skippedInitialListLoadRef.current &&
@@ -357,6 +479,7 @@ function AdminPageContent({ initialData }: Props) {
       (
         (currentTab === "products" &&
           initialData.productStatus === currentStatus) ||
+        currentTab === "orders" ||
         (currentTab === "sellers" &&
           initialData.applicationStatus === currentApplicationStatus) ||
         (currentTab === "finance" &&
@@ -372,6 +495,11 @@ function AdminPageContent({ initialData }: Props) {
 
     if (currentTab === "products") {
       void loadProducts();
+      return;
+    }
+
+    if (currentTab === "orders") {
+      void loadOrders();
       return;
     }
 
@@ -399,6 +527,7 @@ function AdminPageContent({ initialData }: Props) {
     currentLedgerOrderGroupId,
     initialData,
     loadProducts,
+    loadOrders,
     loadSellerApplications,
     loadLedger,
     loadCdekWebhookEvents,
@@ -429,6 +558,31 @@ function AdminPageContent({ initialData }: Props) {
 
     void loadSelectedProduct(id);
   }, [currentTab, selectedProductId, initialData, loadSelectedProduct]);
+
+  useEffect(() => {
+    if (
+      !skippedInitialOrderDetailsLoadRef.current &&
+      initialData?.tab === "orders" &&
+      initialData.selectedOrderId === selectedOrderId
+    ) {
+      skippedInitialOrderDetailsLoadRef.current = true;
+      return;
+    }
+
+    if (currentTab !== "orders" || !selectedOrderId) {
+      setSelectedOrder(null);
+      return;
+    }
+
+    const id = Number(selectedOrderId);
+
+    if (!Number.isFinite(id)) {
+      setSelectedOrder(null);
+      return;
+    }
+
+    void loadSelectedOrder(id);
+  }, [currentTab, selectedOrderId, initialData, loadSelectedOrder]);
 
   function changeProductStatus(status: ProductStatus | "ALL") {
     router.push(`/admin?tab=products&status=${status}`);
@@ -466,8 +620,31 @@ function AdminPageContent({ initialData }: Props) {
     );
   }
 
+  function openOrder(orderId: number) {
+    router.push(`/admin?tab=orders&orderId=${orderId}`);
+  }
+
   function closeProductDetails() {
     router.push(`/admin?tab=products&status=${currentStatus}`);
+  }
+
+  async function refundSelectedOrder() {
+    if (!selectedOrder) return;
+
+    setActionOrderId(selectedOrder.id);
+    setError(null);
+
+    try {
+      await refundAdminOrder(selectedOrder.id);
+      await loadOrders({ silent: true });
+      await loadSelectedOrder(selectedOrder.id);
+    } catch (e) {
+      const message = e instanceof Error ? e.message : "Не удалось вернуть оплату";
+      setError(message);
+      throw new Error(message);
+    } finally {
+      setActionOrderId(null);
+    }
   }
 
   async function createDictionaryItem(
@@ -625,6 +802,7 @@ function AdminPageContent({ initialData }: Props) {
           <AdminSidebar
             currentTab={currentTab}
             productsCount={totalProducts}
+            ordersCount={totalOrders}
             sellersCount={totalSellerApplications}
           />
 
@@ -660,6 +838,26 @@ function AdminPageContent({ initialData }: Props) {
                 refreshing={refreshing}
                 onRefresh={() => void loadCdekWebhookEvents({ silent: true })}
               />
+            ) : currentTab === "orders" ? (
+              detailsLoading ? (
+                null
+              ) : selectedOrder ? (
+                <AdminOrderDetails
+                  order={selectedOrder}
+                  refunding={actionOrderId === selectedOrder.id}
+                  onRefund={() => refundSelectedOrder()}
+                  formatOrderStatus={formatOrderStatus}
+                  formatPaymentStatus={formatPaymentStatus}
+                  formatDeliveryStatus={formatDeliveryStatus}
+                  buildStatusLabel={buildAdminOrderStatusLabel}
+                />
+              ) : (
+                <AdminOrdersTab
+                  orders={orders}
+                  buildStatusLabel={buildAdminOrderStatusLabel}
+                  onOpenOrder={openOrder}
+                />
+              )
             ) : currentTab === "sellers" ? (
               <AdminSellersTab
                 applications={sellerApplications}

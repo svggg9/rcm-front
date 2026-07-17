@@ -1,4 +1,4 @@
-export type AdminTab = "products" | "sellers" | "dictionaries" | "finance" | "delivery";
+export type AdminTab = "products" | "orders" | "sellers" | "dictionaries" | "finance" | "delivery";
 
 export type ProductStatus =
   | "DRAFT"
@@ -104,6 +104,88 @@ export type AdminFinancialLedgerEntry = {
   createdAt: string;
 };
 
+export type AdminOrderStatus = "NEW" | "CONFIRMED" | "CANCELED" | "COMPLETED";
+
+export type AdminPaymentStatus =
+  | "PENDING"
+  | "PAID"
+  | "FAILED"
+  | "CANCELED"
+  | "REFUNDED";
+
+export type AdminDeliveryStatus =
+  | "PENDING"
+  | "READY_FOR_SHIPMENT"
+  | "READY_FOR_PICKUP"
+  | "IN_TRANSIT"
+  | "DELIVERED"
+  | "RETURNED"
+  | "CANCELLED";
+
+export type AdminOrderItem = {
+  productId: number;
+  productPublicId?: string | null;
+  variantId: number;
+  sellerId: number;
+  sku: string;
+  productTitle: string;
+  size: string;
+  color: string;
+  imageUrl: string | null;
+  quantity: number;
+  price: number;
+  lineTotal: number;
+};
+
+export type AdminOrderDeliveryInfo = {
+  provider: string | null;
+  method: string | null;
+  requestId: string | null;
+  cdekNumber: string | null;
+  shipmentStatus: string | null;
+  trackingUrl: string | null;
+  priceAmount: number | null;
+  currency: string | null;
+};
+
+export type AdminOrder = {
+  id: number;
+  orderGroupId: string;
+  status: AdminOrderStatus;
+  paymentStatus: AdminPaymentStatus;
+  deliveryStatus: AdminDeliveryStatus;
+  subtotalAmount: number;
+  deliveryAmount: number;
+  discountAmount: number;
+  totalAmount: number;
+  currency: string;
+  recipientName: string;
+  recipientPhone: string;
+  deliveryAddress: string;
+  deliveryMethod: string;
+  fittingMode: string | null;
+  trackingNumber: string | null;
+  createdAt: string;
+  items: AdminOrderItem[];
+  delivery: AdminOrderDeliveryInfo | null;
+};
+
+export type AdminOrderListItem = {
+  id: number;
+  orderGroupId: string;
+  status: AdminOrderStatus;
+  paymentStatus: AdminPaymentStatus;
+  deliveryStatus: AdminDeliveryStatus;
+  totalAmount: number;
+  currency: string;
+  recipientName: string;
+  firstProductTitle: string | null;
+  productTitles?: string[];
+  firstImageUrl: string | null;
+  itemsCount: number;
+  createdAt: string;
+};
+
 export type CdekWebhookProcessingStatus =
   | "RECEIVED"
   | "PROCESSED"
@@ -152,10 +234,14 @@ export type AdminInitialData = {
   productStatus: ProductStatus | "ALL";
   applicationStatus: SellerApplicationStatus | "ALL";
   selectedProductId: string | null;
+  selectedOrderId: string | null;
   products: AdminProduct[];
   totalProducts: number;
   productStatusCounts: Record<ProductStatus | "ALL", number>;
   selectedProduct: AdminProduct | null;
+  orders: AdminOrderListItem[];
+  totalOrders: number;
+  selectedOrder: AdminOrder | null;
   sellerApplications: AdminSellerApplication[];
   totalSellerApplications: number;
   sellerApplicationStatusCounts: Record<SellerApplicationStatus | "ALL", number>;
