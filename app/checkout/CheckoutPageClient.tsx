@@ -10,7 +10,6 @@ import { getClientSession } from "../lib/client-session";
 
 import { CheckoutContactSection } from "./components/CheckoutContactSection";
 import { CheckoutDeliverySection } from "./components/CheckoutDeliverySection";
-import { CheckoutPaymentSection } from "./components/CheckoutPaymentSection";
 import { CheckoutSummary } from "./components/CheckoutSummary";
 
 import { toast } from "sonner";
@@ -82,6 +81,33 @@ type YandexMapsSearchApi = {
   ) => Promise<YandexSuggestResponse>;
   geocode: (request: string) => Promise<YandexGeocodeResult>;
 };
+
+type ApiErrorResponse = {
+  message?: string;
+};
+
+async function readCheckoutError(
+  response: Response,
+  fallback: string
+): Promise<string> {
+  const text = await response.text().catch(() => "");
+
+  if (!text) {
+    return fallback;
+  }
+
+  try {
+    const data = JSON.parse(text) as ApiErrorResponse;
+
+    if (data.message === "order_amount_limit_exceeded") {
+      return "Сумма заказа превышает текущий лимит оплаты 50 000 ₽. Уберите часть товаров из корзины или оформите несколько заказов.";
+    }
+
+    return data.message || fallback;
+  } catch {
+    return text || fallback;
+  }
+}
 
 function getYmapsSearchApi(): YandexMapsSearchApi | null {
   if (typeof window === "undefined") return null;
@@ -998,10 +1024,11 @@ function CheckoutPageContent() {
       );
 
       if (!checkoutResponse.ok) {
-        const text = await checkoutResponse.text().catch(() => "");
-
         throw new Error(
-          text || `Ошибка оформления заказа (${checkoutResponse.status})`
+          await readCheckoutError(
+            checkoutResponse,
+            `Ошибка оформления заказа (${checkoutResponse.status})`
+          )
         );
       }
 
@@ -1028,10 +1055,11 @@ function CheckoutPageContent() {
       );
 
       if (!payResponse.ok) {
-        const text = await payResponse.text().catch(() => "");
-
         throw new Error(
-          text || `Ошибка инициализации оплаты (${payResponse.status})`
+          await readCheckoutError(
+            payResponse,
+            `Ошибка инициализации оплаты (${payResponse.status})`
+          )
         );
       }
 
@@ -1238,17 +1266,6 @@ function CheckoutPageContent() {
                   setOtherRecipientPhone(value);
                 }}
               />
-
-
-
-              <CheckoutPaymentSection
-                paymentMethod={paymentMethod}
-                enabled={true}
-                onPaymentMethodChange={(value) => {
-                  setPaymentMethod(value);
-                }}
-              />
-
               {error ? (
                 <div className={styles.error}>
                   {error}
@@ -1262,11 +1279,12 @@ function CheckoutPageContent() {
                   disabled={submitting || quoteLoading || quotePending}
                   className={`${styles.finalSubmitButton} buttonPrimary`}
                 >
-                  Подтвердить заказ
+                  Перейти к оплате
                 </button>
 
                 <div className={styles.disclaimer}>
-                  Нажимая «Подтвердить заказ», вы соглашаетесь с публичной офертой,
+                  Оплата картой, T-Pay, СБП или SberPay на защищенной странице Т-Банка.
+                  Нажимая «Перейти к оплате», вы соглашаетесь с публичной офертой,
                   политикой конфиденциальности, условиями обработки персональных данных
                   и условиями доставки и возврата.
                 </div>

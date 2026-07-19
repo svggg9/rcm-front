@@ -169,7 +169,6 @@ export function CheckoutDeliverySection({
     <section className={styles.section}>
       <div className={styles.header}>
         <div className={styles.headerMain}>
-          <span className={styles.stepBadge}>1</span>
           <h2 className={styles.title}>Условия и способ получения</h2>
         </div>
 

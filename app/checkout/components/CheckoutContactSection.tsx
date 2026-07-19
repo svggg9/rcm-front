@@ -36,7 +36,6 @@ export function CheckoutContactSection({
     <section className={styles.section}>
       <div className={styles.header}>
         <div className={styles.headerMain}>
-          <span className={styles.stepBadge}>2</span>
           <h2 className={styles.title}>Получатель</h2>
         </div>
       </div>
