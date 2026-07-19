@@ -164,12 +164,14 @@ async function getInitialData(params: Awaited<Props["searchParams"]>) {
     }
 
     if (tab === "dictionaries") {
-      const [categories, sizes] = await Promise.all([
+      const [categories, brands, sizes] = await Promise.all([
         getAdminDictionaryServer("categories"),
+        getAdminDictionaryServer("brands"),
         getAdminDictionaryServer("sizes"),
       ]);
 
       initialData.categories = categories;
+      initialData.brands = brands;
       initialData.sizes = sizes;
     }
 

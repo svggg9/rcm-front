@@ -23,6 +23,7 @@ type SectionConfig =
 
 type Props = {
   categories: DictionaryItem[];
+  brands: DictionaryItem[];
   sizes: DictionaryItem[];
   actionKey: string | null;
   onCreate: (kind: DictionaryKind, item: Partial<DictionaryItem>) => void;
@@ -42,6 +43,7 @@ const audienceItems: DictionaryItem[] = [
 
 export function AdminDictionariesTab({
   categories,
+  brands,
   sizes,
   actionKey,
   onCreate,
@@ -49,6 +51,7 @@ export function AdminDictionariesTab({
   onDelete,
 }: Props) {
   const sections: SectionConfig[] = [
+    { kind: "brands", title: "Бренды", items: brands, editable: true },
     { kind: "categories", title: "Категории", items: categories, editable: true },
     { kind: "sizes", title: "Размеры", items: sizes, editable: true },
     { kind: "audience", title: "Аудитория", items: audienceItems, editable: false },
@@ -226,6 +229,7 @@ function DictionaryRow({
       <div className={styles.dictionaryName}>
         <span className="textSmall">{item.name}</span>
         {item.slug ? <small className="textCaption">{item.slug}</small> : null}
+        {kind === "brands" ? <BrandOwner item={item} /> : null}
       </div>
 
       <div className={styles.dictionaryStatus}>
@@ -253,6 +257,28 @@ function DictionaryRow({
         </div>
       ) : null}
     </div>
+  );
+}
+
+function BrandOwner({ item }: { item: DictionaryItem }) {
+  if (!item.ownerUserId) {
+    return <small className="textCaption">Владелец не назначен</small>;
+  }
+
+  const ownerName =
+    item.ownerDisplayName?.trim() ||
+    item.ownerUsername?.trim() ||
+    `user ${item.ownerUserId}`;
+
+  const contacts = [item.ownerEmail, item.ownerPhone]
+    .map((value) => value?.trim())
+    .filter((value): value is string => Boolean(value));
+
+  return (
+    <small className="textCaption">
+      Владелец: {ownerName} · ID {item.ownerUserId}
+      {contacts.length ? ` · ${contacts.join(" · ")}` : ""}
+    </small>
   );
 }
 

@@ -576,6 +576,7 @@ function CheckoutPageContent() {
       method: "POST",
       body: JSON.stringify({
         location: selectedCity.fullName,
+        cityCode: selectedCity.code,
       }),
     });
 
@@ -597,9 +598,13 @@ function CheckoutPageContent() {
         }))
       : [];
 
-    setDeliveryOptions(options);
+    const sameCityOptions = selectedCity.code
+      ? options.filter((option) => option.cityCode === selectedCity.code)
+      : options;
 
-    if (options.length === 0) {
+    setDeliveryOptions(sameCityOptions);
+
+    if (sameCityOptions.length === 0) {
       toast.message("ПВЗ не найдены");
     }
   } catch (e) {

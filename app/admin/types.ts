@@ -63,6 +63,11 @@ export type DictionaryItem = {
   isActive?: boolean | null;
   status?: "ACTIVE" | "MODERATION" | "DISABLED" | string | null;
   moderationStatus?: "ACTIVE" | "MODERATION" | "DISABLED" | string | null;
+  ownerUserId?: number | null;
+  ownerUsername?: string | null;
+  ownerDisplayName?: string | null;
+  ownerEmail?: string | null;
+  ownerPhone?: string | null;
 };
 
 export type DictionaryKind = "categories" | "brands" | "sizes";

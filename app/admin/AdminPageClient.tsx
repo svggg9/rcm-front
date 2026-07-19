@@ -265,6 +265,9 @@ function AdminPageContent({ initialData }: Props) {
   const [categories, setCategories] = useState<DictionaryItem[]>(
     initialData?.categories ?? []
   );
+  const [brands, setBrands] = useState<DictionaryItem[]>(
+    initialData?.brands ?? []
+  );
   const [sizes, setSizes] = useState<DictionaryItem[]>(
     initialData?.sizes ?? []
   );
@@ -372,13 +375,15 @@ function AdminPageContent({ initialData }: Props) {
     setError(null);
 
     try {
-      const [categoriesData, sizesData] =
+      const [categoriesData, brandsData, sizesData] =
         await Promise.all([
           getAdminDictionary("categories"),
+          getAdminDictionary("brands"),
           getAdminDictionary("sizes"),
         ]);
 
       setCategories(categoriesData);
+      setBrands(brandsData);
       setSizes(sizesData);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Не удалось загрузить справочники");
@@ -812,6 +817,7 @@ function AdminPageContent({ initialData }: Props) {
             {currentTab === "dictionaries" ? (
               <AdminDictionariesTab
                 categories={categories}
+                brands={brands}
                 sizes={sizes}
                 actionKey={dictionaryActionKey}
                 onCreate={(kind, item) => void createDictionaryItem(kind, item)}

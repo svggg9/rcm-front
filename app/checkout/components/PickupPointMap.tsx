@@ -41,7 +41,11 @@ type YandexMapsApi = {
       hintContent: string;
     },
     options: {
-      preset: string;
+      preset?: string;
+      iconLayout?: string;
+      iconImageHref?: string;
+      iconImageSize?: [number, number];
+      iconImageOffset?: [number, number];
     }
   ) => YandexPlacemark;
 };
@@ -50,6 +54,18 @@ declare global {
   interface Window {
     ymaps?: YandexMapsApi;
   }
+}
+
+function buildMarkerIcon(selected: boolean) {
+  const fill = selected ? "#c7a35a" : "#111111";
+  const stroke = selected ? "#111111" : "#ffffff";
+  const inner = selected ? "#111111" : "#ffffff";
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="34" height="44" viewBox="0 0 34 44" fill="none">
+    <path d="M17 42C17 42 31 27.9 31 15.9C31 7.7 24.7 2 17 2C9.3 2 3 7.7 3 15.9C3 27.9 17 42 17 42Z" fill="${fill}" stroke="${stroke}" stroke-width="2"/>
+    <circle cx="17" cy="16" r="5" fill="${inner}"/>
+  </svg>`;
+
+  return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
 }
 
 let yandexMapsPromise: Promise<void> | null = null;
@@ -94,7 +110,13 @@ export function PickupPointMap({ points, selectedId, onSelect }: Props) {
   const mapRef = useRef<HTMLDivElement | null>(null);
   const mapInstanceRef = useRef<YandexMapInstance | null>(null);
   const placemarksRef = useRef<YandexPlacemark[]>([]);
+  const centeredPointsKeyRef = useRef("");
+  const onSelectRef = useRef(onSelect);
   const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    onSelectRef.current = onSelect;
+  }, [onSelect]);
 
   useEffect(() => {
     let disposed = false;
@@ -109,7 +131,17 @@ export function PickupPointMap({ points, selectedId, onSelect }: Props) {
         } => point.latitude != null && point.longitude != null
       );
 
-      if (!mapRef.current || validPoints.length === 0) {
+      if (validPoints.length === 0) {
+        placemarksRef.current.forEach((placemark) => {
+          mapInstanceRef.current?.geoObjects.remove(placemark);
+        });
+        placemarksRef.current = [];
+        centeredPointsKeyRef.current = "";
+        setIsLoading(false);
+        return;
+      }
+
+      if (!mapRef.current) {
         setIsLoading(false);
         return;
       }
@@ -131,6 +163,10 @@ export function PickupPointMap({ points, selectedId, onSelect }: Props) {
         }
 
         const first = validPoints[0];
+        const pointsKey = validPoints
+          .map((point) => `${point.id}:${point.latitude}:${point.longitude}`)
+          .join("|");
+        const shouldCenter = centeredPointsKeyRef.current !== pointsKey;
 
         if (!mapInstanceRef.current) {
           mapInstanceRef.current = new window.ymaps.Map(mapRef.current, {
@@ -154,15 +190,15 @@ export function PickupPointMap({ points, selectedId, onSelect }: Props) {
               hintContent: point.label,
             },
             {
-              preset:
-                point.id === selectedId
-                  ? "islands#blackDotIcon"
-                  : "islands#grayDotIcon",
+              iconLayout: "default#image",
+              iconImageHref: buildMarkerIcon(point.id === selectedId),
+              iconImageSize: point.id === selectedId ? [34, 44] : [28, 36],
+              iconImageOffset: point.id === selectedId ? [-17, -44] : [-14, -36],
             }
           );
 
           placemark.events.add("click", () => {
-            onSelect(point.id);
+            onSelectRef.current(point.id);
           });
 
           map.geoObjects.add(placemark);
@@ -170,10 +206,11 @@ export function PickupPointMap({ points, selectedId, onSelect }: Props) {
           return placemark;
         });
 
-        const selected =
-          validPoints.find((point) => point.id === selectedId) ?? first;
+        if (shouldCenter) {
+          map.setCenter([first.latitude, first.longitude], 12);
+          centeredPointsKeyRef.current = pointsKey;
+        }
 
-        map.setCenter([selected.latitude, selected.longitude], 13);
         setIsLoading(false);
       });
     }
@@ -183,7 +220,7 @@ export function PickupPointMap({ points, selectedId, onSelect }: Props) {
     return () => {
       disposed = true;
     };
-  }, [points, selectedId, onSelect]);
+  }, [points, selectedId]);
 
   return (
     <div className="pickup-point-map">

@@ -8,6 +8,7 @@ import { ProductTile } from "../../components/ProductTile/ProductTile";
 import styles from "./BrandPage.module.css";
 
 import type { PaginatedProducts } from "../../components/Catalog/catalogTypes";
+import { normalizeProducts } from "../../components/Catalog/catalogUtils";
 
 export const dynamic = "force-dynamic";
 
@@ -57,7 +58,7 @@ async function getBrandProducts(slug: string): Promise<PaginatedProducts> {
   const data = await response.json();
 
   return {
-    items: Array.isArray(data.content) ? data.content : [],
+    items: normalizeProducts(data.content),
     page: data.number ?? 0,
     totalPages: data.totalPages ?? 0,
     totalProducts: data.totalElements ?? 0,
