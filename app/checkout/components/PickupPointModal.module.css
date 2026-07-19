@@ -167,6 +167,41 @@
   height: 100% !important;
 }
 
+.map :global(.pickup-point-map) {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+.map :global(.pickup-point-map__canvas) {
+  width: 100%;
+  height: 100%;
+}
+
+.map :global(.pickup-point-map__loader) {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  background: var(--soft);
+}
+
+.map :global(.pickup-point-map__loader span) {
+  width: 28px;
+  height: 28px;
+  border: 2px solid rgb(0 0 0 / 14%);
+  border-top-color: var(--black);
+  border-radius: 50%;
+  animation: mapSpin 0.8s linear infinite;
+}
+
+@keyframes mapSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 @media (max-width: 980px) {
   .overlay {
     padding: 16px;

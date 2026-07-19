@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import type { DeliveryOption } from "../types";
 
@@ -78,7 +78,7 @@ function loadYandexMaps() {
     const suggestApiKey = process.env.NEXT_PUBLIC_YANDEX_SUGGEST_API_KEY;
 
     script.src = `https://api-maps.yandex.ru/2.1/?apikey=${apiKey}&lang=ru_RU${
-    suggestApiKey ? `&suggest_apikey=${suggestApiKey}` : ""
+      suggestApiKey ? `&suggest_apikey=${suggestApiKey}` : ""
     }`;
     script.async = true;
     script.onload = () => resolve();
@@ -94,11 +94,14 @@ export function PickupPointMap({ points, selectedId, onSelect }: Props) {
   const mapRef = useRef<HTMLDivElement | null>(null);
   const mapInstanceRef = useRef<YandexMapInstance | null>(null);
   const placemarksRef = useRef<YandexPlacemark[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     let disposed = false;
 
     async function init() {
+      setIsLoading(true);
+
       const validPoints = points.filter(
         (point): point is DeliveryOption & {
           latitude: number;
@@ -107,10 +110,16 @@ export function PickupPointMap({ points, selectedId, onSelect }: Props) {
       );
 
       if (!mapRef.current || validPoints.length === 0) {
+        setIsLoading(false);
         return;
       }
 
-      await loadYandexMaps();
+      try {
+        await loadYandexMaps();
+      } catch {
+        setIsLoading(false);
+        return;
+      }
 
       if (disposed || !window.ymaps || !mapRef.current) {
         return;
@@ -165,6 +174,7 @@ export function PickupPointMap({ points, selectedId, onSelect }: Props) {
           validPoints.find((point) => point.id === selectedId) ?? first;
 
         map.setCenter([selected.latitude, selected.longitude], 13);
+        setIsLoading(false);
       });
     }
 
@@ -175,17 +185,14 @@ export function PickupPointMap({ points, selectedId, onSelect }: Props) {
     };
   }, [points, selectedId, onSelect]);
 
-  const hasCoordinates = points.some(
-    (point) => point.latitude != null && point.longitude != null
+  return (
+    <div className="pickup-point-map">
+      {isLoading ? (
+        <div className="pickup-point-map__loader" aria-label="Загрузка карты">
+          <span />
+        </div>
+      ) : null}
+      <div className="pickup-point-map__canvas" ref={mapRef} />
+    </div>
   );
-
-  if (!hasCoordinates) {
-    return <div>Карта появится после загрузки ПВЗ с координатами</div>;
-  }
-
-  if (!process.env.NEXT_PUBLIC_YANDEX_MAPS_API_KEY) {
-    return <div>Добавь NEXT_PUBLIC_YANDEX_MAPS_API_KEY для отображения карты</div>;
-  }
-
-  return <div style={{ width: "100%", height: 420 }} ref={mapRef} />;
 }

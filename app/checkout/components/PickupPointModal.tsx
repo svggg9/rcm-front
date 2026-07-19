@@ -31,7 +31,14 @@ export function PickupPointModal({
     : null;
 
   return (
-    <div className={styles.overlay}>
+    <div
+      className={styles.overlay}
+      onMouseDown={(event) => {
+        if (event.target === event.currentTarget) {
+          onClose();
+        }
+      }}
+    >
       <div className={styles.modal}>
         <header className={styles.header}>
           <div>
