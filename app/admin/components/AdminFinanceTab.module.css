@@ -1,0 +1,244 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+
+.header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.header h1 {
+  margin: 0;
+  color: var(--black);
+  font-size: 28px;
+  line-height: 1.15;
+  font-weight: 400;
+}
+
+.header p {
+  margin: 6px 0 0;
+  color: var(--muted);
+  font-size: var(--font-sm);
+  font-weight: 300;
+}
+
+.headerActions,
+.payoutActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.primaryButton,
+.payoutActions button {
+  min-height: 40px;
+  padding: 0 16px;
+  border: 1px solid var(--black);
+  background: var(--black);
+  color: var(--white);
+  font: inherit;
+  font-size: var(--font-xs);
+  cursor: pointer;
+}
+
+.iconButton {
+  width: 40px;
+  height: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  background: var(--soft);
+  color: var(--black);
+  cursor: pointer;
+}
+
+.tabs {
+  display: flex;
+  gap: 24px;
+}
+
+.tab {
+  padding: 0 0 8px;
+  border: 0;
+  border-bottom: 1px solid transparent;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: var(--font-sm);
+  cursor: pointer;
+}
+
+.tabActive {
+  border-bottom-color: var(--black);
+  color: var(--black);
+}
+
+.summary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.summary > div {
+  min-height: 92px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 15px;
+  border: 1px solid var(--line);
+}
+
+.summary span,
+.payoutIdentity span,
+.payoutAmount span,
+.payoutDetails dt {
+  color: var(--muted);
+  font-size: var(--font-xs);
+  font-weight: 300;
+}
+
+.summary strong {
+  font-size: 19px;
+  font-weight: 400;
+}
+
+.payoutList {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.payoutCard {
+  padding: 18px;
+  border: 1px solid var(--line);
+}
+
+.payoutMain {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.payoutIdentity strong {
+  display: block;
+  margin-top: 5px;
+  font-size: 17px;
+  font-weight: 400;
+}
+
+.payoutIdentity small {
+  display: block;
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.payoutAmount {
+  text-align: right;
+}
+
+.payoutAmount strong {
+  display: block;
+  margin: 4px 0 8px;
+  font-size: 22px;
+  font-weight: 400;
+}
+
+.status {
+  display: inline-flex;
+  padding: 4px 7px;
+  background: var(--soft);
+  color: var(--content-secondary);
+  font-size: 11px;
+}
+
+.statusPAID { background: #edf6ef; color: #276c37; }
+.statusSENT { background: #f5f0df; color: #79651f; }
+.statusFAILED { background: #fff0f0; color: var(--danger); }
+
+.payoutDetails {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+  margin: 22px 0 0;
+}
+
+.payoutDetails div { min-width: 0; }
+
+.payoutDetails dd {
+  overflow: hidden;
+  margin: 5px 0 0;
+  font-size: var(--font-xs);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.payoutActions {
+  justify-content: flex-end;
+  margin-top: 20px;
+}
+
+.payoutActions input {
+  min-width: 240px;
+  min-height: 40px;
+  padding: 0 12px;
+  border: 1px solid var(--line);
+  background: var(--white);
+  color: var(--black);
+  font: inherit;
+  font-size: var(--font-xs);
+}
+
+.payoutActions .secondaryButton {
+  border-color: var(--line);
+  background: var(--white);
+  color: var(--black);
+}
+
+.payoutActions .textButton {
+  border-color: transparent;
+  background: transparent;
+  color: var(--muted);
+}
+
+.primaryButton:disabled,
+.payoutActions button:disabled {
+  cursor: default;
+  opacity: 0.55;
+}
+
+.loading {
+  min-height: 180px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--muted);
+  font-size: var(--font-sm);
+}
+
+@media (max-width: 900px) {
+  .payoutDetails { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 700px) {
+  .page { padding: 18px 14px 36px; }
+  .header { flex-direction: column; }
+  .headerActions { width: 100%; }
+  .primaryButton { flex: 1; }
+  .summary { grid-template-columns: 1fr; }
+  .payoutMain { flex-direction: column; }
+  .payoutAmount { text-align: left; }
+  .payoutActions { align-items: stretch; flex-direction: column; }
+  .payoutActions input { min-width: 0; width: 100%; }
+}
+
+@media (max-width: 480px) {
+  .payoutDetails { grid-template-columns: 1fr; }
+}

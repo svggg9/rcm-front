@@ -1,31 +1,27 @@
-"use client";
+﻿"use client";
 
 import { CabinetSidebar } from "../../components/ui/CabinetSidebar";
-import styles from "./AccountSidebar.module.css";
+
+type AccountTab = "home" | "orders" | "profile" | "favorites" | "info";
 
 type Props = {
-  currentTab: "profile" | "orders";
+  currentTab: AccountTab;
   ordersCount: number;
-  onLogout: () => void;
+  onNavigate?: (href: string) => void;
 };
 
-export function AccountSidebar({
-  currentTab,
-  ordersCount,
-  onLogout,
-}: Props) {
+export function AccountSidebar({ currentTab, ordersCount, onNavigate }: Props) {
   return (
     <CabinetSidebar
       ariaLabel="Меню аккаунта"
-      subtitle="Аккаунт"
-      title="Личный кабинет"
       mobileInline
+      onNavigate={onNavigate}
       items={[
         {
-          href: "/account?tab=profile",
-          label: "Профиль",
+          href: "/account",
+          label: "Главная",
           icon: "user",
-          active: currentTab === "profile",
+          active: currentTab === "home",
         },
         {
           href: "/account?tab=orders",
@@ -34,18 +30,25 @@ export function AccountSidebar({
           active: currentTab === "orders",
           count: ordersCount,
         },
+        {
+          href: "/account?tab=profile",
+          label: "Личные данные",
+          icon: "settings",
+          active: currentTab === "profile",
+        },
+        {
+          href: "/account?tab=favorites",
+          label: "Избранное",
+          icon: "heart",
+          active: currentTab === "favorites",
+        },
+        {
+          href: "/account?tab=info",
+          label: "Информация",
+          icon: "info",
+          active: currentTab === "info",
+        },
       ]}
-      footer={
-        <button
-          type="button"
-          className={styles.logout}
-          onClick={onLogout}
-          aria-label="Выйти"
-          title="Выйти"
-        >
-          <span className={styles.logoutText}>Выход</span>
-        </button>
-      }
     />
   );
 }

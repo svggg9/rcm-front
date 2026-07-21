@@ -1,5 +1,8 @@
+import { useRef } from "react";
+
 import { FormCombobox } from "../../../../../components/ui/FormCombobox";
 import { FormSelect } from "../../../../../components/ui/FormSelect";
+import { Icon } from "../../../../../components/ui/Icon";
 import { SectionHeader } from "./SectionHeader";
 import type { Audience, Option } from "../types";
 import styles from "../ProductEditPage.module.css";
@@ -49,6 +52,48 @@ export function ProductGeneralCard({
   onSuggestedCategoryNameChange,
   onAudienceChange,
 }: Props) {
+  const descriptionRef = useRef<HTMLTextAreaElement | null>(null);
+
+  function applyDescriptionList(kind: "bullet" | "number") {
+    const textarea = descriptionRef.current;
+    const start = textarea?.selectionStart ?? description.length;
+    const end = textarea?.selectionEnd ?? description.length;
+    const before = description.slice(0, start);
+    const selected = description.slice(start, end);
+    const after = description.slice(end);
+    let nextText = "";
+
+    if (selected.trim()) {
+      let index = 1;
+
+      nextText = selected
+        .split(/\r?\n/)
+        .map((line) => {
+          const cleanLine = line
+            .replace(/^\s*(?:[-*]\s+|\d+[.)]\s+)/, "")
+            .trim();
+
+          if (!cleanLine) return "";
+
+          if (kind === "bullet") return `- ${cleanLine}`;
+
+          return `${index++}. ${cleanLine}`;
+        })
+        .join("\n");
+    } else {
+      const needsLeadingBreak = before.length > 0 && !before.endsWith("\n");
+      nextText = `${needsLeadingBreak ? "\n" : ""}${kind === "bullet" ? "- " : "1. "}`;
+    }
+
+    onDescriptionChange(before + nextText + after);
+
+    window.requestAnimationFrame(() => {
+      const nextCaret = start + nextText.length;
+      textarea?.focus();
+      textarea?.setSelectionRange(nextCaret, nextCaret);
+    });
+  }
+
   return (
     <>
       <section className={styles.card}>
@@ -120,16 +165,41 @@ export function ProductGeneralCard({
           <label className={styles.fieldFull}>
             <span className={styles.required}>Описание товара</span>
 
-            <textarea
-              value={description}
-              onChange={(event) => onDescriptionChange(event.target.value)}
-              className={`${styles.textarea} ${
+            <div className={styles.descriptionFieldShell}>
+              <div className={styles.descriptionToolbar} aria-label="Инструменты описания">
+              <button
+                type="button"
+                className={styles.descriptionToolButton}
+                title="Маркерованный список"
+                aria-label="Маркерованный список"
+                onClick={() => applyDescriptionList("bullet")}
+              >
+                <Icon name="list" size={17} strokeWidth={1.8} />
+              </button>
+              <button
+                type="button"
+                className={styles.descriptionToolButton}
+                title="Нумерованный список"
+                aria-label="Нумерованный список"
+                onClick={() => applyDescriptionList("number")}
+              >
+                <Icon name="list-ordered" size={17} strokeWidth={1.8} />
+              </button>
+            </div>
+
+
+              <textarea
+                ref={descriptionRef}
+                value={description}
+                onChange={(event) => onDescriptionChange(event.target.value)}
+                className={`${styles.textarea} ${
                 validationErrors.description ? styles.fieldInvalid : ""
               } ${description.trim() ? "" : styles.requiredEmpty}`}
-              rows={5}
-              maxLength={2000}
-              placeholder="Материал, особенности, назначение, комплектация и важные характеристики."
-            />
+                rows={5}
+                maxLength={2000}
+                placeholder="Материал, особенности, назначение, комплектация и важные характеристики."
+              />
+            </div>
 
             {validationErrors.description ? (
               <small className={styles.fieldErrorText}>

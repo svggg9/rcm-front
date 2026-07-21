@@ -1,5 +1,6 @@
 import {
   AlertCircle,
+  ArrowUpRight,
   Bell,
   Check,
   ChevronDown,
@@ -7,11 +8,15 @@ import {
   ChevronRight,
   ChevronUp,
   CircleDollarSign,
+  Clock3,
   Eye,
   EyeOff,
   FileText,
   Heart,
   Info,
+  LayoutDashboard,
+  List,
+  ListOrdered,
   Minus,
   Package,
   Plus,
@@ -22,15 +27,18 @@ import {
   Store,
   Truck,
   User,
+  Wallet,
   X,
   type LucideIcon,
 } from "lucide-react";
 
 export type IconName =
   | "alert"
+  | "arrow-up-right"
   | "bell"
   | "cart"
   | "check"
+  | "clock"
   | "chevron-down"
   | "chevron-left"
   | "chevron-right"
@@ -39,7 +47,10 @@ export type IconName =
   | "eye-off"
   | "file"
   | "heart"
+  | "dashboard"
   | "info"
+  | "list"
+  | "list-ordered"
   | "money"
   | "minus"
   | "package"
@@ -50,6 +61,7 @@ export type IconName =
   | "store"
   | "truck"
   | "user"
+  | "wallet"
   | "x";
 
 type Props = {
@@ -62,9 +74,11 @@ type Props = {
 
 const icons: Record<IconName, LucideIcon> = {
   alert: AlertCircle,
+  "arrow-up-right": ArrowUpRight,
   bell: Bell,
   cart: ShoppingCart,
   check: Check,
+  clock: Clock3,
   "chevron-down": ChevronDown,
   "chevron-left": ChevronLeft,
   "chevron-right": ChevronRight,
@@ -73,7 +87,10 @@ const icons: Record<IconName, LucideIcon> = {
   "eye-off": EyeOff,
   file: FileText,
   heart: Heart,
+  dashboard: LayoutDashboard,
   info: Info,
+  list: List,
+  "list-ordered": ListOrdered,
   money: CircleDollarSign,
   minus: Minus,
   package: Package,
@@ -84,6 +101,7 @@ const icons: Record<IconName, LucideIcon> = {
   store: Store,
   truck: Truck,
   user: User,
+  wallet: Wallet,
   x: X,
 };
 

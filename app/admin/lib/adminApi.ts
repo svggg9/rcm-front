@@ -14,6 +14,8 @@ import type {
   AdminFinancialLedgerEntry,
   AdminCdekWebhookEvent,
   FinancialLedgerEntryType,
+  AdminSellerPayout,
+  PayoutGenerationResult,
 } from "../types";
 
 async function readError(response: Response, fallback: string) {
@@ -43,24 +45,13 @@ export async function getAdminProducts(
 export async function getAdminProductStatusCounts(): Promise<
   Record<ProductStatus | "ALL", number>
 > {
-  const statuses: Array<ProductStatus | "ALL"> = [
-    "MODERATION",
-    "NEEDS_REVISION",
-    "ACTIVE",
-    "BLOCKED",
-    "DRAFT",
-    "ARCHIVED",
-    "ALL",
-  ];
+  const response = await apiFetch(`${API_URL}/api/admin/products/status-counts`);
 
-  const pairs = await Promise.all(
-    statuses.map(async (status) => {
-      const data = await getAdminProducts(status, 0, 1);
-      return [status, data.totalElements ?? 0] as const;
-    })
-  );
+  if (!response.ok) {
+    throw new Error(await readError(response, "Не удалось загрузить счетчики товаров"));
+  }
 
-  return Object.fromEntries(pairs) as Record<ProductStatus | "ALL", number>;
+  return response.json();
 }
 
 export async function getAdminProduct(id: number): Promise<AdminProduct> {
@@ -310,6 +301,47 @@ export async function getAdminLedgerEntries(params?: {
   return response.json();
 }
 
+export async function getAdminSellerPayouts(
+  page = 0,
+  size = 50
+): Promise<PageResponse<AdminSellerPayout>> {
+  const response = await apiFetch(
+    `${API_URL}/api/admin/finance/payouts?page=${page}&size=${size}`
+  );
+  if (!response.ok) {
+    throw new Error(await readError(response, "Не удалось загрузить выплаты"));
+  }
+  return response.json();
+}
+
+export async function generateAdminSellerPayouts(): Promise<PayoutGenerationResult> {
+  const response = await apiFetch(`${API_URL}/api/admin/finance/payouts/generate`, {
+    method: "POST",
+  });
+  if (!response.ok) {
+    throw new Error(await readError(response, "Не удалось сформировать реестр"));
+  }
+  return response.json();
+}
+
+export async function updateAdminSellerPayout(
+  id: number,
+  action: "sent" | "paid" | "failed" | "retry" | "cancel",
+  payload?: { paymentOrderNumber?: string; comment?: string }
+): Promise<AdminSellerPayout> {
+  const response = await apiFetch(
+    `${API_URL}/api/admin/finance/payouts/${id}/${action}`,
+    {
+      method: "POST",
+      body: payload ? JSON.stringify(payload) : undefined,
+    }
+  );
+  if (!response.ok) {
+    throw new Error(await readError(response, "Не удалось обновить выплату"));
+  }
+  return response.json();
+}
+
 export async function getAdminCdekWebhookEvents(params?: {
   page?: number;
   size?: number;
@@ -332,24 +364,17 @@ export async function getAdminCdekWebhookEvents(params?: {
 export async function getAdminSellerApplicationStatusCounts(): Promise<
   Record<SellerApplicationStatus | "ALL", number>
 > {
-  const statuses: Array<SellerApplicationStatus | "ALL"> = [
-    "NEW",
-    "APPROVED",
-    "REJECTED",
-    "ALL",
-  ];
-
-  const pairs = await Promise.all(
-    statuses.map(async (status) => {
-      const data = await getAdminSellerApplications(status, 0, 1);
-      return [status, data.totalElements ?? 0] as const;
-    })
+  const response = await apiFetch(
+    `${API_URL}/api/admin/seller-applications/status-counts`
   );
 
-  return Object.fromEntries(pairs) as Record<
-    SellerApplicationStatus | "ALL",
-    number
-  >;
+  if (!response.ok) {
+    throw new Error(
+      await readError(response, "Не удалось загрузить счетчики заявок")
+    );
+  }
+
+  return response.json();
 }
 
 export async function approveSellerApplication(id: number): Promise<void> {

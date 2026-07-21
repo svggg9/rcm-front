@@ -6,11 +6,16 @@ import { toast } from "sonner";
 
 import { apiFetch, API_URL } from "../lib/api";
 import { logout as logoutAuth } from "../lib/auth";
+import { useSessionResourceCache } from "../lib/useSessionResourceCache";
 
 import { AccountSidebar } from "./components/AccountSidebar";
+import { AccountHomeTab } from "./components/AccountHomeTab";
 import { AccountProfileTab } from "./components/AccountProfileTab";
 import { AccountOrdersTab } from "./components/AccountOrdersTab";
 import { AccountOrderDetails } from "./components/AccountOrderDetails";
+import { AccountFavoritesTab } from "./components/AccountFavoritesTab";
+import { AccountInfoTab } from "./components/AccountInfoTab";
+import { CabinetSkeleton } from "../components/ui/CabinetSkeleton";
 
 import styles from "./AccountPageClient.module.css";
 
@@ -23,7 +28,7 @@ import type {
   OrderListItem,
 } from "./types";
 
-type AccountTab = "profile" | "orders";
+type AccountTab = "home" | "orders" | "profile" | "favorites" | "info";
 
 function formatOrderStatus(status: OrderStatus): string {
   switch (status) {
@@ -147,24 +152,57 @@ function parseFullName(value: string) {
 type Props = {
   initialMe: Me;
   initialOrders: OrderListItem[];
+  initialSelectedOrder: Order | null;
 };
 
-function AccountPageContent({ initialMe, initialOrders }: Props) {
+async function fetchAccountOrder(orderId: number): Promise<Order> {
+  const response = await apiFetch(`${API_URL}/api/orders/${orderId}`);
+
+  if (!response.ok) {
+    const text = await response.text().catch(() => "");
+    throw new Error(text || `Не удалось загрузить заказ (${response.status})`);
+  }
+
+  return response.json() as Promise<Order>;
+}
+
+function AccountPageContent({
+  initialMe,
+  initialOrders,
+  initialSelectedOrder,
+}: Props) {
   const router = useRouter();
   const searchParams = useSearchParams();
 
   const [me, setMe] = useState<Me | null>(initialMe);
   const [orders, setOrders] = useState<OrderListItem[]>(initialOrders);
-  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const [selectedOrder, setSelectedOrder] = useState<Order | null>(
+    initialSelectedOrder
+  );
+  const {
+    get: getOrderDetails,
+    peek: peekOrderDetails,
+    seed: seedOrderDetails,
+    prefetch: prefetchOrderDetails,
+  } = useSessionResourceCache<number, Order>(fetchAccountOrder);
 
   const [detailsLoading, setDetailsLoading] = useState(false);
   const [profileSaving, setProfileSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const tabParam = searchParams.get("tab");
   const currentTab: AccountTab =
-    searchParams.get("tab") === "profile" ? "profile" : "orders";
+    tabParam === "orders" ||
+    tabParam === "profile" ||
+    tabParam === "favorites" ||
+    tabParam === "info"
+      ? tabParam
+      : "home";
 
   const selectedOrderId = searchParams.get("orderId");
+  const [visitedTabs, setVisitedTabs] = useState<Set<AccountTab>>(
+    () => new Set([currentTab])
+  );
   const initialProfileForm = useMemo(() => buildProfileForm(initialMe), [initialMe]);
 
   const [lastName, setLastName] = useState(initialProfileForm.lastName);
@@ -197,26 +235,44 @@ function AccountPageContent({ initialMe, initialOrders }: Props) {
   );
 
   useEffect(() => {
+    if (initialSelectedOrder) {
+      seedOrderDetails(initialSelectedOrder.id, initialSelectedOrder);
+      setSelectedOrder(initialSelectedOrder);
+    }
+  }, [initialSelectedOrder, seedOrderDetails]);
+
+  useEffect(() => {
+    setVisitedTabs((current) => addVisitedAccountTab(current, currentTab));
+  }, [currentTab]);
+
+  useEffect(() => {
     if (currentTab !== "orders" || !selectedOrderId) {
       setSelectedOrder(null);
+      return;
+    }
+
+    const orderId = Number(selectedOrderId);
+    if (!Number.isFinite(orderId)) {
+      setSelectedOrder(null);
+      return;
+    }
+
+    const cached = peekOrderDetails(orderId);
+    if (cached) {
+      setSelectedOrder(cached);
+      setDetailsLoading(false);
       return;
     }
 
     let cancelled = false;
 
     async function loadOrderDetails() {
+      setSelectedOrder(null);
       setDetailsLoading(true);
       setError(null);
 
       try {
-        const response = await apiFetch(`${API_URL}/api/orders/${selectedOrderId}`);
-
-        if (!response.ok) {
-          const text = await response.text().catch(() => "");
-          throw new Error(text || "Не удалось загрузить заказ");
-        }
-
-        const data: Order = await response.json();
+        const data = await getOrderDetails(orderId);
 
         if (!cancelled) {
           setSelectedOrder(data);
@@ -237,7 +293,7 @@ function AccountPageContent({ initialMe, initialOrders }: Props) {
     return () => {
       cancelled = true;
     };
-  }, [currentTab, selectedOrderId]);
+  }, [currentTab, getOrderDetails, peekOrderDetails, selectedOrderId]);
 
   useEffect(() => {
     setMe(initialMe);
@@ -327,11 +383,20 @@ function AccountPageContent({ initialMe, initialOrders }: Props) {
   }
 
   function openOrder(orderId: number) {
-    router.push(`/account?tab=orders&orderId=${orderId}`);
+    prefetchOrderDetails(orderId);
+    navigateAccount(`/account?tab=orders&orderId=${orderId}`);
+  }
+
+  function openTab(tab: AccountTab) {
+    navigateAccount(tab === "home" ? "/account" : `/account?tab=${tab}`);
   }
 
   function closeOrderDetails() {
-    router.push("/account?tab=orders");
+    navigateAccount("/account?tab=orders");
+  }
+
+  function navigateAccount(href: string) {
+    window.history.pushState(null, "", href);
   }
 
   const profileForm = useMemo(
@@ -367,6 +432,11 @@ function AccountPageContent({ initialMe, initialOrders }: Props) {
 
   function updateFirstName(value: string) {
     setFirstName(value);
+    setProfileSavedMessage(null);
+  }
+
+  function updateLastName(value: string) {
+    setLastName(value);
     setProfileSavedMessage(null);
   }
 
@@ -421,44 +491,89 @@ function AccountPageContent({ initialMe, initialOrders }: Props) {
   return (
     <div className="pageContainer">
       <div className={styles.page}>
+        <header className={styles.header}>
+          <h1>Профиль</h1>
+          <button type="button" className={styles.logoutButton} onClick={() => void logout()}>
+            Выйти
+          </button>
+        </header>
+
         <div className={styles.layout}>
           <AccountSidebar
             currentTab={currentTab}
             ordersCount={activeOrdersCount}
-            onLogout={() => void logout()}
+            onNavigate={navigateAccount}
           />
 
           <div className={styles.content}>
-            {currentTab === "profile" ? (
-              <AccountProfileTab
-                email={me?.email?.trim() || "—"}
-                firstName={firstName}
-                phone={phone}
-                saving={profileSaving}
-                changed={profileChanged}
-                savedMessage={profileSavedMessage}
-                onFirstNameChange={updateFirstName}
-                onPhoneChange={updatePhone}
-                onSave={() => void saveProfile()}
-              />
-            ) : detailsLoading ? (
-              null
-            ) : selectedOrder ? (
-              <AccountOrderDetails
-                order={selectedOrder}
-                onBack={closeOrderDetails}
-                formatOrderStatus={formatOrderStatus}
-                formatPaymentStatus={formatPaymentStatus}
-                formatDeliveryStatus={formatDeliveryStatus}
-                buildOrderStatusLabel={buildOrderStatusLabel}
-              />
-            ) : (
-              <AccountOrdersTab
-                orders={orders}
-                buildOrderStatusLabel={buildOrderStatusLabel}
-                onOpenOrder={openOrder}
-              />
-            )}
+            {visitedTabs.has("home") ? (
+              <div hidden={currentTab !== "home"}>
+                <AccountHomeTab
+                  me={me}
+                  orders={orders}
+                  buildOrderStatusLabel={buildOrderStatusLabel}
+                  onOpenOrder={openOrder}
+                  onPrefetchOrder={prefetchOrderDetails}
+                  onOpenOrders={() => openTab("orders")}
+                  onOpenProfile={() => openTab("profile")}
+                  onOpenFavorites={() => openTab("favorites")}
+                />
+              </div>
+            ) : null}
+
+            {visitedTabs.has("profile") ? (
+              <div hidden={currentTab !== "profile"}>
+                <AccountProfileTab
+                  email={me?.email?.trim() || "?"}
+                  firstName={firstName}
+                  lastName={lastName}
+                  phone={phone}
+                  saving={profileSaving}
+                  changed={profileChanged}
+                  savedMessage={profileSavedMessage}
+                  onFirstNameChange={updateFirstName}
+                  onLastNameChange={updateLastName}
+                  onPhoneChange={updatePhone}
+                  onSave={() => void saveProfile()}
+                />
+              </div>
+            ) : null}
+
+            {visitedTabs.has("favorites") ? (
+              <div hidden={currentTab !== "favorites"}>
+                <AccountFavoritesTab />
+              </div>
+            ) : null}
+
+            {visitedTabs.has("info") ? (
+              <div hidden={currentTab !== "info"}>
+                <AccountInfoTab defaultEmail={me?.email ?? ""} />
+              </div>
+            ) : null}
+
+            {visitedTabs.has("orders") ? (
+              <div hidden={currentTab !== "orders"} aria-busy={detailsLoading}>
+                {selectedOrder ? (
+                  <AccountOrderDetails
+                    order={selectedOrder}
+                    onBack={closeOrderDetails}
+                    formatOrderStatus={formatOrderStatus}
+                    formatPaymentStatus={formatPaymentStatus}
+                    formatDeliveryStatus={formatDeliveryStatus}
+                    buildOrderStatusLabel={buildOrderStatusLabel}
+                  />
+                ) : selectedOrderId && detailsLoading ? (
+                  <CabinetSkeleton variant="detail" />
+                ) : (
+                  <AccountOrdersTab
+                    orders={orders}
+                    buildOrderStatusLabel={buildOrderStatusLabel}
+                    onOpenOrder={openOrder}
+                    onPrefetchOrder={prefetchOrderDetails}
+                  />
+                )}
+              </div>
+            ) : null}
           </div>
         </div>
       </div>
@@ -468,4 +583,12 @@ function AccountPageContent({ initialMe, initialOrders }: Props) {
 
 export function AccountPageClient(props: Props) {
   return <AccountPageContent {...props} />;
+}
+
+function addVisitedAccountTab(current: Set<AccountTab>, tab: AccountTab) {
+  if (current.has(tab)) return current;
+
+  const next = new Set(current);
+  next.add(tab);
+  return next;
 }

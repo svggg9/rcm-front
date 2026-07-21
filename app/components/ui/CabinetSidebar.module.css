@@ -26,9 +26,32 @@
 }
 
 .titleSkeleton {
+  position: relative;
+  overflow: hidden;
   width: 68%;
   height: 28px;
-  background: var(--soft);
+  border-radius: 4px;
+  background: #eeeeec;
+}
+
+.titleSkeleton::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgb(255 255 255 / 72%),
+    transparent
+  );
+  animation: sidebarSkeletonShimmer 1.25s ease-in-out infinite;
+}
+
+@keyframes sidebarSkeletonShimmer {
+  to {
+    transform: translateX(100%);
+  }
 }
 
 .nav {
@@ -228,16 +251,16 @@
   }
 
   .mobileInline .itemRow {
-    flex: 1 1 0;
-    min-width: 0;
+    flex: 0 0 auto;
+    min-width: max-content;
   }
 
   .mobileInline .item {
-    width: 100%;
+    width: auto;
     min-height: 44px;
-    flex: 1 1 0;
+    flex: 0 0 auto;
     justify-content: center;
-    padding: 0 8px;
+    padding: 0 12px;
     gap: 6px;
   }
 

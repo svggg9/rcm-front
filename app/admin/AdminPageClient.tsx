@@ -1,7 +1,13 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
+import { useSessionResourceCache } from "../lib/useSessionResourceCache";
+import {
+  CabinetPageSkeleton,
+  CabinetSkeleton,
+  type CabinetSkeletonVariant,
+} from "../components/ui/CabinetSkeleton";
 
 import styles from "./Admin.module.css";
 
@@ -95,10 +101,12 @@ function normalizeLedgerEntryType(
 ): FinancialLedgerEntryType | "ALL" {
   if (
     raw === "COMMISSION_ACCRUED" ||
+    raw === "COMMISSION_REVERSED" ||
     raw === "BUYER_DELIVERY_FEE" ||
     raw === "DELIVERY_COST_FORWARD" ||
     raw === "DELIVERY_SUBSIDY" ||
     raw === "DELIVERY_COST_RETURN" ||
+    raw === "BUYER_RETURN_DELIVERY_FEE" ||
     raw === "REFUND_ITEM" ||
     raw === "REFUND_DELIVERY" ||
     raw === "SELLER_DEBIT" ||
@@ -182,12 +190,33 @@ type Props = {
   initialData?: AdminInitialData;
 };
 
+function getAdminListKey(
+  tab: AdminTab,
+  productStatus: ProductStatus | "ALL",
+  applicationStatus: SellerApplicationStatus | "ALL",
+  ledgerEntryType: FinancialLedgerEntryType | "ALL",
+  ledgerOrderGroupId: string
+) {
+  if (tab === "products") return `${tab}:${productStatus}`;
+  if (tab === "sellers") return `${tab}:${applicationStatus}`;
+  if (tab === "finance") {
+    return `${tab}:${ledgerEntryType}:${ledgerOrderGroupId.trim()}`;
+  }
+  return tab;
+}
+
+function getInitialAdminListKey(initialData: AdminInitialData) {
+  return getAdminListKey(
+    initialData.tab,
+    initialData.productStatus,
+    initialData.applicationStatus,
+    "ALL",
+    ""
+  );
+}
+
 function AdminPageContent({ initialData }: Props) {
-  const router = useRouter();
   const searchParams = useSearchParams();
-  const skippedInitialListLoadRef = useRef(false);
-  const skippedInitialDetailsLoadRef = useRef(false);
-  const skippedInitialOrderDetailsLoadRef = useRef(false);
 
   const currentTab = normalizeTab(searchParams.get("tab"));
   const selectedProductId = searchParams.get("productId");
@@ -201,6 +230,13 @@ function AdminPageContent({ initialData }: Props) {
     searchParams.get("entryType")
   );
   const currentLedgerOrderGroupId = searchParams.get("orderGroupId") ?? "";
+  const loadedListKeyByTabRef = useRef<Map<AdminTab, string>>(
+    new Map(
+      initialData
+        ? [[initialData.tab, getInitialAdminListKey(initialData)]]
+        : []
+    )
+  );
 
   const [products, setProducts] = useState<AdminProduct[]>(
     initialData?.products ?? []
@@ -214,6 +250,18 @@ function AdminPageContent({ initialData }: Props) {
   const [selectedOrder, setSelectedOrder] = useState<AdminOrder | null>(
     initialData?.selectedOrder ?? null
   );
+  const {
+    get: getCachedProduct,
+    peek: peekCachedProduct,
+    seed: seedProduct,
+    prefetch: prefetchProduct,
+  } = useSessionResourceCache<number, AdminProduct>(getAdminProduct);
+  const {
+    get: getCachedOrder,
+    peek: peekCachedOrder,
+    seed: seedOrder,
+    prefetch: prefetchOrder,
+  } = useSessionResourceCache<number, AdminOrder>(getAdminOrder);
   const [totalProducts, setTotalProducts] = useState(
     initialData?.totalProducts ?? 0
   );
@@ -286,6 +334,15 @@ function AdminPageContent({ initialData }: Props) {
   );
 
   const [error, setError] = useState<string | null>(initialData?.error ?? null);
+
+  useEffect(() => {
+    if (initialData?.selectedProduct) {
+      seedProduct(initialData.selectedProduct.id, initialData.selectedProduct);
+    }
+    if (initialData?.selectedOrder) {
+      seedOrder(initialData.selectedOrder.id, initialData.selectedOrder);
+    }
+  }, [initialData, seedOrder, seedProduct]);
 
   const loadProducts = useCallback(
     async (options?: { silent?: boolean }) => {
@@ -449,54 +506,48 @@ function AdminPageContent({ initialData }: Props) {
     []
   );
 
-  const loadSelectedProduct = useCallback(async (id: number) => {
+  const loadSelectedProduct = useCallback(async (id: number, force = false) => {
     setDetailsLoading(true);
     setError(null);
 
     try {
-      const data = await getAdminProduct(id);
+      const data = await getCachedProduct(id, { force });
       setSelectedProduct(data);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Не удалось загрузить товар");
     } finally {
       setDetailsLoading(false);
     }
-  }, []);
+  }, [getCachedProduct]);
 
-  const loadSelectedOrder = useCallback(async (id: number) => {
+  const loadSelectedOrder = useCallback(async (id: number, force = false) => {
     setDetailsLoading(true);
     setError(null);
 
     try {
-      const data = await getAdminOrder(id);
+      const data = await getCachedOrder(id, { force });
       setSelectedOrder(data);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Не удалось загрузить заказ");
     } finally {
       setDetailsLoading(false);
     }
-  }, []);
+  }, [getCachedOrder]);
 
   useEffect(() => {
-    if (
-      !skippedInitialListLoadRef.current &&
-      initialData?.tab === currentTab &&
-      (
-        (currentTab === "products" &&
-          initialData.productStatus === currentStatus) ||
-        currentTab === "orders" ||
-        (currentTab === "sellers" &&
-          initialData.applicationStatus === currentApplicationStatus) ||
-        (currentTab === "finance" &&
-          currentLedgerEntryType === "ALL" &&
-          !currentLedgerOrderGroupId.trim()) ||
-        currentTab === "delivery" ||
-        currentTab === "dictionaries"
-      )
-    ) {
-      skippedInitialListLoadRef.current = true;
+    const listKey = getAdminListKey(
+      currentTab,
+      currentStatus,
+      currentApplicationStatus,
+      currentLedgerEntryType,
+      currentLedgerOrderGroupId
+    );
+
+    if (loadedListKeyByTabRef.current.get(currentTab) === listKey) {
       return;
     }
+
+    loadedListKeyByTabRef.current.set(currentTab, listKey);
 
     if (currentTab === "products") {
       void loadProducts();
@@ -540,15 +591,6 @@ function AdminPageContent({ initialData }: Props) {
   ]);
 
   useEffect(() => {
-    if (
-      !skippedInitialDetailsLoadRef.current &&
-      initialData?.tab === "products" &&
-      initialData.selectedProductId === selectedProductId
-    ) {
-      skippedInitialDetailsLoadRef.current = true;
-      return;
-    }
-
     if (currentTab !== "products" || !selectedProductId) {
       setSelectedProduct(null);
       return;
@@ -561,19 +603,18 @@ function AdminPageContent({ initialData }: Props) {
       return;
     }
 
-    void loadSelectedProduct(id);
-  }, [currentTab, selectedProductId, initialData, loadSelectedProduct]);
-
-  useEffect(() => {
-    if (
-      !skippedInitialOrderDetailsLoadRef.current &&
-      initialData?.tab === "orders" &&
-      initialData.selectedOrderId === selectedOrderId
-    ) {
-      skippedInitialOrderDetailsLoadRef.current = true;
+    const cached = peekCachedProduct(id);
+    if (cached) {
+      setSelectedProduct(cached);
+      setDetailsLoading(false);
       return;
     }
 
+    setSelectedProduct(null);
+    void loadSelectedProduct(id);
+  }, [currentTab, loadSelectedProduct, peekCachedProduct, selectedProductId]);
+
+  useEffect(() => {
     if (currentTab !== "orders" || !selectedOrderId) {
       setSelectedOrder(null);
       return;
@@ -586,15 +627,23 @@ function AdminPageContent({ initialData }: Props) {
       return;
     }
 
+    const cached = peekCachedOrder(id);
+    if (cached) {
+      setSelectedOrder(cached);
+      setDetailsLoading(false);
+      return;
+    }
+
+    setSelectedOrder(null);
     void loadSelectedOrder(id);
-  }, [currentTab, selectedOrderId, initialData, loadSelectedOrder]);
+  }, [currentTab, loadSelectedOrder, peekCachedOrder, selectedOrderId]);
 
   function changeProductStatus(status: ProductStatus | "ALL") {
-    router.push(`/admin?tab=products&status=${status}`);
+    navigateAdmin(`/admin?tab=products&status=${status}`);
   }
 
   function changeApplicationStatus(status: SellerApplicationStatus | "ALL") {
-    router.push(`/admin?tab=sellers&applicationStatus=${status}`);
+    navigateAdmin(`/admin?tab=sellers&applicationStatus=${status}`);
   }
 
   function changeLedgerEntryType(status: FinancialLedgerEntryType | "ALL") {
@@ -604,7 +653,7 @@ function AdminPageContent({ initialData }: Props) {
     if (currentLedgerOrderGroupId.trim()) {
       query.set("orderGroupId", currentLedgerOrderGroupId.trim());
     }
-    router.push(`/admin?${query.toString()}`);
+    navigateAdmin(`/admin?${query.toString()}`);
   }
 
   function changeLedgerOrderGroupId(value: string) {
@@ -616,21 +665,27 @@ function AdminPageContent({ initialData }: Props) {
     if (value.trim()) {
       query.set("orderGroupId", value.trim());
     }
-    router.push(`/admin?${query.toString()}`);
+    navigateAdmin(`/admin?${query.toString()}`);
   }
 
   function openProduct(productId: number) {
-    router.push(
+    prefetchProduct(productId);
+    navigateAdmin(
       `/admin?tab=products&status=${currentStatus}&productId=${productId}`
     );
   }
 
   function openOrder(orderId: number) {
-    router.push(`/admin?tab=orders&orderId=${orderId}`);
+    prefetchOrder(orderId);
+    navigateAdmin(`/admin?tab=orders&orderId=${orderId}`);
   }
 
   function closeProductDetails() {
-    router.push(`/admin?tab=products&status=${currentStatus}`);
+    navigateAdmin(`/admin?tab=products&status=${currentStatus}`);
+  }
+
+  function navigateAdmin(href: string) {
+    window.history.pushState(null, "", href);
   }
 
   async function refundSelectedOrder() {
@@ -642,7 +697,7 @@ function AdminPageContent({ initialData }: Props) {
     try {
       await refundAdminOrder(selectedOrder.id);
       await loadOrders({ silent: true });
-      await loadSelectedOrder(selectedOrder.id);
+      await loadSelectedOrder(selectedOrder.id, true);
     } catch (e) {
       const message = e instanceof Error ? e.message : "Не удалось вернуть оплату";
       setError(message);
@@ -713,7 +768,7 @@ function AdminPageContent({ initialData }: Props) {
       await loadProducts({ silent: true });
 
       if (selectedProduct?.id === productId) {
-        await loadSelectedProduct(productId);
+        await loadSelectedProduct(productId, true);
       }
     } catch (e) {
       setError(e instanceof Error ? e.message : "Не удалось выполнить действие");
@@ -752,7 +807,7 @@ function AdminPageContent({ initialData }: Props) {
 
       await assignProductCategory(selectedProduct.id, categoryId);
       await loadProducts({ silent: true });
-      await loadSelectedProduct(selectedProduct.id);
+      await loadSelectedProduct(selectedProduct.id, true);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Не удалось назначить категорию");
     } finally {
@@ -769,7 +824,7 @@ function AdminPageContent({ initialData }: Props) {
     try {
       await returnProductToRevision(selectedProduct.id, comment);
       await loadProducts({ silent: true });
-      await loadSelectedProduct(selectedProduct.id);
+      await loadSelectedProduct(selectedProduct.id, true);
     } catch (e) {
       setError(
         e instanceof Error ? e.message : "Не удалось вернуть товар на доработку"
@@ -796,8 +851,8 @@ function AdminPageContent({ initialData }: Props) {
     }
   }
 
-  if (loading) {
-    return null;
+  if (loading && !initialData) {
+    return <CabinetPageSkeleton variant="list" />;
   }
 
   return (
@@ -809,12 +864,15 @@ function AdminPageContent({ initialData }: Props) {
             productsCount={totalProducts}
             ordersCount={totalOrders}
             sellersCount={totalSellerApplications}
+            onNavigate={navigateAdmin}
           />
 
-          <main className={styles.content}>
+          <main className={styles.content} aria-busy={loading || detailsLoading}>
             {error ? <div className={styles.error}>{error}</div> : null}
 
-            {currentTab === "dictionaries" ? (
+            {loading ? (
+              <CabinetSkeleton variant={getAdminSkeletonVariant(currentTab)} />
+            ) : currentTab === "dictionaries" ? (
               <AdminDictionariesTab
                 categories={categories}
                 brands={brands}
@@ -845,9 +903,7 @@ function AdminPageContent({ initialData }: Props) {
                 onRefresh={() => void loadCdekWebhookEvents({ silent: true })}
               />
             ) : currentTab === "orders" ? (
-              detailsLoading ? (
-                null
-              ) : selectedOrder ? (
+              selectedOrder ? (
                 <AdminOrderDetails
                   order={selectedOrder}
                   refunding={actionOrderId === selectedOrder.id}
@@ -857,11 +913,14 @@ function AdminPageContent({ initialData }: Props) {
                   formatDeliveryStatus={formatDeliveryStatus}
                   buildStatusLabel={buildAdminOrderStatusLabel}
                 />
+              ) : selectedOrderId && detailsLoading ? (
+                <CabinetSkeleton variant="detail" />
               ) : (
                 <AdminOrdersTab
                   orders={orders}
                   buildStatusLabel={buildAdminOrderStatusLabel}
                   onOpenOrder={openOrder}
+                  onPrefetchOrder={prefetchOrder}
                 />
               )
             ) : currentTab === "sellers" ? (
@@ -883,8 +942,6 @@ function AdminPageContent({ initialData }: Props) {
                   )
                 }
               />
-            ) : detailsLoading ? (
-              null
             ) : selectedProduct ? (
               <AdminProductDetails
                 key={selectedProduct.id}
@@ -908,6 +965,8 @@ function AdminPageContent({ initialData }: Props) {
                   void runProductAction(selectedProduct.id, unblockProduct)
                 }
               />
+            ) : selectedProductId && detailsLoading ? (
+              <CabinetSkeleton variant="detail" />
             ) : (
               <AdminProductsTab
                 products={products}
@@ -919,6 +978,7 @@ function AdminPageContent({ initialData }: Props) {
                 onStatusChange={changeProductStatus}
                 onRefresh={() => void loadProducts({ silent: true })}
                 onOpenProduct={openProduct}
+                onPrefetchProduct={prefetchProduct}
                 onApprove={(id) => void runProductAction(id, approveProduct)}
                 onBlock={(id) => void runProductAction(id, blockProduct)}
                 onUnblock={(id) => void runProductAction(id, unblockProduct)}
@@ -933,4 +993,9 @@ function AdminPageContent({ initialData }: Props) {
 
 export function AdminPageClient({ initialData }: Props) {
   return <AdminPageContent initialData={initialData} />;
+}
+
+function getAdminSkeletonVariant(tab: AdminTab): CabinetSkeletonVariant {
+  if (tab === "dictionaries" || tab === "sellers") return "form";
+  return "list";
 }

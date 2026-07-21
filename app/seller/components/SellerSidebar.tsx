@@ -9,8 +9,6 @@ type Props = {
   ordersCount: number;
   productsCount: number;
   storeName: string | null;
-  creatingProduct?: boolean;
-  onCreateProduct?: () => void;
 };
 
 export function SellerSidebar({
@@ -18,31 +16,26 @@ export function SellerSidebar({
   ordersCount,
   productsCount,
   storeName,
-  creatingProduct = false,
-  onCreateProduct,
 }: Props) {
   return (
     <CabinetSidebar
       ariaLabel="Меню продавца"
       subtitle="Кабинет продавца"
       title={storeName ?? undefined}
-      titleLoading={!storeName}
       mobileInline
       items={[
+        {
+          href: "/seller",
+          label: "Главная",
+          icon: "dashboard",
+          active: currentTab === "home",
+        },
         {
           href: "/seller?tab=products",
           label: "Товары",
           icon: "package",
           active: currentTab === "products",
           count: productsCount,
-          action: onCreateProduct
-            ? {
-                label: "Добавить товар",
-                mobileLabel: "+",
-                onClick: onCreateProduct,
-                disabled: creatingProduct,
-              }
-            : undefined,
         },
         {
           href: "/seller?tab=orders",
@@ -52,14 +45,22 @@ export function SellerSidebar({
           count: ordersCount,
         },
         {
+          href: "/seller?tab=finance",
+          label: "Финансы",
+          mobileLabel: "Финансы",
+          icon: "wallet",
+          active: currentTab === "finance",
+        },
+        {
           href: "/seller?tab=brand",
-          label: "Производитель",
+          label: "Бренд",
           icon: "store",
           active: currentTab === "brand",
         },
         {
           href: "/seller?tab=legal",
-          label: "Реквизиты",
+          label: "Информация",
+          mobileLabel: "Инфо",
           icon: "file",
           active: currentTab === "legal",
         },

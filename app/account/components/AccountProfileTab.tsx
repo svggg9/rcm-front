@@ -12,12 +12,14 @@ import styles from "./AccountProfileTab.module.css";
 type Props = {
   email: string;
   firstName: string;
+  lastName: string;
   phone: string;
   saving: boolean;
   changed: boolean;
   savedMessage: string | null;
   onSave: () => void;
   onFirstNameChange: (value: string) => void;
+  onLastNameChange: (value: string) => void;
   onPhoneChange: (value: string) => void;
 };
 
@@ -49,12 +51,14 @@ function getPasswordErrorMessage(message: string | undefined) {
 export function AccountProfileTab({
   email,
   firstName,
+  lastName,
   phone,
   saving,
   changed,
   savedMessage,
   onSave,
   onFirstNameChange,
+  onLastNameChange,
   onPhoneChange,
 }: Props) {
   const [passwordModalOpen, setPasswordModalOpen] = useState(false);
@@ -126,17 +130,23 @@ export function AccountProfileTab({
         </div>
 
         <div className={styles.formGrid}>
+          <PhoneInput
+            label="Телефон"
+            fieldVariant="boxed"
+            value={phone}
+            onChange={(event) => onPhoneChange(event.target.value)}
+          />
+
           <ProfileTextField
             label="Имя"
             value={firstName}
             onChange={(event) => onFirstNameChange(event.target.value)}
           />
 
-          <PhoneInput
-            label="Телефон"
-            fieldVariant="boxed"
-            value={phone}
-            onChange={(event) => onPhoneChange(event.target.value)}
+          <ProfileTextField
+            label="Фамилия"
+            value={lastName}
+            onChange={(event) => onLastNameChange(event.target.value)}
           />
 
           <ProfileTextField label="Электронная почта" value={email} disabled />

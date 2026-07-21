@@ -43,7 +43,7 @@ export function AdminOrderDetails({
     if (!canRefund || refunding) return;
 
     const confirmed = window.confirm(
-      "Вернуть оплату по всей группе заказа? Это действие отправит возврат в платежный провайдер."
+      "Вернуть оплату по этому заказу? Это действие отправит возврат в платежный провайдер."
     );
 
     if (!confirmed) return;

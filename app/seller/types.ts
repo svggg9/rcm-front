@@ -1,4 +1,10 @@
-export type SellerTab = "orders" | "products" | "brand" | "legal";
+export type SellerTab =
+  | "home"
+  | "orders"
+  | "products"
+  | "finance"
+  | "brand"
+  | "legal";
 
 export type Option = {
   id: number;
@@ -189,4 +195,72 @@ export type SellerBrandProfileRequest = {
   vk: string;
   country: string;
   foundationYear: number | null;
+};
+
+export type SellerFinanceOperation = {
+  type: "SALE" | "SELLER_DEBIT" | "SELLER_PAYOUT";
+  direction: "CREDIT" | "DEBIT";
+  amount: number;
+  currency: string;
+  orderId: number | null;
+  description: string | null;
+  createdAt: string;
+};
+
+export type SellerPayoutStatus =
+  | "READY"
+  | "SENT"
+  | "PAID"
+  | "FAILED"
+  | "CANCELLED";
+
+export type SellerPayoutItem = {
+  id: number;
+  type: "ORDER" | "ADJUSTMENT";
+  orderId: number | null;
+  grossAmount: number;
+  commissionAmount: number;
+  adjustmentAmount: number;
+  netAmount: number;
+  description: string | null;
+};
+
+export type SellerPayout = {
+  id: number;
+  sellerId: number;
+  sellerName: string;
+  status: SellerPayoutStatus;
+  scheduledDate: string;
+  currency: string;
+  grossSalesAmount: number;
+  commissionAmount: number;
+  adjustmentsAmount: number;
+  payoutAmount: number;
+  inn: string;
+  bankName: string;
+  bik: string;
+  checkingAccount: string;
+  correspondentAccount: string | null;
+  paymentOrderNumber: string | null;
+  adminComment: string | null;
+  createdAt: string;
+  sentAt: string | null;
+  paidAt: string | null;
+  items: SellerPayoutItem[];
+};
+
+export type SellerFinanceSummary = {
+  salesAmount: number;
+  commissionAmount: number;
+  adjustmentsAmount: number;
+  paidOutAmount: number;
+  estimatedBalance: number;
+  availableAmount: number;
+  processingAmount: number;
+  nextPayoutAmount: number;
+  paidThisMonthAmount: number;
+  nextPayoutDate: string;
+  bankDetailsReady: boolean;
+  payouts: SellerPayout[];
+  operations: SellerFinanceOperation[];
 };

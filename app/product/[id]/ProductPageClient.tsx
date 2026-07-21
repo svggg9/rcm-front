@@ -44,7 +44,7 @@ export default function ProductPageClient({
 
   const [adding, setAdding] = useState(false);
   const [openDescription, setOpenDescription] = useState(true);
-  const [openShipping, setOpenShipping] = useState(false);
+  const [openBrand, setOpenBrand] = useState(false);
 
   const [selectedVariantId, setSelectedVariantId] = useState<number | null>(null);
 
@@ -98,6 +98,13 @@ export default function ProductPageClient({
   const sameBrandProducts = useMemo(
     () => related.filter((item) => item.brand === product.brand),
     [product.brand, related]
+  );
+  const sameCategoryProducts = useMemo(
+    () =>
+      related.filter(
+        (item) => item.category === product.category && item.brand !== product.brand
+      ),
+    [product.brand, product.category, related]
   );
 
   const viewerProgress =
@@ -278,9 +285,9 @@ export default function ProductPageClient({
               onToggleFavorite={handleToggleFavorite}
               onEditProduct={() => router.push(`/seller/products/${product.id}/edit`)}
               openDescription={openDescription}
-              openShipping={openShipping}
+              openBrand={openBrand}
               onToggleDescription={() => setOpenDescription((prev) => !prev)}
-              onToggleShipping={() => setOpenShipping((prev) => !prev)}
+              onToggleBrand={() => setOpenBrand((prev) => !prev)}
             />
           </div>
 
@@ -289,6 +296,12 @@ export default function ProductPageClient({
             variant="carousel"
             title={`Еще от ${product.brand}`}
             products={sameBrandProducts}
+          />
+          <ProductShowcase
+            className={styles.relatedSection}
+            variant="carousel"
+            title="Похожие товары"
+            products={sameCategoryProducts}
           />
 
         </div>

@@ -42,9 +42,32 @@
 }
 
 .skeleton {
+  position: relative;
+  overflow: hidden;
   width: 72px;
   height: 20px;
-  background: var(--soft);
+  border-radius: 4px;
+  background: #eeeeec;
+}
+
+.skeleton::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgb(255 255 255 / 72%),
+    transparent
+  );
+  animation: telegramSkeletonShimmer 1.25s ease-in-out infinite;
+}
+
+@keyframes telegramSkeletonShimmer {
+  to {
+    transform: translateX(100%);
+  }
 }
 
 @media (max-width: 640px) {

@@ -1,6 +1,8 @@
 "use client";
 
+import Link from "next/link";
 import styles from "../ProductPage.module.css";
+import { ProductDescriptionText } from "./ProductDescriptionText";
 
 import type { Product, Variant } from "../lib/types";
 
@@ -8,9 +10,9 @@ type Props = {
   product: Product;
   selectedVariant: Variant | null;
   openDescription: boolean;
-  openShipping: boolean;
+  openBrand: boolean;
   onToggleDescription: () => void;
-  onToggleShipping: () => void;
+  onToggleBrand: () => void;
 };
 
 function ChevronIcon() {
@@ -27,11 +29,12 @@ export function ProductDetailsAccordion({
   product,
   selectedVariant,
   openDescription,
-  openShipping,
+  openBrand,
   onToggleDescription,
-  onToggleShipping,
+  onToggleBrand,
 }: Props) {
   const composition = product.composition?.trim();
+  const brandDescription = product.brandDescription?.trim();
 
   return (
     <div className={styles.accordion}>
@@ -50,15 +53,14 @@ export function ProductDetailsAccordion({
           <div className={styles.accBodyOpen}>
             <div className={styles.descriptionMain}>
               <div className={styles.detailGroup}>
-                <h3 className={styles.subTitle}>Подробнее о товаре</h3>
-                <p className={styles.text}>
-                  {product.description || "Описание пока не заполнено."}
-                </p>
+                <ProductDescriptionText
+                  text={product.description || ""}
+                  fallback="???????? ???? ?? ?????????."
+                />
               </div>
 
               {composition ? (
                 <div className={styles.detailGroup}>
-                  <h3 className={styles.subTitle}>Состав</h3>
                   <p className={styles.text}>{composition}</p>
                 </div>
               ) : null}
@@ -81,28 +83,32 @@ export function ProductDetailsAccordion({
         ) : null}
       </section>
 
-      <section className={styles.accItem}>
-        <button
-          type="button"
-          className={styles.accBtn}
-          onClick={onToggleShipping}
-          aria-expanded={openShipping}
-        >
-          <span>Доставка и возврат</span>
-          <ChevronIcon />
-        </button>
+      {brandDescription ? (
+        <section className={styles.accItem}>
+          <button
+            type="button"
+            className={styles.accBtn}
+            onClick={onToggleBrand}
+            aria-expanded={openBrand}
+          >
+            <span>О бренде</span>
+            <ChevronIcon />
+          </button>
 
-        {openShipping ? (
-          <div className={styles.accBody}>
-            <div className={styles.shippingText}>
-              <p>
-                Возврат возможен в течение 14 дней после получения заказа, если
-                товар сохранил товарный вид, бирки и упаковку.
-              </p>
+          {openBrand ? (
+            <div className={styles.accBody}>
+              <div className={styles.brandAboutText}>
+                <ProductDescriptionText text={brandDescription} fallback="" />
+                {product.brandSlug ? (
+                  <Link href={`/brand/${product.brandSlug}`}>
+                    Все товары бренда
+                  </Link>
+                ) : null}
+              </div>
             </div>
-          </div>
-        ) : null}
-      </section>
+          ) : null}
+        </section>
+      ) : null}
     </div>
   );
 }

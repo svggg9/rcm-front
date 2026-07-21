@@ -96,10 +96,15 @@
   background: var(--soft);
 }
 
-.iconBtn img {
+.iconBtn img,
+.iconBtn svg {
   width: 21px;
   height: 21px;
   display: block;
+}
+
+.iconBtn svg {
+  color: var(--black);
 }
 
 .iconWrap {

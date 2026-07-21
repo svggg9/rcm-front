@@ -28,6 +28,7 @@ import {
 } from "../lib/sellerLegalApi";
 
 import styles from "./SellerLegalTab.module.css";
+import { CabinetSkeleton } from "../../components/ui/CabinetSkeleton";
 
 type FormErrors = Partial<Record<keyof SellerLegalInfoForm, string>>;
 
@@ -468,20 +469,7 @@ export function SellerLegalTab() {
   }
 
   if (loading) {
-    return (
-      <section className={styles.page}>
-        <div className={styles.skeletonHeader} />
-        <div className={styles.skeletonCard}>
-          <div className={styles.skeletonLine} />
-          <div className={styles.skeletonGrid}>
-            <div />
-            <div />
-            <div />
-            <div />
-          </div>
-        </div>
-      </section>
-    );
+    return <CabinetSkeleton variant="form" />;
   }
 
   return (

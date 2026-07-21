@@ -12,8 +12,14 @@ import { useCurrentUser } from "../../lib/useCurrentUser";
 import { useFavorites } from "../../lib/FavoritesContext";
 import { useUserRole } from "../../lib/useUserRole";
 import { useAuthModal } from "../AuthModal/useAuthModal";
+import { Icon } from "../ui/Icon";
 
 type Category = {
+  id: number;
+  name: string;
+};
+
+type SellerBrandOption = {
   id: number;
   name: string;
 };
@@ -26,6 +32,10 @@ const audienceItems = [
 
 function isSellerRole(role: string | null) {
   return role === "SELLER" || role === "ROLE_SELLER";
+}
+
+function isAdminRole(role: string | null) {
+  return role === "ADMIN" || role === "ROLE_ADMIN";
 }
 
 function HeaderContent() {
@@ -41,6 +51,7 @@ function HeaderContent() {
   const [loadingCategories, setLoadingCategories] = useState(true);
   const [menuOpen, setMenuOpen] = useState(false);
   const [menuAudience, setMenuAudience] = useState(activeAudience);
+  const [sellerBrandName, setSellerBrandName] = useState<string | null>(null);
 
   const { user, isAuthenticated: isAuth } = useCurrentUser();
   const cartCount = useCartCount();
@@ -48,6 +59,44 @@ function HeaderContent() {
   const { count: favoritesCount } = useFavorites();
   const { openAuth } = useAuthModal();
 
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadSellerBrandName() {
+      if (isAuth !== true || !isSellerRole(role)) {
+        setSellerBrandName(null);
+        return;
+      }
+
+      try {
+        const response = await apiFetch(`${API_URL}/api/seller/brands`);
+
+        if (!response.ok) {
+          throw new Error("Failed to load seller brands");
+        }
+
+        const data = (await response.json()) as SellerBrandOption[];
+        const firstBrandName = Array.isArray(data)
+          ? data[0]?.name?.trim() || null
+          : null;
+
+        if (!cancelled) {
+          setSellerBrandName(firstBrandName);
+        }
+      } catch {
+        if (!cancelled) {
+          setSellerBrandName(null);
+        }
+      }
+    }
+
+    void loadSellerBrandName();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isAuth, role]);
 
   useEffect(() => {
     if (!menuOpen) {
@@ -192,18 +241,24 @@ function HeaderContent() {
           </Link>
 
           <div className={styles.actions}>
-            {isAuth === true && isSellerRole(role) ? (
+            {isAuth === true && isAdminRole(role) ? (
               <Link
-                href="/seller?tab=products"
+                href="/admin"
                 className={styles.iconBtn}
-                aria-label="Кабинет продавца"
+                aria-label="Админка"
+                title="Админка"
               >
-                <Image
-                  src="/icons/seller.svg"
-                  alt="Кабинет продавца"
-                  width={22}
-                  height={22}
-                />
+                <Icon name="settings" size={22} strokeWidth={1.8} />
+              </Link>
+            ) : null}
+            {isAuth === true && isSellerRole(role) && sellerBrandName ? (
+              <Link
+                href="/seller"
+                className={styles.brandBtn}
+                aria-label="Кабинет продавца"
+                title="Кабинет продавца"
+              >
+                {sellerBrandName}
               </Link>
             ) : null}
 
@@ -236,7 +291,7 @@ function HeaderContent() {
             </Link>
 
             {isAuth === true ? (
-              <Link href="/account?tab=profile" className={styles.iconBtn}>
+              <Link href="/account" className={styles.iconBtn}>
                 <Image src="/icons/user.svg" alt="Profile" width={22} height={22} />
               </Link>
               ) : (
@@ -244,7 +299,7 @@ function HeaderContent() {
                   type="button"
                   className={styles.iconBtn}
                   onClick={() =>
-                    openAuth("login", "/account?tab=profile", {
+                    openAuth("login", "/account", {
                       placement: "anchored",
                     })
                   }
@@ -334,9 +389,23 @@ function HeaderContent() {
           <div className={styles.mobileAccount}>
             <div className={styles.mobileAccountTitle}>В личный кабинет</div>
 
+            {isAuth === true && isAdminRole(role) ? (
+              <Link
+                href="/admin"
+                className={styles.mobileProfileLink}
+                onClick={() => setMenuOpen(false)}
+              >
+                <span className={styles.mobileProfileMain}>
+                  <Icon name="settings" size={18} strokeWidth={1.8} />
+                  <span>Админка</span>
+                </span>
+                <span aria-hidden="true">›</span>
+              </Link>
+            ) : null}
+
             {isAuth === true ? (
               <Link
-                href="/account?tab=profile"
+                href="/account"
                 className={styles.mobileProfileLink}
                 onClick={() => setMenuOpen(false)}
               >
@@ -353,7 +422,7 @@ function HeaderContent() {
                   className={styles.mobilePrimary}
                   onClick={() => {
                     setMenuOpen(false);
-                    openAuth("login", "/account?tab=profile");
+                    openAuth("login", "/account");
                   }}
                 >
                   Войти
@@ -363,7 +432,7 @@ function HeaderContent() {
                   className={styles.mobileSecondary}
                   onClick={() => {
                     setMenuOpen(false);
-                    openAuth("register", "/account?tab=profile");
+                    openAuth("register", "/account");
                   }}
                 >
                   Зарегистрироваться

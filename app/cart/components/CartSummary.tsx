@@ -13,7 +13,6 @@ type Props = {
 export function CartSummary({ subtotal, onCheckout, disabled }: Props) {
   return (
     <aside className={styles.summary}>
-      <h2 className={styles.summaryTitle}>Сумма заказа</h2>
 
       <div className={styles.summaryBlock}>
         <div className={styles.summaryRow}>

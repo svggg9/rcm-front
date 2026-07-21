@@ -320,6 +320,116 @@
   font-size: var(--font-xs);
 }
 
+.shippingGuide {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 16px;
+  background: #f7f7f5;
+}
+
+.shippingGuideIntro,
+.shippingWeightHint,
+.shippingWeightWarning {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.shippingGuideIntro > svg,
+.shippingWeightHint > svg,
+.shippingWeightWarning > svg {
+  flex: 0 0 auto;
+  margin-top: 1px;
+}
+
+.shippingGuideIntro > div {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.shippingGuideIntro strong,
+.shippingWeightMetric strong {
+  color: var(--black);
+  font-size: var(--font-sm);
+  font-weight: 500;
+  line-height: 1.35;
+}
+
+.shippingGuideIntro span,
+.shippingWeightHint span,
+.shippingWeightWarning span,
+.shippingWeightMetric span {
+  color: var(--muted);
+  font-size: var(--font-xs);
+  font-weight: 400;
+  line-height: 1.45;
+}
+
+.shippingGuideIntro .shippingGuideExample {
+  max-width: 680px;
+  margin-top: 5px;
+  color: var(--black);
+}
+
+.shippingMeasureGuide {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px 20px;
+}
+
+.shippingMeasureGuide > div {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.shippingMeasureGuide strong {
+  color: var(--black);
+  font-size: var(--font-xs);
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+.shippingMeasureGuide span {
+  color: var(--muted);
+  font-size: var(--font-xs);
+  font-weight: 400;
+  line-height: 1.45;
+}
+
+.shippingWeightGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.shippingWeightMetric {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.shippingWeightMetric strong {
+  font-size: var(--font-md);
+}
+
+.shippingWeightWarning {
+  color: #8a6a2f;
+}
+
+.shippingWeightWarning span {
+  color: #715824;
+}
+
+.shippingWeightHint {
+  color: var(--muted);
+}
+
 /* buttons */
 
 .primaryBtn,
@@ -1357,6 +1467,15 @@
     grid-template-columns: 1fr;
   }
 
+  .shippingWeightGrid {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .shippingMeasureGuide {
+    grid-template-columns: 1fr;
+  }
+
   .header {
     flex-direction: column;
     align-items: stretch;
@@ -1681,4 +1800,47 @@
 .lockedSecondaryBtn:disabled {
   cursor: not-allowed;
   opacity: 0.42;
+}
+
+.descriptionFieldShell {
+  position: relative;
+  width: 100%;
+}
+
+.descriptionFieldShell .textarea {
+  padding-right: 78px;
+}
+
+.descriptionToolbar {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 14;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.descriptionToolButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  transition: color 0.18s ease;
+}
+
+.descriptionToolButton:hover,
+.descriptionToolButton:focus-visible {
+  color: var(--black);
+}
+
+.descriptionToolButton:focus-visible {
+  outline: 1px solid var(--black);
+  outline-offset: 2px;
 }

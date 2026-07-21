@@ -332,76 +332,30 @@
 .summary {
   position: sticky;
   top: calc(var(--site-header-height) + 24px);
+
   height: fit-content;
-  padding: 16px;
-  border: 1px solid var(--line);
-  background: var(--white);
+  padding-top: 20px;
 }
 
-.summaryTop {
-  padding: 0 0 16px;
-}
-
-.summaryTotalLine {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 16px;
-
-  margin-bottom: 0;
-}
-
-.summaryTotalLabel {
-  color: var(--black);
-  font-size: var(--font-lg);
-  font-weight: 500;
-}
-
-.summaryTotalValue {
-  color: var(--black);
-  font-size: 14px;
-  font-weight: 300;
-}
-
-.placeOrderBtn {
-  width: 100%;
-}
-
-.disclaimer {
-  margin-top: 14px;
-
-  color: var(--muted);
-
-  font-size: var(--font-xs);
-  line-height: 1.5;
-}
-
-.summaryDivider {
-  height: 1px;
-  background: var(--line);
-  margin: 0 -16px;
-}
-
-.summaryBlock {
-  padding: 16px 0 0;
-}
 
 .summaryItems {
   display: flex;
   flex-direction: column;
   gap: 14px;
+
+  margin-bottom: 22px;
 }
 
 .summaryItem {
   display: grid;
-  grid-template-columns: 42px minmax(0, 1fr) auto;
+  grid-template-columns: 52px minmax(0, 1fr) auto;
   gap: 12px;
-  align-items: start;
+  align-items: center;
 }
 
 .summaryImage {
-  width: 42px;
-  height: 56px;
+  width: 52px;
+  height: 68px;
   object-fit: cover;
   background: var(--soft);
 }
@@ -413,12 +367,12 @@
 .summaryItemTitle {
   color: var(--black);
   font-size: var(--font-sm);
-  font-weight: 500;
+  font-weight: 400;
   line-height: 1.35;
 }
 
 .summaryItemMeta {
-  margin-top: 2px;
+  margin-top: 3px;
 
   color: var(--muted);
   font-size: var(--font-xs);
@@ -426,26 +380,36 @@
 
 .summaryItemPrice {
   color: var(--black);
-  font-size: 14px;
+  font-size: var(--font-sm);
   font-weight: 300;
   white-space: nowrap;
 }
 
-.summaryLines {
-  margin-top: 18px;
+.summaryBlock {
+  margin-bottom: 20px;
 }
 
-.summaryRow {
+.summaryRow,
+.summaryTotal {
   display: flex;
   justify-content: space-between;
   gap: 16px;
-  padding: 8px 0;
-  color: var(--muted);
-  font-size: var(--font-sm);
+
+  padding: 10px 0;
+
+  color: var(--black);
+  font-size: var(--font-md);
 }
 
-.summaryRow span:last-child {
-  color: var(--black);
+.summaryRow {
+  font-weight: 300;
+}
+
+.summaryTotal {
+  margin-bottom: 20px;
+
+  font-size: var(--font-xl);
+  font-weight: 500;
 }
 
 @media (max-width: 1024px) {
@@ -468,20 +432,9 @@
   }
 
   .summary {
-    padding: 14px;
+    padding-top: 16px;
   }
 
-  .summaryTop {
-    padding-bottom: 14px;
-  }
-
-  .summaryDivider {
-    margin: 0 -14px;
-  }
-
-  .summaryBlock {
-    padding-top: 14px;
-  }
 
   .contactGrid,
   .paymentMethods {
@@ -615,9 +568,7 @@
   font-size: var(--font-sm);
 }
 
-.checkoutActions {
-  max-width: 680px;
-  padding: 22px 0;
+.summaryActions {
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -625,7 +576,6 @@
 
 .finalSubmitButton {
   width: 100%;
-  min-height: 52px;
 }
 
 .disclaimer {
@@ -633,11 +583,4 @@
   color: var(--muted);
   font-size: var(--font-xs);
   line-height: 1.5;
-}
-
-@media (max-width: 760px) {
-  .checkoutActions {
-    max-width: none;
-    padding: 20px 0;
-  }
 }

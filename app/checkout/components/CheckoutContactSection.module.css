@@ -33,6 +33,13 @@
   gap: 12px;
 }
 
+.contactGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 12px;
+  align-items: start;
+}
+
 .fieldWrap {
   position: relative;
 }
@@ -103,5 +110,9 @@
   .section {
     max-width: none;
     padding: 20px 0;
+  }
+
+  .contactGrid {
+    grid-template-columns: 1fr;
   }
 }

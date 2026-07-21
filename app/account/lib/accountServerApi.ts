@@ -1,7 +1,7 @@
 import { cookies } from "next/headers";
 
 import { API_URL } from "../../lib/config";
-import type { Me, OrderListItem, PageResponse } from "../types";
+import type { Me, Order, OrderListItem, PageResponse } from "../types";
 
 async function serverFetch<T>(path: string): Promise<T | null> {
   const cookieStore = await cookies();
@@ -28,4 +28,8 @@ export async function getAccountOrdersServer(): Promise<OrderListItem[]> {
   );
 
   return Array.isArray(data?.content) ? data.content : [];
+}
+
+export async function getAccountOrderServer(orderId: number): Promise<Order | null> {
+  return serverFetch<Order>(`/api/orders/${orderId}`);
 }

@@ -48,24 +48,19 @@ export async function getAdminProductsServer(
 export async function getAdminProductStatusCountsServer(): Promise<
   Record<ProductStatus | "ALL", number>
 > {
-  const statuses: Array<ProductStatus | "ALL"> = [
-    "MODERATION",
-    "NEEDS_REVISION",
-    "ACTIVE",
-    "BLOCKED",
-    "DRAFT",
-    "ARCHIVED",
-    "ALL",
-  ];
-
-  const pairs = await Promise.all(
-    statuses.map(async (status) => {
-      const data = await getAdminProductsServer(status, 0, 1);
-      return [status, data?.totalElements ?? 0] as const;
-    })
+  const data = await serverFetch<Record<ProductStatus | "ALL", number>>(
+    "/api/admin/products/status-counts"
   );
 
-  return Object.fromEntries(pairs) as Record<ProductStatus | "ALL", number>;
+  return data ?? {
+    MODERATION: 0,
+    NEEDS_REVISION: 0,
+    ACTIVE: 0,
+    BLOCKED: 0,
+    DRAFT: 0,
+    ARCHIVED: 0,
+    ALL: 0,
+  };
 }
 
 export async function getAdminProductServer(
@@ -117,24 +112,16 @@ export async function getAdminSellerApplicationsServer(
 export async function getAdminSellerApplicationStatusCountsServer(): Promise<
   Record<SellerApplicationStatus | "ALL", number>
 > {
-  const statuses: Array<SellerApplicationStatus | "ALL"> = [
-    "NEW",
-    "APPROVED",
-    "REJECTED",
-    "ALL",
-  ];
+  const data = await serverFetch<
+    Record<SellerApplicationStatus | "ALL", number>
+  >("/api/admin/seller-applications/status-counts");
 
-  const pairs = await Promise.all(
-    statuses.map(async (status) => {
-      const data = await getAdminSellerApplicationsServer(status, 0, 1);
-      return [status, data?.totalElements ?? 0] as const;
-    })
-  );
-
-  return Object.fromEntries(pairs) as Record<
-    SellerApplicationStatus | "ALL",
-    number
-  >;
+  return data ?? {
+    NEW: 0,
+    APPROVED: 0,
+    REJECTED: 0,
+    ALL: 0,
+  };
 }
 
 export async function getAdminLedgerEntriesServer(

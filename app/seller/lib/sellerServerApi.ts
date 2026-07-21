@@ -4,9 +4,12 @@ import { API_URL } from "../../lib/config";
 import type {
   PageResponse,
   SellerBrand,
+  SellerFinanceSummary,
+  SellerOrder,
   SellerOrderListItem,
   SellerProductListItem,
 } from "../types";
+import type { SellerOnboardingStatus } from "./sellerOnboardingApi";
 
 async function serverFetch<T>(path: string): Promise<T | null> {
   const cookieStore = await cookies();
@@ -43,4 +46,16 @@ export async function getSellerBrandsServer(): Promise<SellerBrand[]> {
   const data = await serverFetch<SellerBrand[]>("/api/seller/brands");
 
   return Array.isArray(data) ? data : [];
+}
+
+export async function getSellerOrderServer(orderId: number): Promise<SellerOrder | null> {
+  return serverFetch<SellerOrder>(`/api/seller/orders/${orderId}`);
+}
+
+export async function getSellerFinanceServer(): Promise<SellerFinanceSummary | null> {
+  return serverFetch<SellerFinanceSummary>("/api/seller/finance/summary");
+}
+
+export async function getSellerOnboardingStatusServer(): Promise<SellerOnboardingStatus | null> {
+  return serverFetch<SellerOnboardingStatus>("/api/seller/onboarding-status");
 }

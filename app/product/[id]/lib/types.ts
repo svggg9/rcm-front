@@ -30,6 +30,7 @@ export type Product = {
   article?: string;
   brand: string;
   brandSlug?: string | null;
+  brandDescription?: string | null;
   category: string;
   audience?: "MEN" | "WOMEN" | "UNISEX";
   status?:

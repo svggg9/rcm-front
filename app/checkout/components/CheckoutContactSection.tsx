@@ -4,13 +4,11 @@ import { PhoneInput } from "../../components/ui/PhoneInput";
 import styles from "./CheckoutContactSection.module.css";
 
 type Props = {
-  email: string;
   fullName: string;
   phone: string;
   otherRecipientEnabled: boolean;
   otherRecipientName: string;
   otherRecipientPhone: string;
-  onEmailChange: (value: string) => void;
   onFullNameChange: (value: string) => void;
   onPhoneChange: (value: string) => void;
   onOtherRecipientEnabledChange: (value: boolean) => void;
@@ -19,13 +17,11 @@ type Props = {
 };
 
 export function CheckoutContactSection({
-  email,
   fullName,
   phone,
   otherRecipientEnabled,
   otherRecipientName,
   otherRecipientPhone,
-  onEmailChange,
   onFullNameChange,
   onPhoneChange,
   onOtherRecipientEnabledChange,
@@ -41,34 +37,24 @@ export function CheckoutContactSection({
       </div>
 
       <div className={styles.body}>
-        <PhoneInput
-          label="Телефон"
-          fieldVariant="boxed"
-          value={phone}
-          onChange={(event) => onPhoneChange(event.target.value)}
-          required
-        />
-
-        <div className={styles.fieldWrap}>
-          <span className={styles.fieldLabel}>Электронная почта</span>
-          <input
-            className={styles.textField}
-            value={email}
-            onChange={(event) => onEmailChange(event.target.value)}
-            type="email"
-            inputMode="email"
-            autoComplete="email"
+        <div className={styles.contactGrid}>
+          <PhoneInput
+            label="Телефон"
+            fieldVariant="boxed"
+            value={phone}
+            onChange={(event) => onPhoneChange(event.target.value)}
+            required
           />
-        </div>
 
-        <div className={styles.fieldWrap}>
-          <span className={styles.fieldLabel}>Фамилия, имя и отчество</span>
-          <input
-            className={styles.textField}
-            value={fullName}
-            onChange={(event) => onFullNameChange(event.target.value)}
-            autoComplete="name"
-          />
+          <div className={styles.fieldWrap}>
+            <span className={styles.fieldLabel}>Имя и фамилия</span>
+            <input
+              className={styles.textField}
+              value={fullName}
+              onChange={(event) => onFullNameChange(event.target.value)}
+              autoComplete="name"
+            />
+          </div>
         </div>
 
         <label className={styles.checkbox}>

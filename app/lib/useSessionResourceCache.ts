@@ -1,0 +1,60 @@
+"use client";
+
+import { useCallback, useRef } from "react";
+
+type LoadOptions = {
+  force?: boolean;
+};
+
+export function useSessionResourceCache<Key, Value>(
+  loader: (key: Key) => Promise<Value>
+) {
+  const loaderRef = useRef(loader);
+  const cacheRef = useRef(new Map<Key, Value>());
+  const pendingRef = useRef(new Map<Key, Promise<Value>>());
+
+  loaderRef.current = loader;
+
+  const get = useCallback(async (key: Key, options?: LoadOptions) => {
+    if (!options?.force) {
+      const cached = cacheRef.current.get(key);
+      if (cached !== undefined) return cached;
+
+      const pending = pendingRef.current.get(key);
+      if (pending) return pending;
+    }
+
+    const request = loaderRef.current(key)
+      .then((value) => {
+        cacheRef.current.set(key, value);
+        return value;
+      })
+      .finally(() => {
+        if (pendingRef.current.get(key) === request) {
+          pendingRef.current.delete(key);
+        }
+      });
+
+    pendingRef.current.set(key, request);
+    return request;
+  }, []);
+
+  const peek = useCallback((key: Key) => cacheRef.current.get(key), []);
+
+  const seed = useCallback((key: Key, value: Value) => {
+    cacheRef.current.set(key, value);
+  }, []);
+
+  const prefetch = useCallback(
+    (key: Key) => {
+      void get(key).catch(() => undefined);
+    },
+    [get]
+  );
+
+  const invalidate = useCallback((key: Key) => {
+    cacheRef.current.delete(key);
+  }, []);
+
+  return { get, peek, seed, prefetch, invalidate };
+}

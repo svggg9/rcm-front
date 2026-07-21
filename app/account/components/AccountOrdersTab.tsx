@@ -11,12 +11,14 @@ type Props = {
   orders: OrderListItem[];
   buildOrderStatusLabel: (order: OrderListItem) => string;
   onOpenOrder: (orderId: number) => void;
+  onPrefetchOrder?: (orderId: number) => void;
 };
 
 export function AccountOrdersTab({
   orders,
   buildOrderStatusLabel,
   onOpenOrder,
+  onPrefetchOrder,
 }: Props) {
   return (
     <section className={styles.page}>
@@ -42,6 +44,7 @@ export function AccountOrdersTab({
               order={order}
               statusLabel={buildOrderStatusLabel(order)}
               onClick={() => onOpenOrder(order.id)}
+              onPrefetch={() => onPrefetchOrder?.(order.id)}
             />
           ))}
         </div>

@@ -11,12 +11,14 @@ type Props = {
   order: OrderListItem;
   statusLabel: string;
   onClick: () => void;
+  onPrefetch?: () => void;
 };
 
 export function AccountOrderCard({
   order,
   statusLabel,
   onClick,
+  onPrefetch,
 }: Props) {
   const extraItemsCount = Math.max(order.itemsCount - 1, 0);
   const productTitles =
@@ -32,6 +34,8 @@ export function AccountOrderCard({
       role="button"
       tabIndex={0}
       onClick={onClick}
+      onMouseEnter={onPrefetch}
+      onFocus={onPrefetch}
       onKeyDown={(event) => {
         if (event.key === "Enter" || event.key === " ") {
           event.preventDefault();

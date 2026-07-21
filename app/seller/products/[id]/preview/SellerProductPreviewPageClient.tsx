@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 
 import ProductPageClient from "../../../../product/[id]/ProductPageClient";
+import { CabinetPageSkeleton } from "../../../../components/ui/CabinetSkeleton";
 import { API_URL, apiFetch } from "../../../../lib/api";
 import type { Product } from "../../../../product/[id]/lib/types";
 import type { SellerProduct } from "../edit/types";
@@ -69,7 +70,7 @@ export function SellerProductPreviewPageClient({ productId }: Props) {
   );
 
   if (loading) {
-    return null;
+    return <CabinetPageSkeleton variant="detail" />;
   }
 
   if (error || !previewProduct) {
@@ -116,7 +117,7 @@ function mapSellerProductToPreviewProduct(product: SellerProduct): Product {
     description: product.description || "",
     composition: product.composition || "",
     article: product.article || undefined,
-    brand: product.brand || "Бренд",
+    brand: product.brand || "",
     brandSlug: null,
     category: product.category || "",
     audience: product.audience,

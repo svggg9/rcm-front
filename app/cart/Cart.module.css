@@ -218,15 +218,6 @@
   padding-top: 20px;
 }
 
-.summaryTitle {
-  margin-bottom: 18px;
-
-  color: var(--black);
-
-  font-size: var(--font-2xl);
-  font-weight: 500;
-  letter-spacing: -0.02em;
-}
 
 .summaryBlock {
   margin-bottom: 20px;

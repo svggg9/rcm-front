@@ -27,6 +27,11 @@ export function ProductPreviewAside({
   packageWeightKg,
   variantsCount,
 }: Props) {
+  const brandName =
+    brands.find((brand) => brand.id === brandId)?.name?.trim() ||
+    product?.brand?.trim() ||
+    null;
+
   return (
     <aside className={styles.aside}>
       <div className={styles.stickyCard}>
@@ -52,9 +57,7 @@ export function ProductPreviewAside({
             </StatusBadge>
           ) : null}
         </div>
-        <p className="textCaption">
-          {brands.find((brand) => brand.id === brandId)?.name || product?.brand || "Бренд"}
-        </p>
+        {brandName ? <p className="textCaption">{brandName}</p> : null}
 
         <a
           href={`/seller/products/${productId}/preview`}

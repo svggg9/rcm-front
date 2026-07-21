@@ -32,6 +32,7 @@ type Props = {
   footer?: ReactNode;
   ariaLabel: string;
   mobileInline?: boolean;
+  onNavigate?: (href: string) => void;
 };
 
 export function CabinetSidebar({
@@ -42,13 +43,21 @@ export function CabinetSidebar({
   footer,
   ariaLabel,
   mobileInline = false,
+  onNavigate,
 }: Props) {
-  const [pendingActiveKey, setPendingActiveKey] = useState<string | null>(null);
+  const activeItem = items.find((item) => item.active);
+  const activeItemKey = activeItem ? getItemKey(activeItem) : null;
+  const [pendingNavigation, setPendingNavigation] = useState<{
+    from: string | null;
+    to: string;
+  } | null>(null);
+  const pendingActiveKey =
+    pendingNavigation?.from === activeItemKey ? pendingNavigation.to : null;
 
   return (
     <aside
       className={`${styles.sidebar} ${mobileInline ? styles.mobileInline : ""}`}
-      onMouseLeave={() => setPendingActiveKey(null)}
+      onMouseLeave={() => setPendingNavigation(null)}
     >
       {title || subtitle ? (
         <div className={styles.head}>
@@ -75,7 +84,13 @@ export function CabinetSidebar({
                 className={`${styles.item} textSmall ${item.action ? styles.itemWithAction : ""} ${isActive ? styles.itemActive : ""}`}
                 aria-current={isActive ? "page" : undefined}
                 prefetch={false}
-                onClick={() => setPendingActiveKey(itemKey)}
+                onClick={(event) => {
+                  setPendingNavigation({ from: activeItemKey, to: itemKey });
+                  if (onNavigate) {
+                    event.preventDefault();
+                    onNavigate(item.href!);
+                  }
+                }}
               >
                 {item.icon ? (
                   <Icon name={item.icon} size={17} className={styles.itemIcon} />

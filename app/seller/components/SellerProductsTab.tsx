@@ -9,12 +9,17 @@ import { CabinetTabs, type CabinetTabItem } from "../../components/ui/CabinetTab
 import { EmptyState } from "../../components/ui/EmptyState";
 import { Price } from "../../components/ui/Price";
 import { StatusBadge } from "../../components/ui/StatusBadge";
+import { CabinetSkeleton } from "../../components/ui/CabinetSkeleton";
+import { Button } from "../../components/ui/Button";
+import { Icon } from "../../components/ui/Icon";
 
 import type { SellerProductListItem } from "../types";
 
 type Props = {
   products: SellerProductListItem[];
   loading: boolean;
+  creatingProduct?: boolean;
+  onCreateProduct?: () => void;
 };
 
 type ProductFilter =
@@ -28,6 +33,8 @@ type ProductFilter =
 export function SellerProductsTab({
   products,
   loading,
+  creatingProduct = false,
+  onCreateProduct,
 }: Props) {
   const [items, setItems] = useState(products);
   const [filter, setFilter] = useState<ProductFilter>("ALL");
@@ -47,11 +54,11 @@ export function SellerProductsTab({
   const archivedCount = items.filter((product) => product.status === "ARCHIVED").length;
   const productTabs: CabinetTabItem<ProductFilter>[] = [
     { value: "ALL", label: "Все", count: commonItems.length },
-    { value: "ACTIVE", label: "Активные", count: activeCount },
-    { value: "MODERATION", label: "На модерации", count: moderationCount },
-    { value: "NEEDS_REVISION", label: "На доработке", count: revisionCount },
-    { value: "DRAFT", label: "Черновики", count: draftCount },
-    { value: "ARCHIVED", label: "Архив", count: archivedCount },
+    { value: "ACTIVE", label: "Активные", count: activeCount || undefined },
+    { value: "MODERATION", label: "Модерация", count: moderationCount || undefined },
+    { value: "NEEDS_REVISION", label: "Доработка", count: revisionCount || undefined },
+    { value: "DRAFT", label: "Черновики", count: draftCount || undefined },
+    { value: "ARCHIVED", label: "Архив", count: archivedCount || undefined },
   ];
 
   const filteredProducts = useMemo(() => {
@@ -80,21 +87,39 @@ export function SellerProductsTab({
 
   return (
     <div className={styles.productsPage}>
+      <header className={styles.pageHeader}>
+        <div>
+          <h1>Товары</h1>
+          <p>Управление ассортиментом, ценами и остатками</p>
+        </div>
+
+        {onCreateProduct ? (
+          <Button
+            type="button"
+            variant="primaryShimmer"
+            className={styles.addButton}
+            onClick={onCreateProduct}
+            disabled={creatingProduct}
+          >
+            <Icon name="plus" size={16} />
+            <span>Добавить товар</span>
+          </Button>
+        ) : null}
+      </header>
+
       <div className={styles.productsToolbar}>
         <CabinetTabs
           items={productTabs}
           value={filter}
           onChange={setFilter}
           ariaLabel="Фильтр товаров"
-          fullBleedMobile
-          pinFirst
           countTone="gold"
-          tone="gold"
+          appearance="line"
         />
       </div>
 
       {loading ? (
-        null
+        <CabinetSkeleton variant="list" compact />
       ) : items.length === 0 ? (
         <EmptyState
           icon="package"

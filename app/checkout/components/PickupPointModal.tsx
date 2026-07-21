@@ -64,23 +64,13 @@ export function PickupPointModal({
                 </button>
 
                 <div className={styles.provider}>СДЭК</div>
-
                 <div className={styles.address}>{selectedPoint.label}</div>
 
-                <div className={styles.detailLine}>
-                  Пн — пт: 10:00-21:00; сб, вс: 10:00-20:00
-                </div>
-
-                <div className={styles.detailLine}>
-                  Доставка — в воскресенье {deliveryPrice > 0 ? <Price amount={deliveryPrice} /> : "рассчитаем"}
-                </div>
-
-                <div className={styles.detailLine}>Срок хранения 5 дней</div>
-                <div className={styles.detailLine}>Есть примерка</div>
-
-                <div className={styles.detailLine}>
-                  Банковская карта, наличные, онлайн-оплата
-                </div>
+                {deliveryPrice > 0 ? (
+                  <div className={styles.detailLine}>
+                    Стоимость доставки <Price amount={deliveryPrice} />
+                  </div>
+                ) : null}
 
                 {selectedPoint.hint ? (
                   <>
@@ -94,14 +84,14 @@ export function PickupPointModal({
                   className={styles.confirmButton}
                   onClick={onConfirm}
                 >
-                  Заберу здесь
+                  Выбрать этот пункт
                 </button>
               </div>
             ) : (
               <div className={styles.list}>
                 {points.length === 0 ? (
                   <div className={styles.empty}>
-                    Пункты выдачи не найдены. Попробуйте выбрать другой город.
+                    Пункты выдачи не найдены. Попробуйте выбрать другой город
                   </div>
                 ) : (
                   points.map((point) => (
@@ -111,15 +101,13 @@ export function PickupPointModal({
                       className={styles.item}
                       onClick={() => onSelect(point.id)}
                     >
-                      <span className={styles.itemTitle}>
-                        СДЭК • {point.label}
-                      </span>
+                      <span className={styles.itemTitle}>СДЭК • {point.label}</span>
 
-                      <span className={styles.itemMeta}>Есть примерка</span>
-
-                      <span className={styles.itemMeta}>
-                        Доставка — в воскресенье {deliveryPrice > 0 ? <Price amount={deliveryPrice} /> : "рассчитаем"}
-                      </span>
+                      {deliveryPrice > 0 ? (
+                        <span className={styles.itemMeta}>
+                          <Price amount={deliveryPrice} />
+                        </span>
+                      ) : null}
                     </button>
                   ))
                 )}

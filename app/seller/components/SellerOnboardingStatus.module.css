@@ -1,147 +1,135 @@
-.card {
-  position: relative;
-  padding: 18px;
-  border: 1px solid color-mix(in srgb, var(--black) 84%, var(--line));
-  background: var(--white);
-}
-
-.cardReady {
-  border-color: color-mix(in srgb, var(--black) 84%, var(--line));
-  background: rgba(33, 106, 67, 0.035);
-  padding-right: 48px;
-}
-
-.closeButton {
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  width: 28px;
-  height: 28px;
-  border: 1px solid transparent;
-  background: transparent;
-  color: var(--muted);
-  font-size: 22px;
-  line-height: 1;
-  cursor: pointer;
-}
-
-.closeButton:hover {
-  border-color: var(--line);
-  color: var(--black);
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 16px 0 4px;
 }
 
 .head {
   display: flex;
-  justify-content: space-between;
-  gap: 24px;
   align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
 }
 
-.kicker {
-  margin-bottom: 6px;
-  color: var(--muted);
-  font-size: var(--font-xs);
-  font-weight: 500;
-  letter-spacing: 0;
-  text-transform: uppercase;
-}
-
-.title {
+.head h2 {
   margin: 0;
   color: var(--black);
-  font-size: var(--font-xl);
-  font-weight: 500;
-  letter-spacing: -0.02em;
+  font-size: var(--font-md);
+  line-height: 1.3;
+  font-weight: 400;
+  letter-spacing: 0;
 }
 
-.progressValue {
-  color: color-mix(in srgb, var(--success) 72%, var(--black));
-  font-size: var(--font-xl);
-  font-weight: 500;
-  letter-spacing: -0.02em;
+.head p {
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-size: var(--font-xs);
+  line-height: 1.4;
+  font-weight: 300;
 }
 
-.progressTrack {
-  height: 2px;
-  margin-top: 14px;
+.counter {
+  flex: 0 0 auto;
+  color: var(--gold);
+  font-size: var(--font-sm);
+  line-height: 1.3;
+  font-weight: 400;
+}
+
+.progress {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 5px;
+  height: 3px;
+}
+
+.progress span {
   background: var(--line);
 }
 
-.progressBar {
-  height: 100%;
-  background: var(--success);
+.progress .progressDone {
+  background: var(--black);
 }
 
-.steps {
+.tasks {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 8px;
-  margin-top: 14px;
 }
 
-.step {
-  display: flex;
+.task {
+  min-width: 0;
+  min-height: 62px;
+  display: grid;
+  grid-template-columns: 20px minmax(0, 1fr) 18px;
   align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  min-height: 52px;
-  padding: 14px 16px;
+  gap: 11px;
+  padding: 11px 12px;
+  background: var(--soft);
   color: var(--black);
-  font-size: var(--font-sm);
   text-decoration: none;
-  transition:
-    background var(--transition-fast),
-    color var(--transition-fast);
+  transition: background var(--transition-fast);
 }
 
-.step:hover {
-  color: var(--content-primary-hover-label);
+.task:hover {
+  background: color-mix(in srgb, var(--soft) 70%, var(--line));
 }
 
-.stepStatic {
+.taskStatic {
+  grid-template-columns: 20px minmax(0, 1fr);
   cursor: default;
 }
 
-.stepArrow {
-  flex-shrink: 0;
+.taskStatic:hover {
+  background: var(--soft);
+}
+
+.taskIcon,
+.taskArrow {
   color: var(--muted);
-  font-size: 18px;
+}
+
+.taskText {
+  min-width: 0;
+}
+
+.taskText strong,
+.taskText span {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.taskText strong {
+  color: var(--black);
+  font-size: var(--font-sm);
+  line-height: 1.3;
+  font-weight: 400;
+}
+
+.taskText span {
+  margin-top: 3px;
+  color: var(--muted);
+  font-size: var(--font-xs);
+  line-height: 1.3;
   font-weight: 300;
-  line-height: 1;
 }
 
-.stepDone {
-  background: rgba(33, 106, 67, 0.08);
-}
-
-.stepPending {
-  background: rgba(138, 106, 47, 0.1);
-}
-
-.hint {
-  margin: 12px 0 0;
-  color: var(--muted);
-  font-size: var(--font-sm);
-  line-height: 1.45;
-}
-
-.state,
-.error {
-  margin-bottom: 24px;
-  color: var(--muted);
-  font-size: var(--font-sm);
-}
-
-.error {
-  color: var(--danger);
-}
-
-@media (max-width: 768px) {
-  .steps {
-    grid-template-columns: 1fr;
+@media (max-width: 720px) {
+  .section {
+    padding: 14px 14px 4px;
   }
 
-  .card {
-    padding: 16px;
+  .tasks {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 420px) {
+  .taskText strong,
+  .taskText span {
+    white-space: normal;
   }
 }

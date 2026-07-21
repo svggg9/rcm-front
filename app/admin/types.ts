@@ -76,10 +76,12 @@ export type SellerApplicationStatus = "NEW" | "APPROVED" | "REJECTED";
 
 export type FinancialLedgerEntryType =
   | "COMMISSION_ACCRUED"
+  | "COMMISSION_REVERSED"
   | "BUYER_DELIVERY_FEE"
   | "DELIVERY_COST_FORWARD"
   | "DELIVERY_SUBSIDY"
   | "DELIVERY_COST_RETURN"
+  | "BUYER_RETURN_DELIVERY_FEE"
   | "REFUND_ITEM"
   | "REFUND_DELIVERY"
   | "SELLER_DEBIT"
@@ -103,10 +105,63 @@ export type AdminFinancialLedgerEntry = {
   paymentId: number | null;
   refundId: number | null;
   deliveryShipmentId: number | null;
+  sellerPayoutId: number | null;
   idempotencyKey: string | null;
   description: string | null;
   metadataJson: string | null;
   createdAt: string;
+};
+
+export type AdminSellerPayoutStatus =
+  | "READY"
+  | "SENT"
+  | "PAID"
+  | "FAILED"
+  | "CANCELLED";
+
+export type AdminSellerPayoutItem = {
+  id: number;
+  type: "ORDER" | "ADJUSTMENT";
+  orderId: number | null;
+  grossAmount: number;
+  commissionAmount: number;
+  adjustmentAmount: number;
+  netAmount: number;
+  description: string | null;
+};
+
+export type AdminSellerPayout = {
+  id: number;
+  sellerId: number;
+  sellerName: string;
+  status: AdminSellerPayoutStatus;
+  scheduledDate: string;
+  currency: string;
+  grossSalesAmount: number;
+  commissionAmount: number;
+  adjustmentsAmount: number;
+  payoutAmount: number;
+  inn: string;
+  bankName: string;
+  bik: string;
+  checkingAccount: string;
+  correspondentAccount: string | null;
+  paymentOrderNumber: string | null;
+  adminComment: string | null;
+  createdAt: string;
+  sentAt: string | null;
+  paidAt: string | null;
+  items: AdminSellerPayoutItem[];
+};
+
+export type PayoutGenerationResult = {
+  scheduledDate: string;
+  payouts: AdminSellerPayout[];
+  skipped: Array<{
+    sellerId: number;
+    sellerName: string;
+    reason: string;
+  }>;
 };
 
 export type AdminOrderStatus = "NEW" | "CONFIRMED" | "CANCELED" | "COMPLETED";

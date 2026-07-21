@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { apiFetch, API_URL } from "../../../../lib/api";
+import { CabinetSkeleton } from "../../../../components/ui/CabinetSkeleton";
 
 import { ProductGeneralCard } from "./components/ProductGeneralCard";
 import { ProductVariantsCard } from "./components/ProductVariantsCard";
@@ -1094,51 +1095,5 @@ export function ProductEditPageClient({
 }
 
 function ProductEditSkeleton() {
-  return (
-      <div className={styles.page}>
-        <div className={styles.pageContent}>
-          <div className={styles.layout}>
-            <main className={styles.main}>
-              <SkeletonSection rows={5} />
-              <SkeletonSection rows={4} image />
-              <SkeletonSection rows={4} />
-
-              <div className={styles.skeletonActions}>
-                <div />
-                <div />
-              </div>
-            </main>
-
-            <aside className={styles.aside}>
-              <div className={styles.skeletonPreview}>
-                <div className={styles.skeletonPreviewImage} />
-                <div className={styles.skeletonPreviewLine} />
-                <div className={styles.skeletonPreviewLineShort} />
-                <div className={styles.skeletonPreviewButton} />
-              </div>
-            </aside>
-          </div>
-        </div>
-      </div>
-  );
-}
-
-function SkeletonSection({
-  rows,
-  image = false,
-}: {
-  rows: number;
-  image?: boolean;
-}) {
-  return (
-    <section className={styles.skeletonSection}>
-      <div className={styles.skeletonSectionTitle} />
-      {image ? <div className={styles.skeletonUpload} /> : null}
-      <div className={styles.skeletonFields}>
-        {Array.from({ length: rows }).map((_, index) => (
-          <div key={index} />
-        ))}
-      </div>
-    </section>
-  );
+  return <CabinetSkeleton variant="form" />;
 }

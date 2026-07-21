@@ -126,6 +126,32 @@ function getYmapsSearchApi(): YandexMapsSearchApi | null {
   return maybeWindow.ymaps as YandexMapsSearchApi;
 }
 
+const PENDING_PAYMENT_ORDER_KEY = "checkout_pending_payment_order_v1";
+
+function getPendingPaymentOrderKey(cartId: string): string {
+  return `${PENDING_PAYMENT_ORDER_KEY}:${cartId}`;
+}
+
+function loadPendingPaymentOrderId(cartId: string): number | null {
+  if (typeof window === "undefined" || !cartId) return null;
+
+  const raw = sessionStorage.getItem(getPendingPaymentOrderKey(cartId));
+  const id = raw ? Number(raw) : NaN;
+
+  return Number.isFinite(id) && id > 0 ? id : null;
+}
+
+function savePendingPaymentOrderId(cartId: string, orderId: number): void {
+  if (typeof window === "undefined" || !cartId) return;
+
+  sessionStorage.setItem(getPendingPaymentOrderKey(cartId), String(orderId));
+}
+
+function clearPendingPaymentOrderId(cartId: string): void {
+  if (typeof window === "undefined" || !cartId) return;
+
+  sessionStorage.removeItem(getPendingPaymentOrderKey(cartId));
+}
 function formatCityDisplayName(fullName: string): string {
   const cityName = fullName.split(",")[0]?.trim() ?? "";
 
@@ -169,7 +195,7 @@ function CheckoutPageContent() {
     apartment: "",
     floor: "",
     intercom: "",
-    fittingMode: "WITH_FITTING" as FittingMode,
+    fittingMode: "WITHOUT_FITTING" as FittingMode,
     comment: "",
   });
 
@@ -178,7 +204,7 @@ function CheckoutPageContent() {
   const [floor, setFloor] = useState("");
   const [intercom, setIntercom] = useState("");
   const [fittingMode, setFittingMode] =
-    useState<FittingMode>("WITH_FITTING");
+    useState<FittingMode>("WITHOUT_FITTING");
 
   const [otherRecipientEnabled, setOtherRecipientEnabled] = useState(false);
   const [otherRecipientName, setOtherRecipientName] = useState("");
@@ -189,7 +215,7 @@ function CheckoutPageContent() {
   const [phone, setPhone] = useState("");
 
   const [deliveryMethod, setDeliveryMethod] =
-    useState<DeliveryMethod>("COURIER");
+    useState<DeliveryMethod>("PICKUP");
 
   const [selectedAddressId, setSelectedAddressId] =
     useState("");
@@ -530,7 +556,15 @@ function CheckoutPageContent() {
     );
   }, [items]);
 
-  const total = subtotal + deliveryPrice;
+  const deliveryCalculated = Boolean(deliveryQuoteToken && deliveryOfferId);
+  const deliveryCalculating = quoteLoading || quotePending;
+  const submitDisabled =
+    submitting ||
+    deliveryCalculating ||
+    !deliveryCalculated ||
+    !selectedCity ||
+    items.length === 0;
+  const total = subtotal + (deliveryCalculated ? deliveryPrice : 0);
 
   const deliveryDateText = useMemo(() => {
     if (deliveryPeriodMinDays == null) return "";
@@ -704,38 +738,26 @@ function CheckoutPageContent() {
   async function createDeliveryQuote(options?: {
     silent?: boolean;
   }): Promise<SellerGroupDeliveryQuoteResponse | null> {
+    if (cartId && loadPendingPaymentOrderId(cartId)) {
+      return null;
+    }
+
     try {
       setQuoteLoading(true);
       setError(null);
 
       const quotePayload = {
-        method: deliveryMethod === "PICKUP" ? "PICKUP_POINT" : "COURIER",
+        method: "PICKUP_POINT",
         recipientName: fullName.trim(),
         recipientPhone: phone.trim(),
-        fittingMode,
-        pickupPointId:
-          deliveryMethod === "PICKUP" ? selectedAddressId : undefined,
-        address:
-          deliveryMethod === "PICKUP"
-            ? {
-                fullText:
-                  selectedPickupPoint?.label ??
-                  selectedCity?.fullName ??
-                  "",
-                cityCode:
-                  selectedPickupPoint?.cityCode ??
-                  selectedCity?.code ??
-                  undefined,
-              }
-            : {
-                fullText:
-                  deliveryAddress.trim() ||
-                  selectedCity?.fullName ||
-                  "",
-                cityCode: selectedCity?.code ?? undefined,
-                lat: addressLat ?? undefined,
-                lon: addressLon ?? undefined,
-              },
+        fittingMode: "WITHOUT_FITTING",
+        pickupPointId: selectedAddressId,
+        address: {
+          fullText:
+            selectedPickupPoint?.label ?? selectedCity?.fullName ?? "",
+          cityCode:
+            selectedPickupPoint?.cityCode ?? selectedCity?.code ?? undefined,
+        },
         comment: comment.trim() || undefined,
       };
 
@@ -772,8 +794,9 @@ function CheckoutPageContent() {
         e instanceof Error ? e.message : "Не удалось рассчитать доставку";
       resetDeliveryQuote();
 
+      setError(message);
       if (!options?.silent) {
-        showError(message);
+        toast.error(message);
       }
       return null;
     } finally {
@@ -782,6 +805,11 @@ function CheckoutPageContent() {
   }
 
   useEffect(() => {
+    if (cartId && loadPendingPaymentOrderId(cartId)) {
+      setQuotePending(false);
+      return;
+    }
+
     if (!selectedCity || items.length === 0) {
       setQuotePending(false);
       setSellerDeliveryCosts([]);
@@ -789,13 +817,10 @@ function CheckoutPageContent() {
     }
 
     const requestKey = JSON.stringify({
-      method: deliveryMethod,
+      method: "PICKUP",
       cityCode: selectedCity.code,
       pickupPointId: selectedAddressId,
-      address: deliveryMethod === "COURIER" ? deliveryAddress.trim() : "",
-      lat: addressLat,
-      lon: addressLon,
-      fittingMode,
+      fittingMode: "WITHOUT_FITTING",
     });
 
     if (quoteRequestKeyRef.current === requestKey) return;
@@ -813,15 +838,11 @@ function CheckoutPageContent() {
       window.clearTimeout(timeoutId);
     };
   }, [
+    cartId,
     selectedCity,
     items.length,
-    deliveryMethod,
     selectedAddressId,
     deliveryOptions,
-    deliveryAddress,
-    addressLat,
-    addressLon,
-    fittingMode,
   ]);
 
   async function selectAddressSuggestion(value: string) {
@@ -887,14 +908,67 @@ function CheckoutPageContent() {
     }
   }
 
+  async function redirectToPayment(orderId: number) {
+    const payResponse = await apiFetch(
+      `${API_URL}/api/payments/order/${encodeURIComponent(orderId)}/group`,
+      {
+        method: "POST",
+      }
+    );
+
+    if (!payResponse.ok) {
+      throw new Error(
+        await readCheckoutError(
+          payResponse,
+          `Ошибка инициализации оплаты (${payResponse.status})`
+        )
+      );
+    }
+
+    const payment: PaymentInitResponse = await payResponse.json();
+
+    if (!payment.confirmationUrl) {
+      throw new Error("Не пришла ссылка на оплату");
+    }
+
+    toast.success("Переходим к оплате");
+
+    window.location.href = payment.confirmationUrl;
+  }
   async function submitOrder() {
     if (submitLockRef.current || submitting) return;
 
-    if (!cartId || items.length === 0) return;
+    if (!cartId) return;
+
+    const pendingPaymentOrderId = loadPendingPaymentOrderId(cartId);
+
+    if (pendingPaymentOrderId) {
+      submitLockRef.current = true;
+      setSubmitting(true);
+      setError(null);
+
+      try {
+        await redirectToPayment(pendingPaymentOrderId);
+        return;
+      } catch (e) {
+        clearPendingPaymentOrderId(cartId);
+
+        const message =
+          e instanceof Error ? e.message : "Ошибка инициализации оплаты";
+
+        setError(message);
+        toast.error(message);
+        return;
+      } finally {
+        submitLockRef.current = false;
+        setSubmitting(false);
+      }
+    }
+
+    if (items.length === 0) return;
 
     const contactValidationError =
       validateContactDetails({
-        email,
         fullName,
         phone,
       });
@@ -949,7 +1023,10 @@ function CheckoutPageContent() {
     if (!activeDeliveryOfferId) {
       const quote = await createDeliveryQuote();
 
-      if (!quote) return;
+      if (!quote) {
+        showError("Не удалось рассчитать доставку. Оформление заказа временно недоступно.");
+        return;
+      }
 
       activeDeliveryOfferId = quote.externalOfferId || quote.quoteToken;
       activeDeliveryPrice = Number(quote.priceAmount || 0);
@@ -959,13 +1036,7 @@ function CheckoutPageContent() {
         : [];
     }
 
-    const pickupPointLabel =
-      deliveryMethod === "PICKUP" ? selectedPickupPoint?.label ?? "" : "";
-
-    const addressDetails =
-      deliveryMethod === "COURIER"
-        ? deliveryAddress.trim()
-        : pickupPointLabel;
+    const pickupPointLabel = selectedPickupPoint?.label ?? "";
 
     submitLockRef.current = true;
     setSubmitting(true);
@@ -977,27 +1048,14 @@ function CheckoutPageContent() {
         recipientName: actualRecipientName,
         recipientPhone: actualRecipientPhone,
         recipientEmail: email.trim(),
-        deliveryAddress: addressDetails,
-        deliveryMethod:
-          deliveryMethod === "PICKUP" ? "PICKUP_POINT" : "COURIER",
-        pickupPointId:
-          deliveryMethod === "PICKUP"
-            ? selectedAddressId || undefined
-            : undefined,
-        pickupPointLabel:
-          deliveryMethod === "PICKUP"
-            ? pickupPointLabel || undefined
-            : undefined,
+        deliveryAddress: pickupPointLabel,
+        deliveryMethod: "PICKUP_POINT",
+        pickupPointId: selectedAddressId || undefined,
+        pickupPointLabel: pickupPointLabel || undefined,
         deliveryCountryCode: countryCode,
         deliveryCityCode: selectedCity?.code,
         deliveryCityName: selectedCity?.fullName,
-        deliveryApartment:
-          deliveryMethod === "COURIER" ? apartment.trim() || undefined : undefined,
-        deliveryFloor:
-          deliveryMethod === "COURIER" ? floor.trim() || undefined : undefined,
-        deliveryIntercom:
-          deliveryMethod === "COURIER" ? intercom.trim() || undefined : undefined,
-        fittingMode,
+        fittingMode: "WITHOUT_FITTING",
         deliveryOfferId: activeDeliveryOfferId || undefined,
         deliveryPriceAmount: activeDeliveryPrice,
         deliveryCurrency: activeDeliveryCurrency,
@@ -1045,38 +1103,15 @@ function CheckoutPageContent() {
 
       const firstOrderId = orders[0]?.id;
 
-      clearCheckoutDraft();
-      emitCartChanged();
-
       if (!firstOrderId) {
         throw new Error("Order id is required for payment");
       }
 
-      const payResponse = await apiFetch(
-        `${API_URL}/api/payments/order/${encodeURIComponent(firstOrderId)}/group`,
-        {
-          method: "POST",
-        }
-      );
+      savePendingPaymentOrderId(cartId, firstOrderId);
+      clearCheckoutDraft();
+      emitCartChanged();
 
-      if (!payResponse.ok) {
-        throw new Error(
-          await readCheckoutError(
-            payResponse,
-            `Ошибка инициализации оплаты (${payResponse.status})`
-          )
-        );
-      }
-
-      const payment: PaymentInitResponse = await payResponse.json();
-
-      if (!payment.confirmationUrl) {
-        throw new Error("Не пришла ссылка на оплату");
-      }
-
-      toast.success("Переходим к оплате");
-
-      window.location.href = payment.confirmationUrl;
+      await redirectToPayment(firstOrderId);
     } catch (e) {
       const message =
         e instanceof Error ? e.message : "Ошибка оформления заказа";
@@ -1138,20 +1173,10 @@ function CheckoutPageContent() {
                 quoteLoading={quoteLoading || quotePending}
                 onPickupSearch={searchPickupPoints}
                 countryCode={countryCode}
-                deliveryMethod={deliveryMethod}
                 selectedAddressId={selectedAddressId}
-                deliveryAddress={deliveryAddress}
-                apartment={apartment}
-                floor={floor}
-                intercom={intercom}
-                fittingMode={fittingMode}
                 cityQuery={cityQuery}
                 cityOptions={cityOptions}
-                addressOptions={addressOptions}
                 deliveryDateText={deliveryDateText}
-                onAddressSelect={(value) => {
-                  void selectAddressSuggestion(value);
-                }}
                 selectedCity={selectedCity}
                 onCountryChange={(value) => {
                   setCountryCode(value);
@@ -1208,53 +1233,18 @@ function CheckoutPageContent() {
                 }}
                 comment={comment}
                 enabled={true}
-                onDeliveryMethodChange={(value) => {
-                  setDeliveryMethod(value);
-                  setAddressSearchEnabled(false);
-                  setAddressOptions([]);
-                  resetDeliveryQuote();
-                }}
                 onAddressChange={(value) => {
                   setSelectedAddressId(value);
-                }}
-                onDeliveryAddressFocus={() => {
-                  setAddressSearchEnabled(true);
-                }}
-                onDeliveryAddressChange={(value) => {
-                  setAddressSearchEnabled(true);
-                  setDeliveryAddress(value);
-                  setAddressLat(null);
-                  setAddressLon(null);
-                  resetDeliveryQuote();
-                }}
-                onAddressSuggestionsClose={() => {
-                  setAddressOptions([]);
-                }}
-                onApartmentChange={(value) => {
-                  setApartment(value);
-                }}
-                onFloorChange={(value) => {
-                  setFloor(value);
-                }}
-                onIntercomChange={(value) => {
-                  setIntercom(value);
-                }}
-                onFittingModeChange={(value) => {
-                  setFittingMode(value);
                 }}
                 onCommentChange={setComment}
               />
 
               <CheckoutContactSection
-                email={email}
                 fullName={fullName}
                 phone={phone}
                 otherRecipientEnabled={otherRecipientEnabled}
                 otherRecipientName={otherRecipientName}
                 otherRecipientPhone={otherRecipientPhone}
-                onEmailChange={(value) => {
-                  setEmail(value);
-                }}
                 onFullNameChange={(value) => {
                   setFullName(value);
                 }}
@@ -1276,31 +1266,17 @@ function CheckoutPageContent() {
                   {error}
                 </div>
               ) : null}
-
-              <div className={styles.checkoutActions}>
-                <button
-                  type="button"
-                  onClick={submitOrder}
-                  disabled={submitting || quoteLoading || quotePending}
-                  className={`${styles.finalSubmitButton} buttonPrimary`}
-                >
-                  Перейти к оплате
-                </button>
-
-                <div className={styles.disclaimer}>
-                  Оплата картой, T-Pay, СБП или SberPay на защищенной странице Т-Банка.
-                  Нажимая «Перейти к оплате», вы соглашаетесь с публичной офертой,
-                  политикой конфиденциальности, условиями обработки персональных данных
-                  и условиями доставки и возврата.
-                </div>
-              </div>
             </div>
 
             <CheckoutSummary
               items={items}
               subtotal={subtotal}
               deliveryPrice={deliveryPrice}
+              quoteLoading={deliveryCalculating}
+              deliveryCalculated={deliveryCalculated}
               total={total}
+              submitDisabled={submitDisabled}
+              onSubmit={submitOrder}
             />
           </div>
         )}

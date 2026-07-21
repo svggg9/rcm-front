@@ -16,6 +16,7 @@ type Props = {
   onStatusChange: (status: ProductStatus | "ALL") => void;
   onRefresh: () => void;
   onOpenProduct: (id: number) => void;
+  onPrefetchProduct?: (id: number) => void;
   onApprove: (id: number) => void;
   onBlock: (id: number) => void;
   onUnblock: (id: number) => void;
@@ -87,6 +88,7 @@ export function AdminProductsTab({
   onStatusChange,
   onRefresh,
   onOpenProduct,
+  onPrefetchProduct,
   onApprove,
   onBlock,
   onUnblock,
@@ -154,6 +156,8 @@ export function AdminProductsTab({
                 role="button"
                 tabIndex={0}
                 onClick={() => onOpenProduct(product.id)}
+                onMouseEnter={() => onPrefetchProduct?.(product.id)}
+                onFocus={() => onPrefetchProduct?.(product.id)}
                 onKeyDown={(event) => {
                   const target = event.target as HTMLElement;
 

@@ -7,8 +7,8 @@ import styles from "./Favorites.module.css";
 import { apiFetch, API_URL } from "../lib/api";
 import { getClientSession } from "../lib/client-session";
 import { getGuestFavoriteIds } from "../lib/favorites";
-import { Loader } from "../components/ui/Loader";
 import { EmptyState } from "../components/ui/EmptyState";
+import { ProductTileSkeleton } from "../components/ui/CommerceSkeleton";
 import { ProductTile } from "../components/ProductTile/ProductTile";
 
 type ProductVariantApi = {
@@ -176,7 +176,15 @@ export default function FavoritesPage() {
         </div>
 
         {loading ? (
-          <Loader />
+          <ul
+            className={styles.grid}
+            aria-label="Загрузка избранного"
+            aria-busy="true"
+          >
+            {Array.from({ length: 8 }).map((_, index) => (
+              <ProductTileSkeleton key={index} />
+            ))}
+          </ul>
         ) : products.length === 0 ? (
           <EmptyState
             icon="heart"

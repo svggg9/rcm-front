@@ -14,6 +14,7 @@ type Props = {
   orders: SellerOrderListItem[];
   buildSellerStatusLabel: (order: SellerOrderListItem) => string;
   onOpenOrder: (orderId: number) => void;
+  onPrefetchOrder?: (orderId: number) => void;
 };
 
 type OrderFilter =
@@ -28,6 +29,7 @@ export function SellerOrdersTab({
   orders,
   buildSellerStatusLabel,
   onOpenOrder,
+  onPrefetchOrder,
 }: Props) {
   const [filter, setFilter] = useState<OrderFilter>("ALL");
 
@@ -36,27 +38,27 @@ export function SellerOrdersTab({
     {
       value: "READY",
       label: "К отправке",
-      count: orders.filter(isReadyOrder).length,
+      count: orders.filter(isReadyOrder).length || undefined,
     },
     {
       value: "PENDING_PAYMENT",
-      label: "Ожидают оплаты",
-      count: orders.filter(isPendingPaymentOrder).length,
+      label: "Не оплачены",
+      count: orders.filter(isPendingPaymentOrder).length || undefined,
     },
     {
       value: "IN_TRANSIT",
       label: "В пути",
-      count: orders.filter(isInTransitOrder).length,
+      count: orders.filter(isInTransitOrder).length || undefined,
     },
     {
       value: "COMPLETED",
       label: "Завершены",
-      count: orders.filter(isCompletedOrder).length,
+      count: orders.filter(isCompletedOrder).length || undefined,
     },
     {
       value: "CANCELED",
       label: "Отменены",
-      count: orders.filter(isCanceledOrder).length,
+      count: orders.filter(isCanceledOrder).length || undefined,
     },
   ];
 
@@ -67,16 +69,19 @@ export function SellerOrdersTab({
 
   return (
     <section className={styles.page}>
+      <header className={styles.pageHeader}>
+        <h1>Заказы</h1>
+        <p>Обработка заказов и контроль отправлений</p>
+      </header>
+
       <div className={styles.ordersToolbar}>
         <CabinetTabs
           items={orderTabs}
           value={filter}
           onChange={setFilter}
           ariaLabel="Фильтр заказов"
-          fullBleedMobile
-          pinFirst
           countTone="gold"
-          tone="gold"
+          appearance="line"
         />
       </div>
 
@@ -101,6 +106,7 @@ export function SellerOrdersTab({
               order={order}
               statusLabel={buildSellerStatusLabel(order)}
               onOpen={onOpenOrder}
+              onPrefetch={onPrefetchOrder}
             />
           ))}
         </div>

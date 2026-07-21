@@ -67,10 +67,7 @@ export function loadCheckoutDraft(): CheckoutDraft | null {
 
     if (!parsed || typeof parsed !== "object") return null;
 
-    const deliveryMethod: DeliveryMethod =
-      parsed.deliveryMethod === "COURIER"
-        ? "COURIER"
-        : "PICKUP";
+    const deliveryMethod: DeliveryMethod = "PICKUP";
 
     const paymentMethod: PaymentMethod =
       parsed.paymentMethod === "CARD" ||
@@ -138,10 +135,7 @@ export function loadCheckoutDraft(): CheckoutDraft | null {
           ? parsed.intercom
           : "",
 
-      fittingMode:
-        parsed.fittingMode === "WITHOUT_FITTING"
-          ? "WITHOUT_FITTING"
-          : "WITH_FITTING",
+      fittingMode: "WITHOUT_FITTING",
 
       otherRecipientEnabled:
         parsed.otherRecipientEnabled === true,

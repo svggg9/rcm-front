@@ -9,6 +9,7 @@ type Props = {
   productsCount: number;
   ordersCount: number;
   sellersCount: number;
+  onNavigate?: (href: string) => void;
 };
 
 export function AdminSidebar({
@@ -16,6 +17,7 @@ export function AdminSidebar({
   productsCount,
   ordersCount,
   sellersCount,
+  onNavigate,
 }: Props) {
   return (
     <CabinetSidebar
@@ -23,6 +25,7 @@ export function AdminSidebar({
       mobileInline
       subtitle="RCM"
       title="Админка"
+      onNavigate={onNavigate}
       items={[
         {
           href: "/admin?tab=products",

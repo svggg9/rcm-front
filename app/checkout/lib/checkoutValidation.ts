@@ -1,7 +1,6 @@
 import { isValidPhone } from "../../lib/validation";
 
 export type CheckoutContactValues = {
-  email: string;
   fullName: string;
   phone: string;
 };
@@ -15,10 +14,6 @@ export type CheckoutDeliveryValues = {
 export function validateContactDetails(
   values: CheckoutContactValues
 ): string | null {
-  if (!values.email.trim()) {
-    return "Введите email";
-  }
-
   if (!values.fullName.trim()) {
     return "Введите ФИО";
   }

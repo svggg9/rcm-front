@@ -6,6 +6,7 @@ import { Button } from "../../../components/ui/Button";
 import { Price } from "../../../components/ui/Price";
 import { ProductDetailsAccordion } from "./ProductDetailsAccordion";
 import { ProductVariantSelect } from "./ProductVariantSelect";
+import { ProductDeliveryPreview } from "./ProductDeliveryPreview";
 import styles from "../ProductPage.module.css";
 
 import type { Product, Variant } from "../lib/types";
@@ -24,27 +25,11 @@ type Props = {
   isSellerView: boolean;
   onEditProduct: () => void;
   openDescription: boolean;
-  openShipping: boolean;
+  openBrand: boolean;
   onToggleDescription: () => void;
-  onToggleShipping: () => void;
+  onToggleBrand: () => void;
 };
 
-function formatDeliveryDate(value: Date) {
-  return new Intl.DateTimeFormat("ru-RU", {
-    day: "numeric",
-    month: "short",
-  }).format(value);
-}
-
-function getEstimatedDeliveryRange() {
-  const start = new Date();
-  const end = new Date();
-
-  start.setDate(start.getDate() + 3);
-  end.setDate(end.getDate() + 7);
-
-  return `${formatDeliveryDate(start)} - ${formatDeliveryDate(end)}`;
-}
 
 export function ProductInfoPanel({
   product,
@@ -60,23 +45,23 @@ export function ProductInfoPanel({
   isSellerView,
   onEditProduct,
   openDescription,
-  openShipping,
+  openBrand,
   onToggleDescription,
-  onToggleShipping,
+  onToggleBrand,
 }: Props) {
-  const deliveryRange = getEstimatedDeliveryRange();
-
   return (
     <aside className={styles.info}>
       <div className={styles.heading}>
         <div className={styles.brandRow}>
-          {product.brandSlug ? (
-            <Link href={`/brand/${product.brandSlug}`} className={styles.brand}>
-              {product.brand}
-            </Link>
-          ) : (
-            <div className={styles.brand}>{product.brand}</div>
-          )}
+          {product.brand.trim() ? (
+            product.brandSlug ? (
+              <Link href={`/brand/${product.brandSlug}`} className={styles.brand}>
+                {product.brand}
+              </Link>
+            ) : (
+              <div className={styles.brand}>{product.brand}</div>
+            )
+          ) : null}
 
           {!isSellerView ? (
             <button
@@ -142,18 +127,15 @@ export function ProductInfoPanel({
         </div>
       </div>
 
-      <div className={styles.deliveryEstimate}>
-        <div className={styles.deliveryEstimateTitle}>Примерная доставка</div>
-        <div className={styles.deliveryEstimateValue}>{deliveryRange}</div>
-      </div>
+      <ProductDeliveryPreview productId={product.id} />
 
       <ProductDetailsAccordion
         product={product}
         selectedVariant={selectedVariant}
         openDescription={openDescription}
-        openShipping={openShipping}
+        openBrand={openBrand}
         onToggleDescription={onToggleDescription}
-        onToggleShipping={onToggleShipping}
+        onToggleBrand={onToggleBrand}
       />
     </aside>
   );

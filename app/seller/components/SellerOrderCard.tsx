@@ -12,12 +12,14 @@ type Props = {
   order: SellerOrderListItem;
   statusLabel: string;
   onOpen: (orderId: number) => void;
+  onPrefetch?: (orderId: number) => void;
 };
 
 export function SellerOrderCard({
   order,
   statusLabel,
   onOpen,
+  onPrefetch,
 }: Props) {
   const extraItemsCount = Math.max(order.itemsCount - 1, 0);
   const productTitles =
@@ -33,6 +35,8 @@ export function SellerOrderCard({
       role="button"
       tabIndex={0}
       onClick={() => onOpen(order.id)}
+      onMouseEnter={() => onPrefetch?.(order.id)}
+      onFocus={() => onPrefetch?.(order.id)}
       onKeyDown={(event) => {
         if (event.key === "Enter" || event.key === " ") {
           event.preventDefault();

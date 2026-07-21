@@ -47,17 +47,6 @@ function normalizeCountryCode(value?: string | null): CountryCode {
   return value === "RU" ? "RU" : "RU";
 }
 
-function normalizeDeliveryMethod(value?: string | null): DeliveryMethod | null {
-  if (value === "COURIER") return "COURIER";
-  if (value === "PICKUP" || value === "PICKUP_POINT") return "PICKUP";
-  return null;
-}
-
-function normalizeFittingMode(value?: string | null): FittingMode | null {
-  if (value === "WITH_FITTING" || value === "WITHOUT_FITTING") return value;
-  return null;
-}
-
 function isEmailLike(value?: string | null): boolean {
   return Boolean(value?.trim().match(/^[^\s@]+@[^\s@]+\.[^\s@]+$/));
 }
@@ -89,10 +78,6 @@ export function buildCheckoutPrefill(params: {
   const me = params.me ?? null;
   const existing = params.existing ?? {};
 
-  const resolvedDeliveryMethod =
-    existing.deliveryMethod ||
-    normalizeDeliveryMethod(me?.defaultDeliveryMethod) ||
-    "PICKUP";
   const existingEmail = (existing.email ?? "").trim();
   const profileEmail = me?.email?.trim() ?? "";
   const existingFullName = (existing.fullName ?? "").trim();
@@ -114,8 +99,7 @@ export function buildCheckoutPrefill(params: {
       me?.phone?.trim() ||
       "",
 
-    deliveryMethod:
-      resolvedDeliveryMethod === "COURIER" ? "COURIER" : "PICKUP",
+    deliveryMethod: "PICKUP",
 
     deliveryAddress:
       (existing.deliveryAddress ?? "").trim() ||
@@ -147,10 +131,7 @@ export function buildCheckoutPrefill(params: {
       me?.defaultDeliveryIntercom?.trim() ||
       "",
 
-    fittingMode:
-      existing.fittingMode ||
-      normalizeFittingMode(me?.defaultFittingMode) ||
-      "WITH_FITTING",
+    fittingMode: "WITHOUT_FITTING",
 
     comment:
       (existing.comment ?? "").trim() || "",

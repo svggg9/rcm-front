@@ -1,14 +1,14 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useRef, useState } from "react";
 
 import { Button } from "../../components/ui/Button";
+import { Icon } from "../../components/ui/Icon";
 
 import type { SellerBrand, SellerBrandProfileRequest } from "../types";
 import { emitSellerOnboardingChanged } from "../lib/sellerOnboardingEvents";
 import {
-  getSellerBrands,
   updateSellerBrandProfile,
   uploadSellerBrandLogo,
 } from "../lib/sellerBrandApi";
@@ -25,6 +25,10 @@ type FormState = {
   vk: string;
   country: string;
   foundationYear: string;
+};
+
+type Props = {
+  initialBrands: SellerBrand[];
 };
 
 function toFormState(brand: SellerBrand): FormState {
@@ -59,57 +63,27 @@ function toPayload(
   };
 }
 
-export function SellerBrandTab() {
-  const [brands, setBrands] = useState<SellerBrand[]>([]);
-  const [selectedBrandId, setSelectedBrandId] = useState<number | null>(null);
-  const [form, setForm] = useState<FormState | null>(null);
+export function SellerBrandTab({ initialBrands }: Props) {
+  const firstInitialBrand = initialBrands[0] ?? null;
+  const [brands, setBrands] = useState<SellerBrand[]>(initialBrands);
+  const [form, setForm] = useState<FormState | null>(
+    firstInitialBrand ? toFormState(firstInitialBrand) : null
+  );
 
-  const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const logoInputRef = useRef<HTMLInputElement | null>(null);
 
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
+  const [dirty, setDirty] = useState(false);
 
-  const selectedBrand = useMemo(
-    () => brands.find((brand) => brand.id === selectedBrandId) ?? null,
-    [brands, selectedBrandId]
-  );
-
-  useEffect(() => {
-    let cancelled = false;
-
-    setLoading(true);
-    setError(null);
-
-    getSellerBrands()
-      .then((data) => {
-        if (cancelled) return;
-
-        setBrands(data);
-
-        const firstBrand = data[0] ?? null;
-        setSelectedBrandId(firstBrand?.id ?? null);
-        setForm(firstBrand ? toFormState(firstBrand) : null);
-      })
-      .catch((e: Error) => {
-        if (cancelled) return;
-        setError(e.message);
-      })
-      .finally(() => {
-        if (cancelled) return;
-        setLoading(false);
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+  const selectedBrand = brands[0] ?? null;
 
   function updateField<K extends keyof FormState>(key: K, value: FormState[K]) {
     setForm((prev) => (prev ? { ...prev, [key]: value } : prev));
     setSaved(false);
+    setDirty(true);
   }
 
   async function uploadLogo(file: File | null) {
@@ -125,7 +99,11 @@ export function SellerBrandTab() {
       setBrands((prev) =>
         prev.map((brand) => (brand.id === updated.id ? updated : brand))
       );
-      setForm(toFormState(updated));
+      setForm((prev) =>
+        prev
+          ? { ...prev, logoUrl: updated.logoUrl ?? "" }
+          : toFormState(updated)
+      );
       emitSellerOnboardingChanged();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Не удалось загрузить логотип");
@@ -155,6 +133,7 @@ export function SellerBrandTab() {
       );
       setForm(toFormState(updated));
       setSaved(true);
+      setDirty(false);
       emitSellerOnboardingChanged();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Не удалось сохранить профиль");
@@ -163,35 +142,21 @@ export function SellerBrandTab() {
     }
   }
 
-  if (loading) {
-    return (
-      <section className={styles.page}>
-        <div className={styles.skeletonHeader} />
-        <div className={styles.skeletonCard}>
-          <div className={styles.skeletonLine} />
-          <div className={styles.skeletonGrid}>
-            <div />
-            <div />
-            <div />
-            <div />
-          </div>
-        </div>
-      </section>
-    );
-  }
-
   if (brands.length === 0) {
     return (
       <section className={styles.page}>
         <div className={styles.header}>
           <div>
-            <div className={styles.kicker}>Производитель</div>
-            <h1 className={styles.title}>Профиль бренда</h1>
+            <h1 className={styles.title}>Бренд</h1>
             <p className={styles.hint}>
-              У вас пока нет привязанных брендов. Позже здесь будет форма заявки
-              на добавление производителя на площадку.
+              К аккаунту пока не привязан бренд
             </p>
           </div>
+        </div>
+        <div className={styles.emptyState}>
+          <Icon name="store" size={28} />
+          <strong>Профиль бренда недоступен</strong>
+          <span>Обратитесь к администратору площадки</span>
         </div>
       </section>
     );
@@ -199,24 +164,53 @@ export function SellerBrandTab() {
 
   if (!selectedBrand || !form) return null;
 
+  const completionFields = [
+    form.name,
+    form.logoUrl,
+    form.description,
+    form.country,
+    form.foundationYear,
+    form.website,
+  ];
+  const completion = Math.round(
+    (completionFields.filter((value) => value.trim()).length /
+      completionFields.length) *
+      100
+  );
+
   return (
     <section className={styles.page}>
       <div className={styles.header}>
         <div>
-          <div className={styles.kicker}>Производитель</div>
-          <h1 className={styles.title}>Профиль бренда</h1>
+          <h1 className={styles.title}>Бренд</h1>
           <p className={styles.hint}>
-            Заполните данные производителя. Они будут использоваться на публичной
-            странице бренда.
+            Данные публичной страницы и каналы связи
           </p>
         </div>
 
+        {selectedBrand.slug ? (
+          <a
+            href={`/brand/${selectedBrand.slug}`}
+            className={styles.openLink}
+            target="_blank"
+            rel="noreferrer"
+          >
+            <span>Открыть страницу</span>
+            <Icon name="arrow-up-right" size={16} />
+          </a>
+        ) : null}
       </div>
 
       {error ? <div className={styles.error}>{error}</div> : null}
 
-      <div className={styles.main}>
-        <div className={styles.brandProfileCard}>
+      <form
+        className={styles.main}
+        onSubmit={(event) => {
+          event.preventDefault();
+          void save();
+        }}
+      >
+        <section className={styles.brandHero}>
           <button
             type="button"
             className={styles.logoButton}
@@ -229,7 +223,7 @@ export function SellerBrandTab() {
                 src={form.logoUrl}
                 alt=""
                 fill
-                sizes="84px"
+                sizes="112px"
                 className={styles.logoImage}
               />
             ) : (
@@ -237,6 +231,10 @@ export function SellerBrandTab() {
                 {form.name.trim().slice(0, 1) || "R"}
               </span>
             )}
+            <span className={styles.logoAction}>
+              <Icon name="plus" size={14} />
+              <span>{uploadingLogo ? "Загрузка" : "Изменить"}</span>
+            </span>
           </button>
 
           <input
@@ -249,19 +247,40 @@ export function SellerBrandTab() {
             }
           />
 
-          <div className={styles.brandProfileInfo}>
-            <div className={styles.brandProfileTitle}>
+          <div className={styles.brandSummary}>
+            <span className={styles.summaryLabel}>Публичный профиль</span>
+            <h2 className={styles.brandProfileTitle}>
               {form.name.trim() || "Название бренда"}
+            </h2>
+            <div className={styles.completion}>
+              <div className={styles.completionHead}>
+                <span>Готовность профиля</span>
+                <strong>{completion}%</strong>
+              </div>
+              <div
+                className={styles.progress}
+                role="progressbar"
+                aria-label="Готовность профиля бренда"
+                aria-valuemin={0}
+                aria-valuemax={100}
+                aria-valuenow={completion}
+              >
+                <span style={{ width: `${completion}%` }} />
+              </div>
+              <p>
+                Чем полнее профиль, тем содержательнее страница бренда для покупателей
+              </p>
             </div>
           </div>
-        </div>
-        <div className={styles.card}>
-          <div className={styles.cardHeader}>
-            <h2>Основная информация</h2>
-            <p>Кратко расскажите о производителе и его происхождении.</p>
-          </div>
+        </section>
 
-          <div className={styles.verticalForm}>
+        <div className={styles.editorGrid}>
+          <section className={styles.formSection}>
+            <div className={styles.sectionHeader}>
+              <h2>О бренде</h2>
+              <p>Эта информация отображается на публичной странице</p>
+            </div>
+
             <BrandField label="Название">
               <input
                 className={`${styles.input} ${styles.inputReadonly}`}
@@ -280,52 +299,100 @@ export function SellerBrandTab() {
                 }
                 rows={4}
                 maxLength={1000}
-                placeholder="Расскажите о бренде, производстве, материалах и ценностях."
+                placeholder="Расскажите о бренде, производстве, материалах и ценностях"
               />
+              <span className={styles.characterCount}>
+                {form.description.length} / 1000
+              </span>
             </BrandField>
-          </div>
-        </div>
 
-        <div className={styles.card}>
-          <div className={styles.cardHeader}>
-            <h2>Ссылки</h2>
-            <p>Официальные каналы производителя.</p>
-          </div>
+            <div className={styles.twoColumns}>
+              <BrandField label="Страна">
+                <input
+                  className={styles.input}
+                  value={form.country}
+                  onChange={(event) => updateField("country", event.target.value)}
+                  placeholder="Россия"
+                />
+              </BrandField>
 
-          <div className={styles.formGrid}>
+              <BrandField label="Год основания">
+                <input
+                  className={styles.input}
+                  value={form.foundationYear}
+                  onChange={(event) =>
+                    updateField(
+                      "foundationYear",
+                      event.target.value.replace(/\D/g, "").slice(0, 4)
+                    )
+                  }
+                  inputMode="numeric"
+                  placeholder="2020"
+                />
+              </BrandField>
+            </div>
+          </section>
+
+          <section className={styles.formSection}>
+            <div className={styles.sectionHeader}>
+              <h2>Публичные ссылки</h2>
+              <p>Официальный сайт и социальные сети бренда</p>
+            </div>
+
             <BrandField label="Сайт">
               <input
                 className={styles.input}
                 value={form.website}
                 onChange={(event) => updateField("website", event.target.value)}
-                placeholder="brand.ru"
+                placeholder="https://brand.ru"
               />
             </BrandField>
-          </div>
 
-          <SellerTelegramCard />
+            <BrandField label="Telegram бренда">
+              <input
+                className={styles.input}
+                value={form.telegram}
+                onChange={(event) => updateField("telegram", event.target.value)}
+                placeholder="https://t.me/brand"
+              />
+            </BrandField>
+
+            <BrandField label="ВКонтакте">
+              <input
+                className={styles.input}
+                value={form.vk}
+                onChange={(event) => updateField("vk", event.target.value)}
+                placeholder="https://vk.com/brand"
+              />
+            </BrandField>
+          </section>
         </div>
 
+        <section className={styles.telegramSection}>
+          <SellerTelegramCard />
+        </section>
+
         <div className={styles.actionsBar}>
-          {selectedBrand.slug ? (
-            <a
-              href={`/brand/${selectedBrand.slug}`}
-              className={styles.openLink}
-              target="_blank"
-            >
-              Открыть страницу
-            </a>
-          ) : null}
+          <div className={styles.saveState} aria-live="polite">
+            {saved ? (
+              <>
+                <Icon name="check" size={15} />
+                <span>Изменения сохранены</span>
+              </>
+            ) : dirty ? (
+              <span>Есть несохраненные изменения</span>
+            ) : null}
+          </div>
 
           <Button
-            variant="primary"
-            onClick={() => void save()}
-            disabled={saving || saved}
+            type="submit"
+            variant="primaryShimmer"
+            disabled={saving || !dirty}
           >
             Сохранить
           </Button>
         </div>
-      </div>
+      </form>
     </section>
   );
 }

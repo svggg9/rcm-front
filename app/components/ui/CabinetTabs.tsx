@@ -17,6 +17,7 @@ type Props<T extends string> = {
   pinFirst?: boolean;
   countTone?: "black" | "gold";
   tone?: "muted" | "gold";
+  appearance?: "filled" | "line";
 };
 
 export function CabinetTabs<T extends string>({
@@ -28,6 +29,7 @@ export function CabinetTabs<T extends string>({
   pinFirst = false,
   countTone = "black",
   tone = "muted",
+  appearance = "filled",
 }: Props<T>) {
   const pinnedItem = pinFirst ? items[0] : null;
   const scrollItems = pinFirst ? items.slice(1) : items;
@@ -63,7 +65,9 @@ export function CabinetTabs<T extends string>({
     <div
       className={`${styles.root} ${
         fullBleedMobile ? styles.fullBleedMobile : ""
-      } ${tone === "gold" ? styles.gold : ""}`.trim()}
+      } ${tone === "gold" ? styles.gold : ""} ${
+        appearance === "line" ? styles.line : ""
+      }`.trim()}
     >
       <div
         className={`${styles.shell} ${pinnedItem ? styles.shellPinned : ""}`}

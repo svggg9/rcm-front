@@ -1,19 +1,23 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useEffect, useState, type MouseEvent } from "react";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
 import { apiFetch, API_URL, getSellerOrdersList } from "../lib/api";
+import { useSessionResourceCache } from "../lib/useSessionResourceCache";
+import { CabinetSkeleton } from "../components/ui/CabinetSkeleton";
 
 import { SellerSidebar } from "./components/SellerSidebar";
 import { SellerOrdersTab } from "./components/SellerOrdersTab";
 import { SellerOrderDetails } from "./components/SellerOrderDetails";
 import { SellerProductsTab } from "./components/SellerProductsTab";
 import { SellerBrandTab } from "./components/SellerBrandTab";
+import { SellerFinanceTab } from "./components/SellerFinanceTab";
+import { SellerHomeTab } from "./components/SellerHomeTab";
 import { SellerLegalTab } from "./components/SellerLegalTab";
 import { SellerOnboardingStatus } from "./components/SellerOnboardingStatus";
-import { getSellerBrands } from "./lib/sellerBrandApi";
+import type { SellerOnboardingStatus as SellerOnboardingStatusType } from "./lib/sellerOnboardingApi";
 
 import type {
   PageResponse,
@@ -23,6 +27,7 @@ import type {
   SellerOrderStatus,
   SellerPaymentStatus,
   SellerBrand,
+  SellerFinanceSummary,
   SellerProductListItem,
   SellerTab,
 } from "./types";
@@ -112,27 +117,56 @@ function isActiveSellerProduct(product: SellerProductListItem): boolean {
 type Props = {
   initialProducts: SellerProductListItem[];
   initialOrders: SellerOrderListItem[];
+  initialBrands: SellerBrand[];
+  initialFinance: SellerFinanceSummary | null;
+  initialOnboardingStatus: SellerOnboardingStatusType | null;
+  initialTab: SellerTab;
+  initialOrderId: string | null;
+  initialSelectedOrder: SellerOrder | null;
 };
 
-function SellerPageContent({ initialProducts, initialOrders }: Props) {
+async function fetchSellerOrder(orderId: number): Promise<SellerOrder> {
+  const response = await apiFetch(`${API_URL}/api/seller/orders/${orderId}`);
+
+  if (!response.ok) {
+    const text = await response.text().catch(() => "");
+    throw new Error(text || `Не удалось загрузить заказ (${response.status})`);
+  }
+
+  return response.json() as Promise<SellerOrder>;
+}
+
+function SellerPageContent({
+  initialProducts,
+  initialOrders,
+  initialBrands,
+  initialFinance,
+  initialOnboardingStatus,
+  initialTab,
+  initialOrderId,
+  initialSelectedOrder,
+}: Props) {
   const router = useRouter();
-  const searchParams = useSearchParams();
-
-  const tabParam = searchParams.get("tab");
-
-  const currentTab: SellerTab =
-    tabParam === "orders" || tabParam === "brand" || tabParam === "legal"
-      ? tabParam
-      : "products";
-
-  const selectedOrderId = searchParams.get("orderId");
+  const [currentTab, setCurrentTab] = useState<SellerTab>(initialTab);
+  const [selectedOrderId, setSelectedOrderId] = useState(initialOrderId);
+  const [visitedTabs, setVisitedTabs] = useState<Set<SellerTab>>(
+    () => new Set([initialTab])
+  );
 
   const [orders, setOrders] = useState<SellerOrderListItem[]>(initialOrders);
   const [products, setProducts] = useState<SellerProductListItem[]>(initialProducts);
-  const [storeName, setStoreName] = useState<string | null>(null);
+  const storeName = initialBrands[0]?.name?.trim() || null;
 
-  const [selectedOrder, setSelectedOrder] = useState<SellerOrder | null>(null);
+  const [selectedOrder, setSelectedOrder] = useState<SellerOrder | null>(
+    initialSelectedOrder
+  );
   const [detailsLoading, setDetailsLoading] = useState(false);
+  const {
+    get: getOrderDetails,
+    peek: peekOrderDetails,
+    seed: seedOrderDetails,
+    prefetch: prefetchOrderDetails,
+  } = useSessionResourceCache<number, SellerOrder>(fetchSellerOrder);
 
   const [shippingId, setShippingId] = useState<number | null>(null);
   const [creatingProduct, setCreatingProduct] = useState(false);
@@ -148,22 +182,67 @@ function SellerPageContent({ initialProducts, initialOrders }: Props) {
   }, [initialOrders]);
 
   useEffect(() => {
-    let cancelled = false;
+    if (initialSelectedOrder) {
+      seedOrderDetails(initialSelectedOrder.id, initialSelectedOrder);
+      setSelectedOrder(initialSelectedOrder);
+    }
+  }, [initialSelectedOrder, seedOrderDetails]);
 
-    getSellerBrands()
-      .then((brands: SellerBrand[]) => {
-        if (cancelled) return;
-        setStoreName(brands[0]?.name?.trim() || null);
-      })
-      .catch(() => {
-        if (cancelled) return;
-        setStoreName(null);
-      });
+  useEffect(() => {
+    const syncFromHistory = () => {
+      const params = new URLSearchParams(window.location.search);
+      const nextTab = parseSellerTab(params.get("tab"));
+
+      setCurrentTab(nextTab);
+      setSelectedOrderId(params.get("orderId"));
+      setVisitedTabs((current) => addVisitedTab(current, nextTab));
+      setError(null);
+    };
+
+    window.addEventListener("popstate", syncFromHistory);
 
     return () => {
-      cancelled = true;
+      window.removeEventListener("popstate", syncFromHistory);
     };
   }, []);
+
+  function navigateSeller(href: string) {
+    const url = new URL(href, window.location.origin);
+    const nextTab = parseSellerTab(url.searchParams.get("tab"));
+
+    window.history.pushState(null, "", `${url.pathname}${url.search}`);
+    setCurrentTab(nextTab);
+    setSelectedOrderId(url.searchParams.get("orderId"));
+    setVisitedTabs((current) => addVisitedTab(current, nextTab));
+    setError(null);
+  }
+
+  function handleSellerNavigation(event: MouseEvent<HTMLDivElement>) {
+    if (
+      event.defaultPrevented ||
+      event.button !== 0 ||
+      event.metaKey ||
+      event.ctrlKey ||
+      event.shiftKey ||
+      event.altKey
+    ) {
+      return;
+    }
+
+    const target = event.target;
+    const anchor = target instanceof Element ? target.closest("a") : null;
+
+    if (!anchor) return;
+
+    const url = new URL(anchor.href);
+
+    if (url.origin !== window.location.origin || url.pathname !== "/seller") {
+      return;
+    }
+
+    event.preventDefault();
+    navigateSeller(`${url.pathname}${url.search}`);
+  }
 
   async function loadOrders() {
     setError(null);
@@ -186,20 +265,26 @@ function SellerPageContent({ initialProducts, initialOrders }: Props) {
       return;
     }
 
+    const orderId = Number(selectedOrderId);
+    if (!Number.isFinite(orderId)) {
+      setSelectedOrder(null);
+      return;
+    }
+
+    const cached = peekOrderDetails(orderId);
+    if (cached) {
+      setSelectedOrder(cached);
+      setDetailsLoading(false);
+      return;
+    }
+
     let cancelled = false;
 
+    setSelectedOrder(null);
     setDetailsLoading(true);
     setError(null);
 
-    apiFetch(`${API_URL}/api/seller/orders/${selectedOrderId}`)
-      .then(async (response) => {
-        if (!response.ok) {
-          const text = await response.text().catch(() => "");
-          throw new Error(text || `Ошибка загрузки (${response.status})`);
-        }
-
-        return response.json() as Promise<SellerOrder>;
-      })
+    getOrderDetails(orderId)
       .then((data) => {
         if (cancelled) return;
         setSelectedOrder(data);
@@ -216,7 +301,7 @@ function SellerPageContent({ initialProducts, initialOrders }: Props) {
     return () => {
       cancelled = true;
     };
-  }, [currentTab, selectedOrderId]);
+  }, [currentTab, getOrderDetails, peekOrderDetails, selectedOrderId]);
 
   async function ship(orderId: number) {
     setShippingId(orderId);
@@ -235,8 +320,10 @@ function SellerPageContent({ initialProducts, initialOrders }: Props) {
         throw new Error(text || `Ошибка отправки (${response.status})`);
       }
 
+      const updated: SellerOrder = await response.json();
+      seedOrderDetails(orderId, updated);
+
       if (selectedOrder?.id === orderId) {
-        const updated: SellerOrder = await response.json();
         setSelectedOrder(updated);
       }
 
@@ -249,11 +336,12 @@ function SellerPageContent({ initialProducts, initialOrders }: Props) {
   }
 
   function openOrder(orderId: number) {
-    router.push(`/seller?tab=orders&orderId=${orderId}`);
+    prefetchOrderDetails(orderId);
+    navigateSeller(`/seller?tab=orders&orderId=${orderId}`);
   }
 
   function closeOrderDetails() {
-    router.push("/seller?tab=orders");
+    navigateSeller("/seller?tab=orders");
   }
 
   async function createDraftProduct() {
@@ -262,10 +350,8 @@ function SellerPageContent({ initialProducts, initialOrders }: Props) {
     setCreatingProduct(true);
 
     try {
-      const brands = await getSellerBrands();
-
-      if (!Array.isArray(brands) || brands.length === 0) {
-        router.push("/seller?tab=brand");
+      if (initialBrands.length === 0) {
+        navigateSeller("/seller?tab=brand");
         return;
       }
 
@@ -293,51 +379,89 @@ function SellerPageContent({ initialProducts, initialOrders }: Props) {
   return (
     <div className="pageContainer">
       <div className={styles.page}>
-        <div className={styles.layout}>
+        <div className={styles.layout} onClickCapture={handleSellerNavigation}>
           <SellerSidebar
             currentTab={currentTab}
             ordersCount={activeOrdersCount}
             productsCount={activeProductsCount}
             storeName={storeName}
-            creatingProduct={creatingProduct}
-            onCreateProduct={() => void createDraftProduct()}
           />
 
           <div className={styles.content}>
-            <SellerOnboardingStatus />
-
             {error ? <div className={styles.error}>{error}</div> : null}
 
-            {currentTab === "brand" ? (
-              <SellerBrandTab />
-            ) : currentTab === "legal" ? (
-              <SellerLegalTab />
-            ) : currentTab === "products" ? (
-              <SellerProductsTab
-                products={products}
-                loading={false}
-              />
-            ) : detailsLoading ? (
-              null
-            ) : selectedOrder ? (
-              <SellerOrderDetails
-                order={selectedOrder}
-                shipping={shippingId === selectedOrder.id}
-                canShip={canShipOrder(selectedOrder)}
-                onBack={closeOrderDetails}
-                onShip={() => void ship(selectedOrder.id)}
-                formatOrderStatus={formatOrderStatus}
-                formatPaymentStatus={formatPaymentStatus}
-                formatDeliveryStatus={formatDeliveryStatus}
-                buildSellerStatusLabel={buildSellerStatusLabel}
-              />
-            ) : (
-              <SellerOrdersTab
-                orders={orders}
-                buildSellerStatusLabel={buildSellerStatusLabel}
-                onOpenOrder={openOrder}
-              />
-            )}
+            {visitedTabs.has("home") ? (
+              <div hidden={currentTab !== "home"}>
+                <SellerOnboardingStatus initialStatus={initialOnboardingStatus} />
+                <SellerHomeTab
+                  products={products}
+                  orders={orders}
+                  brand={initialBrands[0] ?? null}
+                  finance={initialFinance}
+                  creatingProduct={creatingProduct}
+                  onCreateProduct={() => void createDraftProduct()}
+                />
+              </div>
+            ) : null}
+
+            {visitedTabs.has("finance") ? (
+              <div hidden={currentTab !== "finance"}>
+                <SellerFinanceTab
+                  finance={initialFinance}
+                  onPrefetchOrder={prefetchOrderDetails}
+                />
+              </div>
+            ) : null}
+
+            {visitedTabs.has("brand") ? (
+              <div hidden={currentTab !== "brand"}>
+                <SellerBrandTab initialBrands={initialBrands} />
+              </div>
+            ) : null}
+
+            {visitedTabs.has("legal") ? (
+              <div hidden={currentTab !== "legal"}>
+                <SellerLegalTab />
+              </div>
+            ) : null}
+
+            {visitedTabs.has("products") ? (
+              <div hidden={currentTab !== "products"}>
+                <SellerProductsTab
+                  products={products}
+                  loading={false}
+                  creatingProduct={creatingProduct}
+                  onCreateProduct={() => void createDraftProduct()}
+                />
+              </div>
+            ) : null}
+
+            {visitedTabs.has("orders") ? (
+              <div hidden={currentTab !== "orders"} aria-busy={detailsLoading}>
+                {selectedOrder ? (
+                  <SellerOrderDetails
+                    order={selectedOrder}
+                    shipping={shippingId === selectedOrder.id}
+                    canShip={canShipOrder(selectedOrder)}
+                    onBack={closeOrderDetails}
+                    onShip={() => void ship(selectedOrder.id)}
+                    formatOrderStatus={formatOrderStatus}
+                    formatPaymentStatus={formatPaymentStatus}
+                    formatDeliveryStatus={formatDeliveryStatus}
+                    buildSellerStatusLabel={buildSellerStatusLabel}
+                  />
+                ) : selectedOrderId && detailsLoading ? (
+                  <CabinetSkeleton variant="detail" />
+                ) : (
+                  <SellerOrdersTab
+                    orders={orders}
+                    buildSellerStatusLabel={buildSellerStatusLabel}
+                    onOpenOrder={openOrder}
+                    onPrefetchOrder={prefetchOrderDetails}
+                  />
+                )}
+              </div>
+            ) : null}
           </div>
         </div>
       </div>
@@ -347,4 +471,26 @@ function SellerPageContent({ initialProducts, initialOrders }: Props) {
 
 export function SellerPageClient(props: Props) {
   return <SellerPageContent {...props} />;
+}
+
+function parseSellerTab(value: string | null): SellerTab {
+  if (
+    value === "orders" ||
+    value === "products" ||
+    value === "finance" ||
+    value === "brand" ||
+    value === "legal"
+  ) {
+    return value;
+  }
+
+  return "home";
+}
+
+function addVisitedTab(current: Set<SellerTab>, tab: SellerTab) {
+  if (current.has(tab)) return current;
+
+  const next = new Set(current);
+  next.add(tab);
+  return next;
 }

@@ -18,7 +18,7 @@ import { CartItemRow } from "./components/CartItemRow";
 import { CartSummary } from "./components/CartSummary";
 import { EmptyCart } from "./components/EmptyCart";
 import { toast } from "sonner";
-import { Loader } from "../components/ui/Loader";
+import { CartContentSkeleton } from "../components/ui/CommerceSkeleton";
 
 import styles from "./Cart.module.css";
 
@@ -78,7 +78,6 @@ export default function CartPage() {
 
     async function loadCart() {
       if (!cartId) {
-        if (active) setLoading(false);
         return;
       }
 
@@ -173,14 +172,6 @@ export default function CartPage() {
     router.push("/checkout");
   }
 
-    if (loading) {
-      return (
-        <div className="pageContainer">
-          <Loader fullPage />
-        </div>
-      );
-    }
-
   return (
     <div className="pageContainer">
       <div className={styles.page}>
@@ -188,7 +179,9 @@ export default function CartPage() {
           <h1 className={styles.title}>КОРЗИНА</h1>
         </div>
 
-        {items.length === 0 ? (
+        {loading ? (
+          <CartContentSkeleton />
+        ) : items.length === 0 ? (
           <EmptyCart />
         ) : (
           <div className={styles.grid}>
@@ -197,7 +190,6 @@ export default function CartPage() {
                 <CartItemRow
                   key={item.variantId}
                   item={item}
-                  showQuantityControls={item.quantity > 1}
                   onChangeQty={handleQty}
                   onRemove={handleRemove}
                 />
@@ -212,11 +204,13 @@ export default function CartPage() {
           </div>
         )}
 
-        <ProductShowcase
-          variant="carousel"
-          title="Вам может понравиться"
-          products={recommendations.map(mapProductToCarouselProduct)}
-        />
+        {!loading ? (
+          <ProductShowcase
+            variant="carousel"
+            title="Вам может понравиться"
+            products={recommendations.map(mapProductToCarouselProduct)}
+          />
+        ) : null}
       </div>
     </div>
   );

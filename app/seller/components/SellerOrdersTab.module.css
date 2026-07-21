@@ -4,9 +4,30 @@
   gap: 0;
 }
 
+.pageHeader {
+  margin-bottom: 24px;
+}
+
+.pageHeader h1 {
+  margin: 0;
+  color: var(--black);
+  font-size: var(--font-2xl);
+  line-height: 1.15;
+  font-weight: 400;
+  letter-spacing: 0;
+}
+
+.pageHeader p {
+  margin: 7px 0 0;
+  color: var(--muted);
+  font-size: var(--font-sm);
+  line-height: 1.4;
+  font-weight: 300;
+}
+
 .ordersToolbar {
   min-width: 0;
-  margin-bottom: 15px;
+  margin-bottom: 20px;
 }
 
 .list {
@@ -15,4 +36,14 @@
   gap: 0;
   border: 0;
   background: var(--white);
+}
+
+@media (max-width: 768px) {
+  .pageHeader {
+    margin-bottom: 20px;
+  }
+
+  .pageHeader h1 {
+    font-size: var(--font-xl);
+  }
 }

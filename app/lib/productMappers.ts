@@ -5,6 +5,7 @@ type ProductLike = {
   publicId?: string | null;
   title: string;
   brand: string | null;
+  category?: string | null;
   images?: string[];
   coverImage?: string | null;
   hoverImage?: string | null;
@@ -35,6 +36,7 @@ export function mapProductToCarouselProduct(
     publicId: product.publicId,
     title: product.title,
     brand: product.brand,
+    category: product.category ?? null,
     images,
     minPrice,
   };
