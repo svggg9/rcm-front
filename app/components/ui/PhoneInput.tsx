@@ -1,5 +1,10 @@
 import type { InputHTMLAttributes } from "react";
 
+import {
+  formatRussianPhoneInput,
+  getRussianPhoneDigits,
+  normalizeRussianPhone,
+} from "../../lib/phone";
 import { Field } from "./Field";
 
 type Props = Omit<
@@ -14,44 +19,6 @@ type Props = Omit<
   value: string;
   onChange: (event: React.ChangeEvent<HTMLInputElement>) => void;
 };
-
-function getRussianPhoneDigits(value: string): string {
-  let digits = value.replace(/\D/g, "");
-
-  if (digits.startsWith("8")) {
-    digits = `7${digits.slice(1)}`;
-  }
-
-  if (digits.startsWith("7")) {
-    digits = digits.slice(1);
-  }
-
-  return digits.slice(0, 10);
-}
-
-function formatRussianPhone(value: string): string {
-  const digits = getRussianPhoneDigits(value);
-
-  return digits.length > 0 ? `+7${digits}` : "";
-}
-
-function formatRussianPhoneInputValue(value: string): string {
-  const digits = getRussianPhoneDigits(value);
-
-  if (digits.length <= 3) {
-    return digits;
-  }
-
-  if (digits.length <= 6) {
-    return `${digits.slice(0, 3)} ${digits.slice(3)}`;
-  }
-
-  if (digits.length <= 8) {
-    return `${digits.slice(0, 3)} ${digits.slice(3, 6)} ${digits.slice(6)}`;
-  }
-
-  return `${digits.slice(0, 3)} ${digits.slice(3, 6)} ${digits.slice(6, 8)}-${digits.slice(8)}`;
-}
 
 function createChangeEvent(
   event:
@@ -90,10 +57,10 @@ export function PhoneInput({
   required,
   ...props
 }: Props) {
-  const displayValue = formatRussianPhoneInputValue(value);
+  const displayValue = formatRussianPhoneInput(value);
 
   function handleChange(event: React.ChangeEvent<HTMLInputElement>) {
-    const formatted = formatRussianPhone(event.target.value);
+    const formatted = normalizeRussianPhone(event.target.value);
     onChange(createChangeEvent(event, formatted));
   }
 
@@ -129,9 +96,9 @@ export function PhoneInput({
           inputMode={inputMode}
           autoComplete={autoComplete}
           value={displayValue}
-          pattern="[0-9]{3} [0-9]{3} [0-9]{2}-[0-9]{2}"
-          minLength={13}
-          maxLength={13}
+          pattern="[(][0-9]{3}[)] [0-9]{3} [0-9]{2}-[0-9]{2}"
+          minLength={15}
+          maxLength={15}
           title={title}
           aria-invalid={error ? "true" : undefined}
           onChange={handleChange}

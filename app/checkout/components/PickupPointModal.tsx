@@ -7,6 +7,7 @@ import styles from "./PickupPointModal.module.css";
 
 type Props = {
   open: boolean;
+  loading: boolean;
   points: DeliveryOption[];
   selectedId: string;
   deliveryPrice: number;
@@ -17,6 +18,7 @@ type Props = {
 
 export function PickupPointModal({
   open,
+  loading,
   points,
   selectedId,
   deliveryPrice,
@@ -53,7 +55,20 @@ export function PickupPointModal({
 
         <div className={styles.body}>
           <aside className={styles.panel}>
-            {selectedPoint ? (
+            {loading ? (
+              <div
+                className={styles.listLoader}
+                role="status"
+                aria-label="Загрузка пунктов выдачи"
+              >
+                {Array.from({ length: 6 }, (_, index) => (
+                  <div className={styles.skeletonItem} key={index}>
+                    <span className={`skeleton ${styles.skeletonLine}`} />
+                    <span className={`skeleton ${styles.skeletonLineShort}`} />
+                  </div>
+                ))}
+              </div>
+            ) : selectedPoint ? (
               <div className={styles.details}>
                 <button
                   type="button"
@@ -89,38 +104,42 @@ export function PickupPointModal({
               </div>
             ) : (
               <div className={styles.list}>
-                {points.length === 0 ? (
-                  <div className={styles.empty}>
-                    Пункты выдачи не найдены. Попробуйте выбрать другой город
-                  </div>
-                ) : (
-                  points.map((point) => (
-                    <button
-                      key={point.id}
-                      type="button"
-                      className={styles.item}
-                      onClick={() => onSelect(point.id)}
-                    >
-                      <span className={styles.itemTitle}>СДЭК • {point.label}</span>
+                {points.map((point) => (
+                  <button
+                    key={point.id}
+                    type="button"
+                    className={styles.item}
+                    onClick={() => onSelect(point.id)}
+                  >
+                    <span className={styles.itemTitle}>СДЭК • {point.label}</span>
 
-                      {deliveryPrice > 0 ? (
-                        <span className={styles.itemMeta}>
-                          <Price amount={deliveryPrice} />
-                        </span>
-                      ) : null}
-                    </button>
-                  ))
-                )}
+                    {deliveryPrice > 0 ? (
+                      <span className={styles.itemMeta}>
+                        <Price amount={deliveryPrice} />
+                      </span>
+                    ) : null}
+                  </button>
+                ))}
               </div>
             )}
           </aside>
 
           <div className={styles.map}>
-            <PickupPointMap
-              points={points}
-              selectedId={selectedId}
-              onSelect={onSelect}
-            />
+            {loading ? (
+              <div
+                className={styles.mapLoader}
+                role="status"
+                aria-label="Загрузка карты"
+              >
+                <span />
+              </div>
+            ) : (
+              <PickupPointMap
+                points={points}
+                selectedId={selectedId}
+                onSelect={onSelect}
+              />
+            )}
           </div>
         </div>
       </div>

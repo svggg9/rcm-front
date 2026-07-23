@@ -270,6 +270,27 @@
   color: var(--danger);
 }
 
+.cancellationStatus,
+.cancellationConfirm {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  color: var(--muted);
+}
+
+.cancellationStatus strong,
+.cancellationConfirm strong {
+  color: var(--black);
+  font-weight: 400;
+}
+
+.confirmActions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: 8px;
+}
+
 .muted {
   padding: 12px;
   background: var(--soft);

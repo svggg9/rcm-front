@@ -5,6 +5,7 @@ import styles from "../Admin.module.css";
 import { EmptyState } from "../../components/ui/EmptyState";
 import { StatusBadge } from "../../components/ui/StatusBadge";
 import { CabinetTabs, type CabinetTabItem } from "../../components/ui/CabinetTabs";
+import { formatRussianPhone } from "../../lib/phone";
 
 import type {
   AdminSellerApplication,
@@ -292,7 +293,7 @@ function SellerApplicationCard({
 
         <div className={styles.sellerMetaGrid}>
           <Info label="Контакт" value={application.contactName} />
-          <Info label="Телефон" value={application.phone} />
+          <Info label="Телефон" value={formatRussianPhone(application.phone)} />
           <Info label="Email" value={application.email} />
           <Info label="Категория" value={application.category || "—"} />
         </div>
@@ -379,7 +380,7 @@ function SellerApplicationDetails({
             <h2 className={`${styles.detailsSectionTitle} textBody`}>Контакты</h2>
             <div className={styles.infoGrid}>
               <InfoRow label="Контактное лицо" value={application.contactName} />
-              <InfoRow label="Телефон" value={application.phone} />
+              <InfoRow label="Телефон" value={formatRussianPhone(application.phone)} />
               <InfoRow label="Email" value={application.email} />
               <InfoRow label="Telegram" value={application.telegram || "—"} />
             </div>

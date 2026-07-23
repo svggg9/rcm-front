@@ -46,9 +46,6 @@ export type CheckoutDraft = {
   floor: string;
   intercom: string;
   fittingMode: FittingMode;
-  otherRecipientEnabled: boolean;
-  otherRecipientName: string;
-  otherRecipientPhone: string;
   comment: string;
   paymentMethod: PaymentMethod;
 };
@@ -93,15 +90,9 @@ export function loadCheckoutDraft(): CheckoutDraft | null {
 
       deliveryMethod,
 
-      selectedAddressId:
-        typeof parsed.selectedAddressId === "string"
-          ? parsed.selectedAddressId
-          : "",
+      selectedAddressId: "",
 
-      selectedPickupPointLabel:
-        typeof parsed.selectedPickupPointLabel === "string"
-          ? parsed.selectedPickupPointLabel
-          : "",
+      selectedPickupPointLabel: "",
 
       deliveryAddress:
         typeof parsed.deliveryAddress === "string"
@@ -136,19 +127,6 @@ export function loadCheckoutDraft(): CheckoutDraft | null {
           : "",
 
       fittingMode: "WITHOUT_FITTING",
-
-      otherRecipientEnabled:
-        parsed.otherRecipientEnabled === true,
-
-      otherRecipientName:
-        typeof parsed.otherRecipientName === "string"
-          ? parsed.otherRecipientName
-          : "",
-
-      otherRecipientPhone:
-        typeof parsed.otherRecipientPhone === "string"
-          ? parsed.otherRecipientPhone
-          : "",
 
       comment:
         typeof parsed.comment === "string"

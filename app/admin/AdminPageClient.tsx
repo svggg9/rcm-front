@@ -25,6 +25,7 @@ import {
   approveProduct,
   assignProductCategory,
   blockProduct,
+  cancelAdminOrderDelivery,
   getAdminOrder,
   getAdminOrders,
   getAdminProductStatusCounts,
@@ -329,6 +330,7 @@ function AdminPageContent({ initialData }: Props) {
 
   const [actionProductId, setActionProductId] = useState<number | null>(null);
   const [actionOrderId, setActionOrderId] = useState<number | null>(null);
+  const [deliveryActionOrderId, setDeliveryActionOrderId] = useState<number | null>(null);
   const [actionApplicationId, setActionApplicationId] = useState<number | null>(
     null
   );
@@ -707,6 +709,25 @@ function AdminPageContent({ initialData }: Props) {
     }
   }
 
+  async function cancelSelectedOrderDelivery() {
+    if (!selectedOrder) return;
+
+    setDeliveryActionOrderId(selectedOrder.id);
+    setError(null);
+
+    try {
+      await cancelAdminOrderDelivery(selectedOrder.id);
+      await loadOrders({ silent: true });
+      await loadSelectedOrder(selectedOrder.id, true);
+    } catch (e) {
+      const message = e instanceof Error ? e.message : "Не удалось отменить доставку";
+      setError(message);
+      throw new Error(message);
+    } finally {
+      setDeliveryActionOrderId(null);
+    }
+  }
+
   async function createDictionaryItem(
     kind: DictionaryKind,
     item: Partial<DictionaryItem>
@@ -907,7 +928,9 @@ function AdminPageContent({ initialData }: Props) {
                 <AdminOrderDetails
                   order={selectedOrder}
                   refunding={actionOrderId === selectedOrder.id}
+                  deliveryCancelling={deliveryActionOrderId === selectedOrder.id}
                   onRefund={() => refundSelectedOrder()}
+                  onCancelDelivery={() => cancelSelectedOrderDelivery()}
                   formatOrderStatus={formatOrderStatus}
                   formatPaymentStatus={formatPaymentStatus}
                   formatDeliveryStatus={formatDeliveryStatus}

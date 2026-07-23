@@ -2,6 +2,7 @@
 
 import { Button } from "../../components/ui/Button";
 import { EmptyState } from "../../components/ui/EmptyState";
+import { formatRussianPhone } from "../../lib/phone";
 import { AccountOrderCard } from "./AccountOrderCard";
 
 import styles from "./AccountHomeTab.module.css";
@@ -95,7 +96,7 @@ export function AccountHomeTab({
           </div>
           <div>
             <dt>Телефон</dt>
-            <dd>{me?.phone || "—"}</dd>
+            <dd>{formatRussianPhone(me?.phone) || "—"}</dd>
           </div>
         </dl>
       </section>

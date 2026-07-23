@@ -14,13 +14,18 @@ import {
   OrderDetailSummary,
   orderDetailStyles,
 } from "../../components/order-detail/OrderDetail";
+import { formatCdekShipmentStatus } from "../../lib/delivery";
+import { formatRussianPhone } from "../../lib/phone";
 
 import type { AdminOrder } from "../types";
+import { AdminReturnRequests } from "./AdminReturnRequests";
 
 type Props = {
   order: AdminOrder;
   refunding: boolean;
+  deliveryCancelling: boolean;
   onRefund: () => Promise<void>;
+  onCancelDelivery: () => Promise<void>;
   formatOrderStatus: (status: AdminOrder["status"]) => string;
   formatPaymentStatus: (status: AdminOrder["paymentStatus"]) => string;
   formatDeliveryStatus: (status: AdminOrder["deliveryStatus"]) => string;
@@ -30,14 +35,28 @@ type Props = {
 export function AdminOrderDetails({
   order,
   refunding,
+  deliveryCancelling,
   onRefund,
+  onCancelDelivery,
   formatOrderStatus,
   formatPaymentStatus,
   formatDeliveryStatus,
   buildStatusLabel,
 }: Props) {
   const [refundError, setRefundError] = useState<string | null>(null);
+  const [deliveryError, setDeliveryError] = useState<string | null>(null);
   const canRefund = order.paymentStatus === "PAID";
+  const deliveryCancellationFinished = ["NOT_DELIVERED", "CANCELLED"].includes(
+    order.delivery?.shipmentStatus ?? ""
+  );
+  const hasCancellationRequest = Boolean(order.cancellationRequestedAt);
+  const cancellationPending = hasCancellationRequest && !deliveryCancellationFinished;
+  const canCancelDelivery =
+    Boolean(order.delivery) &&
+    !hasCancellationRequest &&
+    !["DELIVERED", "NOT_DELIVERED", "CANCELLED"].includes(
+      order.delivery?.shipmentStatus ?? ""
+    );
 
   async function handleRefund() {
     if (!canRefund || refunding) return;
@@ -57,6 +76,22 @@ export function AdminOrderDetails({
     }
   }
 
+  async function handleCancelDelivery() {
+    if (!canCancelDelivery || deliveryCancelling) return;
+
+    const confirmed = window.confirm(
+      "Отменить доставку? До приема СДЭК накладная будет удалена, после приема будет зарегистрирован отказ."
+    );
+    if (!confirmed) return;
+
+    setDeliveryError(null);
+    try {
+      await onCancelDelivery();
+    } catch (e) {
+      setDeliveryError(e instanceof Error ? e.message : "Не удалось отменить доставку");
+    }
+  }
+
   return (
     <OrderDetailLayout
       breadcrumbs={[
@@ -73,10 +108,15 @@ export function AdminOrderDetails({
             <OrderDetailProductList items={order.items} />
           </OrderDetailSection>
 
+          <AdminReturnRequests orderId={order.id} />
+
           <OrderDetailSection title="Получатель">
             <OrderDetailFields>
               <OrderDetailField label="ФИО" value={order.recipientName?.trim() || null} />
-              <OrderDetailField label="Телефон" value={order.recipientPhone} />
+              <OrderDetailField
+                label="Телефон"
+                value={formatRussianPhone(order.recipientPhone)}
+              />
             </OrderDetailFields>
           </OrderDetailSection>
 
@@ -91,7 +131,10 @@ export function AdminOrderDetails({
               ) : null}
 
               {order.delivery?.shipmentStatus ? (
-                <OrderDetailField label="Статус СДЭК" value={order.delivery.shipmentStatus} />
+                <OrderDetailField
+                  label="Статус СДЭК"
+                  value={formatCdekShipmentStatus(order.delivery.shipmentStatus)}
+                />
               ) : null}
 
               {order.delivery?.trackingUrl ? (
@@ -134,11 +177,26 @@ export function AdminOrderDetails({
                 </Button>
               ) : null}
 
+              {canCancelDelivery ? (
+                <Button
+                  variant="secondary"
+                  onClick={() => void handleCancelDelivery()}
+                  disabled={deliveryCancelling}
+                >
+                  Отменить доставку
+                </Button>
+              ) : null}
+
+              {cancellationPending && order.delivery ? (
+                <div className={orderDetailStyles.actionLink}>Отмена доставки оформляется</div>
+              ) : null}
+
               {order.paymentStatus === "REFUNDED" ? (
                 <div className={orderDetailStyles.actionLink}>Оплата возвращена</div>
               ) : null}
 
               {refundError ? <div className={orderDetailStyles.payError}>{refundError}</div> : null}
+              {deliveryError ? <div className={orderDetailStyles.payError}>{deliveryError}</div> : null}
             </div>
           </OrderDetailSection>
         </>
@@ -164,6 +222,7 @@ function getOrderTone(order: AdminOrder) {
     order.status === "CANCELED" ||
     order.paymentStatus === "FAILED" ||
     order.paymentStatus === "CANCELED" ||
+    order.paymentStatus === "REFUNDED" ||
     order.deliveryStatus === "RETURNED" ||
     order.deliveryStatus === "CANCELLED"
   ) {
@@ -172,18 +231,5 @@ function getOrderTone(order: AdminOrder) {
 
   if (order.paymentStatus === "PENDING") return "warning";
 
-  if (order.paymentStatus === "REFUNDED") return "default";
-
-  if (
-    order.deliveryStatus === "READY_FOR_SHIPMENT" ||
-    order.deliveryStatus === "READY_FOR_PICKUP"
-  ) {
-    return "warning";
-  }
-
-  if (order.status === "COMPLETED" || order.deliveryStatus === "DELIVERED") {
-    return "success";
-  }
-
-  return "default";
+  return "success";
 }

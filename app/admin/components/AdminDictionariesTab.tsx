@@ -5,6 +5,7 @@ import { useState } from "react";
 import styles from "../Admin.module.css";
 
 import { StatusBadge, type StatusBadgeTone } from "../../components/ui/StatusBadge";
+import { formatRussianPhone } from "../../lib/phone";
 import type { DictionaryItem, DictionaryKind } from "../types";
 
 type SectionConfig =
@@ -97,6 +98,19 @@ function DictionarySection({
   onDelete: Props["onDelete"];
 }) {
   const [name, setName] = useState("");
+  const [categoryMode, setCategoryMode] = useState<"category" | "subcategory">(
+    "category"
+  );
+  const [parentCategory, setParentCategory] = useState("");
+  const parentCategories =
+    section.kind === "categories"
+      ? section.items.filter(
+          (item) =>
+            !item.name.includes("/") &&
+            item.isActive !== false &&
+            item.status !== "DISABLED"
+        )
+      : [];
 
   function submit() {
     if (!section.editable) return;
@@ -105,8 +119,21 @@ function DictionarySection({
 
     if (!cleanName) return;
 
+    if (
+      section.kind === "categories" &&
+      categoryMode === "subcategory" &&
+      !parentCategory
+    ) {
+      return;
+    }
+
+    const itemName =
+      section.kind === "categories" && categoryMode === "subcategory"
+        ? `${parentCategory} / ${cleanName}`
+        : cleanName;
+
     onCreate(section.kind, {
-      name: cleanName,
+      name: itemName,
       sortOrder: section.items.length,
       isActive: true,
     });
@@ -122,19 +149,75 @@ function DictionarySection({
       </div>
 
       {section.editable ? (
-        <div className={styles.dictionaryForm}>
+        <div
+          className={`${styles.dictionaryForm} ${
+            section.kind === "categories"
+              ? styles.dictionaryCategoryForm
+              : ""
+          } ${
+            section.kind === "categories" &&
+            categoryMode === "subcategory"
+              ? styles.dictionarySubcategoryForm
+              : ""
+          }`}
+        >
+          {section.kind === "categories" ? (
+            <select
+              value={categoryMode}
+              onChange={(event) => {
+                const mode = event.target.value as
+                  | "category"
+                  | "subcategory";
+                setCategoryMode(mode);
+                if (mode === "category") setParentCategory("");
+              }}
+              className={`${styles.dictionaryInput} textSmall`}
+              aria-label="Тип категории"
+            >
+              <option value="category">Категория</option>
+              <option value="subcategory">Подкатегория</option>
+            </select>
+          ) : null}
+
+          {section.kind === "categories" &&
+          categoryMode === "subcategory" ? (
+            <select
+              value={parentCategory}
+              onChange={(event) => setParentCategory(event.target.value)}
+              className={`${styles.dictionaryInput} textSmall`}
+              aria-label="Родительская категория"
+            >
+              <option value="">Выберите родителя</option>
+              {parentCategories.map((category) => (
+                <option key={category.id} value={category.name}>
+                  {category.name}
+                </option>
+              ))}
+            </select>
+          ) : null}
+
           <input
             value={name}
             onChange={(event) => setName(event.target.value)}
             className={`${styles.dictionaryInput} textSmall`}
-            placeholder="Название"
+            placeholder={
+              section.kind === "categories" &&
+              categoryMode === "subcategory"
+                ? "Название подкатегории"
+                : "Название"
+            }
           />
 
           <button
             type="button"
             onClick={submit}
             className={`${styles.primaryBtn} textButton`}
-            disabled={actionKey === `${section.kind}:create`}
+            disabled={
+              actionKey === `${section.kind}:create` ||
+              (section.kind === "categories" &&
+                categoryMode === "subcategory" &&
+                !parentCategory)
+            }
           >
             Добавить
           </button>
@@ -270,7 +353,7 @@ function BrandOwner({ item }: { item: DictionaryItem }) {
     item.ownerUsername?.trim() ||
     `user ${item.ownerUserId}`;
 
-  const contacts = [item.ownerEmail, item.ownerPhone]
+  const contacts = [item.ownerEmail, formatRussianPhone(item.ownerPhone)]
     .map((value) => value?.trim())
     .filter((value): value is string => Boolean(value));
 

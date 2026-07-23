@@ -2,7 +2,13 @@
 
 import { CabinetSidebar } from "../../components/ui/CabinetSidebar";
 
-type AccountTab = "home" | "orders" | "profile" | "favorites" | "info";
+type AccountTab =
+  | "home"
+  | "orders"
+  | "returns"
+  | "profile"
+  | "favorites"
+  | "info";
 
 type Props = {
   currentTab: AccountTab;
@@ -29,6 +35,12 @@ export function AccountSidebar({ currentTab, ordersCount, onNavigate }: Props) {
           icon: "shopping-bag",
           active: currentTab === "orders",
           count: ordersCount,
+        },
+        {
+          href: "/account?tab=returns",
+          label: "Возвраты",
+          icon: "package",
+          active: currentTab === "returns",
         },
         {
           href: "/account?tab=profile",

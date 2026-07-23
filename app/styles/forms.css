@@ -172,6 +172,7 @@
 
 .phoneInputPrefix {
   flex: 0 0 auto;
+  margin-right: 0.25em;
   color: var(--black);
   font-size: var(--font-input);
   font-weight: 300;

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
 
 type LoadOptions = {
   force?: boolean;
@@ -13,7 +13,9 @@ export function useSessionResourceCache<Key, Value>(
   const cacheRef = useRef(new Map<Key, Value>());
   const pendingRef = useRef(new Map<Key, Promise<Value>>());
 
-  loaderRef.current = loader;
+  useEffect(() => {
+    loaderRef.current = loader;
+  }, [loader]);
 
   const get = useCallback(async (key: Key, options?: LoadOptions) => {
     if (!options?.force) {

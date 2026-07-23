@@ -17,6 +17,8 @@ import { Icon } from "../ui/Icon";
 type Category = {
   id: number;
   name: string;
+  isActive?: boolean | null;
+  status?: string | null;
 };
 
 type SellerBrandOption = {
@@ -120,7 +122,15 @@ function HeaderContent() {
         const data: unknown = await response.json();
 
         if (!cancelled) {
-          setCategories(Array.isArray(data) ? (data as Category[]) : []);
+          setCategories(
+            Array.isArray(data)
+              ? (data as Category[]).filter(
+                  (category) =>
+                    category.isActive !== false &&
+                    category.status !== "DISABLED"
+                )
+              : []
+          );
         }
       } catch {
         if (!cancelled) {
