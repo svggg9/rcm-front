@@ -29,7 +29,14 @@ export type PageResponse<T> = {
   number: number;
 };
 
-export type OrderStatus = "NEW" | "CONFIRMED" | "CANCELED" | "COMPLETED";
+export type OrderStatus =
+  | "NEW"
+  | "CONFIRMED"
+  | "PROCESSING"
+  | "SHIPPED"
+  | "COMPLETED"
+  | "PAID"
+  | "CANCELED";
 
 export type PaymentStatus =
   | "PENDING"
@@ -42,7 +49,10 @@ export type DeliveryStatus =
   | "PENDING"
   | "READY_FOR_SHIPMENT"
   | "IN_TRANSIT"
-  | "DELIVERED";
+  | "DELIVERED"
+  | "RETURNED"
+  | "CANCELLED"
+  | "READY_FOR_PICKUP";
 
 export type OrderItemPreview = {
   imageUrl?: string | null;
@@ -92,6 +102,11 @@ export type Order = {
   fittingMode: string | null;
   trackingNumber: string | null;
   createdAt: string;
+  paidAt: string | null;
+  cancellationAvailableUntil: string | null;
+  cancellationRequestedAt: string | null;
+  cancelledAt: string | null;
+  cancellationAllowed: boolean;
   items: OrderItem[];
   delivery: OrderDeliveryInfo | null;
 };

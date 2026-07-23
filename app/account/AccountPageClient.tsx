@@ -15,6 +15,7 @@ import { AccountOrdersTab } from "./components/AccountOrdersTab";
 import { AccountOrderDetails } from "./components/AccountOrderDetails";
 import { AccountFavoritesTab } from "./components/AccountFavoritesTab";
 import { AccountInfoTab } from "./components/AccountInfoTab";
+import { AccountReturnsTab } from "./components/AccountReturnsTab";
 import { CabinetSkeleton } from "../components/ui/CabinetSkeleton";
 
 import styles from "./AccountPageClient.module.css";
@@ -28,7 +29,13 @@ import type {
   OrderListItem,
 } from "./types";
 
-type AccountTab = "home" | "orders" | "profile" | "favorites" | "info";
+type AccountTab =
+  | "home"
+  | "orders"
+  | "returns"
+  | "profile"
+  | "favorites"
+  | "info";
 
 function formatOrderStatus(status: OrderStatus): string {
   switch (status) {
@@ -193,6 +200,7 @@ function AccountPageContent({
   const tabParam = searchParams.get("tab");
   const currentTab: AccountTab =
     tabParam === "orders" ||
+    tabParam === "returns" ||
     tabParam === "profile" ||
     tabParam === "favorites" ||
     tabParam === "info"
@@ -395,6 +403,24 @@ function AccountPageContent({
     navigateAccount("/account?tab=orders");
   }
 
+  function updateOrder(updatedOrder: Order) {
+    seedOrderDetails(updatedOrder.id, updatedOrder);
+    setSelectedOrder(updatedOrder);
+    setOrders((current) =>
+      current.map((order) =>
+        order.id === updatedOrder.id
+          ? {
+              ...order,
+              status: updatedOrder.status,
+              paymentStatus: updatedOrder.paymentStatus,
+              deliveryStatus: updatedOrder.deliveryStatus,
+              totalAmount: updatedOrder.totalAmount,
+            }
+          : order
+      )
+    );
+  }
+
   function navigateAccount(href: string) {
     window.history.pushState(null, "", href);
   }
@@ -539,6 +565,12 @@ function AccountPageContent({
               </div>
             ) : null}
 
+            {visitedTabs.has("returns") ? (
+              <div hidden={currentTab !== "returns"}>
+                <AccountReturnsTab onOpenOrders={() => openTab("orders")} />
+              </div>
+            ) : null}
+
             {visitedTabs.has("favorites") ? (
               <div hidden={currentTab !== "favorites"}>
                 <AccountFavoritesTab />
@@ -557,6 +589,7 @@ function AccountPageContent({
                   <AccountOrderDetails
                     order={selectedOrder}
                     onBack={closeOrderDetails}
+                    onOrderUpdated={updateOrder}
                     formatOrderStatus={formatOrderStatus}
                     formatPaymentStatus={formatPaymentStatus}
                     formatDeliveryStatus={formatDeliveryStatus}

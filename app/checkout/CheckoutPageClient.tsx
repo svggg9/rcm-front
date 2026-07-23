@@ -206,10 +206,6 @@ function CheckoutPageContent() {
   const [fittingMode, setFittingMode] =
     useState<FittingMode>("WITHOUT_FITTING");
 
-  const [otherRecipientEnabled, setOtherRecipientEnabled] = useState(false);
-  const [otherRecipientName, setOtherRecipientName] = useState("");
-  const [otherRecipientPhone, setOtherRecipientPhone] = useState("");
-
   const [email, setEmail] = useState("");
   const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState("");
@@ -326,9 +322,6 @@ function CheckoutPageContent() {
       setFloor(draft.floor);
       setIntercom(draft.intercom);
       setFittingMode(draft.fittingMode);
-      setOtherRecipientEnabled(draft.otherRecipientEnabled);
-      setOtherRecipientName(draft.otherRecipientName);
-      setOtherRecipientPhone(draft.otherRecipientPhone);
     }
 
     setDraftHydrated(true);
@@ -352,9 +345,6 @@ function CheckoutPageContent() {
       floor,
       intercom,
       fittingMode,
-      otherRecipientEnabled,
-      otherRecipientName,
-      otherRecipientPhone,
       comment,
       paymentMethod,
     });
@@ -373,9 +363,6 @@ function CheckoutPageContent() {
     floor,
     intercom,
     fittingMode,
-    otherRecipientEnabled,
-    otherRecipientName,
-    otherRecipientPhone,
     comment,
     paymentMethod,
   ]);
@@ -563,6 +550,7 @@ function CheckoutPageContent() {
     deliveryCalculating ||
     !deliveryCalculated ||
     !selectedCity ||
+    !selectedPickupPoint ||
     items.length === 0;
   const total = subtotal + (deliveryCalculated ? deliveryPrice : 0);
 
@@ -587,6 +575,7 @@ function CheckoutPageContent() {
   }
 
   function resetDeliveryQuote() {
+    quoteRequestKeyRef.current = "";
     setDeliveryPrice(0);
     setDeliveryCurrency("RUB");
     setSellerDeliveryCosts([]);
@@ -615,8 +604,9 @@ function CheckoutPageContent() {
     });
 
     if (!response.ok) {
-      const text = await response.text().catch(() => "");
-      throw new Error(text || "Не удалось загрузить пункты выдачи");
+      throw new Error(
+        await readCheckoutError(response, "Не удалось загрузить пункты выдачи")
+      );
     }
 
       const data = (await response.json()) as PickupPointSearchResponse;
@@ -668,8 +658,7 @@ function CheckoutPageContent() {
     );
 
     if (!response.ok) {
-      const text = await response.text().catch(() => "");
-      throw new Error(text || "Не удалось найти город");
+      throw new Error(await readCheckoutError(response, "Не удалось найти город"));
     }
 
     const data = (await response.json()) as DeliveryCityOption[];
@@ -742,6 +731,10 @@ function CheckoutPageContent() {
       return null;
     }
 
+    if (!selectedCity || !selectedPickupPoint) {
+      return null;
+    }
+
     try {
       setQuoteLoading(true);
       setError(null);
@@ -770,8 +763,9 @@ function CheckoutPageContent() {
       });
 
       if (!response.ok) {
-        const text = await response.text().catch(() => "");
-        throw new Error(text || "Не удалось рассчитать доставку");
+        throw new Error(
+          await readCheckoutError(response, "Не удалось рассчитать доставку")
+        );
       }
 
       const quote = (await response.json()) as SellerGroupDeliveryQuoteResponse;
@@ -793,7 +787,6 @@ function CheckoutPageContent() {
       const message =
         e instanceof Error ? e.message : "Не удалось рассчитать доставку";
       resetDeliveryQuote();
-
       setError(message);
       if (!options?.silent) {
         toast.error(message);
@@ -810,7 +803,7 @@ function CheckoutPageContent() {
       return;
     }
 
-    if (!selectedCity || items.length === 0) {
+    if (!selectedCity || !selectedPickupPoint || items.length === 0) {
       setQuotePending(false);
       setSellerDeliveryCosts([]);
       return;
@@ -842,6 +835,7 @@ function CheckoutPageContent() {
     selectedCity,
     items.length,
     selectedAddressId,
+    selectedPickupPoint,
     deliveryOptions,
   ]);
 
@@ -983,25 +977,8 @@ function CheckoutPageContent() {
       return;
     }
 
-    const actualRecipientName = otherRecipientEnabled
-      ? otherRecipientName.trim()
-      : fullName.trim();
-
-    const actualRecipientPhone = otherRecipientEnabled
-      ? otherRecipientPhone.trim()
-      : phone.trim();
-
-    if (otherRecipientEnabled) {
-      if (!actualRecipientName) {
-        showError("Введите ФИО получателя");
-        return;
-      }
-
-      if (!actualRecipientPhone) {
-        showError("Введите телефон получателя");
-        return;
-      }
-    }
+    const actualRecipientName = fullName.trim();
+    const actualRecipientPhone = phone.trim();
 
     const deliveryValidationError =
       validateDeliveryDetails({
@@ -1067,15 +1044,7 @@ function CheckoutPageContent() {
             currency: item.currency || activeDeliveryCurrency,
           })),
         paymentMethod,
-        comment:
-          [
-            comment.trim(),
-            otherRecipientEnabled
-              ? `Заберет другой человек: ${actualRecipientName}, ${actualRecipientPhone}`
-              : "",
-          ]
-            .filter(Boolean)
-            .join(". ") || undefined,
+        comment: comment.trim() || undefined,
       };
 
       const checkoutResponse = await apiFetch(
@@ -1234,6 +1203,7 @@ function CheckoutPageContent() {
                 comment={comment}
                 enabled={true}
                 onAddressChange={(value) => {
+                  resetDeliveryQuote();
                   setSelectedAddressId(value);
                 }}
                 onCommentChange={setComment}
@@ -1242,23 +1212,11 @@ function CheckoutPageContent() {
               <CheckoutContactSection
                 fullName={fullName}
                 phone={phone}
-                otherRecipientEnabled={otherRecipientEnabled}
-                otherRecipientName={otherRecipientName}
-                otherRecipientPhone={otherRecipientPhone}
                 onFullNameChange={(value) => {
                   setFullName(value);
                 }}
                 onPhoneChange={(value) => {
                   setPhone(value);
-                }}
-                onOtherRecipientEnabledChange={(value) => {
-                  setOtherRecipientEnabled(value);
-                }}
-                onOtherRecipientNameChange={(value) => {
-                  setOtherRecipientName(value);
-                }}
-                onOtherRecipientPhoneChange={(value) => {
-                  setOtherRecipientPhone(value);
                 }}
               />
               {error ? (

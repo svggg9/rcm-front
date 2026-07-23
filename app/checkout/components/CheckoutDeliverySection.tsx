@@ -190,6 +190,7 @@ export function CheckoutDeliverySection({
 
           <PickupPointModal
             open={pickupModalOpen}
+            loading={pickupLoading}
             points={options}
             selectedId={selectedAddressId}
             deliveryPrice={deliveryPrice}

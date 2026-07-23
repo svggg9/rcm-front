@@ -922,6 +922,14 @@
   color: var(--danger) !important;
 }
 
+.dictionaryCategoryForm {
+  grid-template-columns: 180px minmax(0, 1fr) auto;
+}
+
+.dictionarySubcategoryForm {
+  grid-template-columns: 180px minmax(180px, 0.7fr) minmax(0, 1fr) auto;
+}
+
 .statusProcessed,
 .statusFailed,
 .statusIgnored,

@@ -6,27 +6,15 @@ import styles from "./CheckoutContactSection.module.css";
 type Props = {
   fullName: string;
   phone: string;
-  otherRecipientEnabled: boolean;
-  otherRecipientName: string;
-  otherRecipientPhone: string;
   onFullNameChange: (value: string) => void;
   onPhoneChange: (value: string) => void;
-  onOtherRecipientEnabledChange: (value: boolean) => void;
-  onOtherRecipientNameChange: (value: string) => void;
-  onOtherRecipientPhoneChange: (value: string) => void;
 };
 
 export function CheckoutContactSection({
   fullName,
   phone,
-  otherRecipientEnabled,
-  otherRecipientName,
-  otherRecipientPhone,
   onFullNameChange,
   onPhoneChange,
-  onOtherRecipientEnabledChange,
-  onOtherRecipientNameChange,
-  onOtherRecipientPhoneChange,
 }: Props) {
   return (
     <section className={styles.section}>
@@ -56,44 +44,6 @@ export function CheckoutContactSection({
             />
           </div>
         </div>
-
-        <label className={styles.checkbox}>
-          <input
-            type="checkbox"
-            checked={otherRecipientEnabled}
-            onChange={(event) =>
-              onOtherRecipientEnabledChange(event.target.checked)
-            }
-          />
-          <span className={styles.checkboxMark} aria-hidden="true" />
-          <span className={styles.checkboxText}>Заберет другой человек</span>
-        </label>
-
-        {otherRecipientEnabled ? (
-          <div className={styles.recipientFields}>
-            <div className={styles.fieldWrap}>
-              <span className={styles.fieldLabel}>ФИО получателя</span>
-              <input
-                className={styles.textField}
-                value={otherRecipientName}
-                onChange={(event) =>
-                  onOtherRecipientNameChange(event.target.value)
-                }
-                autoComplete="name"
-              />
-            </div>
-
-            <PhoneInput
-              label="Телефон получателя"
-              fieldVariant="boxed"
-              value={otherRecipientPhone}
-              onChange={(event) =>
-                onOtherRecipientPhoneChange(event.target.value)
-              }
-              required
-            />
-          </div>
-        ) : null}
       </div>
     </section>
   );

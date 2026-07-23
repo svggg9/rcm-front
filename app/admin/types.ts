@@ -226,6 +226,8 @@ export type AdminOrder = {
   fittingMode: string | null;
   trackingNumber: string | null;
   createdAt: string;
+  cancellationRequestedAt?: string | null;
+  cancelledAt?: string | null;
   items: AdminOrderItem[];
   delivery: AdminOrderDeliveryInfo | null;
 };

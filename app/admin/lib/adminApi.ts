@@ -99,6 +99,19 @@ export async function refundAdminOrder(id: number): Promise<void> {
   }
 }
 
+export async function cancelAdminOrderDelivery(id: number): Promise<void> {
+  const response = await apiFetch(
+    `${API_URL}/api/admin/orders/${id}/delivery/cancel`,
+    { method: "POST" }
+  );
+
+  if (!response.ok) {
+    throw new Error(
+      await readError(response, "Не удалось отменить доставку")
+    );
+  }
+}
+
 export async function approveProduct(id: number): Promise<void> {
   const response = await apiFetch(`${API_URL}/api/admin/products/${id}/approve`, {
     method: "POST",

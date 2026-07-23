@@ -1,6 +1,5 @@
 "use client";
 
-import { Button } from "../../components/ui/Button";
 import { StatusBadge } from "../../components/ui/StatusBadge";
 import {
   OrderDetailField,
@@ -12,16 +11,14 @@ import {
   OrderDetailSummary,
   orderDetailStyles,
 } from "../../components/order-detail/OrderDetail";
-import { apiFetch, API_URL } from "../../lib/api";
+import { API_URL } from "../../lib/api";
+import { formatCdekShipmentStatus } from "../../lib/delivery";
+import { formatRussianPhone } from "../../lib/phone";
 
 import type { SellerOrder } from "../types";
 
 type Props = {
   order: SellerOrder;
-  shipping: boolean;
-  canShip: boolean;
-  onBack: () => void;
-  onShip: () => void;
   formatOrderStatus: (status: SellerOrder["status"]) => string;
   formatPaymentStatus: (status: SellerOrder["paymentStatus"]) => string;
   formatDeliveryStatus: (status: SellerOrder["deliveryStatus"]) => string;
@@ -30,9 +27,6 @@ type Props = {
 
 export function SellerOrderDetails({
   order,
-  shipping,
-  canShip,
-  onShip,
   formatOrderStatus,
   formatPaymentStatus,
   formatDeliveryStatus,
@@ -63,7 +57,10 @@ export function SellerOrderDetails({
           <OrderDetailSection title="Получатель">
             <OrderDetailFields>
               <OrderDetailField label="ФИО" value={order.recipientName?.trim() || null} />
-              <OrderDetailField label="Телефон" value={order.recipientPhone} />
+              <OrderDetailField
+                label="Телефон"
+                value={formatRussianPhone(order.recipientPhone)}
+              />
             </OrderDetailFields>
           </OrderDetailSection>
 
@@ -78,7 +75,10 @@ export function SellerOrderDetails({
               ) : null}
 
               {order.delivery?.shipmentStatus ? (
-                <OrderDetailField label="Статус СДЭК" value={order.delivery.shipmentStatus} />
+                <OrderDetailField
+                  label="Статус СДЭК"
+                  value={formatCdekShipmentStatus(order.delivery.shipmentStatus)}
+                />
               ) : null}
 
               {order.delivery?.trackingUrl ? (
@@ -113,38 +113,20 @@ export function SellerOrderDetails({
             <OrderDetailSummary summary={order} />
           </OrderDetailSection>
 
-          <OrderDetailSection title="Действия" panel>
-            <div className={orderDetailStyles.actions}>
-              {canShip ? (
-                <Button variant="primary" onClick={onShip} disabled={shipping}>
-                  {shipping ? "Отмечаем..." : "Отправил"}
-                </Button>
-              ) : null}
-
-              <a
-                href={labelHref}
-                className={orderDetailStyles.actionLink}
-                target="_blank"
-                rel="noreferrer"
-              >
-                Скачать накладную СДЭК
-              </a>
-
-              <Button
-                variant="secondary"
-                onClick={async () => {
-                  await apiFetch(
-                    `${API_URL}/api/delivery/shipments/order/${order.id}/sync`,
-                    { method: "POST" }
-                  );
-
-                  window.location.reload();
-                }}
-              >
-                Синхронизировать доставку
-              </Button>
-            </div>
-          </OrderDetailSection>
+          {order.delivery ? (
+            <OrderDetailSection title="Документы" panel>
+              <div className={orderDetailStyles.actions}>
+                <a
+                  href={labelHref}
+                  className={orderDetailStyles.actionLink}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  Скачать накладную СДЭК
+                </a>
+              </div>
+            </OrderDetailSection>
+          ) : null}
         </>
       }
     />
@@ -168,6 +150,7 @@ function getOrderTone(order: SellerOrder) {
     order.status === "CANCELED" ||
     order.paymentStatus === "FAILED" ||
     order.paymentStatus === "CANCELED" ||
+    order.paymentStatus === "REFUNDED" ||
     order.deliveryStatus === "RETURNED" ||
     order.deliveryStatus === "CANCELLED"
   ) {
@@ -176,16 +159,5 @@ function getOrderTone(order: SellerOrder) {
 
   if (order.paymentStatus === "PENDING") return "warning";
 
-  if (
-    order.deliveryStatus === "READY_FOR_SHIPMENT" ||
-    order.deliveryStatus === "READY_FOR_PICKUP"
-  ) {
-    return "warning";
-  }
-
-  if (order.status === "COMPLETED" || order.deliveryStatus === "DELIVERED") {
-    return "success";
-  }
-
-  return "default";
+  return "success";
 }

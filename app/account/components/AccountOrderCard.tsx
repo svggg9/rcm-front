@@ -112,19 +112,14 @@ function getOrderTone(order: OrderListItem) {
   if (
     order.status === "CANCELED" ||
     order.paymentStatus === "FAILED" ||
-    order.paymentStatus === "CANCELED"
+    order.paymentStatus === "CANCELED" ||
+    order.paymentStatus === "REFUNDED" ||
+    order.deliveryStatus === "RETURNED" ||
+    order.deliveryStatus === "CANCELLED"
   ) {
     return "danger";
   }
 
   if (order.paymentStatus === "PENDING") return "warning";
-  if (
-    order.paymentStatus === "PAID" ||
-    order.status === "COMPLETED" ||
-    order.deliveryStatus === "DELIVERED"
-  ) {
-    return "success";
-  }
-
-  return "default";
+  return "success";
 }

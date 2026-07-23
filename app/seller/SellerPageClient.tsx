@@ -4,7 +4,7 @@ import { useEffect, useState, type MouseEvent } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
-import { apiFetch, API_URL, getSellerOrdersList } from "../lib/api";
+import { apiFetch, API_URL } from "../lib/api";
 import { useSessionResourceCache } from "../lib/useSessionResourceCache";
 import { CabinetSkeleton } from "../components/ui/CabinetSkeleton";
 
@@ -20,7 +20,6 @@ import { SellerOnboardingStatus } from "./components/SellerOnboardingStatus";
 import type { SellerOnboardingStatus as SellerOnboardingStatusType } from "./lib/sellerOnboardingApi";
 
 import type {
-  PageResponse,
   SellerDeliveryStatus,
   SellerOrder,
   SellerOrderListItem,
@@ -98,14 +97,6 @@ function buildSellerStatusLabel(order: SellerOrder | SellerOrderListItem): strin
   return formatOrderStatus(order.status);
 }
 
-function canShipOrder(order: SellerOrder | SellerOrderListItem): boolean {
-  return (
-    order.paymentStatus === "PAID" &&
-    (order.deliveryStatus === "PENDING" ||
-      order.deliveryStatus === "READY_FOR_SHIPMENT")
-  );
-}
-
 function isActiveSellerOrder(order: SellerOrderListItem): boolean {
   return order.status === "NEW";
 }
@@ -168,7 +159,6 @@ function SellerPageContent({
     prefetch: prefetchOrderDetails,
   } = useSessionResourceCache<number, SellerOrder>(fetchSellerOrder);
 
-  const [shippingId, setShippingId] = useState<number | null>(null);
   const [creatingProduct, setCreatingProduct] = useState(false);
 
   const [error, setError] = useState<string | null>(null);
@@ -244,21 +234,6 @@ function SellerPageContent({
     navigateSeller(`${url.pathname}${url.search}`);
   }
 
-  async function loadOrders() {
-    setError(null);
-
-    try {
-      const data: PageResponse<SellerOrderListItem> = await getSellerOrdersList({
-        page: 0,
-        size: 20,
-      });
-
-      setOrders(Array.isArray(data.content) ? data.content : []);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Не удалось загрузить заказы");
-    }
-  }
-
   useEffect(() => {
     if (currentTab !== "orders" || !selectedOrderId) {
       setSelectedOrder(null);
@@ -303,45 +278,9 @@ function SellerPageContent({
     };
   }, [currentTab, getOrderDetails, peekOrderDetails, selectedOrderId]);
 
-  async function ship(orderId: number) {
-    setShippingId(orderId);
-    setError(null);
-
-    try {
-      const response = await apiFetch(
-        `${API_URL}/api/seller/orders/${orderId}/ship`,
-        {
-          method: "POST",
-        }
-      );
-
-      if (!response.ok) {
-        const text = await response.text().catch(() => "");
-        throw new Error(text || `Ошибка отправки (${response.status})`);
-      }
-
-      const updated: SellerOrder = await response.json();
-      seedOrderDetails(orderId, updated);
-
-      if (selectedOrder?.id === orderId) {
-        setSelectedOrder(updated);
-      }
-
-      await loadOrders();
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Не удалось отметить отправку");
-    } finally {
-      setShippingId(null);
-    }
-  }
-
   function openOrder(orderId: number) {
     prefetchOrderDetails(orderId);
     navigateSeller(`/seller?tab=orders&orderId=${orderId}`);
-  }
-
-  function closeOrderDetails() {
-    navigateSeller("/seller?tab=orders");
   }
 
   async function createDraftProduct() {
@@ -441,10 +380,6 @@ function SellerPageContent({
                 {selectedOrder ? (
                   <SellerOrderDetails
                     order={selectedOrder}
-                    shipping={shippingId === selectedOrder.id}
-                    canShip={canShipOrder(selectedOrder)}
-                    onBack={closeOrderDetails}
-                    onShip={() => void ship(selectedOrder.id)}
                     formatOrderStatus={formatOrderStatus}
                     formatPaymentStatus={formatPaymentStatus}
                     formatDeliveryStatus={formatDeliveryStatus}

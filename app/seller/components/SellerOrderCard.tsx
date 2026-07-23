@@ -112,6 +112,7 @@ function getOrderTone(order: SellerOrderListItem) {
     order.status === "CANCELED" ||
     order.paymentStatus === "FAILED" ||
     order.paymentStatus === "CANCELED" ||
+    order.paymentStatus === "REFUNDED" ||
     order.deliveryStatus === "RETURNED" ||
     order.deliveryStatus === "CANCELLED"
   ) {
@@ -120,16 +121,5 @@ function getOrderTone(order: SellerOrderListItem) {
 
   if (order.paymentStatus === "PENDING") return "warning";
 
-  if (
-    order.deliveryStatus === "READY_FOR_SHIPMENT" ||
-    order.deliveryStatus === "READY_FOR_PICKUP"
-  ) {
-    return "warning";
-  }
-
-  if (order.status === "COMPLETED" || order.deliveryStatus === "DELIVERED") {
-    return "success";
-  }
-
-  return "default";
+  return "success";
 }

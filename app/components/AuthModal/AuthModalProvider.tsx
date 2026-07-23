@@ -7,8 +7,10 @@ import {
   useRef,
   useState,
   type FormEvent,
+  type MutableRefObject,
   type ReactNode,
 } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
@@ -38,6 +40,7 @@ type Props = {
 export function AuthModalProvider({ children }: Props) {
   const router = useRouter();
   const modalRef = useRef<HTMLDivElement>(null);
+  const codeInputRefs = useRef<Array<HTMLInputElement | null>>([]);
 
   const [open, setOpen] = useState(false);
   const [mode, setMode] = useState<AuthModalMode>("login");
@@ -46,10 +49,12 @@ export function AuthModalProvider({ children }: Props) {
   const [returnPath, setReturnPath] = useState("/");
 
   const [email, setEmail] = useState("");
+  const [firstName, setFirstName] = useState("");
   const [code, setCode] = useState("");
   const [password, setPassword] = useState("");
   const [passwordVisible, setPasswordVisible] = useState(false);
   const [registerStep, setRegisterStep] = useState<"email" | "code">("email");
+  const [loginStep, setLoginStep] = useState<"password" | "code">("password");
   const [submitting, setSubmitting] = useState(false);
 
   const openAuth = useCallback((
@@ -61,6 +66,10 @@ export function AuthModalProvider({ children }: Props) {
     setMode(nextMode);
     setPlacement(options?.placement ?? "modal");
     setPasswordVisible(false);
+    setLoginStep("password");
+    setRegisterStep("email");
+    setCode("");
+    setFirstName("");
     setOpen(true);
   }, []);
 
@@ -98,14 +107,7 @@ export function AuthModalProvider({ children }: Props) {
     };
   }, [open, closeAuth, placement]);
 
-  async function finishAuth(cartId: string) {
-    await applyAuth(cartId);
-
-    closeAuth();
-    router.refresh();
-  }
-
-  async function applyAuth(cartId: string) {
+  const applyAuth = useCallback(async (cartId: string) => {
     const guestFavoriteIds = getGuestFavoriteIds();
 
     setAuth(cartId);
@@ -116,7 +118,17 @@ export function AuthModalProvider({ children }: Props) {
     }
 
     window.dispatchEvent(new Event("auth-changed"));
-  }
+  }, []);
+
+  const finishAuth = useCallback(
+    async (cartId: string) => {
+      await applyAuth(cartId);
+
+      closeAuth();
+      router.refresh();
+    },
+    [applyAuth, closeAuth, router]
+  );
 
   async function handleLogin(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -146,6 +158,85 @@ export function AuthModalProvider({ children }: Props) {
     }
   }
 
+  async function startCodeLogin() {
+    if (submitting) return;
+    if (!email.trim()) {
+      toast.error("Введите электронную почту");
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      const response = await apiFetch(`${API_URL}/api/auth/email/login/start`, {
+        method: "POST",
+        body: JSON.stringify({ email: email.trim() }),
+      });
+
+      if (!response.ok) {
+        const text = await response.text().catch(() => "");
+        throw new Error(text || "Не удалось отправить код");
+      }
+
+      setCode("");
+      setLoginStep("code");
+      window.setTimeout(() => codeInputRefs.current[0]?.focus(), 0);
+      toast.success("Код отправлен на почту");
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "Не удалось отправить код"
+      );
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  const completeCodeLogin = useCallback(
+    async (value: string) => {
+      if (submitting || value.length !== 6) return;
+
+      setSubmitting(true);
+      try {
+        const cartId = await ensureCartId();
+        const response = await apiFetch(
+          `${API_URL}/api/auth/email/login/complete`,
+          {
+            method: "POST",
+            body: JSON.stringify({
+              email: email.trim(),
+              code: value,
+              cartId,
+            }),
+          }
+        );
+
+        if (!response.ok) {
+          const text = await response.text().catch(() => "");
+          throw new Error(text || "Неверный или просроченный код");
+        }
+
+        const data: { cartId: string } = await response.json();
+        setCode("");
+        setLoginStep("password");
+        await finishAuth(data.cartId);
+      } catch (error) {
+        setCode("");
+        codeInputRefs.current[0]?.focus();
+        toast.error(
+          error instanceof Error ? error.message : "Не удалось войти"
+        );
+      } finally {
+        setSubmitting(false);
+      }
+    },
+    [email, finishAuth, submitting]
+  );
+
+  useEffect(() => {
+    if (loginStep === "code" && code.length === 6) {
+      void completeCodeLogin(code);
+    }
+  }, [code, completeCodeLogin, loginStep]);
+
   async function handleYandexLogin() {
     if (submitting) return;
 
@@ -162,7 +253,7 @@ export function AuthModalProvider({ children }: Props) {
     }
   }
 
-  async function handleRegister(event: FormEvent<HTMLFormElement>) {
+  async function handleRegisterStart(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
     if (submitting) return;
@@ -170,36 +261,64 @@ export function AuthModalProvider({ children }: Props) {
     setSubmitting(true);
 
     try {
-      if (registerStep === "email") {
-        if (!password.trim()) {
-          throw new Error("Введите пароль");
-        }
-
-        if (password.length < 8) {
-          throw new Error("Пароль должен быть от 8 символов");
-        }
-
-        const response = await apiFetch(`${API_URL}/api/auth/email/register/start`, {
-          method: "POST",
-          body: JSON.stringify({ email, password }),
-        });
-
-        if (!response.ok) {
-          const text = await response.text().catch(() => "");
-          throw new Error(text || "Не удалось отправить код");
-        }
-
-        await response.json().catch(() => null);
-        setCode("");
-        setRegisterStep("code");
-        return;
+      if (!firstName.trim()) {
+        throw new Error("Введите имя");
       }
 
+      if (!password.trim()) {
+        throw new Error("Введите пароль");
+      }
+
+      if (password.length < 8) {
+        throw new Error("Пароль должен быть от 8 символов");
+      }
+
+      const response = await apiFetch(`${API_URL}/api/auth/email/register/start`, {
+          method: "POST",
+          body: JSON.stringify({ email, password, firstName: firstName.trim() }),
+        });
+
+      if (!response.ok) {
+        const text = await response.text().catch(() => "");
+        throw new Error(text || "Не удалось отправить код");
+      }
+
+      await response.json().catch(() => null);
+      setCode("");
+      setRegisterStep("code");
+      window.setTimeout(() => codeInputRefs.current[0]?.focus(), 0);
+      toast.success("Код подтверждения отправлен на почту");
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "Ошибка регистрации"
+      );
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  async function handleRegisterComplete(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    if (submitting) return;
+    if (code.length !== 6) {
+      toast.error("Введите шестизначный код");
+      return;
+    }
+
+    setSubmitting(true);
+
+    try {
       const cartId = await ensureCartId();
 
       const response = await apiFetch(`${API_URL}/api/auth/email/register/complete`, {
         method: "POST",
-        body: JSON.stringify({ email, code, cartId }),
+        body: JSON.stringify({
+          email,
+          code,
+          cartId,
+          firstName: firstName.trim(),
+        }),
       });
 
       if (!response.ok) {
@@ -219,8 +338,10 @@ export function AuthModalProvider({ children }: Props) {
   function switchMode(nextMode: AuthModalMode) {
     setMode(nextMode);
     setRegisterStep("email");
+    setLoginStep("password");
     setCode("");
     setPassword("");
+    setFirstName("");
     setPasswordVisible(false);
   }
 
@@ -247,6 +368,18 @@ export function AuthModalProvider({ children }: Props) {
             onMouseDown={(event) => event.stopPropagation()}
           >
             <div className={styles.header}>
+              <div className={styles.headerTop}>
+                <h2 className={styles.title}>Войдите или создайте аккаунт</h2>
+                <button
+                  type="button"
+                  className={styles.closeButton}
+                  onClick={closeAuth}
+                  aria-label="Закрыть"
+                >
+                  <span aria-hidden="true">×</span>
+                </button>
+              </div>
+
               <div className={styles.tabs} role="tablist">
                 <button
                   type="button"
@@ -276,21 +409,17 @@ export function AuthModalProvider({ children }: Props) {
 
             <div className={styles.body}>
               {mode === "login" ? (
-                <form className={styles.form} onSubmit={handleLogin}>
-                  <button
-                    type="button"
-                    className={styles.oauthButton}
-                    onClick={handleYandexLogin}
-                    disabled={submitting}
-                  >
-                    Войти с Яндекс ID
-                  </button>
-
+                <form
+                  className={styles.form}
+                  onSubmit={
+                    loginStep === "password"
+                      ? handleLogin
+                      : (event) => event.preventDefault()
+                  }
+                >
                   <TextInput
                     label="Электронная почта"
                     fieldVariant="boxed"
-                    hideLabel
-                    placeholder="Электронная почта"
                     type="email"
                     value={email}
                     onChange={(event) => setEmail(event.target.value)}
@@ -298,50 +427,130 @@ export function AuthModalProvider({ children }: Props) {
                     autoComplete="email"
                   />
 
-                  <div className={styles.passwordLoginGroup}>
-                    <div className={styles.passwordFieldWrap}>
-                      <TextInput
-                        label="Пароль"
-                        fieldVariant="boxed"
-                        hideLabel
-                        placeholder="Пароль"
-                        type={passwordVisible ? "text" : "password"}
-                        value={password}
-                        onChange={(event) => setPassword(event.target.value)}
-                        required
-                        autoComplete="current-password"
-                        className={styles.passwordInput}
-                      />
+                  {loginStep === "password" ? (
+                    <>
+                      <div className={styles.passwordLoginGroup}>
+                        <div className={styles.passwordFieldWrap}>
+                          <TextInput
+                            label="Пароль"
+                            fieldVariant="boxed"
+                            type={passwordVisible ? "text" : "password"}
+                            value={password}
+                            onChange={(event) => setPassword(event.target.value)}
+                            required
+                            autoComplete="current-password"
+                            className={styles.passwordInput}
+                          />
+                          <button
+                            type="button"
+                            className={styles.passwordVisibilityButton}
+                            onClick={() =>
+                              setPasswordVisible((visible) => !visible)
+                            }
+                            aria-label={
+                              passwordVisible
+                                ? "Скрыть пароль"
+                                : "Показать пароль"
+                            }
+                            title={
+                              passwordVisible
+                                ? "Скрыть пароль"
+                                : "Показать пароль"
+                            }
+                          >
+                            <Icon
+                              name={passwordVisible ? "eye-off" : "eye"}
+                              size={17}
+                              strokeWidth={1.6}
+                            />
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className={styles.authActions}>
+                        <Button
+                          type="submit"
+                          variant="primaryShimmer"
+                          className={styles.submit}
+                          disabled={submitting}
+                        >
+                          Войти
+                        </Button>
+
+                        <Button
+                          type="button"
+                          variant="secondary"
+                          className={`${styles.submit} ${styles.otpButton}`}
+                          onClick={() => void startCodeLogin()}
+                          disabled={submitting}
+                        >
+                          Продолжить с OTP
+                        </Button>
+                      </div>
+
+                      <div className={styles.oauthDivider}>
+                        <span>ИЛИ</span>
+                      </div>
+
                       <button
                         type="button"
-                        className={styles.passwordVisibilityButton}
-                        onClick={() => setPasswordVisible((visible) => !visible)}
-                        aria-label={passwordVisible ? "Скрыть пароль" : "Показать пароль"}
-                        title={passwordVisible ? "Скрыть пароль" : "Показать пароль"}
+                        className={styles.oauthButton}
+                        onClick={handleYandexLogin}
+                        disabled={submitting}
                       >
-                        <Icon name={passwordVisible ? "eye-off" : "eye"} size={17} strokeWidth={1.6} />
+                        Войти через Яндекс
                       </button>
-                    </div>
-                  </div>
-
-                  <Button
-                    type="submit"
-                    variant="primaryShimmer"
-                    className={styles.submit}
-                    disabled={submitting}
-                  >
-                    Войти
-                  </Button>
+                    </>
+                  ) : (
+                    <>
+                      <p className={styles.codeHint}>
+                        Введите код, отправленный на {email}
+                      </p>
+                      <CodeInputs
+                        code={code}
+                        setCode={setCode}
+                        inputRefs={codeInputRefs}
+                        disabled={submitting}
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        onClick={() => {
+                          setCode("");
+                          setLoginStep("password");
+                        }}
+                        disabled={submitting}
+                      >
+                        Войти другим способом
+                      </Button>
+                    </>
+                  )}
                 </form>
               ) : (
-                <form className={styles.form} onSubmit={handleRegister}>
+                <form
+                  key={registerStep}
+                  className={styles.form}
+                  onSubmit={
+                    registerStep === "email"
+                      ? handleRegisterStart
+                      : handleRegisterComplete
+                  }
+                >
                   {registerStep === "email" ? (
                     <>
                       <TextInput
+                        label="Имя"
+                        fieldVariant="boxed"
+                        type="text"
+                        value={firstName}
+                        onChange={(event) => setFirstName(event.target.value)}
+                        required
+                        autoComplete="given-name"
+                      />
+
+                      <TextInput
                         label="Электронная почта"
                         fieldVariant="boxed"
-                        hideLabel
-                        placeholder="Электронная почта"
                         type="email"
                         value={email}
                         onChange={(event) => setEmail(event.target.value)}
@@ -353,8 +562,6 @@ export function AuthModalProvider({ children }: Props) {
                         <TextInput
                           label="Пароль"
                           fieldVariant="boxed"
-                          hideLabel
-                          placeholder="Пароль"
                           type={passwordVisible ? "text" : "password"}
                           value={password}
                           onChange={(event) => setPassword(event.target.value)}
@@ -378,22 +585,30 @@ export function AuthModalProvider({ children }: Props) {
                   ) : null}
 
                   {registerStep === "code" ? (
-                    <TextInput
-                      label="Код из письма"
-                      fieldVariant="boxed"
-                      hideLabel
-                      placeholder="Код из письма"
-                      value={code}
-                      onChange={(event) =>
-                        setCode(event.target.value.replace(/\D/g, "").slice(0, 6))
-                      }
-                      inputMode="numeric"
-                      required
-                    />
+                    <>
+                      <p className={styles.codeHint}>
+                        Введите код, отправленный на {email}
+                      </p>
+                      <CodeInputs
+                        code={code}
+                        setCode={setCode}
+                        inputRefs={codeInputRefs}
+                        disabled={submitting}
+                      />
+                    </>
                   ) : null}
 
                   <p className={styles.legal}>
-                    Регистрируясь, вы соглашаетесь с условиями пользования и политикой конфиденциальности
+                    Регистрируясь, вы вступаете в программу лояльности и
+                    соглашаетесь с документами «
+                    <Link href="/legal/terms" target="_blank">
+                      Условия пользования
+                    </Link>
+                    » и «
+                    <Link href="/legal/privacy" target="_blank">
+                      Политика конфиденциальности
+                    </Link>
+                    ».
                   </p>
 
                   <Button
@@ -404,6 +619,19 @@ export function AuthModalProvider({ children }: Props) {
                   >
                     {registerStep === "email" ? "Получить код" : "Создать аккаунт"}
                   </Button>
+
+                  <div className={styles.oauthDivider}>
+                    <span>ИЛИ</span>
+                  </div>
+
+                  <button
+                    type="button"
+                    className={styles.oauthButton}
+                    onClick={handleYandexLogin}
+                    disabled={submitting}
+                  >
+                    Войти через Яндекс
+                  </button>
                 </form>
               )}
             </div>
@@ -411,6 +639,69 @@ export function AuthModalProvider({ children }: Props) {
         </div>
       ) : null}
     </AuthModalContext.Provider>
+  );
+}
+
+function CodeInputs({
+  code,
+  setCode,
+  inputRefs,
+  disabled,
+}: {
+  code: string;
+  setCode: (value: string) => void;
+  inputRefs: MutableRefObject<Array<HTMLInputElement | null>>;
+  disabled: boolean;
+}) {
+  function setDigit(index: number, value: string) {
+    const digit = value.replace(/\D/g, "").slice(-1);
+    const digits = code.split("");
+    if (digit) {
+      digits[index] = digit;
+    } else {
+      digits.splice(index, 1);
+    }
+    setCode(digits.filter(Boolean).join("").slice(0, 6));
+
+    if (digit && index < 5) {
+      inputRefs.current[index + 1]?.focus();
+    }
+  }
+
+  function pasteCode(value: string) {
+    const nextCode = value.replace(/\D/g, "").slice(0, 6);
+    if (!nextCode) return;
+    setCode(nextCode);
+    inputRefs.current[Math.min(nextCode.length, 5)]?.focus();
+  }
+
+  return (
+    <div className={styles.codeInputs} onPaste={(event) => {
+      event.preventDefault();
+      pasteCode(event.clipboardData.getData("text"));
+    }}>
+      {Array.from({ length: 6 }, (_, index) => (
+        <input
+          key={index}
+          ref={(node) => {
+            inputRefs.current[index] = node;
+          }}
+          className={styles.codeInput}
+          value={code[index] ?? ""}
+          onChange={(event) => setDigit(index, event.target.value)}
+          onKeyDown={(event) => {
+            if (event.key === "Backspace" && !code[index] && index > 0) {
+              inputRefs.current[index - 1]?.focus();
+            }
+          }}
+          inputMode="numeric"
+          autoComplete={index === 0 ? "one-time-code" : "off"}
+          aria-label={`Цифра кода ${index + 1}`}
+          maxLength={1}
+          disabled={disabled}
+        />
+      ))}
+    </div>
   );
 }
 
