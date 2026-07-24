@@ -163,12 +163,21 @@
   color: var(--black);
 }
 
+.line .item:hover::after,
+.line.gold .item:hover::after {
+  background: var(--black);
+}
+
 .line .itemActive,
 .line.gold .itemActive {
   color: var(--black);
 }
 
 .line .itemActive::after {
+  background: var(--gold);
+}
+
+.line .itemActive:hover::after {
   background: var(--gold);
 }
 

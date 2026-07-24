@@ -15,7 +15,7 @@ type Props = {
   value: number | "";
   customValue: string;
   options: Option[];
-  placeholder: string;
+  placeholder?: string;
   invalid?: boolean;
   required?: boolean;
   full?: boolean;
@@ -44,6 +44,8 @@ export function FormCombobox({
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const rootRef = useRef<HTMLDivElement | null>(null);
+  const inputRef = useRef<HTMLInputElement | null>(null);
+  const suppressNextOpenRef = useRef(false);
   const listboxId = useId();
   const selectedOption = options.find((option) => option.value === value) ?? null;
   const inputValue = open ? query : selectedOption?.label ?? customValue;
@@ -128,12 +130,17 @@ export function FormCombobox({
         }`}
       >
         <input
+          ref={inputRef}
           value={inputValue}
           className={`${styles.comboboxInput} ${shouldShowModerationBadge ? styles.comboboxInputWithBadge : ""} ${hasValue ? "" : styles.placeholder}`}
-          placeholder={placeholder}
+          placeholder={open ? placeholder : undefined}
           disabled={disabled}
           onFocus={() => {
             if (disabled) return;
+            if (suppressNextOpenRef.current) {
+              suppressNextOpenRef.current = false;
+              return;
+            }
             setOpen(true);
             setQuery("");
           }}
@@ -171,6 +178,28 @@ export function FormCombobox({
 
         <div className={styles.menu} id={listboxId} role="listbox">
           <div className={styles.options}>
+            {placeholder ? (
+              <button
+                type="button"
+                className={`${styles.option} ${styles.optionMuted}`}
+                role="option"
+                aria-selected={false}
+                onMouseDown={(event) => event.preventDefault()}
+                onClick={() => {
+                  suppressNextOpenRef.current = true;
+                  setOpen(false);
+                  setQuery("");
+                  inputRef.current?.focus();
+                  if (document.activeElement === inputRef.current) {
+                    suppressNextOpenRef.current = false;
+                  }
+                }}
+              >
+                <span className={`${styles.optionLabel} ${styles.optionPlaceholder}`}>
+                  {placeholder}
+                </span>
+              </button>
+            ) : null}
             {emptyOptionLabel ? (
               <button
                 type="button"

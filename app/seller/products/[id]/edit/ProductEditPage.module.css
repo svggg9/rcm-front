@@ -10,13 +10,12 @@
 }
 
 .sellerLayout {
-  width: min(1240px, 100%);
-  margin: 24px auto 48px;
+  width: 100%;
+  margin: 24px 0 48px;
   display: grid;
-  grid-template-columns: 260px minmax(0, 900px);
-  gap: 40px;
+  grid-template-columns: 260px minmax(0, 1fr);
+  gap: 0;
   align-items: start;
-  justify-content: center;
 }
 
 .editorContent {
@@ -57,8 +56,8 @@
   width: 100%;
   margin: 0;
   display: grid;
-  grid-template-columns: minmax(0, 540px) minmax(260px, 280px);
-  gap: 32px;
+  grid-template-columns: minmax(0, 752px) minmax(240px, 1fr);
+  gap: 24px;
   align-items: start;
   justify-content: start;
 }
@@ -92,10 +91,10 @@
 .card {
   background: var(--white);
   border: 0;
-  padding: 28px 0;
+  padding: 40px 0;
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  gap: 24px;
 }
 
 .card:first-child {
@@ -103,20 +102,26 @@
 }
 
 .card + .card {
-  padding-top: 0;
+  padding-top: 16px;
 }
 
 .sectionHeader,
 .cardHeader {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
 }
 
 .sectionHeader h2,
 .cardTitle {
   margin: 0;
   color: var(--black);
+}
+
+.sectionHeader h2 {
+  font-size: var(--font-xl);
+  line-height: 1.2;
+  font-weight: 500;
 }
 
 .sectionHeader p,
@@ -131,7 +136,8 @@
 .grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
+  column-gap: 14px;
+  row-gap: 22px;
 }
 
 .field,
@@ -140,7 +146,7 @@
   position: relative;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
 }
 
 .fieldFull,
@@ -150,20 +156,18 @@
 
 .field > span:first-child,
 .fieldFull > span:first-child {
-  position: absolute;
-  left: 14px;
-  top: 7px;
-  z-index: 12;
-  color: var(--muted);
-  font-size: 10px;
-  font-weight: 400;
-  line-height: 1;
+  position: static;
+  color: var(--black);
+  font-size: 13px;
+  font-weight: 300;
+  line-height: 1.25;
+  letter-spacing: -0.01em;
   pointer-events: none;
 }
 
 .required::after {
   content: " *";
-  color: #c9a24f;
+  color: #8a6a2f;
   font-weight: 500;
 }
 
@@ -171,12 +175,12 @@
 .textarea,
 .select {
   width: 100%;
-  border: 1px solid var(--line);
+  border: 0.5px solid var(--black);
   background: var(--white);
   font-size: var(--font-md);
   line-height: 1.4;
   font-weight: 400;
-  color: var(--black);
+  color: #333333;
   outline: none;
   transition: border-color 0.18s ease, background 0.18s ease;
 }
@@ -190,8 +194,8 @@
 
 .input,
 .select {
-  height: 52px;
-  padding: 19px 14px 7px;
+  height: 44px;
+  padding: 0 15px;
 }
 
 .field:focus-within > span:first-child,
@@ -206,7 +210,7 @@
 
 .selectShell .select {
   appearance: none;
-  padding-right: 42px;
+  padding-right: 43px;
   cursor: pointer;
 }
 
@@ -216,7 +220,7 @@
 
 .selectChevron {
   position: absolute;
-  right: 14px;
+  right: 16px;
   top: 50%;
   width: 16px;
   height: 16px;
@@ -240,21 +244,21 @@
 }
 
 .requiredEmpty {
-  border-color: rgba(201, 162, 79, 0.22);
-  background: rgba(201, 162, 79, 0.07);
+  border-color: var(--black);
+  background: var(--white);
 }
 
 .input.requiredEmpty,
 .select.requiredEmpty,
 .textarea.requiredEmpty {
-  border-color: rgba(201, 162, 79, 0.32);
-  background: rgba(201, 162, 79, 0.12);
+  border-color: var(--black);
+  background: var(--white);
 }
 
 .requiredEmpty:focus,
 .field:focus-within .requiredEmpty {
   background: var(--white);
-  border-color: var(--line);
+  border-color: var(--black);
 }
 
 .input:focus,
@@ -268,35 +272,37 @@
 }
 
 .priceField .input {
-  padding-right: 14px;
+  padding-right: 43px;
 }
 
 .priceInlineSuffix {
   position: absolute;
-  left: 14px;
-  top: 50%;
+  left: auto;
+  right: 15px;
+  top: auto;
+  bottom: 0;
   z-index: 2;
   display: inline-flex;
   align-items: center;
+  height: 44px;
   gap: 4px;
-  max-width: calc(100% - 28px);
-  overflow: hidden;
-  font-size: var(--font-sm);
-  line-height: 1.5;
-  color: var(--muted);
-  transform: translateY(-17%);
+  font-size: var(--font-lg);
+  line-height: 1.4;
+  font-weight: 300;
+  color: #8a6a2f;
+  transform: none;
   pointer-events: none;
 }
 
 .priceMirror {
-  visibility: hidden;
-  white-space: pre;
+  display: none;
 }
 
 .priceSuffix {
   flex: 0 0 auto;
-  color: var(--warning);
-  font-size: var(--font-sm);
+  color: #8a6a2f;
+  font-size: inherit;
+  font-weight: inherit;
 }
 
 .input:disabled,
@@ -308,7 +314,7 @@
 }
 
 .textarea {
-  padding: 24px 14px 13px;
+  padding: 13px 15px;
   resize: vertical;
   min-height: 132px;
   line-height: 1.55;
@@ -316,7 +322,7 @@
 
 .field small,
 .fieldFull small {
-  color: var(--muted);
+  color: #000;
   font-size: var(--font-xs);
 }
 
@@ -374,33 +380,6 @@
   color: var(--black);
 }
 
-.shippingMeasureGuide {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px 20px;
-}
-
-.shippingMeasureGuide > div {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-  min-width: 0;
-}
-
-.shippingMeasureGuide strong {
-  color: var(--black);
-  font-size: var(--font-xs);
-  font-weight: 500;
-  line-height: 1.4;
-}
-
-.shippingMeasureGuide span {
-  color: var(--muted);
-  font-size: var(--font-xs);
-  font-weight: 400;
-  line-height: 1.45;
-}
-
 .shippingWeightGrid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -415,7 +394,7 @@
 }
 
 .shippingWeightMetric strong {
-  font-size: var(--font-md);
+  font-size: 14px;
 }
 
 .shippingWeightWarning {
@@ -455,8 +434,8 @@
 .lockedSecondaryBtn,
 .lockedIconBtn {
   border: 1px solid var(--black);
-  background: color-mix(in srgb, var(--warning) 82%, var(--black));
-  color: var(--white);
+  background: var(--white);
+  color: var(--black);
 }
 
 .secondaryBtn:hover {
@@ -514,23 +493,10 @@
 
 .primaryBtn:hover:not(:disabled),
 .lockedPrimaryBtn:hover:not(:disabled) {
-  color: transparent;
-  background:
-    linear-gradient(
-      110deg,
-      var(--white) 0%,
-      var(--white) 34%,
-      var(--gold) 48%,
-      var(--white) 62%,
-      var(--white) 100%
-    );
-  background-size: 260% 100%;
-  background-position: 100% 0;
-  background-clip: text;
-  -webkit-background-clip: text;
-  box-shadow: inset 0 0 0 999px var(--black);
-  opacity: 1;
-  animation: buttonTextShimmer 0.45s ease-out;
+  color: var(--white);
+  background: var(--black);
+  box-shadow: none;
+  opacity: 0.72;
 }
 
 .deleteProductBtn:hover {
@@ -551,6 +517,13 @@
   color: var(--muted);
   opacity: 1;
   cursor: default;
+}
+
+.primaryBtn:disabled,
+.lockedPrimaryBtn:disabled {
+  border-color: transparent;
+  background: var(--soft);
+  color: var(--muted);
 }
 
 /* product header */
@@ -631,8 +604,9 @@
 .lockedTitleRow {
   min-width: 0;
   display: flex;
-  align-items: center;
-  gap: 8px;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
 }
 
 .lockedTitle {
@@ -732,20 +706,30 @@
 .filePicker,
 .fileLabel {
   border: 1px solid var(--black);
-  background: var(--white);
-  color: var(--black);
-  padding: 11px 16px;
+  background: var(--black);
+  color: var(--white);
+  min-height: 44px;
+  padding: 0 16px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
   font-size: var(--font-sm);
-  font-weight: 500;
+  font-weight: 600;
 }
 
 .filePicker span,
 .fileLabel span {
-  color: var(--black);
+  color: var(--white);
+  line-height: 1;
+}
+
+.dropZone .filePicker span,
+.variantImageDropZone .filePicker span {
+  display: inline;
+  margin-top: 0;
+  color: var(--white);
+  line-height: 1;
 }
 
 .filePicker:hover,
@@ -767,7 +751,7 @@
 .imageCard {
   position: relative;
   overflow: hidden;
-  border: 1px solid var(--line);
+  border: 0;
   background: var(--soft);
   aspect-ratio: 1 / 1;
 }
@@ -786,7 +770,7 @@
   inset: auto 0 0 0;
   padding: 10px;
   background: rgba(255, 255, 255, 0.92);
-  border-top: 1px solid var(--line);
+  border-top: 0;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -931,9 +915,10 @@
 }
 
 .variantImageDropZone {
+  min-height: 112px;
   border: 0;
   background: var(--soft);
-  padding: 14px;
+  padding: 24px;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -1001,7 +986,7 @@
 
 .variantSizeRow {
   display: grid;
-  grid-template-columns: minmax(120px, 1fr) minmax(120px, 1fr) minmax(138px, 0.9fr) 28px;
+  grid-template-columns: minmax(120px, 1fr) minmax(120px, 1fr) minmax(138px, 0.9fr);
   gap: 10px;
   align-items: start;
 }
@@ -1023,7 +1008,7 @@
   align-items: center;
   justify-content: center;
   gap: 7px;
-  font-size: var(--font-sm);
+  font-size: var(--font-xs);
   cursor: pointer;
 }
 
@@ -1041,40 +1026,40 @@
 
 .variantAddSizeBtn {
   border-color: var(--black);
-  background: var(--white);
-  color: var(--black);
+  background: var(--black);
+  color: var(--white);
+  font-weight: 600;
 }
 
 .variantAddSizeBtn:hover {
-  background: var(--soft);
+  background: var(--black);
   border-color: var(--black);
-  color: var(--black);
-}
-
-.variantSizeRemoveCell {
-  height: 52px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  color: var(--white);
+  opacity: 0.72;
 }
 
 .variantSizeDeleteBtn {
-  width: 28px;
-  height: 28px;
-  border: 1px solid var(--black);
-  background: var(--white);
-  color: var(--muted);
+  position: absolute;
+  top: -4px;
+  right: 0;
+  z-index: 80;
+  width: 24px;
+  height: 24px;
+  border: 0;
+  background: transparent;
+  color: #000;
   padding: 0;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
+  pointer-events: auto;
+  touch-action: manipulation;
 }
 
 .variantSizeDeleteBtn:hover {
-  background: var(--soft);
-  border-color: var(--black);
-  color: var(--black);
+  background: transparent;
+  color: #000;
 }
 
 .quantityField {
@@ -1219,55 +1204,19 @@
   background: var(--white);
 }
 
-.previewImageBox {
-  aspect-ratio: 4 / 5;
-  overflow: hidden;
-  background: var(--soft);
-  border: 1px solid var(--line);
-  position: relative;
-}
-
-.previewImage {
-  object-fit: cover;
-}
-
-.previewPlaceholder {
-  height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--muted);
-  font-size: 13px;
-}
-
 .stickyCard h2 {
   margin: 0;
 }
 
 .previewTitleRow {
   display: flex;
+  flex-direction: column;
   align-items: flex-start;
-  justify-content: space-between;
-  gap: 10px;
+  gap: 6px;
 }
 
 .previewTitleRow h2 {
   min-width: 0;
-}
-
-.previewAction {
-  height: 38px;
-  border: 1px solid var(--black);
-  background: var(--white);
-  color: var(--black);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  text-decoration: none;
-}
-
-.previewAction:hover {
-  border-color: var(--black);
 }
 
 .stickyCard p {
@@ -1462,6 +1411,19 @@
 }
 
 @media (max-width: 768px) {
+  .aside {
+    display: block;
+    order: -1;
+  }
+
+  .stickyCard {
+    position: static;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 0 0 20px;
+  }
+
   .formGrid,
   .grid {
     grid-template-columns: 1fr;
@@ -1470,10 +1432,6 @@
   .shippingWeightGrid {
     grid-template-columns: 1fr;
     gap: 10px;
-  }
-
-  .shippingMeasureGuide {
-    grid-template-columns: 1fr;
   }
 
   .header {
@@ -1504,8 +1462,8 @@
 }
 
 .dropZone {
-  min-height: 128px;
-  padding: 18px;
+  min-height: 160px;
+  padding: 24px;
   border: 1px dashed var(--line);
   background: var(--soft);
 
@@ -1573,7 +1531,7 @@
   aspect-ratio: 1 / 1;
   overflow: hidden;
 
-  border: 1px solid var(--line);
+  border: 0;
   background: var(--soft);
 }
 
@@ -1636,20 +1594,25 @@
   right: 8px;
   z-index: 2;
 
-  width: 28px;
-  height: 28px;
+  width: 20px;
+  height: 20px;
 
-  border: 1px solid var(--black);
-  background: rgba(255, 255, 255, 0.92);
-  color: var(--black);
+  border: 0;
+  background: transparent;
+  color: #000;
+  padding: 0;
 
-  font-size: 20px;
+  font-size: 17px;
   line-height: 1;
   cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .imageDeleteBtn:hover {
-  border-color: var(--black);
+  color: #000;
+  opacity: 1;
 }
 
 .imageControls {
@@ -1687,13 +1650,13 @@
 
 .mainImageBadge {
   position: absolute;
-  top: 8px;
-  left: 8px;
+  top: 6px;
+  left: 6px;
   z-index: 2;
 
-  padding: 5px 8px;
+  padding: 3px 6px;
 
-  border: 1px solid var(--black);
+  border: 0;
   background: rgba(255, 255, 255, 0.92);
   color: var(--black);
 
@@ -1803,41 +1766,51 @@
 }
 
 .descriptionFieldShell {
-  position: relative;
   width: 100%;
+  overflow: hidden;
+  border: 0.5px solid var(--black);
+  background: var(--white);
 }
 
 .descriptionFieldShell .textarea {
-  padding-right: 78px;
+  display: block;
+  min-height: 220px;
+  padding: 6px 15px 0;
+  border: 0;
+}
+
+.compositionFieldShell .textarea {
+  min-height: 132px;
 }
 
 .descriptionToolbar {
-  position: absolute;
-  top: 8px;
-  right: 8px;
-  z-index: 14;
-  display: inline-flex;
+  display: flex;
   align-items: center;
+  justify-content: flex-start;
+  width: 100%;
+  min-height: 22px;
+  padding: 4px 6px 1px;
   gap: 2px;
+  background: var(--white);
 }
 
 .descriptionToolButton {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 28px;
-  height: 28px;
+  width: 20px;
+  height: 20px;
   border: 0;
   padding: 0;
   background: transparent;
-  color: var(--muted);
+  color: #000;
   cursor: pointer;
   transition: color 0.18s ease;
 }
 
 .descriptionToolButton:hover,
 .descriptionToolButton:focus-visible {
-  color: var(--black);
+  color: #000;
 }
 
 .descriptionToolButton:focus-visible {

@@ -194,7 +194,6 @@ export function AccountProfileTab({
                 type="password"
                 value={currentPassword}
                 onChange={(event) => setCurrentPassword(event.target.value)}
-                placeholder="Предыдущий пароль"
                 autoComplete="current-password"
               />
 
@@ -203,7 +202,6 @@ export function AccountProfileTab({
                 type="password"
                 value={newPassword}
                 onChange={(event) => setNewPassword(event.target.value)}
-                placeholder="Новый пароль"
                 autoComplete="new-password"
               />
 
@@ -212,7 +210,6 @@ export function AccountProfileTab({
                 type="password"
                 value={newPasswordRepeat}
                 onChange={(event) => setNewPasswordRepeat(event.target.value)}
-                placeholder="Повторите новый пароль"
                 autoComplete="new-password"
               />
 

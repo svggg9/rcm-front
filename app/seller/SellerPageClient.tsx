@@ -7,9 +7,11 @@ import { toast } from "sonner";
 import { apiFetch, API_URL } from "../lib/api";
 import { useSessionResourceCache } from "../lib/useSessionResourceCache";
 import { CabinetSkeleton } from "../components/ui/CabinetSkeleton";
+import { CabinetTabs } from "../components/ui/CabinetTabs";
 
 import { SellerSidebar } from "./components/SellerSidebar";
 import { SellerOrdersTab } from "./components/SellerOrdersTab";
+import { SellerReturnsTab } from "./components/SellerReturnsTab";
 import { SellerOrderDetails } from "./components/SellerOrderDetails";
 import { SellerProductsTab } from "./components/SellerProductsTab";
 import { SellerBrandTab } from "./components/SellerBrandTab";
@@ -327,6 +329,24 @@ function SellerPageContent({
           />
 
           <div className={styles.content}>
+            {currentTab === "orders" || currentTab === "returns" ? (
+              <CabinetTabs<"orders" | "returns">
+                items={[
+                  { value: "orders", label: "Заказы" },
+                  { value: "returns", label: "Возвраты" },
+                ]}
+                value={currentTab}
+                onChange={(tab) => {
+                  setSelectedOrder(null);
+                  navigateSeller(
+                    tab === "orders" ? "/seller?tab=orders" : "/seller?tab=returns"
+                  );
+                }}
+                ariaLabel="Заказы и возвраты"
+                appearance="line"
+              />
+            ) : null}
+
             {error ? <div className={styles.error}>{error}</div> : null}
 
             {visitedTabs.has("home") ? (
@@ -397,6 +417,12 @@ function SellerPageContent({
                 )}
               </div>
             ) : null}
+
+            {visitedTabs.has("returns") ? (
+              <div hidden={currentTab !== "returns"}>
+                <SellerReturnsTab />
+              </div>
+            ) : null}
           </div>
         </div>
       </div>
@@ -411,6 +437,7 @@ export function SellerPageClient(props: Props) {
 function parseSellerTab(value: string | null): SellerTab {
   if (
     value === "orders" ||
+    value === "returns" ||
     value === "products" ||
     value === "finance" ||
     value === "brand" ||

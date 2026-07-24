@@ -4,7 +4,8 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
 import { API_URL } from "../../lib/api";
-import { ProductTile } from "../../components/ProductTile/ProductTile";
+import { BrandFavoriteButton } from "./BrandFavoriteButton";
+import { BrandCatalog } from "./BrandCatalog";
 import styles from "./BrandPage.module.css";
 
 import type { PaginatedProducts } from "../../components/Catalog/catalogTypes";
@@ -18,6 +19,7 @@ type BrandResponse = {
   slug: string;
   description: string | null;
   logoUrl: string | null;
+  wordmarkUrl: string | null;
   website: string | null;
   telegram: string | null;
   vk: string | null;
@@ -72,20 +74,6 @@ function getBrandDescription(brand: BrandResponse): string {
   );
 }
 
-function getExternalHref(value: string | null): string | null {
-  if (!value) return null;
-
-  if (value.startsWith("http://") || value.startsWith("https://")) {
-    return value;
-  }
-
-  if (value.startsWith("@")) {
-    return `https://t.me/${value.slice(1)}`;
-  }
-
-  return `https://${value}`;
-}
-
 export async function generateMetadata({
   params,
 }: {
@@ -135,19 +123,6 @@ export default async function BrandPage({
     notFound();
   }
 
-  const websiteHref = getExternalHref(brand.website);
-  const telegramHref = getExternalHref(brand.telegram);
-  const vkHref = getExternalHref(brand.vk);
-
-  const hasBrandInfo =
-    Boolean(brand.description) ||
-    Boolean(brand.logoUrl) ||
-    Boolean(brand.country) ||
-    Boolean(brand.foundationYear) ||
-    Boolean(brand.website) ||
-    Boolean(brand.telegram) ||
-    Boolean(brand.vk);
-
   return (
     <div className="pageContainer">
       <div className={styles.catalogPage}>
@@ -167,102 +142,44 @@ export default async function BrandPage({
           </nav>
 
           <div className={styles.headingWrap}>
-            <h1 className={styles.heading}>{brand.name}</h1>
-          </div>
-
-          {hasBrandInfo ? (
-            <section className={styles.brandHero}>
-              <div className={styles.brandHeroMain}>
-                {brand.description ? (
-                  <p className={styles.brandDescription}>{brand.description}</p>
-                ) : null}
-
-                {brand.country || brand.foundationYear ? (
-                  <div className={styles.brandMeta}>
-                    {brand.country ? <span>{brand.country}</span> : null}
-                    {brand.foundationYear ? (
-                      <span>основан в {brand.foundationYear}</span>
-                    ) : null}
-                  </div>
-                ) : null}
-
-                {websiteHref || telegramHref || vkHref ? (
-                  <div className={styles.brandLinks}>
-                    {websiteHref ? (
-                      <a
-                        href={websiteHref}
-                        target="_blank"
-                        rel="noreferrer"
-                        className={styles.brandLink}
-                      >
-                        Сайт
-                      </a>
-                    ) : null}
-
-                    {telegramHref ? (
-                      <a
-                        href={telegramHref}
-                        target="_blank"
-                        rel="noreferrer"
-                        className={styles.brandLink}
-                      >
-                        Telegram
-                      </a>
-                    ) : null}
-
-                    {vkHref ? (
-                      <a
-                        href={vkHref}
-                        target="_blank"
-                        rel="noreferrer"
-                        className={styles.brandLink}
-                      >
-                        VK
-                      </a>
-                    ) : null}
-                  </div>
-                ) : null}
-              </div>
-
-              {brand.logoUrl ? (
-                <div className={styles.brandLogoBox}>
+            {brand.wordmarkUrl ? (
+              <>
+                <h1 className="visuallyHidden">{brand.name}</h1>
+                <div className={styles.wordmark}>
                   <Image
-                    src={brand.logoUrl}
+                    src={brand.wordmarkUrl}
                     alt={brand.name}
                     fill
-                    sizes="120px"
-                    className={styles.brandLogo}
+                    sizes="(max-width: 560px) 72vw, 520px"
+                    priority
                   />
                 </div>
-              ) : null}
+              </>
+            ) : (
+              <h1 className={styles.heading}>{brand.name}</h1>
+            )}
+            <BrandFavoriteButton
+              brand={{
+                id: brand.id,
+                name: brand.name,
+                slug: brand.slug,
+                logoUrl: brand.logoUrl,
+                country: brand.country,
+              }}
+            />
+          </div>
+
+          {brand.description ? (
+            <section className={styles.brandHero}>
+              <div className={styles.brandHeroMain}>
+                <p className={styles.brandDescription}>{brand.description}</p>
+              </div>
+
             </section>
           ) : null}
         </div>
 
-        <section className={styles.results}>
-          <div className={styles.resultsBar}>
-            <div className={styles.count}>
-              {products.totalProducts.toLocaleString("ru-RU")} товаров
-            </div>
-          </div>
-
-          <ul className={styles.grid} aria-busy="false">
-            {products.items.map((product) => (
-              <ProductTile
-                key={product.id}
-                product={{
-                  id: product.id,
-                  publicId: product.publicId,
-                  title: product.title,
-                  brand: product.brand,
-                  brandSlug: product.brandSlug,
-                  images: product.images,
-                  minPrice: product.minPrice,
-                }}
-              />
-            ))}
-          </ul>
-        </section>
+        <BrandCatalog products={products.items} />
       </div>
     </div>
   );

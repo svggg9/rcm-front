@@ -74,13 +74,15 @@ export function AccountInfoTab({ defaultEmail = "" }: Props) {
         </div>
 
         <form className={styles.subscribeForm} onSubmit={handleSubscribe}>
-          <input
-            value={email}
-            onChange={(event) => setEmail(event.target.value)}
-            type="email"
-            placeholder="Электронная почта"
-            autoComplete="email"
-          />
+          <label className={styles.subscribeField}>
+            <span>Электронная почта</span>
+            <input
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
+              type="email"
+              autoComplete="email"
+            />
+          </label>
           <Button type="submit" variant="primaryShimmer" disabled={saving}>
             Подписаться
           </Button>

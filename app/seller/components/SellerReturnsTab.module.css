@@ -1,0 +1,167 @@
+.page {
+  display: flex;
+  flex-direction: column;
+}
+
+.pageHeader {
+  margin-bottom: 24px;
+}
+
+.pageHeader h1,
+.empty h2 {
+  margin: 0;
+  color: var(--black);
+  font-weight: 400;
+}
+
+.pageHeader h1 {
+  font-size: var(--font-2xl);
+}
+
+.pageHeader p,
+.empty p,
+.muted {
+  margin: 7px 0 0;
+  color: var(--muted);
+  font-size: var(--font-sm);
+}
+
+.empty {
+  border: 1px solid var(--black);
+  padding: 24px;
+}
+
+.empty h2 {
+  font-size: var(--font-lg);
+}
+
+.list {
+  display: grid;
+  gap: 16px;
+}
+
+.card {
+  border: 1px solid var(--black);
+  padding: 20px;
+}
+
+.header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.header > div {
+  display: grid;
+  gap: 5px;
+}
+
+.header strong {
+  font-size: var(--font-md);
+  font-weight: 600;
+}
+
+.header span,
+.comment {
+  color: var(--muted);
+  font-size: var(--font-sm);
+}
+
+.details {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+  margin: 20px 0 0;
+}
+
+.details div {
+  display: grid;
+  gap: 4px;
+}
+
+.details dt,
+.inspection label > span {
+  color: var(--black);
+  font-size: 12px;
+  font-weight: 300;
+}
+
+.details dd {
+  margin: 0;
+  font-size: var(--font-sm);
+}
+
+.comment {
+  margin: 18px 0 0;
+}
+
+.actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.inspection {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid var(--black);
+}
+
+.inspection label {
+  display: grid;
+  gap: 8px;
+}
+
+.inspection input,
+.inspection select,
+.inspection textarea {
+  width: 100%;
+  min-height: 44px;
+  border: 0.5px solid var(--black);
+  border-radius: 0;
+  background: var(--white);
+  color: #333333;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 400;
+  padding: 0 15px;
+}
+
+.inspection textarea {
+  min-height: 110px;
+  padding: 12px 15px;
+  resize: vertical;
+}
+
+.fullWidth {
+  grid-column: 1 / -1;
+}
+
+.error {
+  margin-top: 16px;
+  color: var(--danger, #b42318);
+  font-size: var(--font-sm);
+}
+
+@media (max-width: 768px) {
+  .pageHeader h1 {
+    font-size: var(--font-xl);
+  }
+
+  .header {
+    flex-direction: column;
+  }
+
+  .details,
+  .inspection {
+    grid-template-columns: 1fr;
+  }
+
+  .fullWidth {
+    grid-column: auto;
+  }
+}

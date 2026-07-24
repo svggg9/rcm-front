@@ -32,8 +32,9 @@
 .header span,
 .card dt,
 .review label > span {
-  color: var(--muted);
-  font-size: var(--font-xs);
+  color: var(--black);
+  font-size: 12px;
+  font-weight: 300;
 }
 
 .card dl {
@@ -76,15 +77,28 @@
 .review label {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
+}
+
+.review textarea,
+.review input {
+  min-height: 110px;
+  padding: 12px 15px;
+  border: 0.5px solid var(--black);
+  border-radius: 0;
+  font: inherit;
+  color: #333333;
+  background: var(--white);
+  font-size: 14px;
+  font-weight: 400;
+}
+
+.review input {
+  min-height: 44px;
+  padding: 0 15px;
 }
 
 .review textarea {
-  min-height: 80px;
-  padding: 10px;
-  border: 1px solid var(--black);
-  border-radius: 0;
-  font: inherit;
   resize: vertical;
 }
 

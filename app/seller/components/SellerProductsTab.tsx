@@ -90,7 +90,6 @@ export function SellerProductsTab({
       <header className={styles.pageHeader}>
         <div>
           <h1>Товары</h1>
-          <p>Управление ассортиментом, ценами и остатками</p>
         </div>
 
         {onCreateProduct ? (

@@ -123,9 +123,6 @@ export function SellerTelegramCard() {
             />
             <h2 className={`${styles.title} textTitle`}>Telegram уведомления</h2>
           </div>
-          <p className={`${styles.text} textSmall`}>
-            Новые заказы будут приходить в Telegram после подключения
-          </p>
         </div>
 
         {loading ? (

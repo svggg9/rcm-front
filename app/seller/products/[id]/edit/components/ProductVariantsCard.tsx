@@ -1,9 +1,8 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import Image from "next/image";
 
-import { FormCombobox } from "../../../../../components/ui/FormCombobox";
 import { SectionHeader } from "./SectionHeader";
-import type { Option, ProductImageItem, ProductVariant } from "../types";
+import type { ProductImageItem, ProductVariant } from "../types";
 import styles from "../ProductEditPage.module.css";
 
 type VariantValidationErrors = Record<
@@ -25,7 +24,6 @@ type UploadProgress = {
 type Props = {
   variants: ProductVariant[];
   images: ProductImageItem[];
-  sizes: Option[];
   validationErrors: VariantValidationErrors;
   invalidImages?: boolean;
   uploading: boolean;
@@ -56,7 +54,6 @@ function formatPrice(value: number) {
 export function ProductVariantsCard({
   variants,
   images,
-  sizes,
   validationErrors,
   invalidImages = false,
   uploading,
@@ -75,12 +72,6 @@ export function ProductVariantsCard({
 }: Props) {
   const [dragActive, setDragActive] = useState(false);
   const baseVariant = variants[0] ?? null;
-
-  useEffect(() => {
-    if (variants.length === 0) {
-      onAddVariant();
-    }
-  }, [variants.length, onAddVariant]);
 
   function uploadFiles(files: File[]) {
     const imageFiles = files.filter((file) => file.type.startsWith("image/"));
@@ -103,23 +94,12 @@ export function ProductVariantsCard({
       price: baseVariant?.price ?? 0,
       availableQuantity: baseVariant?.availableQuantity ?? null,
       sellerArticle: baseVariant?.sellerArticle ?? "",
-      stockTrackingEnabled: baseVariant?.stockTrackingEnabled ?? false,
+      stockTrackingEnabled: true,
     });
   }
 
   function removeSizeRow(index: number) {
-    if (variants.length > 1) {
-      onRemoveVariant(index);
-      return;
-    }
-
-    onUpdateVariant(index, {
-      sizeId: "",
-      size: "",
-      price: 0,
-      availableQuantity: null,
-      stockTrackingEnabled: false,
-    });
+    onRemoveVariant(index);
   }
 
   function updateSellerArticle(value: string) {
@@ -163,11 +143,11 @@ export function ProductVariantsCard({
             <span>
               {uploading && uploadProgress.total > 0
                 ? `${uploadProgress.done} из ${uploadProgress.total}`
-                : "Перетащи фото сюда или выбери файл."}
+                : "Перетащи фото сюда или выбери файл"}
             </span>
           </div>
 
-          <label className={styles.filePicker}>
+          <label className={`${styles.filePicker} buttonPrimary`}>
             <input
               type="file"
               accept="image/*"
@@ -178,7 +158,7 @@ export function ProductVariantsCard({
                 event.target.value = "";
               }}
             />
-            <span>Выбрать фото</span>
+            <span className="buttonContent">Выбрать фото</span>
           </label>
         </div>
 
@@ -210,11 +190,14 @@ export function ProductVariantsCard({
 
                 <button
                   type="button"
+                  tabIndex={-1}
                   onClick={() => onDeleteImage(image.id)}
                   className={styles.imageDeleteBtn}
                   aria-label="Удалить фото"
                 >
-                  x
+                  <svg viewBox="0 0 16 16" aria-hidden="true" className={styles.variantActionIcon}>
+                    <path d="M4.5 4.5L11.5 11.5M11.5 4.5L4.5 11.5" />
+                  </svg>
                 </button>
               </div>
             ))}
@@ -233,7 +216,7 @@ export function ProductVariantsCard({
 
           {baseVariant ? (
           <label className={`${styles.field} ${styles.fieldFull}`}>
-            <span>Артикул продавца (необязательно)</span>
+            <span>Артикул продавца</span>
             <input
               value={baseVariant.sellerArticle ?? ""}
               onChange={(event) => updateSellerArticle(event.target.value)}
@@ -248,28 +231,6 @@ export function ProductVariantsCard({
 
             return (
               <div key={variant.id ?? variant.clientKey ?? `new-${index}`} className={styles.variantSizeRow}>
-                <div className={styles.variantSizeField}>
-                  <FormCombobox
-                    label="Размер"
-                    value={variant.sizeId}
-                    customValue={variant.sizeId ? "" : variant.size}
-                    invalid={errors.sizeId}
-                    placeholder="Без размера"
-                    emptyOptionLabel="Без размера"
-                    options={sizes.map((size) => ({
-                      value: size.id,
-                      label: size.name,
-                    }))}
-                    onChange={(value, customValue) => {
-                      const size = sizes.find((item) => item.id === value);
-                      onUpdateVariant(index, {
-                        sizeId: value,
-                        size: size?.name ?? customValue,
-                      });
-                    }}
-                  />
-                </div>
-
                 <label className={`${styles.field} ${styles.priceField}`}>
                   <span className={styles.required}>Цена</span>
                   <input
@@ -299,49 +260,29 @@ export function ProductVariantsCard({
                   </span>
                 </label>
 
-                <div className={`${styles.field} ${styles.quantityField}`}>
-                  <span>Количество</span>
-                  {variant.stockTrackingEnabled ? (
+                <div className={styles.variantSizeField}>
+                  <label className={styles.field}>
+                    <span>Размер</span>
                     <input
-                      type="text"
-                      inputMode="numeric"
-                      pattern="[0-9]*"
-                      value={variant.availableQuantity ?? ""}
+                      value={variant.size}
                       onChange={(event) =>
                         onUpdateVariant(index, {
-                          availableQuantity:
-                            digitsOnly(event.target.value) === ""
-                              ? null
-                              : Number(digitsOnly(event.target.value)),
+                          sizeId: "",
+                          size: event.target.value,
                         })
                       }
                       className={`${styles.input} ${
-                        errors.availableQuantity ? styles.fieldInvalid : ""
-                      } ${variant.availableQuantity === null ? styles.requiredEmpty : ""}`}
+                        errors.sizeId ? styles.fieldInvalid : ""
+                      }`}
                     />
-                  ) : (
-                    <div className={styles.readonlyBox} aria-hidden="true" />
-                  )}
-                  <div className={styles.variantStockToggle}>
-                    <input
-                      type="checkbox"
-                      checked={variant.stockTrackingEnabled}
-                      onChange={(event) =>
-                        onUpdateVariant(index, {
-                          stockTrackingEnabled: event.target.checked,
-                          availableQuantity: event.target.checked
-                            ? variant.availableQuantity
-                            : null,
-                        })
-                      }
-                    />
-                    <span>Учитывать кол-во</span>
-                  </div>
+                  </label>
                 </div>
 
-                <div className={styles.variantSizeRemoveCell}>
+                <div className={`${styles.field} ${styles.quantityField}`}>
+                  <span>Количество</span>
                   <button
                     type="button"
+                    tabIndex={-1}
                     onClick={() => removeSizeRow(index)}
                     className={styles.variantSizeDeleteBtn}
                     aria-label="Удалить размер"
@@ -350,7 +291,26 @@ export function ProductVariantsCard({
                       <path d="M4.5 4.5L11.5 11.5M11.5 4.5L4.5 11.5" />
                     </svg>
                   </button>
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    value={variant.availableQuantity ?? ""}
+                    onChange={(event) =>
+                      onUpdateVariant(index, {
+                        availableQuantity:
+                          digitsOnly(event.target.value) === ""
+                            ? null
+                            : Number(digitsOnly(event.target.value)),
+                        stockTrackingEnabled: digitsOnly(event.target.value) !== "",
+                      })
+                    }
+                    className={`${styles.input} ${
+                      errors.availableQuantity ? styles.fieldInvalid : ""
+                    }`}
+                  />
                 </div>
+
               </div>
             );
           })}
@@ -358,9 +318,9 @@ export function ProductVariantsCard({
           <button
             type="button"
             onClick={addSizeRow}
-            className={styles.variantAddSizeBtn}
+            className={`${styles.variantAddSizeBtn} buttonPrimary`}
           >
-            <span>Добавить размер</span>
+            <span className="buttonContent">Добавить размер</span>
           </button>
         </div>
       </div>

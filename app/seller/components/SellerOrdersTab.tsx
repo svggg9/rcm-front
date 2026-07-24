@@ -71,7 +71,6 @@ export function SellerOrdersTab({
     <section className={styles.page}>
       <header className={styles.pageHeader}>
         <h1>Заказы</h1>
-        <p>Обработка заказов и контроль отправлений</p>
       </header>
 
       <div className={styles.ordersToolbar}>

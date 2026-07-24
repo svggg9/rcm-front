@@ -289,7 +289,6 @@ function PayoutActions({
         <input
           value={paymentOrder}
           onChange={(event) => onPaymentOrderChange(event.target.value)}
-          placeholder="Номер платежного поручения"
           aria-label="Номер платежного поручения"
         />
       ) : null}
@@ -348,7 +347,6 @@ function Ledger({
             className={`${adminStyles.adminInput} textSmall`}
             value={orderGroupId}
             onChange={(event) => onOrderGroupIdChange(event.target.value)}
-            placeholder="UUID группы заказа"
           />
         </label>
       </div>

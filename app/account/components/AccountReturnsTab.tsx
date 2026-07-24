@@ -18,6 +18,7 @@ type Props = {
 export function AccountReturnsTab({ onOpenOrders }: Props) {
   const [returns, setReturns] = useState<ReturnRequest[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -26,7 +27,7 @@ export function AccountReturnsTab({ onOpenOrders }: Props) {
         if (!cancelled) setReturns(items);
       })
       .catch(() => {
-        if (!cancelled) setReturns([]);
+        if (!cancelled) setError(true);
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -41,24 +42,28 @@ export function AccountReturnsTab({ onOpenOrders }: Props) {
       <div className={styles.heading}>
         <h2>Возвраты</h2>
         <p>
-          Здесь вы можете проверить статус возврата, перенести встречу с курьером
-          и распечатать необходимые документы.
+          Здесь вы можете проверить статус возврата и распечатать документы для
+          отправки товара через ПВЗ СДЭК.
         </p>
       </div>
 
-      {!loading && returns.length === 0 ? (
+      {error ? (
+        <div className={styles.loading}>Не удалось загрузить возвраты.</div>
+      ) : null}
+
+      {!loading && !error && returns.length === 0 ? (
         <div className={styles.empty}>
           <strong>У вас пока нет возвратов</strong>
-          <p>
-            Оставить заявку на возврат можно во вкладке «Заказы».
-          </p>
+          <p>Оставить заявку на возврат можно во вкладке «Заказы».</p>
           <Button variant="secondary" onClick={onOpenOrders}>
             Посмотреть заказы
           </Button>
         </div>
       ) : null}
 
-      {loading ? <div className={styles.loading}>Загружаем возвраты…</div> : null}
+      {loading ? (
+        <div className={styles.loading}>Загружаем возвраты…</div>
+      ) : null}
 
       {returns.length > 0 ? (
         <div className={styles.list}>

@@ -35,12 +35,16 @@
 .fieldWrap,
 .suggestWrap {
   position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
 .flagBadge {
   position: absolute;
   left: 14px;
-  top: 50%;
+  top: auto;
+  bottom: 12px;
   z-index: 1;
   display: inline-flex;
   align-items: center;
@@ -50,7 +54,7 @@
   overflow: hidden;
   border: 0;
   border-radius: 50%;
-  transform: translateY(-50%);
+  transform: none;
   background: #f3f4f6;
 }
 
@@ -67,36 +71,35 @@
 }
 
 .fieldLabel {
-  position: absolute;
-  left: 14px;
-  top: 7px;
-  z-index: 2;
-  color: var(--muted);
-  font-size: 10px;
-  line-height: 1;
-  pointer-events: none;
+  position: static;
+  color: var(--black);
+  font-size: 12px;
+  line-height: 1.25;
+  font-weight: 300;
+  letter-spacing: -0.01em;
 }
 
 .fieldLabelWithIcon {
-  left: 48px;
+  margin-left: 0;
 }
 
 .selectField,
 .textField,
 .textareaField {
   width: 100%;
-  border: 1px solid var(--line);
+  border: 0.5px solid var(--black);
   background: var(--white);
-  color: var(--black);
-  font-size: var(--font-sm);
+  color: #333333;
+  font-size: 14px;
+  font-weight: 400;
   outline: none;
   transition: border-color 0.15s ease;
 }
 
 .selectField,
 .textField {
-  height: 52px;
-  padding: 19px 14px 7px;
+  height: 44px;
+  padding: 0 15px;
 }
 
 .fieldWithIcon {
@@ -110,12 +113,13 @@
 .searchIcon {
   position: absolute;
   right: 15px;
-  top: 50%;
+  top: auto;
+  bottom: 14px;
   width: 16px;
   height: 16px;
   border: 1.5px solid var(--muted);
   border-radius: 50%;
-  transform: translateY(-50%);
+  transform: none;
   pointer-events: none;
 }
 
@@ -153,8 +157,8 @@
 }
 
 .textareaField {
-  min-height: 82px;
-  padding: 24px 14px 13px;
+  min-height: 110px;
+  padding: 12px 15px;
   resize: vertical;
   line-height: 1.45;
 }

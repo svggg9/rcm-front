@@ -194,50 +194,6 @@
   display: none;
 }
 
-.galleryMobileTrack {
-  display: flex;
-  width: 100%;
-  overflow-x: auto;
-  scroll-snap-type: x mandatory;
-  scrollbar-width: none;
-  overscroll-behavior-x: contain;
-  -webkit-overflow-scrolling: touch;
-  touch-action: pan-y pinch-zoom;
-}
-
-.galleryMobileTrack::-webkit-scrollbar {
-  display: none;
-}
-
-.galleryMobileSlide {
-  position: relative;
-  width: 100%;
-  min-width: 100%;
-  aspect-ratio: 3 / 4;
-  scroll-snap-align: start;
-  scroll-snap-stop: always;
-  overflow: hidden;
-  background: var(--soft);
-}
-
-.galleryMobileIndicator {
-  display: flex;
-  width: 100%;
-  height: 2px;
-  margin-top: 8px;
-  background: var(--line);
-}
-
-.galleryMobileIndicatorPart {
-  flex: 1 1 0;
-  display: block;
-  background: transparent;
-}
-
-.galleryMobileIndicatorPartActive {
-  background: var(--black);
-}
-
 .info {
   position: sticky;
   top: calc(var(--site-header-height) + 24px);

@@ -50,3 +50,26 @@ export async function uploadSellerBrandLogo(
 
   return response.json();
 }
+
+export async function uploadSellerBrandWordmark(
+  brandId: number,
+  file: File
+): Promise<SellerBrand> {
+  const formData = new FormData();
+  formData.append("file", file);
+
+  const response = await apiFetch(
+    `${API_URL}/api/seller/brands/${brandId}/wordmark`,
+    {
+      method: "POST",
+      body: formData,
+    }
+  );
+
+  if (!response.ok) {
+    const text = await response.text().catch(() => "");
+    throw new Error(text || "Не удалось загрузить вордмарк бренда");
+  }
+
+  return response.json();
+}

@@ -1,6 +1,7 @@
 export type SellerTab =
   | "home"
   | "orders"
+  | "returns"
   | "products"
   | "finance"
   | "brand"
@@ -179,6 +180,7 @@ export type SellerBrand = {
   slug: string | null;
   description: string | null;
   logoUrl: string | null;
+  wordmarkUrl: string | null;
   website: string | null;
   telegram: string | null;
   vk: string | null;
@@ -190,6 +192,7 @@ export type SellerBrandProfileRequest = {
   name: string;
   description: string;
   logoUrl: string;
+  wordmarkUrl: string;
   website: string;
   telegram: string;
   vk: string;

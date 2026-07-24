@@ -94,7 +94,7 @@ export function ProductImagesCard({
           </span>
         </div>
 
-        <label className={styles.filePicker}>
+        <label className={`${styles.filePicker} buttonPrimary`}>
           <input
             type="file"
             accept="image/*"
@@ -105,7 +105,7 @@ export function ProductImagesCard({
               event.target.value = "";
             }}
           />
-          <span>Выбрать фото</span>
+          <span className="buttonContent">Выбрать фото</span>
         </label>
       </div>
 
@@ -157,11 +157,14 @@ export function ProductImagesCard({
 
               <button
                 type="button"
+                tabIndex={-1}
                 onClick={() => onDeleteImage(image.id)}
                 className={styles.imageDeleteBtn}
                 aria-label="Удалить фото"
               >
-                ×
+                <svg viewBox="0 0 16 16" aria-hidden="true" className={styles.variantActionIcon}>
+                  <path d="M4.5 4.5L11.5 11.5M11.5 4.5L4.5 11.5" />
+                </svg>
               </button>
 
               <div className={styles.imageControls}>

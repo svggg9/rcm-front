@@ -97,8 +97,6 @@ function LoginPageContent() {
             <TextInput
               label="Электронная почта"
               fieldVariant="boxed"
-              hideLabel
-              placeholder="Электронная почта"
               type="email"
               value={email}
               onChange={(event) => setEmail(event.target.value)}
@@ -110,8 +108,6 @@ function LoginPageContent() {
               <TextInput
                 label="Пароль"
                 fieldVariant="boxed"
-                hideLabel
-                placeholder="Пароль"
                 type={passwordVisible ? "text" : "password"}
                 value={password}
                 onChange={(event) => setPassword(event.target.value)}
