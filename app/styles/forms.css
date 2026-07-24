@@ -6,8 +6,10 @@
 
 .label {
   color: var(--black);
-  font-size: var(--font-input-label);
-  font-weight: 500;
+  font-size: 12px;
+  line-height: 1.25;
+  font-weight: 300;
+  letter-spacing: -0.01em;
 }
 
 .required::after {
@@ -19,23 +21,25 @@
 .select,
 .textarea {
   width: 100%;
-  border: 0;
-  border-bottom: 1px solid var(--line);
-  background: transparent;
-  color: var(--black);
+  border: 0.5px solid var(--black);
+  background: var(--white);
+  color: #333333;
   font: inherit;
+  font-size: 14px;
+  font-weight: 400;
   outline: none;
   border-radius: 0;
 }
 
 .input,
 .select {
-  height: 42px;
+  height: 44px;
+  padding: 0 15px;
 }
 
 .textarea {
   min-height: 110px;
-  padding: 12px 0;
+  padding: 12px 15px;
   resize: vertical;
   line-height: 1.5;
 }
@@ -49,7 +53,7 @@
 .input:focus,
 .select:focus,
 .textarea:focus {
-  border-bottom-color: var(--black);
+  border-color: var(--black);
 }
 
 .inputError {
@@ -72,21 +76,18 @@
 
 .fieldBoxed {
   position: relative;
-  display: block;
-  gap: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
 .fieldBoxed > .label {
-  position: absolute;
-  top: 7px;
-  left: 10px;
-  z-index: 1;
+  position: static;
   color: var(--black);
   font-size: 12px;
-  font-weight: 400;
-  line-height: 1;
-  letter-spacing: 0;
-  pointer-events: none;
+  font-weight: 300;
+  line-height: 1.25;
+  letter-spacing: -0.01em;
 }
 
 .visuallyHidden {
@@ -107,9 +108,9 @@
 .fieldBoxed > .phoneInputShell {
   border: 1px solid var(--line);
   background: var(--white);
-  color: var(--black);
-  font-size: var(--font-input);
-  font-weight: 300;
+  color: #333333;
+  font-size: 14px;
+  font-weight: 400;
   line-height: 1.4;
   letter-spacing: 0;
   transition:
@@ -120,20 +121,22 @@
 .fieldBoxed > .input,
 .fieldBoxed > .select,
 .fieldBoxed > .phoneInputShell {
-  height: 58px;
-  padding: 26px 10px 8px;
+  height: 44px;
+  padding: 0 15px;
+  border: 0.5px solid var(--black);
 }
 
 .fieldBoxed.fieldLabelHidden > .input,
 .fieldBoxed.fieldLabelHidden > .select,
 .fieldBoxed.fieldLabelHidden > .phoneInputShell {
-  height: 46px;
-  padding: 0 10px;
+  height: 44px;
+  padding: 0 15px;
 }
 
 .fieldBoxed > .textarea {
-  min-height: 96px;
-  padding: 28px 10px 10px;
+  min-height: 110px;
+  padding: 12px 15px;
+  border: 0.5px solid var(--black);
 }
 
 .fieldBoxed > .input:hover,

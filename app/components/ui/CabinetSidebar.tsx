@@ -92,10 +92,6 @@ export function CabinetSidebar({
                   }
                 }}
               >
-                {item.icon ? (
-                  <Icon name={item.icon} size={17} className={styles.itemIcon} />
-                ) : null}
-
                 <span className={styles.labelWrap}>
                   <span className={styles.desktopLabel}>{item.label}</span>
                   <span className={styles.mobileLabel}>
@@ -103,9 +99,6 @@ export function CabinetSidebar({
                   </span>
                 </span>
 
-                {typeof item.count === "number" && item.count > 0 ? (
-                  <span className={`${styles.count} textMicro`}>{item.count}</span>
-                ) : null}
               </Link>
 
               {item.action ? (
@@ -135,10 +128,6 @@ export function CabinetSidebar({
               }}
               disabled={item.disabled}
             >
-              {item.icon ? (
-                <Icon name={item.icon} size={17} className={styles.itemIcon} />
-              ) : null}
-
               <span className={styles.labelWrap}>
                 <span className={styles.desktopLabel}>{item.label}</span>
                 <span className={styles.mobileLabel}>

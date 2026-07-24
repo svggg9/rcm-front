@@ -85,6 +85,7 @@ export default async function SellerPage({ searchParams: _searchParams }: Props)
 function parseSellerTab(value: string | undefined): SellerTab {
   if (
     value === "orders" ||
+    value === "returns" ||
     value === "products" ||
     value === "finance" ||
     value === "brand" ||

@@ -24,6 +24,8 @@ type Props = {
   categoryId: number | "";
   suggestedCategoryName: string;
   audience: Audience;
+  status: string | null;
+  statusChanging: boolean;
 
   categories: Option[];
 
@@ -34,6 +36,7 @@ type Props = {
   onCategoryIdChange: (value: number | "") => void;
   onSuggestedCategoryNameChange: (value: string) => void;
   onAudienceChange: (value: Audience) => void;
+  onStatusChange: (value: "DRAFT" | "ARCHIVED") => void;
 };
 
 export function ProductGeneralCard({
@@ -44,6 +47,8 @@ export function ProductGeneralCard({
   categoryId,
   suggestedCategoryName,
   audience,
+  status,
+  statusChanging,
   categories,
   onTitleChange,
   onDescriptionChange,
@@ -51,41 +56,43 @@ export function ProductGeneralCard({
   onCategoryIdChange,
   onSuggestedCategoryNameChange,
   onAudienceChange,
+  onStatusChange,
 }: Props) {
   const descriptionRef = useRef<HTMLTextAreaElement | null>(null);
+  const compositionRef = useRef<HTMLTextAreaElement | null>(null);
 
-  function applyDescriptionList(kind: "bullet" | "number") {
-    const textarea = descriptionRef.current;
-    const start = textarea?.selectionStart ?? description.length;
-    const end = textarea?.selectionEnd ?? description.length;
-    const before = description.slice(0, start);
-    const selected = description.slice(start, end);
-    const after = description.slice(end);
+  function applyTextList(
+    value: string,
+    onChange: (value: string) => void,
+    textarea: HTMLTextAreaElement | null,
+    marker: "•" | "—",
+  ) {
+    const start = textarea?.selectionStart ?? value.length;
+    const end = textarea?.selectionEnd ?? value.length;
+    const before = value.slice(0, start);
+    const selected = value.slice(start, end);
+    const after = value.slice(end);
     let nextText = "";
 
     if (selected.trim()) {
-      let index = 1;
-
       nextText = selected
         .split(/\r?\n/)
         .map((line) => {
           const cleanLine = line
-            .replace(/^\s*(?:[-*]\s+|\d+[.)]\s+)/, "")
+            .replace(/^\s*(?:[•*—-]\s+|\d+[.)]\s+)/, "")
             .trim();
 
           if (!cleanLine) return "";
 
-          if (kind === "bullet") return `- ${cleanLine}`;
-
-          return `${index++}. ${cleanLine}`;
+          return `${marker} ${cleanLine}`;
         })
         .join("\n");
     } else {
       const needsLeadingBreak = before.length > 0 && !before.endsWith("\n");
-      nextText = `${needsLeadingBreak ? "\n" : ""}${kind === "bullet" ? "- " : "1. "}`;
+      nextText = `${needsLeadingBreak ? "\n" : ""}${marker} `;
     }
 
-    onDescriptionChange(before + nextText + after);
+    onChange(before + nextText + after);
 
     window.requestAnimationFrame(() => {
       const nextCaret = start + nextText.length;
@@ -112,7 +119,6 @@ export function ProductGeneralCard({
               className={`${styles.input} ${
                 validationErrors.title ? styles.fieldInvalid : ""
               } ${title.trim() ? "" : styles.requiredEmpty}`}
-              placeholder="Например: хлопковая рубашка oversize"
             />
 
             {validationErrors.title ? (
@@ -128,7 +134,7 @@ export function ProductGeneralCard({
             customValue={suggestedCategoryName}
             required
             invalid={validationErrors.categoryId}
-            placeholder="Выберите или предложите свою"
+            placeholder="Ввести свою категорию"
             showModerationBadge={false}
             options={categories.map((category) => ({
               value: category.id,
@@ -142,6 +148,7 @@ export function ProductGeneralCard({
 
           <FormSelect<Audience>
             label="Кому подходит"
+            required
             value={audience}
             options={[
               { value: "MEN", label: "Мужское" },
@@ -152,6 +159,39 @@ export function ProductGeneralCard({
               if (value) onAudienceChange(value);
             }}
           />
+
+          {status ? (
+            <FormSelect<string>
+              label="Статус"
+              value={status}
+              disabled={statusChanging}
+              options={[
+                {
+                  value: status,
+                  label:
+                    status === "ACTIVE"
+                      ? "Опубликован"
+                      : status === "MODERATION"
+                        ? "На модерации"
+                        : status === "NEEDS_REVISION"
+                          ? "Требует изменений"
+                          : status === "BLOCKED"
+                            ? "Заблокирован"
+                            : status === "ARCHIVED"
+                              ? "В архиве"
+                              : "Черновик",
+                },
+                status !== "ARCHIVED"
+                  ? { value: "ARCHIVED", label: "В архив" }
+                  : { value: "DRAFT", label: "Вернуть в черновик" },
+              ]}
+              onChange={(value) => {
+                if (value === "DRAFT" || value === "ARCHIVED") {
+                  onStatusChange(value);
+                }
+              }}
+            />
+          ) : null}
         </div>
       </section>
 
@@ -172,18 +212,22 @@ export function ProductGeneralCard({
                 className={styles.descriptionToolButton}
                 title="Маркерованный список"
                 aria-label="Маркерованный список"
-                onClick={() => applyDescriptionList("bullet")}
+                onClick={() =>
+                  applyTextList(description, onDescriptionChange, descriptionRef.current, "•")
+                }
               >
                 <Icon name="list" size={17} strokeWidth={1.8} />
               </button>
               <button
                 type="button"
                 className={styles.descriptionToolButton}
-                title="Нумерованный список"
-                aria-label="Нумерованный список"
-                onClick={() => applyDescriptionList("number")}
+                title="Список с длинным тире"
+                aria-label="Список с длинным тире"
+                onClick={() =>
+                  applyTextList(description, onDescriptionChange, descriptionRef.current, "—")
+                }
               >
-                <Icon name="list-ordered" size={17} strokeWidth={1.8} />
+                <Icon name="minus" size={17} strokeWidth={1.8} />
               </button>
             </div>
 
@@ -197,7 +241,6 @@ export function ProductGeneralCard({
               } ${description.trim() ? "" : styles.requiredEmpty}`}
                 rows={5}
                 maxLength={2000}
-                placeholder="Материал, особенности, назначение, комплектация и важные характеристики."
               />
             </div>
 
@@ -205,24 +248,47 @@ export function ProductGeneralCard({
               <small className={styles.fieldErrorText}>
                 Введите описание товара.
               </small>
-            ) : (
-              <small>{description.length}/2000</small>
-            )}
+            ) : null}
           </label>
 
           <label className={styles.fieldFull}>
             <span>Состав</span>
 
-            <textarea
-              value={composition}
-              onChange={(event) => onCompositionChange(event.target.value)}
-              className={styles.textarea}
-              rows={3}
-              maxLength={1000}
-              placeholder="Например: 92% хлопок, 8% эластан"
-            />
+            <div className={`${styles.descriptionFieldShell} ${styles.compositionFieldShell}`}>
+              <div className={styles.descriptionToolbar} aria-label="Инструменты состава">
+                <button
+                  type="button"
+                  className={styles.descriptionToolButton}
+                  title="Маркированный список"
+                  aria-label="Маркированный список"
+                  onClick={() =>
+                    applyTextList(composition, onCompositionChange, compositionRef.current, "•")
+                  }
+                >
+                  <Icon name="list" size={17} strokeWidth={1.8} />
+                </button>
+                <button
+                  type="button"
+                  className={styles.descriptionToolButton}
+                  title="Список с длинным тире"
+                  aria-label="Список с длинным тире"
+                  onClick={() =>
+                    applyTextList(composition, onCompositionChange, compositionRef.current, "—")
+                  }
+                >
+                  <Icon name="minus" size={17} strokeWidth={1.8} />
+                </button>
+              </div>
 
-            <small>{composition.length}/1000</small>
+              <textarea
+                ref={compositionRef}
+                value={composition}
+                onChange={(event) => onCompositionChange(event.target.value)}
+                className={styles.textarea}
+                rows={3}
+                maxLength={1000}
+              />
+            </div>
           </label>
         </div>
       </section>

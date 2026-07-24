@@ -14,6 +14,7 @@ import { AccountProfileTab } from "./components/AccountProfileTab";
 import { AccountOrdersTab } from "./components/AccountOrdersTab";
 import { AccountOrderDetails } from "./components/AccountOrderDetails";
 import { AccountFavoritesTab } from "./components/AccountFavoritesTab";
+import { AccountBrandsTab } from "./components/AccountBrandsTab";
 import { AccountInfoTab } from "./components/AccountInfoTab";
 import { AccountReturnsTab } from "./components/AccountReturnsTab";
 import { CabinetSkeleton } from "../components/ui/CabinetSkeleton";
@@ -35,6 +36,7 @@ type AccountTab =
   | "returns"
   | "profile"
   | "favorites"
+  | "brands"
   | "info";
 
 function formatOrderStatus(status: OrderStatus): string {
@@ -203,6 +205,7 @@ function AccountPageContent({
     tabParam === "returns" ||
     tabParam === "profile" ||
     tabParam === "favorites" ||
+    tabParam === "brands" ||
     tabParam === "info"
       ? tabParam
       : "home";
@@ -574,6 +577,12 @@ function AccountPageContent({
             {visitedTabs.has("favorites") ? (
               <div hidden={currentTab !== "favorites"}>
                 <AccountFavoritesTab />
+              </div>
+            ) : null}
+
+            {visitedTabs.has("brands") ? (
+              <div hidden={currentTab !== "brands"}>
+                <AccountBrandsTab />
               </div>
             ) : null}
 

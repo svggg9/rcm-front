@@ -3,7 +3,7 @@
   position: relative;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
 }
 
 .fieldFull {
@@ -12,15 +12,12 @@
 
 .field > span:first-child,
 .fieldFull > span:first-child {
-  position: absolute;
-  left: 14px;
-  top: 7px;
-  z-index: 12;
-  color: var(--muted);
-  font-size: 10px;
-  font-weight: 400;
-  line-height: 1;
-  pointer-events: none;
+  position: static;
+  color: var(--black);
+  font-size: 12px;
+  font-weight: 300;
+  line-height: 1.25;
+  letter-spacing: -0.01em;
 }
 
 .field:focus-within > span:first-child,
@@ -30,38 +27,40 @@
 
 .required::after {
   content: " *";
-  color: #c9a24f;
+  color: #8a6a2f;
   font-weight: 500;
 }
 
 .requiredEmpty {
-  border-color: rgba(201, 162, 79, 0.22);
-  background: rgba(201, 162, 79, 0.07);
+  border-color: var(--black);
+  background: var(--white);
 }
 
 .select {
   position: relative;
   width: 100%;
-  border: 1px solid var(--line);
+  border: 0.5px solid var(--black);
   background: var(--white);
   transition: border-color 0.18s ease, background 0.18s ease;
   z-index: 5;
 }
 
 .select.requiredEmpty {
-  border-color: rgba(201, 162, 79, 0.32);
-  background: rgba(201, 162, 79, 0.12);
+  border-color: var(--black);
+  background: var(--white);
 }
 
 .selectOpen {
-  border-color: var(--line);
+  border-color: var(--black);
+  border-bottom-color: var(--line);
   background: var(--white);
   z-index: 40;
 }
 
 .selectOpen.requiredEmpty {
   background: var(--white);
-  border-color: var(--line);
+  border-color: var(--black);
+  border-bottom-color: var(--line);
 }
 
 .select.invalid,
@@ -88,16 +87,16 @@
 
 .selectButton {
   width: 100%;
-  height: 50px;
-  padding: 19px 42px 7px 14px;
+  height: 44px;
+  padding: 0 43px 0 15px;
   border: 0;
   background: transparent;
-  color: var(--black);
+  color: #333333;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 14px;
-  font-size: var(--font-md);
+  font-size: 14px;
   line-height: 1.4;
   font-weight: 400;
   text-align: left;
@@ -116,12 +115,12 @@
 
 .comboboxInput {
   width: 100%;
-  height: 50px;
-  padding: 19px 42px 7px 14px;
+  height: 44px;
+  padding: 0 43px 0 15px;
   border: 0;
   background: transparent;
-  color: var(--black);
-  font-size: var(--font-sm);
+  color: #000;
+  font-size: 15px;
   line-height: 1.4;
   font-weight: 300;
   letter-spacing: 0;
@@ -148,7 +147,7 @@
 
 .chevron {
   position: absolute;
-  right: 14px;
+  right: 16px;
   top: 50%;
   display: inline-flex;
   align-items: center;
@@ -158,7 +157,7 @@
   border: 0;
   padding: 0;
   background: transparent;
-  color: var(--muted);
+  color: #000;
   cursor: pointer;
   transform: translateY(-50%);
   transition: transform 0.18s ease, color 0.18s ease;
@@ -191,8 +190,8 @@
   z-index: 50;
   display: grid;
   grid-template-rows: 0fr;
-  border: 1px solid var(--line);
-  border-top: 1px solid transparent;
+  border: 0.5px solid var(--black);
+  border-top: 0.5px solid transparent;
   background: var(--white);
   overflow: hidden;
   pointer-events: none;
@@ -209,12 +208,32 @@
   min-height: 0;
   max-height: 260px;
   overflow: auto;
+  scrollbar-width: thin;
+  scrollbar-color: #d6d6d6 transparent;
+}
+
+.options::-webkit-scrollbar {
+  width: 2px;
+}
+
+.options::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.options::-webkit-scrollbar-thumb {
+  background: #d6d6d6;
+  border: 0;
+  border-radius: 0;
+}
+
+.options::-webkit-scrollbar-button {
+  display: none;
 }
 
 .option {
   width: 100%;
-  min-height: 38px;
-  padding: 0 14px;
+  min-height: 44px;
+  padding: 0 15px;
   border: 0;
   background: var(--white);
   color: var(--black);
@@ -222,7 +241,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  font-size: var(--font-md);
+  font-size: 14px;
   line-height: 1.4;
   font-weight: 400;
   text-align: left;
@@ -259,8 +278,8 @@
 }
 .selectValue,
 .optionValue {
-  color: var(--black);
-  font-size: var(--font-sm);
+  color: #000;
+  font-size: 15px;
   line-height: 1.4;
   font-weight: 300;
   letter-spacing: 0;

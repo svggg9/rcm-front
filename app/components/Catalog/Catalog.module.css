@@ -49,7 +49,7 @@
   flex: 0 0 auto;
   height: 40px;
   padding: 0 18px;
-  border: 1px solid var(--line);
+  border: 1px solid var(--black);
   border-radius: 0;
   background: var(--white);
   color: var(--content-primary);
@@ -81,7 +81,7 @@
 
 .subcategoryChip {
   background: var(--soft);
-  border-color: transparent;
+  border-color: var(--black);
 }
 
 .skeletonTop {

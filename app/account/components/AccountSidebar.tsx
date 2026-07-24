@@ -8,6 +8,7 @@ type AccountTab =
   | "returns"
   | "profile"
   | "favorites"
+  | "brands"
   | "info";
 
 type Props = {
@@ -24,6 +25,12 @@ export function AccountSidebar({ currentTab, ordersCount, onNavigate }: Props) {
       onNavigate={onNavigate}
       items={[
         {
+          href: "/account?tab=returns",
+          label: "Возвраты",
+          icon: "package",
+          active: currentTab === "returns",
+        },
+        {
           href: "/account",
           label: "Главная",
           icon: "user",
@@ -37,12 +44,6 @@ export function AccountSidebar({ currentTab, ordersCount, onNavigate }: Props) {
           count: ordersCount,
         },
         {
-          href: "/account?tab=returns",
-          label: "Возвраты",
-          icon: "package",
-          active: currentTab === "returns",
-        },
-        {
           href: "/account?tab=profile",
           label: "Личные данные",
           icon: "settings",
@@ -53,6 +54,12 @@ export function AccountSidebar({ currentTab, ordersCount, onNavigate }: Props) {
           label: "Избранное",
           icon: "heart",
           active: currentTab === "favorites",
+        },
+        {
+          href: "/account?tab=brands",
+          label: "Мои бренды",
+          icon: "heart",
+          active: currentTab === "brands",
         },
         {
           href: "/account?tab=info",

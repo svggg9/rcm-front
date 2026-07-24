@@ -39,7 +39,6 @@ export function SellerFinanceTab({ finance, onPrefetchOrder }: Props) {
       <header className={styles.header}>
         <div>
           <h1>Финансы</h1>
-          <p>Расчеты с РЦМ и история выплат</p>
         </div>
       </header>
 
@@ -122,7 +121,6 @@ function Overview({
             <span>Расчетный баланс</span>
             <strong>{formatMoney(finance.estimatedBalance)}</strong>
           </div>
-          <p>Продажи за вычетом комиссии, возвратов, удержаний и проведенных выплат</p>
         </div>
         <div className={styles.formula}>
           <FormulaItem label="Продажи" value={finance.salesAmount} />
@@ -160,7 +158,6 @@ function Operations({
       <div className={styles.sectionHead}>
         <div>
           <h2>Операции</h2>
-          <p>Продажи, возвраты, удержания и выплаты</p>
         </div>
       </div>
       <OperationList operations={operations} onPrefetchOrder={onPrefetchOrder} />
@@ -174,7 +171,6 @@ function Payouts({ payouts }: { payouts: SellerPayout[] }) {
       <div className={styles.sectionHead}>
         <div>
           <h2>Выплаты</h2>
-          <p>Реестры и банковские переводы</p>
         </div>
       </div>
 

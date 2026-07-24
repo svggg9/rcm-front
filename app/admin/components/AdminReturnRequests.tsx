@@ -7,6 +7,7 @@ import { StatusBadge } from "../../components/ui/StatusBadge";
 import { OrderDetailSection } from "../../components/order-detail/OrderDetail";
 import {
   getAdminOrderReturns,
+  refundAdminReturn,
   returnReasonLabels,
   returnStatusLabels,
   reviewAdminReturn,
@@ -21,6 +22,7 @@ type Props = {
 export function AdminReturnRequests({ orderId }: Props) {
   const [requests, setRequests] = useState<ReturnRequest[]>([]);
   const [comments, setComments] = useState<Record<number, string>>({});
+  const [refundAmounts, setRefundAmounts] = useState<Record<number, string>>({});
   const [busyId, setBusyId] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -28,7 +30,17 @@ export function AdminReturnRequests({ orderId }: Props) {
     let cancelled = false;
     void getAdminOrderReturns(orderId)
       .then((items) => {
-        if (!cancelled) setRequests(items);
+        if (!cancelled) {
+          setRequests(items);
+          setRefundAmounts(
+            Object.fromEntries(
+              items.map((item) => [
+                item.id,
+                String(item.approvedRefundAmount ?? item.requestedAmount ?? ""),
+              ])
+            )
+          );
+        }
       })
       .catch(() => {
         if (!cancelled) setRequests([]);
@@ -70,6 +82,36 @@ export function AdminReturnRequests({ orderId }: Props) {
     }
   }
 
+  async function refund(request: ReturnRequest) {
+    if (busyId !== null) return;
+    const amount = Number(refundAmounts[request.id]);
+    if (!Number.isFinite(amount) || amount <= 0) {
+      setError("Укажите корректную сумму возврата");
+      return;
+    }
+    if (request.requestedAmount && amount > request.requestedAmount) {
+      setError("Сумма возврата не может быть больше суммы позиции");
+      return;
+    }
+
+    setBusyId(request.id);
+    setError(null);
+    try {
+      const updated = await refundAdminReturn(request.id, amount);
+      setRequests((current) =>
+        current.map((item) => (item.id === updated.id ? updated : item))
+      );
+    } catch (refundError) {
+      setError(
+        refundError instanceof Error
+          ? refundError.message
+          : "Не удалось провести возврат денег"
+      );
+    } finally {
+      setBusyId(null);
+    }
+  }
+
   if (requests.length === 0) return null;
 
   return (
@@ -86,7 +128,8 @@ export function AdminReturnRequests({ orderId }: Props) {
               tone={
                 request.status === "REJECTED"
                   ? "danger"
-                  : request.status === "SUBMITTED"
+                  : request.status === "SUBMITTED" ||
+                      request.status === "REQUESTED"
                     ? "warning"
                     : "success"
               }
@@ -118,7 +161,8 @@ export function AdminReturnRequests({ orderId }: Props) {
             </div>
           ) : null}
 
-          {request.status === "SUBMITTED" ? (
+          {request.status === "SUBMITTED" ||
+          request.status === "REQUESTED" ? (
             <div className={styles.review}>
               <label>
                 <span>Комментарий администратора</span>
@@ -147,6 +191,48 @@ export function AdminReturnRequests({ orderId }: Props) {
                   disabled={busyId === request.id}
                 >
                   Отклонить
+                </Button>
+              </div>
+            </div>
+          ) : null}
+
+          {request.status === "INSPECTED" ||
+          request.status === "REFUND_PENDING" ? (
+            <div className={styles.review}>
+              <label>
+                <span>Сумма возврата</span>
+                <input
+                  inputMode="decimal"
+                  value={refundAmounts[request.id] ?? ""}
+                  onChange={(event) =>
+                    setRefundAmounts((current) => ({
+                      ...current,
+                      [request.id]: event.target.value,
+                    }))
+                  }
+                />
+              </label>
+              <div className={styles.actions}>
+                {request.requestedAmount ? (
+                  <Button
+                    variant="secondary"
+                    onClick={() =>
+                      setRefundAmounts((current) => ({
+                        ...current,
+                        [request.id]: String(request.requestedAmount),
+                      }))
+                    }
+                    disabled={busyId === request.id}
+                  >
+                    Полная сумма
+                  </Button>
+                ) : null}
+                <Button
+                  variant="primary"
+                  onClick={() => void refund(request)}
+                  disabled={busyId === request.id}
+                >
+                  Вернуть деньги
                 </Button>
               </div>
             </div>

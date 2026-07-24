@@ -73,26 +73,30 @@
 .field {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
   color: var(--black);
-  font-size: var(--font-xs);
+  font-size: 12px;
+  font-weight: 300;
 }
 
 .field select,
 .field textarea,
 .field input {
   width: 100%;
-  min-height: 42px;
-  border: 1px solid var(--black);
+  min-height: 44px;
+  border: 0.5px solid var(--black);
   border-radius: 0;
   background: var(--white);
-  color: var(--black);
-  padding: 10px;
+  color: #333333;
+  padding: 0 15px;
   font: inherit;
+  font-size: 14px;
+  font-weight: 400;
 }
 
 .field textarea {
-  min-height: 92px;
+  min-height: 110px;
+  padding: 12px 15px;
   resize: vertical;
 }
 

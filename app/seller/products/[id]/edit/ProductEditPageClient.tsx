@@ -2,9 +2,9 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
 
 import { apiFetch, API_URL } from "../../../../lib/api";
+import { Button } from "../../../../components/ui/Button";
 import { CabinetSkeleton } from "../../../../components/ui/CabinetSkeleton";
 
 import { ProductGeneralCard } from "./components/ProductGeneralCard";
@@ -80,7 +80,7 @@ function createEmptyVariant(): ProductVariant {
     availableQuantity: null,
     sku: "",
     sellerArticle: "",
-    stockTrackingEnabled: false,
+    stockTrackingEnabled: true,
   };
 }
 
@@ -99,7 +99,7 @@ function mapProductVariants(productData: SellerProduct): ProductVariant[] {
         availableQuantity: variant.availableQuantity,
         sku: variant.sku ?? "",
         sellerArticle: variant.sellerArticle ?? "",
-        stockTrackingEnabled: variant.stockTrackingEnabled !== false,
+        stockTrackingEnabled: true,
       }))
     : [createEmptyVariant()];
 }
@@ -110,7 +110,6 @@ export function ProductEditPageClient({
   initialProductsCount,
   initialOrdersCount,
 }: Props) {
-  const router = useRouter();
   const [initialized, setInitialized] = useState(false);
   const [dirty, setDirty] = useState(false);
   const [moderationChangesPending, setModerationChangesPending] = useState(false);
@@ -126,7 +125,6 @@ export function ProductEditPageClient({
   const [suggestedCategoryName, setSuggestedCategoryName] = useState("");
   const [brandId, setBrandId] = useState<number | "">("");
   const [audience, setAudience] = useState<Audience>("UNISEX");
-  const [sizes, setSizes] = useState<Option[]>([]);
 
   const [packageWidthCm, setPackageWidthCm] = useState<number | "">("");
   const [packageHeightCm, setPackageHeightCm] = useState<number | "">("");
@@ -141,11 +139,12 @@ export function ProductEditPageClient({
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [saveSucceeded, setSaveSucceeded] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [reordering, setReordering] = useState(false);
   const [publishing, setPublishing] = useState(false);
+  const [publishSucceeded, setPublishSucceeded] = useState(false);
   const [archiving, setArchiving] = useState(false);
-  const [deleting, setDeleting] = useState(false);
   const [onboardingStatus, setOnboardingStatus] =
     useState<SellerOnboardingStatus | null>(null);
 
@@ -167,13 +166,11 @@ export function ProductEditPageClient({
           productResponse,
           categoriesResponse,
           brandsResponse,
-          sizesResponse,
           onboardingResponse,
         ] = await Promise.all([
           apiFetch(`${API_URL}/api/seller/products/${productId}`),
           apiFetch(`${API_URL}/api/catalog/categories`),
           apiFetch(`${API_URL}/api/seller/brands`),
-          apiFetch(`${API_URL}/api/sizes`),
           apiFetch(`${API_URL}/api/seller/onboarding-status`),
         ]);
 
@@ -190,14 +187,9 @@ export function ProductEditPageClient({
           throw new Error("Не удалось загрузить бренды");
         }
 
-        if (!sizesResponse.ok) {
-          throw new Error("Не удалось загрузить размеры");
-        }
-
         const productData: SellerProduct = await productResponse.json();
         const categoriesData: Option[] = await categoriesResponse.json();
         const brandsData: Option[] = await brandsResponse.json();
-        const sizesData: Option[] = await sizesResponse.json();
         const onboardingData: SellerOnboardingStatus | null = onboardingResponse.ok
           ? await onboardingResponse.json()
           : null;
@@ -206,10 +198,6 @@ export function ProductEditPageClient({
 
         const safeCategories = Array.isArray(categoriesData) ? categoriesData : [];
         const safeBrands = Array.isArray(brandsData) ? brandsData : [];
-        const safeSizes = Array.isArray(sizesData) ? sizesData : [];
-
-        setSizes(safeSizes);
-
         setProduct(productData);
         setOnboardingStatus(onboardingData);
         setCategories(safeCategories);
@@ -429,10 +417,7 @@ export function ProductEditPageClient({
       sizeKeysByGroup.set(groupKey, groupSizeKeys);
     }
 
-    if (
-      variant.stockTrackingEnabled &&
-      (variant.availableQuantity === null || variant.availableQuantity < 0)
-    ) {
+    if (variant.availableQuantity !== null && variant.availableQuantity < 0) {
       current.availableQuantity = true;
     }
 
@@ -465,17 +450,19 @@ export function ProductEditPageClient({
       return failValidation(validation.message ?? "Заполните обязательные поля");
     }
 
+    if (!variants.length) {
+      return failValidation("Добавьте хотя бы один размер");
+    }
+
     for (const variant of variants) {
       if (variant.price <= 0) return failValidation("Цена варианта должна быть больше 0");
 
-      if (
-        variant.stockTrackingEnabled &&
-        (variant.availableQuantity === null || variant.availableQuantity < 0)
-      ) {
+      if (variant.availableQuantity !== null && variant.availableQuantity < 0) {
         return failValidation("Количество не может быть меньше 0");
       }
     }
 
+    setSaveSucceeded(false);
     setSaving(true);
 
     try {
@@ -503,12 +490,10 @@ export function ProductEditPageClient({
             colorId: variant.colorId ? Number(variant.colorId) : null,
             suggestedColorName: variant.colorId ? null : variant.color.trim() || null,
             price: Number(variant.price),
-            stockQuantity: variant.stockTrackingEnabled
-              ? Number(variant.availableQuantity ?? 0)
-              : null,
+            stockQuantity: variant.availableQuantity,
             sku: variant.sku.trim() || null,
             sellerArticle: variant.sellerArticle?.trim() || null,
-            stockTrackingEnabled: variant.stockTrackingEnabled,
+            stockTrackingEnabled: variant.availableQuantity !== null,
           })),
         }),
       });
@@ -520,7 +505,8 @@ export function ProductEditPageClient({
 
       await reloadProductState();
       setDirty(false);
-      toast.success("Товар сохранён");
+      setSaveSucceeded(true);
+      window.setTimeout(() => setSaveSucceeded(false), 1200);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Не удалось сохранить товар");
     } finally {
@@ -715,6 +701,7 @@ export function ProductEditPageClient({
       return;
     }
 
+    setPublishSucceeded(false);
     setPublishing(true);
 
     try {
@@ -727,8 +714,6 @@ export function ProductEditPageClient({
         throw new Error(text || `Ошибка публикации (${response.status})`);
       }
 
-      toast.success("Товар отправлен на модерацию");
-
       setProduct((current) =>
         current
           ? {
@@ -739,6 +724,8 @@ export function ProductEditPageClient({
           : current
       );
       setModerationChangesPending(false);
+      setPublishSucceeded(true);
+      window.setTimeout(() => setPublishSucceeded(false), 1200);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Не удалось опубликовать товар");
     } finally {
@@ -842,34 +829,28 @@ export function ProductEditPageClient({
     }
   }
 
-  async function deleteProduct() {
-    if (deleting) return;
-
-    const confirmed = window.confirm(
-      dirty
-        ? "Есть несохраненные изменения. Удалить товар без сохранения правок?"
-        : "Удалить товар? Это действие нельзя будет быстро отменить."
-    );
-    if (!confirmed) return;
-
-    setDeleting(true);
-
+  async function moveProductToDraft() {
+    if (archiving || product?.status === "DRAFT") return;
+    setArchiving(true);
     try {
-      const response = await apiFetch(`${API_URL}/api/seller/products/${productId}/delete`, {
-        method: "POST",
-      });
-
+      const response = await apiFetch(
+        `${API_URL}/api/seller/products/${productId}/draft`,
+        { method: "POST" }
+      );
       if (!response.ok) {
         const text = await response.text().catch(() => "");
-        throw new Error(text || `Ошибка удаления (${response.status})`);
+        throw new Error(text || `Ошибка изменения статуса (${response.status})`);
       }
-
-      toast.success("Товар удалён");
-      router.push("/seller?tab=products");
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Не удалось удалить товар");
+      setProduct((current) =>
+        current ? { ...current, status: "DRAFT" } : current
+      );
+      toast.success("Товар возвращён в черновики");
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "Не удалось изменить статус"
+      );
     } finally {
-      setDeleting(false);
+      setArchiving(false);
     }
   }
 
@@ -944,7 +925,13 @@ export function ProductEditPageClient({
               composition={composition}
               categoryId={categoryId}
               suggestedCategoryName={suggestedCategoryName}
-              audience={audience}
+            audience={audience}
+            status={
+              product && product.title?.trim() !== "Новый товар"
+                ? product.status
+                : null
+            }
+            statusChanging={archiving}
               categories={categories}
               onTitleChange={(value) => {
                 setTitle(value);
@@ -976,10 +963,17 @@ export function ProductEditPageClient({
                 clearValidationError("categoryId");
                 markDirty({ moderation: true });
               }}
-              onAudienceChange={(value) => {
+            onAudienceChange={(value) => {
                 setAudience(value);
                 markDirty({ moderation: true });
               }}
+            onStatusChange={(value) => {
+              if (value === "ARCHIVED") {
+                void archiveProduct();
+              } else {
+                void moveProductToDraft();
+              }
+            }}
             />
 
             <ProductVariantsCard
@@ -1000,7 +994,6 @@ export function ProductEditPageClient({
             onDragImageEnd={() => setDragImageId(null)}
             onMoveImage={(imageId) => moveImage(imageId)}
             onDeleteImage={(imageId) => void deleteImage(imageId)}
-            sizes={sizes}
             />
 
             <ProductShippingCard
@@ -1032,57 +1025,46 @@ export function ProductEditPageClient({
             />
 
             <div className={styles.formActions}>
-              <button
+              <Button
                 type="button"
                 onClick={() => void saveProduct()}
-                disabled={saving || !dirty}
-                className={`${styles.primaryBtn} textButton`}
+                disabled={saving || saveSucceeded || !dirty}
+                loading={saving}
+                success={saveSucceeded}
+                variant="primary"
+                className={`${styles.primaryBtn} buttonPrimary textButton`}
               >
                 Сохранить
-              </button>
+              </Button>
 
-              <button
+              <Button
                 type="button"
                 onClick={() => void publishProduct()}
-                disabled={publishing || !canPublish}
-                className={`${styles.secondaryBtn} textButton`}
-                title={!canPublish ? publishBlockedReason : undefined}
+                disabled={publishing || publishSucceeded || dirty || !canPublish}
+                loading={publishing}
+                success={publishSucceeded}
+                variant="primary"
+                className={`${styles.primaryBtn} buttonPrimary textButton`}
+                title={
+                  dirty
+                    ? "Сначала сохраните изменения"
+                    : !canPublish
+                      ? publishBlockedReason
+                      : undefined
+                }
               >
-                Опубликовать
-              </button>
+                Отправить на публикацию
+              </Button>
 
-              {product?.status !== "ARCHIVED" ? (
-                <button
-                  type="button"
-                  onClick={() => void archiveProduct()}
-                  disabled={archiving}
-                  className={`${styles.archiveBtn} textButton`}
-                >
-                  В архив
-                </button>
-              ) : null}
-
-              <button
-                type="button"
-                onClick={() => void deleteProduct()}
-                disabled={deleting}
-                className={`${styles.deleteProductBtn} textButton`}
-              >
-                {deleting ? "Удаляем..." : "Удалить"}
-              </button>
             </div>
           </main>
 
             <ProductPreviewAside
-            productId={productId}
             title={title}
             brandId={brandId}
             brands={brands}
             product={product}
             images={images}
-            descriptionLength={description.length}
-            packageWeightKg={packageWeightKg}
-            variantsCount={variants.length}
             />
             </div>
         </div>

@@ -17,12 +17,19 @@
 .subtitle {
   margin-bottom: 6px;
   color: var(--gold);
+  font-size: 13px;
+  line-height: 1.2;
+  font-weight: 500;
   letter-spacing: 0;
   text-transform: uppercase;
 }
 
 .title {
+  display: block;
   color: var(--black);
+  font-size: 24px;
+  line-height: 1.15;
+  font-weight: 500;
 }
 
 .titleSkeleton {
@@ -77,22 +84,20 @@
   display: flex;
   align-items: center;
   justify-content: flex-start;
-  gap: 6px;
-  padding: 0 8px 0 12px;
+  gap: 8px;
+  padding: 0;
   border: 0;
   background: transparent;
   color: var(--content-primary);
+  font-size: 15px;
+  line-height: 1.2;
+  font-weight: 400;
+  text-align: left;
   text-decoration: none;
   font-family: inherit;
   transition:
     background var(--transition-fast),
     color var(--transition-fast);
-}
-
-.itemIcon {
-  flex: 0 0 auto;
-  color: var(--muted);
-  transition: color var(--transition-fast);
 }
 
 .itemWithAction {
@@ -104,6 +109,7 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  text-align: left;
   transition: color var(--transition-fast);
 }
 
@@ -116,9 +122,10 @@
   color: var(--black);
 }
 
-.item:hover .itemIcon,
-.itemActive .itemIcon {
-  color: var(--black);
+.item:hover .labelWrap {
+  text-decoration: underline;
+  text-underline-offset: 4px;
+  text-decoration-thickness: 1px;
 }
 
 .item:active {
@@ -129,6 +136,7 @@
 .itemActive {
   background: transparent;
   color: var(--black);
+  font-weight: 600;
 }
 
 .itemActive:hover {
@@ -137,13 +145,7 @@
 }
 
 .itemActive::before {
-  content: "";
-  position: absolute;
-  left: 0;
-  top: 12px;
-  bottom: 12px;
-  width: 1px;
-  background: var(--black);
+  content: none;
 }
 
 .item:disabled {
@@ -181,18 +183,6 @@
 .itemAction:disabled:hover {
   background: var(--white);
   color: var(--black);
-}
-
-.count {
-  min-width: 16px;
-  height: 16px;
-  padding: 0 4px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 0;
-  background: var(--black);
-  color: var(--white);
 }
 
 .footer {
@@ -260,7 +250,7 @@
     min-height: 44px;
     flex: 0 0 auto;
     justify-content: center;
-    padding: 0 12px;
+    padding: 0;
     gap: 6px;
   }
 
@@ -274,27 +264,12 @@
     margin-right: 8px;
   }
 
-  .mobileInline .item::before {
-    left: 8px;
-    right: 8px;
-    top: auto;
-    bottom: 0;
-    width: auto;
-    height: 1px;
-  }
-
   .mobileInline .desktopLabel {
     display: none;
   }
 
   .mobileInline .mobileLabel {
     display: inline;
-  }
-
-  .mobileInline .count {
-    min-width: 16px;
-    height: 16px;
-    padding: 0 4px;
   }
 
   .mobileInline .footer {

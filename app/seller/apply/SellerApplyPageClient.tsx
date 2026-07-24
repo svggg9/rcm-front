@@ -457,7 +457,6 @@ export function SellerApplyPageClient() {
                     required
                     fieldVariant="boxed"
                     value={form.category}
-                    placeholder="Одежда, аксессуары, дом"
                     error={errors.category}
                     onChange={(event) =>
                       updateField("category", event.target.value)
@@ -496,7 +495,6 @@ export function SellerApplyPageClient() {
                   label="Комментарий"
                   fieldVariant="boxed"
                   value={form.comment}
-                  placeholder="Что важно знать перед подключением"
                   onChange={(event) => updateField("comment", event.target.value)}
                 />
 

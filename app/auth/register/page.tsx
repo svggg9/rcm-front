@@ -107,8 +107,6 @@ function RegisterPageContent() {
                 <TextInput
                   label="Электронная почта"
                   fieldVariant="boxed"
-                  hideLabel
-                  placeholder="Электронная почта"
                   type="email"
                   value={email}
                   onChange={(event) => setEmail(event.target.value)}
@@ -120,8 +118,6 @@ function RegisterPageContent() {
                   <TextInput
                     label="Пароль"
                     fieldVariant="boxed"
-                    hideLabel
-                    placeholder="Пароль"
                     type={passwordVisible ? "text" : "password"}
                     value={password}
                     onChange={(event) => setPassword(event.target.value)}
@@ -146,8 +142,6 @@ function RegisterPageContent() {
               <TextInput
                 label="Код из письма"
                 fieldVariant="boxed"
-                hideLabel
-                placeholder="Код из письма"
                 value={code}
                 onChange={(event) =>
                   setCode(event.target.value.replace(/\D/g, "").slice(0, 6))

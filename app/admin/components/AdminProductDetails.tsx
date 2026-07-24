@@ -274,7 +274,6 @@ export function AdminProductDetails({
                   value={newCategoryName}
                   onChange={(event) => setNewCategoryName(event.target.value)}
                   className={`${styles.adminInput} textSmall`}
-                  placeholder="Например: футболки"
                 />
               </label>
 

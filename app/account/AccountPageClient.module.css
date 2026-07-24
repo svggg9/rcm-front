@@ -5,8 +5,8 @@
 }
 
 .header {
-  width: min(1240px, 100%);
-  margin: 0 auto 28px;
+  width: 100%;
+  margin: 0 0 28px;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -37,13 +37,11 @@
 }
 
 .layout {
-  width: min(1240px, 100%);
-  margin: 0 auto;
+  width: 100%;
   display: grid;
-  grid-template-columns: 240px minmax(0, 900px);
-  gap: 44px;
+  grid-template-columns: 260px minmax(0, 1fr);
+  gap: 40px;
   align-items: start;
-  justify-content: center;
 }
 
 .content {

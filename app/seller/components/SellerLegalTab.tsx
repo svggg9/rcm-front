@@ -478,10 +478,6 @@ export function SellerLegalTab() {
         <div>
           <div className={styles.kicker}>Реквизиты</div>
           <h1 className={styles.title}>Юридическая информация</h1>
-          <p className={styles.hint}>
-            Эти данные используются для договора, выплат и бухгалтерских документов.
-            Покупателям они не показываются в публичном профиле бренда.
-          </p>
         </div>
       </div>
 
@@ -491,7 +487,6 @@ export function SellerLegalTab() {
         <section className={styles.card}>
           <div className={styles.cardHeader}>
             <h2>Тип продавца</h2>
-            <p>Выберите юридический статус, от него зависит набор реквизитов.</p>
           </div>
 
           <div className={styles.typeGrid}>
@@ -519,7 +514,6 @@ export function SellerLegalTab() {
         <section className={styles.card}>
           <div className={styles.cardHeader}>
             <h2>Основные данные</h2>
-            <p>ИНН, регистрационные данные и юридическое имя.</p>
           </div>
 
           <div className={styles.grid}>
@@ -595,7 +589,6 @@ export function SellerLegalTab() {
         <section className={styles.card}>
           <div className={styles.cardHeader}>
             <h2>Адрес отправления</h2>
-            <p>Нужен для точного расчета доставки и создания отправлений СДЭК.</p>
           </div>
 
           <div className={styles.grid}>
@@ -638,9 +631,6 @@ export function SellerLegalTab() {
                 disabled={!form.shippingCityCode}
                 onFocus={() => setPointOptionsOpen(visiblePointOptions.length > 0)}
                 onChange={(event) => updateReceptionPointInput(event.target.value)}
-                placeholder={
-                  form.shippingCityCode ? "Улица или адрес пункта" : "Сначала город"
-                }
               />
               {pointOptionsOpen && visiblePointOptions.length > 0 ? (
                 <div className={styles.suggestList}>
@@ -665,7 +655,6 @@ export function SellerLegalTab() {
         <section className={styles.card}>
           <div className={styles.cardHeader}>
             <h2>Банковские реквизиты</h2>
-            <p>Нужны для выплат продавцу и финансового учета.</p>
           </div>
 
           <div className={styles.grid}>
@@ -742,7 +731,12 @@ export function SellerLegalTab() {
         </section>
 
         <div className={styles.actions}>
-          <Button type="submit" variant="primary" disabled={saving || !formChanged}>
+          <Button
+            type="submit"
+            variant="primary"
+            disabled={saving || !formChanged}
+            loading={saving}
+          >
             Сохранить
           </Button>
         </div>
@@ -828,9 +822,8 @@ function LegalTextField({
 
   return (
     <label className={styles.fieldWrap}>
-      <span className={styles.fieldLabel}>
+      <span className={`${styles.fieldLabel} ${required ? styles.required : ""}`}>
         {label}
-        {required ? "" : ""}
       </span>
       <input
         {...props}
@@ -877,9 +870,8 @@ function LegalTextarea({
 }: LegalFieldProps & TextareaHTMLAttributes<HTMLTextAreaElement>) {
   return (
     <label className={styles.fieldWrap}>
-      <span className={styles.fieldLabel}>
+      <span className={`${styles.fieldLabel} ${required ? styles.required : ""}`}>
         {label}
-        {required ? "" : ""}
       </span>
       <textarea
         className={`${styles.textarea} ${error ? styles.inputError : ""} ${className}`.trim()}

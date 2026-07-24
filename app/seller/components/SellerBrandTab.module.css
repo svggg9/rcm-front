@@ -68,62 +68,9 @@
 }
 
 .brandHero {
-  display: grid;
-  grid-template-columns: 112px minmax(0, 1fr);
-  align-items: center;
-  gap: 24px;
+  display: block;
   padding: 24px;
   background: var(--soft);
-}
-
-.logoButton {
-  position: relative;
-  width: 112px;
-  height: 112px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  overflow: hidden;
-  border: 0;
-  border-radius: 4px;
-  padding: 0;
-  background: var(--white);
-  color: var(--black);
-  cursor: pointer;
-}
-
-.logoButton:disabled {
-  cursor: default;
-  opacity: 0.68;
-}
-
-.logoImage {
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-}
-
-.logoPlaceholder {
-  font-size: 34px;
-  line-height: 1;
-  font-weight: 400;
-  text-transform: uppercase;
-}
-
-.logoAction {
-  position: absolute;
-  right: 0;
-  bottom: 0;
-  left: 0;
-  min-height: 28px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 5px;
-  background: rgb(17 17 17 / 86%);
-  color: var(--white);
-  font-size: var(--font-xs);
-  line-height: 1;
 }
 
 .logoInput {
@@ -136,66 +83,76 @@
 
 .summaryLabel {
   color: var(--gold);
-  font-size: var(--font-xs);
+  font-size: 10px;
   line-height: 1.2;
-  font-weight: 400;
+  font-weight: 300;
   text-transform: uppercase;
 }
 
 .brandProfileTitle {
-  margin: 6px 0 22px;
+  margin: 7px 0 22px;
   color: var(--black);
-  font-size: var(--font-xl);
-  line-height: 1.2;
-  font-weight: 400;
+  font-size: 32px;
+  line-height: 1.1;
+  font-weight: 500;
   letter-spacing: 0;
   overflow-wrap: anywhere;
 }
 
-.completion {
-  width: min(480px, 100%);
+.wordmarkPreview {
+  position: relative;
+  display: block;
+  width: min(260px, 100%);
+  height: 40px;
 }
 
-.completionHead {
+.wordmarkPreview img {
+  object-fit: contain;
+  object-position: left center;
+}
+
+.wordmarkButton {
+  width: auto;
+  min-height: 40px;
+  align-self: flex-start;
+  padding-inline: 16px;
+  font-size: 13px;
+}
+
+.wordmarkHint {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  flex-wrap: wrap;
   gap: 16px;
-  color: var(--black);
-  font-size: var(--font-xs);
-  line-height: 1.3;
-}
-
-.completionHead strong {
-  color: var(--gold);
-  font-weight: 500;
-}
-
-.progress {
-  width: 100%;
-  height: 3px;
-  margin-top: 8px;
-  background: color-mix(in srgb, var(--black) 12%, transparent);
-}
-
-.progress span {
-  display: block;
-  height: 100%;
-  background: var(--black);
-  transition: width 0.2s ease;
-}
-
-.completion p {
-  margin: 8px 0 0;
+  max-width: 620px;
+  margin-top: 7px;
   color: var(--muted);
-  font-size: var(--font-xs);
+  font-size: 11px;
   line-height: 1.4;
   font-weight: 300;
 }
 
+.wordmarkExample {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.wordmarkExample > span {
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.wordmarkExample img {
+  display: block;
+  width: 106px;
+  height: auto;
+}
+
 .editorGrid {
   display: grid;
-  grid-template-columns: minmax(0, 1.45fr) minmax(260px, 0.75fr);
+  grid-template-columns: minmax(0, 1fr);
   gap: 44px;
   align-items: start;
 }
@@ -228,29 +185,25 @@
   font-weight: 300;
 }
 
-.twoColumns {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
-}
-
 .fieldWrap {
   position: relative;
-  display: block;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
   min-width: 0;
 }
 
 .input,
 .textarea {
   width: 100%;
-  border: 1px solid var(--line);
+  border: 0.5px solid var(--black);
   border-radius: 0;
   background: var(--white);
-  color: var(--black);
+  color: #333333;
   font-family: inherit;
-  font-size: var(--font-sm);
+  font-size: 14px;
   line-height: 1.4;
-  font-weight: 300;
+  font-weight: 400;
   letter-spacing: 0;
   outline: none;
   transition: border-color var(--transition-fast), background var(--transition-fast);
@@ -267,13 +220,13 @@
 }
 
 .input {
-  height: 50px;
-  padding: 18px 13px 6px;
+  height: 44px;
+  padding: 0 15px;
 }
 
 .textarea {
   min-height: 186px;
-  padding: 23px 13px 28px;
+  padding: 12px 15px 28px;
   resize: vertical;
 }
 
@@ -285,28 +238,12 @@
 }
 
 .fieldLabel {
-  position: absolute;
-  top: 6px;
-  left: 13px;
-  z-index: 2;
-  color: var(--muted);
-  font-size: 10px;
-  line-height: 1;
-  font-weight: 400;
-  pointer-events: none;
-}
-
-.characterCount {
-  position: absolute;
-  right: 12px;
-  bottom: 8px;
-  color: var(--muted);
-  font-size: 10px;
-  line-height: 1;
-}
-
-.telegramSection {
-  padding-top: 2px;
+  position: static;
+  color: var(--black);
+  font-size: 12px;
+  line-height: 1.25;
+  font-weight: 300;
+  letter-spacing: -0.01em;
 }
 
 .actionsBar {
@@ -381,31 +318,12 @@
   }
 
   .brandHero {
-    grid-template-columns: 84px minmax(0, 1fr);
-    gap: 16px;
     padding: 16px;
-  }
-
-  .logoButton {
-    width: 84px;
-    height: 84px;
-  }
-
-  .logoAction span {
-    display: none;
   }
 
   .brandProfileTitle {
     margin-bottom: 14px;
-    font-size: var(--font-lg);
-  }
-
-  .completion p {
-    display: none;
-  }
-
-  .twoColumns {
-    grid-template-columns: 1fr;
+    font-size: 26px;
   }
 
   .actionsBar {
