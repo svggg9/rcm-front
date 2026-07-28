@@ -4,38 +4,6 @@
   color: var(--black);
 }
 
-.header {
-  width: 100%;
-  margin: 0 0 28px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 18px;
-}
-
-.header h1 {
-  margin: 0;
-  color: var(--black);
-  font-size: var(--font-2xl);
-  line-height: 1.1;
-  font-weight: 500;
-  letter-spacing: -0.03em;
-}
-
-.logoutButton {
-  border: 0;
-  padding: 0;
-  background: transparent;
-  color: var(--muted);
-  font: inherit;
-  font-size: var(--font-sm);
-  cursor: pointer;
-}
-
-.logoutButton:hover {
-  color: var(--black);
-}
-
 .layout {
   width: 100%;
   display: grid;
@@ -49,6 +17,15 @@
   display: flex;
   flex-direction: column;
   gap: 16px;
+}
+
+.orderSectionTabs :global(button[role="tab"]) {
+  color: var(--black);
+  font-weight: 400;
+}
+
+.orderSectionTabs :global(button[role="tab"][aria-selected="true"]) {
+  font-weight: 600;
 }
 
 .sectionTitle {
@@ -79,11 +56,6 @@
     margin-top: 18px;
   }
 
-  .header {
-    margin-bottom: 20px;
-  }
-
-  .header h1,
   .sectionTitle {
     font-size: var(--font-xl);
   }

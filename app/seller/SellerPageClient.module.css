@@ -19,20 +19,20 @@
   gap: 16px;
 }
 
+.orderSectionTabs :global(button[role="tab"]) {
+  color: var(--black);
+  font-weight: 400;
+}
+
+.orderSectionTabs :global(button[role="tab"][aria-selected="true"]) {
+  font-weight: 600;
+}
+
 @media (max-width: 900px) {
   .layout {
     grid-template-columns: 1fr;
     gap: 0;
   }
-}
-
-.error {
-  padding: 12px 14px;
-  border: 1px solid rgba(155, 44, 44, 0.2);
-  background: rgba(155, 44, 44, 0.04);
-  color: var(--danger);
-  font-size: var(--font-sm);
-  line-height: 1.5;
 }
 
 .sectionTitle {

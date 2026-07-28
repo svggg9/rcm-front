@@ -4,16 +4,9 @@
   gap: 28px;
 }
 
-.heading h2 {
-  margin: 0 0 10px;
-  color: var(--black);
-  font-size: var(--font-2xl);
-  font-weight: 500;
-}
-
 .heading p,
 .empty p,
-.loading {
+.error {
   max-width: 640px;
   margin: 0;
   color: var(--muted);
@@ -94,10 +87,6 @@
 }
 
 @media (max-width: 640px) {
-  .heading h2 {
-    font-size: var(--font-xl);
-  }
-
   .cardTop {
     flex-direction: column;
     gap: 10px;

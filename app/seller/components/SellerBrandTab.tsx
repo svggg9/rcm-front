@@ -6,7 +6,11 @@ import { useRef, useState } from "react";
 import { Button } from "../../components/ui/Button";
 import { Icon } from "../../components/ui/Icon";
 
-import type { SellerBrand, SellerBrandProfileRequest } from "../types";
+import type {
+  SellerBrand,
+  SellerBrandProfileRequest,
+  SellerProductListItem,
+} from "../types";
 import { emitSellerOnboardingChanged } from "../lib/sellerOnboardingEvents";
 import {
   updateSellerBrandProfile,
@@ -14,6 +18,8 @@ import {
 } from "../lib/sellerBrandApi";
 
 import styles from "./SellerBrandTab.module.css";
+import { SellerBrandImages } from "./SellerBrandImages";
+import { SellerStorefrontCollections } from "./SellerStorefrontCollections";
 
 type FormState = {
   name: string;
@@ -29,6 +35,7 @@ type FormState = {
 
 type Props = {
   initialBrands: SellerBrand[];
+  products: SellerProductListItem[];
 };
 
 function toFormState(brand: SellerBrand): FormState {
@@ -65,7 +72,7 @@ function toPayload(
   };
 }
 
-export function SellerBrandTab({ initialBrands }: Props) {
+export function SellerBrandTab({ initialBrands, products }: Props) {
   const firstInitialBrand = initialBrands[0] ?? null;
   const [brands, setBrands] = useState<SellerBrand[]>(initialBrands);
   const [form, setForm] = useState<FormState | null>(
@@ -118,11 +125,6 @@ export function SellerBrandTab({ initialBrands }: Props) {
   if (brands.length === 0) {
     return (
       <section className={styles.page}>
-        <div className={styles.header}>
-          <div>
-            <h1 className={styles.title}>Бренд</h1>
-          </div>
-        </div>
         <div className={styles.emptyState}>
           <Icon name="store" size={28} />
           <strong>Профиль бренда недоступен</strong>
@@ -162,12 +164,6 @@ export function SellerBrandTab({ initialBrands }: Props) {
 
   return (
     <section className={styles.page}>
-      <div className={styles.header}>
-        <div>
-          <h1 className={styles.title}>Бренд</h1>
-        </div>
-      </div>
-
       {error ? <div className={styles.error}>{error}</div> : null}
 
       <form
@@ -212,9 +208,10 @@ export function SellerBrandTab({ initialBrands }: Props) {
                 <span>Пример</span>
                 <Image
                   src="/examples/versace-wordmark.svg"
-                  alt="Пример вордмарка Versace"
+                  alt=""
                   width={159}
                   height={27}
+                  aria-hidden="true"
                 />
               </span>
             </div>
@@ -259,6 +256,12 @@ export function SellerBrandTab({ initialBrands }: Props) {
           </section>
 
         </div>
+
+        <SellerBrandImages brandId={selectedBrand.id} />
+        <SellerStorefrontCollections
+          brandId={selectedBrand.id}
+          products={products}
+        />
 
         <div className={styles.actionsBar}>
           <div className={styles.saveState} aria-live="polite">

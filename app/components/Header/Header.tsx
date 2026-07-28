@@ -258,7 +258,7 @@ function HeaderContent() {
                 aria-label="Админка"
                 title="Админка"
               >
-                <Icon name="settings" size={22} strokeWidth={1.8} />
+                <Icon name="settings" size={26} strokeWidth={1.25} />
               </Link>
             ) : null}
             {isAuth === true && isSellerRole(role) && sellerBrandName ? (
@@ -268,41 +268,40 @@ function HeaderContent() {
                 aria-label="Кабинет продавца"
                 title="Кабинет продавца"
               >
+                <Icon name="store" size={24} strokeWidth={1.25} />
                 {sellerBrandName}
               </Link>
             ) : null}
 
-            <Link href="/favorites" className={styles.iconBtn}>
-              <span className={styles.iconWrap}>
-                <Image
-                  src="/icons/like.svg"
-                  alt="Favorites"
-                  width={22}
-                  height={22}
-                />
-                {favoritesCount > 0 ? (
-                  <span className={styles.badge}>{favoritesCount}</span>
-                ) : null}
-              </span>
+            <Link
+              href="/favorites"
+              className={`${styles.iconBtn} ${
+                favoritesCount > 0 ? styles.iconBtnActive : ""
+              }`.trim()}
+              aria-label={
+                favoritesCount > 0
+                  ? `Избранное: ${favoritesCount}`
+                  : "Избранное"
+              }
+            >
+              <Icon name="heart" size={26} strokeWidth={1.25} />
             </Link>
 
-            <Link href="/cart" className={styles.iconBtn}>
-              <span className={styles.iconWrap}>
-                <Image
-                  src="/icons/bag.svg"
-                  alt="Cart"
-                  width={22}
-                  height={22}
-                />
-                {cartCount > 0 ? (
-                  <span className={styles.badge}>{cartCount}</span>
-                ) : null}
-              </span>
+            <Link
+              href="/cart"
+              className={`${styles.iconBtn} ${
+                cartCount > 0 ? styles.iconBtnActive : ""
+              }`.trim()}
+              aria-label={
+                cartCount > 0 ? `Корзина: ${cartCount}` : "Корзина"
+              }
+            >
+              <Icon name="shopping-bag" size={26} strokeWidth={1.25} />
             </Link>
 
             {isAuth === true ? (
               <Link href="/account" className={styles.iconBtn}>
-                <Image src="/icons/user.svg" alt="Profile" width={22} height={22} />
+                <Icon name="user" size={26} strokeWidth={1.25} />
               </Link>
               ) : (
                 <button
@@ -315,7 +314,7 @@ function HeaderContent() {
                   }
                   aria-label="Войти"
                 >
-                  <Image src="/icons/user.svg" alt="" width={22} height={22} />
+                  <Icon name="user" size={26} strokeWidth={1.25} />
                 </button>
               )}
           </div>
@@ -420,7 +419,7 @@ function HeaderContent() {
                 onClick={() => setMenuOpen(false)}
               >
                 <span className={styles.mobileProfileMain}>
-                  <Image src="/icons/user.svg" alt="" width={18} height={18} />
+                  <Icon name="user" size={20} strokeWidth={1.25} />
                   <span>{accountLabel}</span>
                 </span>
                 <span aria-hidden="true">›</span>

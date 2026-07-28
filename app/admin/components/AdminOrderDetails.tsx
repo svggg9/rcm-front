@@ -110,7 +110,7 @@ export function AdminOrderDetails({
 
           <AdminReturnRequests orderId={order.id} />
 
-          <OrderDetailSection title="Получатель">
+          <OrderDetailSection title="Получатель" icon="info">
             <OrderDetailFields>
               <OrderDetailField label="ФИО" value={order.recipientName?.trim() || null} />
               <OrderDetailField
@@ -120,7 +120,7 @@ export function AdminOrderDetails({
             </OrderDetailFields>
           </OrderDetailSection>
 
-          <OrderDetailSection title="Доставка">
+          <OrderDetailSection title="Доставка" icon="address">
             <OrderDetailFields>
               <OrderDetailField label="Способ доставки" value={formatDeliveryMethod(order.deliveryMethod)} />
               <OrderDetailField label="Примерка" value={formatFittingMode(order.fittingMode)} />
@@ -157,7 +157,7 @@ export function AdminOrderDetails({
       }
       aside={
         <>
-          <OrderDetailSection title="Информация" panel>
+          <OrderDetailSection title="Информация" icon="check" panel>
             <OrderDetailPanelFields>
               <OrderDetailField label="Статус заказа" value={formatOrderStatus(order.status)} />
               <OrderDetailField label="Статус оплаты" value={formatPaymentStatus(order.paymentStatus)} />

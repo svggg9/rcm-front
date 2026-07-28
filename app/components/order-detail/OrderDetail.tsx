@@ -11,6 +11,7 @@ export type OrderDetailProductItem = {
   productId: number;
   productPublicId?: string | null;
   productTitle: string;
+  brandName: string | null;
   size?: string | null;
   color?: string | null;
   imageUrl?: string | null;
@@ -29,6 +30,14 @@ export type OrderDetailSummary = {
 type Breadcrumb = {
   href?: string;
   label: ReactNode;
+};
+
+type OrderDetailSectionIcon = "check" | "info" | "address";
+
+const sectionIconSrc: Record<OrderDetailSectionIcon, string> = {
+  check: "/icons/check-circle.svg",
+  info: "/icons/info-circle.svg",
+  address: "/icons/address-home.svg",
 };
 
 type LayoutProps = {
@@ -89,16 +98,31 @@ function BreadcrumbItem({ item, last }: { item: Breadcrumb; last: boolean }) {
 
 export function OrderDetailSection({
   title,
+  icon,
   children,
   panel = false,
 }: {
   title?: ReactNode;
+  icon?: OrderDetailSectionIcon;
   children: ReactNode;
   panel?: boolean;
 }) {
   return (
     <section className={panel ? styles.panelSection : styles.section}>
-      {title ? <h2 className={`${styles.sectionTitle} textTitle`}>{title}</h2> : null}
+      {title ? (
+        <div className={styles.sectionHeading}>
+          {icon ? (
+            <Image
+              src={sectionIconSrc[icon]}
+              alt=""
+              width={24}
+              height={24}
+              className={styles.sectionIcon}
+            />
+          ) : null}
+          <h2 className={`${styles.sectionTitle} textTitle`}>{title}</h2>
+        </div>
+      ) : null}
       {children}
     </section>
   );
@@ -133,6 +157,12 @@ export function OrderDetailProductList({ items }: { items: OrderDetailProductIte
 
           <div className={styles.productInfo}>
             <div className={`${styles.productTitle} textBody`}>{item.productTitle}</div>
+
+            {item.brandName ? (
+              <div className={`${styles.productBrand} textSmall`}>
+                {item.brandName}
+              </div>
+            ) : null}
 
             {item.size || item.color ? (
               <div className={`${styles.productMeta} textSmall`}>

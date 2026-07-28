@@ -39,7 +39,14 @@ export type CreateProductReq = {
   }[];
 };
 
-export type SellerOrderStatus = "NEW" | "CONFIRMED" | "CANCELED" | "COMPLETED";
+export type SellerOrderStatus =
+  | "NEW"
+  | "CONFIRMED"
+  | "PROCESSING"
+  | "SHIPPED"
+  | "COMPLETED"
+  | "PAID"
+  | "CANCELED";
 
 export type SellerPaymentStatus =
   | "PENDING"
@@ -64,6 +71,7 @@ export type SellerOrderItem = {
   sellerId: number;
   sku: string;
   productTitle: string;
+  brandName: string | null;
   size: string;
   color: string;
   imageUrl: string | null;
@@ -89,6 +97,7 @@ export type SellerOrder = {
   status: SellerOrderStatus;
   paymentStatus: SellerPaymentStatus;
   deliveryStatus: SellerDeliveryStatus;
+  deliveryStatusChangedAt: string | null;
   subtotalAmount: number;
   deliveryAmount: number;
   discountAmount: number;
@@ -159,6 +168,7 @@ export type SellerOrderListItem = {
   status: SellerOrderStatus;
   paymentStatus: SellerPaymentStatus;
   deliveryStatus: SellerDeliveryStatus;
+  deliveryStatusChangedAt: string | null;
 
   totalAmount: number;
   currency: string;
@@ -186,6 +196,29 @@ export type SellerBrand = {
   vk: string | null;
   country: string | null;
   foundationYear: number | null;
+};
+
+export type SellerBrandImage = {
+  id: number;
+  imageUrl: string;
+  sortOrder: number;
+  active: boolean;
+};
+
+export type SellerStorefrontCollection = {
+  id: number;
+  title: string;
+  description: string | null;
+  active: boolean;
+  sortOrder: number;
+  products: SellerProductListItem[];
+};
+
+export type SellerStorefrontCollectionRequest = {
+  title: string;
+  description: string;
+  active: boolean;
+  productIds: number[];
 };
 
 export type SellerBrandProfileRequest = {

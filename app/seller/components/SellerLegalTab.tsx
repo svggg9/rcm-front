@@ -11,7 +11,13 @@ import { useRouter } from "next/navigation";
 
 import { Button } from "../../components/ui/Button";
 import { ChoiceMark } from "../../components/ui/ChoiceMark";
+import { Icon } from "../../components/ui/Icon";
 import { API_URL, apiFetch } from "../../lib/api";
+import {
+  formatRussianPhone,
+  getRussianPhoneDigits,
+  normalizeRussianPhone,
+} from "../../lib/phone";
 import { isNonEmpty } from "../../lib/validation";
 import { emitSellerOnboardingChanged } from "../lib/sellerOnboardingEvents";
 
@@ -66,6 +72,10 @@ function isValidCorrespondentAccount(value: string, bik: string) {
   return account.length === 20 && cleanBik.length === 9;
 }
 
+function isValidPhone(value: string) {
+  return getRussianPhoneDigits(value).length === 10;
+}
+
 const INITIAL_FORM: SellerLegalInfoForm = {
   sellerType: "IP",
   inn: "",
@@ -73,6 +83,7 @@ const INITIAL_FORM: SellerLegalInfoForm = {
   ogrnip: "",
   companyName: "",
   legalName: "",
+  phone: "",
   legalAddress: "",
   shippingCountryCode: "RU",
   shippingCityCode: "",
@@ -94,6 +105,7 @@ function mapLegalInfoToForm(info: SellerLegalInfo): SellerLegalInfoForm {
     ogrnip: info.ogrnip ?? "",
     companyName: info.companyName ?? "",
     legalName: info.legalName ?? "",
+    phone: info.phone ?? "",
     legalAddress: info.legalAddress ?? "",
     shippingCountryCode: info.shippingCountryCode ?? "RU",
     shippingCityCode: info.shippingCityCode ? String(info.shippingCityCode) : "",
@@ -364,6 +376,10 @@ export function SellerLegalTab() {
       );
     }
 
+    if (!isValidPhone(values.phone)) {
+      addError("phone", "Укажите телефон");
+    }
+
     if (!isNonEmpty(values.shippingCityName)) {
       addError("shippingCityName", "Укажите город отправления");
     }
@@ -474,21 +490,10 @@ export function SellerLegalTab() {
 
   return (
     <section className={styles.page}>
-      <div className={styles.header}>
-        <div>
-          <div className={styles.kicker}>Реквизиты</div>
-          <h1 className={styles.title}>Юридическая информация</h1>
-        </div>
-      </div>
-
       <form className={styles.form} onSubmit={submit}>
         {error ? <div className={styles.error}>{error}</div> : null}
 
-        <section className={styles.card}>
-          <div className={styles.cardHeader}>
-            <h2>Тип продавца</h2>
-          </div>
-
+        <section className={`${styles.card} ${styles.unifiedForm}`}>
           <div className={styles.typeGrid}>
             {(["IP", "OOO", "SELF_EMPLOYED"] as SellerType[]).map((type) => (
               <label
@@ -504,16 +509,13 @@ export function SellerLegalTab() {
                   checked={form.sellerType === type}
                   onChange={() => updateField("sellerType", type)}
                 />
+                <ChoiceMark
+                  checked={form.sellerType === type}
+                  appearance="outline-check"
+                />
                 <span>{formatSellerType(type)}</span>
-                <ChoiceMark checked={form.sellerType === type} />
               </label>
             ))}
-          </div>
-        </section>
-
-        <section className={styles.card}>
-          <div className={styles.cardHeader}>
-            <h2>Основные данные</h2>
           </div>
 
           <div className={styles.grid}>
@@ -522,6 +524,7 @@ export function SellerLegalTab() {
               numeric
               numericMaxLength={form.sellerType === "OOO" ? 10 : 12}
               required
+              valid={isValidInn(form.inn, form.sellerType)}
               suppressRequiredHighlight={hasValidationErrors}
               value={form.inn}
               error={errors.inn}
@@ -534,6 +537,7 @@ export function SellerLegalTab() {
                 numeric
                 numericMaxLength={15}
                 required
+                valid={isValidOgrnip(form.ogrnip)}
                 suppressRequiredHighlight={hasValidationErrors}
                 value={form.ogrnip}
                 error={errors.ogrnip}
@@ -546,6 +550,7 @@ export function SellerLegalTab() {
                 <LegalTextField
                   label="Название компании"
                   required
+                  valid={isNonEmpty(form.companyName)}
                   suppressRequiredHighlight={hasValidationErrors}
                   value={form.companyName}
                   error={errors.companyName}
@@ -559,6 +564,7 @@ export function SellerLegalTab() {
                   numeric
                   numericMaxLength={13}
                   required
+                  valid={isValidOgrn(form.ogrn)}
                   suppressRequiredHighlight={hasValidationErrors}
                   value={form.ogrn}
                   error={errors.ogrn}
@@ -570,25 +576,36 @@ export function SellerLegalTab() {
             <LegalTextField
               label={form.sellerType === "OOO" ? "Юридическое название" : "ФИО"}
               required
+              valid={isNonEmpty(form.legalName)}
               suppressRequiredHighlight={hasValidationErrors}
               value={form.legalName}
               error={errors.legalName}
               onChange={(event) => updateField("legalName", event.target.value)}
+            />
+
+            <LegalTextField
+              label="Телефон"
+              type="tel"
+              inputMode="tel"
+              autoComplete="tel"
+              required
+              valid={isValidPhone(form.phone)}
+              suppressRequiredHighlight={hasValidationErrors}
+              value={formatRussianPhone(form.phone)}
+              error={errors.phone}
+              onChange={(event) =>
+                updateField("phone", normalizeRussianPhone(event.target.value))
+              }
             />
           </div>
 
           <div className={styles.addressField}>
             <LegalTextarea
               label="Юридический адрес"
+              valid={isNonEmpty(form.legalAddress)}
               value={form.legalAddress}
               onChange={(event) => updateField("legalAddress", event.target.value)}
             />
-          </div>
-        </section>
-
-        <section className={styles.card}>
-          <div className={styles.cardHeader}>
-            <h2>Адрес отправления</h2>
           </div>
 
           <div className={styles.grid}>
@@ -596,6 +613,10 @@ export function SellerLegalTab() {
               <LegalTextField
                 label="Город отправления"
                 required
+                valid={
+                  isNonEmpty(form.shippingCityName) &&
+                  Boolean(onlyDigits(form.shippingCityCode))
+                }
                 suppressRequiredHighlight={hasValidationErrors}
                 value={form.shippingCityName}
                 error={errors.shippingCityName || errors.shippingCityCode}
@@ -625,6 +646,10 @@ export function SellerLegalTab() {
               <LegalTextField
                 label="Пункт приема СДЭК"
                 required
+                valid={
+                  isNonEmpty(pointQuery) &&
+                  isNonEmpty(form.cdekShipmentPoint)
+                }
                 suppressRequiredHighlight={hasValidationErrors}
                 value={pointQuery}
                 error={errors.cdekShipmentPoint}
@@ -650,17 +675,12 @@ export function SellerLegalTab() {
               ) : null}
             </div>
           </div>
-        </section>
-
-        <section className={styles.card}>
-          <div className={styles.cardHeader}>
-            <h2>Банковские реквизиты</h2>
-          </div>
 
           <div className={styles.grid}>
             <LegalTextField
               label="Банк"
               required
+              valid={isNonEmpty(form.bankName)}
               suppressRequiredHighlight={hasValidationErrors}
               value={form.bankName}
               error={errors.bankName}
@@ -672,6 +692,7 @@ export function SellerLegalTab() {
               numeric
               numericMaxLength={9}
               required
+              valid={isValidBik(form.bik)}
               suppressRequiredHighlight={hasValidationErrors}
               value={form.bik}
               error={errors.bik}
@@ -683,6 +704,7 @@ export function SellerLegalTab() {
               numeric
               numericMaxLength={20}
               required
+              valid={isValidBankAccount(form.checkingAccount, form.bik)}
               suppressRequiredHighlight={hasValidationErrors}
               value={form.checkingAccount}
               error={errors.checkingAccount}
@@ -695,6 +717,10 @@ export function SellerLegalTab() {
               label="Корреспондентский счет"
               numeric
               numericMaxLength={20}
+              valid={
+                isNonEmpty(form.correspondentAccount) &&
+                isValidCorrespondentAccount(form.correspondentAccount, form.bik)
+              }
               value={form.correspondentAccount}
               error={errors.correspondentAccount}
               onChange={(event) =>
@@ -702,10 +728,8 @@ export function SellerLegalTab() {
               }
             />
           </div>
-        </section>
 
-        <section className={styles.plainSection}>
-          <div className={styles.agreementRow}>
+          <div className={`${styles.plainSection} ${styles.agreementRow}`}>
             <label
               className={`${styles.checkbox} ${
                 errors.agreementAccepted ? styles.checkboxError : ""
@@ -719,7 +743,10 @@ export function SellerLegalTab() {
                   updateField("agreementAccepted", event.target.checked)
                 }
               />
-              <span className={styles.checkboxMark} />
+              <ChoiceMark
+                checked={form.agreementAccepted}
+                appearance="outline-check"
+              />
               <span className={styles.checkboxText}>
                 Я принимаю{" "}
                 <Link href="/terms/seller" target="_blank">
@@ -728,18 +755,18 @@ export function SellerLegalTab() {
               </span>
             </label>
           </div>
-        </section>
 
-        <div className={styles.actions}>
-          <Button
-            type="submit"
-            variant="primary"
-            disabled={saving || !formChanged}
-            loading={saving}
-          >
-            Сохранить
-          </Button>
-        </div>
+          <div className={styles.actions}>
+            <Button
+              type="submit"
+              variant="primary"
+              disabled={saving || !formChanged}
+              loading={saving}
+            >
+              Сохранить
+            </Button>
+          </div>
+        </section>
       </form>
 
       {successOpen ? (
@@ -804,6 +831,7 @@ type LegalFieldProps = {
   error?: string;
   numeric?: boolean;
   numericMaxLength?: number;
+  valid?: boolean;
 };
 
 function LegalTextField({
@@ -813,6 +841,7 @@ function LegalTextField({
   error,
   numeric,
   numericMaxLength,
+  valid,
   className = "",
   onChange,
   ...props
@@ -827,7 +856,9 @@ function LegalTextField({
       </span>
       <input
         {...props}
-        className={`${styles.input} ${requiredEmpty ? styles.requiredEmpty : ""} ${
+        className={`${styles.input} ${valid ? styles.inputValid : ""} ${
+          requiredEmpty ? styles.requiredEmpty : ""
+        } ${
           error ? styles.inputError : ""
         } ${className}`.trim()}
         inputMode={numeric ? "numeric" : props.inputMode}
@@ -857,6 +888,7 @@ function LegalTextField({
           onChange?.(event);
         }}
       />
+      {valid && !error ? <FieldValidIcon /> : null}
     </label>
   );
 }
@@ -865,6 +897,7 @@ function LegalTextarea({
   label,
   required,
   error,
+  valid,
   className = "",
   ...props
 }: LegalFieldProps & TextareaHTMLAttributes<HTMLTextAreaElement>) {
@@ -874,10 +907,22 @@ function LegalTextarea({
         {label}
       </span>
       <textarea
-        className={`${styles.textarea} ${error ? styles.inputError : ""} ${className}`.trim()}
+        className={`${styles.textarea} ${valid ? styles.inputValid : ""} ${
+          error ? styles.inputError : ""
+        } ${className}`.trim()}
         aria-invalid={error ? "true" : undefined}
         {...props}
       />
+      {valid && !error ? <FieldValidIcon /> : null}
     </label>
+  );
+}
+
+function FieldValidIcon() {
+  return (
+    <Icon
+      name="check-circle"
+      className={styles.fieldValidIcon}
+    />
   );
 }

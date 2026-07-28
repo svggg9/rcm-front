@@ -680,6 +680,9 @@ function AdminPageContent({ initialData }: Props) {
   function openOrder(orderId: number) {
     prefetchOrder(orderId);
     navigateAdmin(`/admin?tab=orders&orderId=${orderId}`);
+    window.requestAnimationFrame(() => {
+      window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+    });
   }
 
   function closeProductDetails() {
@@ -943,6 +946,7 @@ function AdminPageContent({ initialData }: Props) {
                   orders={orders}
                   buildStatusLabel={buildAdminOrderStatusLabel}
                   onOpenOrder={openOrder}
+                  onLoadOrder={getCachedOrder}
                   onPrefetchOrder={prefetchOrder}
                 />
               )

@@ -95,7 +95,12 @@ export function FormSelect<TValue extends SelectValue>({
           </span>
         </button>
 
-        <div className={styles.menu} id={listboxId} role="listbox">
+        <div
+          className={styles.menu}
+          id={listboxId}
+          role="listbox"
+          aria-hidden={!open}
+        >
           <div className={styles.options}>
             {placeholder && !required ? (
               <button
@@ -103,6 +108,7 @@ export function FormSelect<TValue extends SelectValue>({
                 className={styles.option}
                 role="option"
                 aria-selected={!hasValue}
+                tabIndex={open ? 0 : -1}
                 onClick={() => selectValue("")}
               >
                 <span className={`${styles.optionLabel} ${styles.optionPlaceholder}`}>{placeholder}</span>
@@ -117,6 +123,7 @@ export function FormSelect<TValue extends SelectValue>({
                 role="option"
                 disabled={option.disabled}
                 aria-selected={option.value === value}
+                tabIndex={open ? 0 : -1}
                 onClick={() => selectValue(option.value as TValue)}
               >
                 <span className={`${styles.optionLabel} ${styles.optionValue}`}>{option.label}</span>

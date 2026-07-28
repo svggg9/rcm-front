@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 
 import { Button } from "../../components/ui/Button";
+import { CabinetSkeleton } from "../../components/ui/CabinetSkeleton";
+import { EmptyState } from "../../components/ui/EmptyState";
 import { StatusBadge } from "../../components/ui/StatusBadge";
 import {
   getSellerReturns,
@@ -109,16 +111,14 @@ export function SellerReturnsTab() {
 
   return (
     <section className={styles.page}>
-      <header className={styles.pageHeader}>
-        <h1>Возвраты</h1>
-      </header>
-
-      {loading ? <p className={styles.muted}>Загружаем возвраты…</p> : null}
+      {loading ? <CabinetSkeleton variant="list" rows={3} compact /> : null}
       {!loading && requests.length === 0 ? (
-        <div className={styles.empty}>
-          <h2>У вас пока нет возвратов</h2>
-          <p>Новые заявки покупателей появятся здесь.</p>
-        </div>
+        <EmptyState
+          icon="return-circle"
+          tone="gold"
+          title="У вас пока нет возвратов"
+          text="Новые заявки покупателей появятся здесь."
+        />
       ) : null}
 
       <div className={styles.list}>

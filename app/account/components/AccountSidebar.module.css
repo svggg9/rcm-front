@@ -1,7 +1,7 @@
 ﻿.logout {
   width: 100%;
   min-height: 42px;
-  padding: 0 8px 0 12px;
+  padding: 0;
   border: 0;
   background: transparent;
   color: var(--content-primary);

@@ -12,41 +12,6 @@
   margin-bottom: 0;
 }
 
-.header {
-  padding: 0;
-  border: 0;
-  background: transparent;
-}
-
-.kicker {
-  margin-bottom: 8px;
-  color: var(--gold);
-  font-size: 10px;
-  line-height: 1;
-  font-weight: 400;
-  letter-spacing: 0;
-  text-transform: uppercase;
-}
-
-.title {
-  margin: 0;
-  color: var(--black);
-  font-size: 32px;
-  line-height: 1.15;
-  font-weight: 400;
-  letter-spacing: 0;
-}
-
-.hint {
-  max-width: 720px;
-  margin: 8px 0 0;
-  color: var(--muted);
-  font-size: var(--font-sm);
-  line-height: 1.4;
-  font-weight: 300;
-  letter-spacing: 0;
-}
-
 .form {
   display: flex;
   flex-direction: column;
@@ -65,6 +30,13 @@
   padding: 32px 0;
   border: 0;
   background: transparent;
+}
+
+.unifiedForm {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding-bottom: 20px;
 }
 
 .card + .card {
@@ -101,52 +73,41 @@
 }
 
 .typeGrid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 12px;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 14px 28px;
 }
 
 .typeOption {
-  position: relative;
-  min-height: 44px;
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  justify-content: center;
-  gap: 10px;
-  padding: 0 15px;
-  border: 0.5px solid var(--black);
-  background: var(--white);
-  color: #333333;
+  gap: 8px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--black);
   font-size: 14px;
   line-height: 1.4;
   font-weight: 400;
   letter-spacing: 0;
   cursor: pointer;
-  transition: border-color 0.18s ease, background 0.18s ease, color 0.18s ease;
+}
+
+.typeOptionActive {
+  font-weight: 700;
 }
 
 .typeOption input {
   position: absolute;
+  width: 1px;
+  height: 1px;
   opacity: 0;
   pointer-events: none;
 }
 
-.typeOption span:not(:last-child) {
-  min-width: 0;
-  text-align: center;
-}
-
 .typeOption > span:last-child {
-  position: absolute;
-  right: 14px;
-  border-color: var(--black);
-}
-
-.typeOption:hover,
-.typeOptionActive {
-  border-color: var(--black);
-  background: var(--soft);
-  color: var(--black);
+  min-width: 0;
 }
 
 .fieldWrap {
@@ -228,6 +189,10 @@
   padding: 0 15px;
 }
 
+.inputValid {
+  padding-right: 43px;
+}
+
 .textarea {
   min-height: 92px;
   padding: 12px 15px;
@@ -248,6 +213,14 @@
 
 .inputError {
   border-color: var(--danger);
+}
+
+.fieldValidIcon {
+  position: absolute;
+  right: 14px;
+  bottom: 12px;
+  color: #20833e;
+  pointer-events: none;
 }
 
 .fieldLabel {
@@ -303,36 +276,6 @@
   text-underline-offset: 3px;
 }
 
-.checkboxMark {
-  position: relative;
-  width: 16px;
-  height: 16px;
-  margin-top: 2px;
-  flex-shrink: 0;
-  border: 1px solid var(--black);
-  background: var(--soft);
-}
-
-.checkbox input:checked + .checkboxMark {
-  background: var(--black);
-}
-
-.checkboxError .checkboxMark {
-  border-color: var(--danger);
-}
-
-.checkbox input:checked + .checkboxMark::after {
-  content: "";
-  position: absolute;
-  left: 4px;
-  top: 1px;
-  width: 5px;
-  height: 9px;
-  border: solid var(--white);
-  border-width: 0 2px 2px 0;
-  transform: rotate(45deg);
-}
-
 .checkboxText {
   min-width: 0;
 }
@@ -354,7 +297,7 @@
 .actions {
   display: flex;
   justify-content: flex-end;
-  padding: 12px 0 0;
+  padding: 0;
 }
 
 .actions button {
@@ -468,13 +411,8 @@
 
 @media (max-width: 900px) {
   .grid,
-  .typeGrid,
   .skeletonGrid {
     grid-template-columns: 1fr;
-  }
-
-  .title {
-    font-size: var(--font-xl);
   }
 
   .successModal :global(.modalFooter) {

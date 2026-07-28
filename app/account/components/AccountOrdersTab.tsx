@@ -1,9 +1,11 @@
 "use client";
 
-import { EmptyState } from "../../components/ui/EmptyState";
-
-import { AccountOrderCard } from "./AccountOrderCard";
-import styles from "./AccountOrdersTab.module.css";
+import {
+  SellerOrdersTab,
+} from "../../seller/components/SellerOrdersTab";
+import type {
+  OrderCardDetails,
+} from "../../seller/components/SellerOrderCard";
 
 import type { OrderListItem } from "../types";
 
@@ -11,6 +13,7 @@ type Props = {
   orders: OrderListItem[];
   buildOrderStatusLabel: (order: OrderListItem) => string;
   onOpenOrder: (orderId: number) => void;
+  onLoadOrder: (orderId: number) => Promise<OrderCardDetails>;
   onPrefetchOrder?: (orderId: number) => void;
 };
 
@@ -18,37 +21,20 @@ export function AccountOrdersTab({
   orders,
   buildOrderStatusLabel,
   onOpenOrder,
+  onLoadOrder,
   onPrefetchOrder,
 }: Props) {
   return (
-    <section className={styles.page}>
-      <div className={styles.cardHeader}>
-        <h2>
-          <span>Заказы</span>
-          <span className={styles.ordersCount}>{orders.length}</span>
-        </h2>
-      </div>
-
-      {orders.length === 0 ? (
-        <EmptyState
-          icon="shopping-bag"
-          tone="gold"
-          title="Пока нет заказов"
-          text="Когда вы оформите заказ, он появится здесь."
-        />
-      ) : (
-        <div className={styles.list}>
-          {orders.map((order) => (
-            <AccountOrderCard
-              key={order.id}
-              order={order}
-              statusLabel={buildOrderStatusLabel(order)}
-              onClick={() => onOpenOrder(order.id)}
-              onPrefetch={() => onPrefetchOrder?.(order.id)}
-            />
-          ))}
-        </div>
-      )}
-    </section>
+    <SellerOrdersTab<OrderListItem>
+      orders={orders}
+      buildSellerStatusLabel={buildOrderStatusLabel}
+      onOpenOrder={onOpenOrder}
+      onLoadOrder={onLoadOrder}
+      onPrefetchOrder={onPrefetchOrder}
+      audience="buyer"
+      showDeliveryLabel={false}
+      showStageElapsed={false}
+      openButtonLabel="Управление заказом"
+    />
   );
 }

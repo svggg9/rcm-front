@@ -65,6 +65,7 @@ export type OrderItem = {
   sellerId: number;
   sku: string;
   productTitle: string;
+  brandName: string | null;
   size: string;
   color: string;
   imageUrl: string | null;

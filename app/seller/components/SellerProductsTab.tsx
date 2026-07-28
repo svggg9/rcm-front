@@ -10,8 +10,6 @@ import { EmptyState } from "../../components/ui/EmptyState";
 import { Price } from "../../components/ui/Price";
 import { StatusBadge } from "../../components/ui/StatusBadge";
 import { CabinetSkeleton } from "../../components/ui/CabinetSkeleton";
-import { Button } from "../../components/ui/Button";
-import { Icon } from "../../components/ui/Icon";
 
 import type { SellerProductListItem } from "../types";
 
@@ -87,24 +85,27 @@ export function SellerProductsTab({
 
   return (
     <div className={styles.productsPage}>
-      <header className={styles.pageHeader}>
-        <div>
-          <h1>Товары</h1>
+      {onCreateProduct ? (
+        <div className={styles.productSectionTabs}>
+          <CabinetTabs<"products" | "create">
+            items={[
+              { value: "products", label: "Товары" },
+              {
+                value: "create",
+                label: "Создать товар",
+              },
+            ]}
+            value="products"
+            onChange={(tab) => {
+              if (tab === "create" && !creatingProduct) {
+                onCreateProduct();
+              }
+            }}
+            ariaLabel="Товары"
+            appearance="line"
+          />
         </div>
-
-        {onCreateProduct ? (
-          <Button
-            type="button"
-            variant="primaryShimmer"
-            className={styles.addButton}
-            onClick={onCreateProduct}
-            disabled={creatingProduct}
-          >
-            <Icon name="plus" size={16} />
-            <span>Добавить товар</span>
-          </Button>
-        ) : null}
-      </header>
+      ) : null}
 
       <div className={styles.productsToolbar}>
         <CabinetTabs

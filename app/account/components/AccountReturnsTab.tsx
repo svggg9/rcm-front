@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 
 import { Button } from "../../components/ui/Button";
+import { CabinetSkeleton } from "../../components/ui/CabinetSkeleton";
 import {
   getAccountReturns,
   returnReasonLabels,
@@ -40,7 +41,6 @@ export function AccountReturnsTab({ onOpenOrders }: Props) {
   return (
     <section className={styles.page}>
       <div className={styles.heading}>
-        <h2>Возвраты</h2>
         <p>
           Здесь вы можете проверить статус возврата и распечатать документы для
           отправки товара через ПВЗ СДЭК.
@@ -48,7 +48,7 @@ export function AccountReturnsTab({ onOpenOrders }: Props) {
       </div>
 
       {error ? (
-        <div className={styles.loading}>Не удалось загрузить возвраты.</div>
+        <div className={styles.error}>Не удалось загрузить возвраты.</div>
       ) : null}
 
       {!loading && !error && returns.length === 0 ? (
@@ -61,9 +61,7 @@ export function AccountReturnsTab({ onOpenOrders }: Props) {
         </div>
       ) : null}
 
-      {loading ? (
-        <div className={styles.loading}>Загружаем возвраты…</div>
-      ) : null}
+      {loading ? <CabinetSkeleton variant="list" rows={3} compact /> : null}
 
       {returns.length > 0 ? (
         <div className={styles.list}>

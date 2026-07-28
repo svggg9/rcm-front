@@ -78,14 +78,15 @@
 }
 
 .iconBtn {
+  position: relative;
   background: none;
   border: none;
   padding: 0;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 32px;
-  height: 32px;
+  width: 38px;
+  height: 38px;
   cursor: pointer;
   transition:
     background var(--transition-fast),
@@ -98,35 +99,52 @@
 
 .iconBtn img,
 .iconBtn svg {
-  width: 21px;
-  height: 21px;
+  width: 26px;
+  height: 26px;
   display: block;
 }
 
 .iconBtn svg {
   color: var(--black);
+  fill: transparent;
 }
 
-.iconWrap {
-  position: relative;
+.iconBtnActive::after {
+  content: "";
+  position: absolute;
+  top: 5px;
+  right: 4px;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--gold);
+  box-shadow: 0 0 0 2px var(--white);
+  pointer-events: none;
+  animation: commerceMarkerIn 180ms ease-out both;
+}
+
+.brandBtn {
   display: inline-flex;
   align-items: center;
+  gap: 7px;
 }
 
-.badge {
-  position: absolute;
-  top: -8px;
-  right: -10px;
-  min-width: 16px;
-  height: 16px;
-  padding: 0 4px;
-  background: var(--black);
-  color: var(--white);
-  font-size: 10px;
-  font-weight: 500;
-  line-height: 16px;
-  text-align: center;
-  border-radius: 0;
+@keyframes commerceMarkerIn {
+  from {
+    opacity: 0;
+    transform: scale(0.35);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .iconBtnActive::after {
+    animation: none;
+  }
 }
 
 .bottom {

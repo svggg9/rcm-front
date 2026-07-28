@@ -5,16 +5,27 @@ import { useMemo, useState } from "react";
 import { CabinetTabs, type CabinetTabItem } from "../../components/ui/CabinetTabs";
 import { EmptyState } from "../../components/ui/EmptyState";
 
-import { SellerOrderCard } from "./SellerOrderCard";
+import {
+  SellerOrderCard,
+  type OrderCardDetails,
+  type OrderCardAudience,
+  type SellerOrderCardListItem,
+} from "./SellerOrderCard";
 import styles from "./SellerOrdersTab.module.css";
 
 import type { SellerOrderListItem } from "../types";
 
-type Props = {
-  orders: SellerOrderListItem[];
-  buildSellerStatusLabel: (order: SellerOrderListItem) => string;
-  onOpenOrder: (orderId: number) => void;
+type Props<TOrder extends SellerOrderCardListItem = SellerOrderListItem> = {
+  orders: TOrder[];
+  buildSellerStatusLabel: (order: TOrder) => string;
+  expandedOrderId?: number | null;
+  onOpenOrder?: (orderId: number) => void;
+  onLoadOrder?: (orderId: number) => Promise<OrderCardDetails>;
   onPrefetchOrder?: (orderId: number) => void;
+  showStageElapsed?: boolean;
+  audience?: OrderCardAudience;
+  showDeliveryLabel?: boolean;
+  openButtonLabel?: string;
 };
 
 type OrderFilter =
@@ -25,19 +36,27 @@ type OrderFilter =
   | "COMPLETED"
   | "CANCELED";
 
-export function SellerOrdersTab({
+export function SellerOrdersTab<
+  TOrder extends SellerOrderCardListItem = SellerOrderListItem,
+>({
   orders,
   buildSellerStatusLabel,
+  expandedOrderId,
   onOpenOrder,
+  onLoadOrder,
   onPrefetchOrder,
-}: Props) {
+  showStageElapsed = false,
+  audience = "seller",
+  showDeliveryLabel = true,
+  openButtonLabel,
+}: Props<TOrder>) {
   const [filter, setFilter] = useState<OrderFilter>("ALL");
 
   const orderTabs: CabinetTabItem<OrderFilter>[] = [
     { value: "ALL", label: "Все", count: orders.length },
     {
       value: "READY",
-      label: "К отправке",
+      label: audience === "seller" ? "К отправке" : "В обработке",
       count: orders.filter(isReadyOrder).length || undefined,
     },
     {
@@ -69,10 +88,6 @@ export function SellerOrdersTab({
 
   return (
     <section className={styles.page}>
-      <header className={styles.pageHeader}>
-        <h1>Заказы</h1>
-      </header>
-
       <div className={styles.ordersToolbar}>
         <CabinetTabs
           items={orderTabs}
@@ -89,7 +104,11 @@ export function SellerOrdersTab({
           icon="shopping-bag"
           tone="gold"
           title="Пока нет заказов"
-          text="Когда покупатели оформят заказы, они появятся здесь."
+          text={
+            audience === "seller"
+              ? "Когда покупатели оформят заказы, они появятся здесь."
+              : "Когда вы оформите заказ, он появится здесь."
+          }
         />
       ) : filteredOrders.length === 0 ? (
         <EmptyState
@@ -104,8 +123,14 @@ export function SellerOrdersTab({
               key={order.id}
               order={order}
               statusLabel={buildSellerStatusLabel(order)}
-              onOpen={onOpenOrder}
+              autoExpand={order.id === expandedOrderId}
+              onOpenOrder={onOpenOrder}
+              onLoadDetails={onLoadOrder}
               onPrefetch={onPrefetchOrder}
+              showStageElapsed={showStageElapsed}
+              audience={audience}
+              showDeliveryLabel={showDeliveryLabel}
+              openButtonLabel={openButtonLabel}
             />
           ))}
         </div>
@@ -114,7 +139,10 @@ export function SellerOrdersTab({
   );
 }
 
-function matchesOrderFilter(order: SellerOrderListItem, filter: OrderFilter) {
+function matchesOrderFilter(
+  order: SellerOrderCardListItem,
+  filter: OrderFilter
+) {
   switch (filter) {
     case "PENDING_PAYMENT":
       return isPendingPaymentOrder(order);
@@ -131,28 +159,27 @@ function matchesOrderFilter(order: SellerOrderListItem, filter: OrderFilter) {
   }
 }
 
-function isPendingPaymentOrder(order: SellerOrderListItem) {
+function isPendingPaymentOrder(order: SellerOrderCardListItem) {
   return order.paymentStatus === "PENDING";
 }
 
-function isReadyOrder(order: SellerOrderListItem) {
+function isReadyOrder(order: SellerOrderCardListItem) {
   return (
     order.paymentStatus === "PAID" &&
-    (order.deliveryStatus === "PENDING" ||
-      order.deliveryStatus === "READY_FOR_SHIPMENT" ||
-      order.deliveryStatus === "READY_FOR_PICKUP")
+    (order.deliveryStatus === "READY_FOR_SHIPMENT" ||
+      order.status === "PROCESSING")
   );
 }
 
-function isInTransitOrder(order: SellerOrderListItem) {
-  return order.deliveryStatus === "IN_TRANSIT";
+function isInTransitOrder(order: SellerOrderCardListItem) {
+  return order.deliveryStatus === "IN_TRANSIT" || order.status === "SHIPPED";
 }
 
-function isCompletedOrder(order: SellerOrderListItem) {
+function isCompletedOrder(order: SellerOrderCardListItem) {
   return order.status === "COMPLETED" || order.deliveryStatus === "DELIVERED";
 }
 
-function isCanceledOrder(order: SellerOrderListItem) {
+function isCanceledOrder(order: SellerOrderCardListItem) {
   return (
     order.status === "CANCELED" ||
     order.paymentStatus === "FAILED" ||

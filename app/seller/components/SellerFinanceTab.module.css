@@ -4,7 +4,6 @@
   gap: 22px;
 }
 
-.header h1,
 .sectionHead h2 {
   margin: 0;
   color: var(--black);
@@ -12,12 +11,6 @@
   letter-spacing: 0;
 }
 
-.header h1 {
-  font-size: 28px;
-  line-height: 1.15;
-}
-
-.header p,
 .sectionHead p {
   margin: 6px 0 0;
   color: var(--muted);
@@ -356,10 +349,6 @@
   .page {
     gap: 18px;
     padding: 18px 14px 36px;
-  }
-
-  .header h1 {
-    font-size: 24px;
   }
 
   .tabs {

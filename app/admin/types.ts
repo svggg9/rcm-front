@@ -164,7 +164,14 @@ export type PayoutGenerationResult = {
   }>;
 };
 
-export type AdminOrderStatus = "NEW" | "CONFIRMED" | "CANCELED" | "COMPLETED";
+export type AdminOrderStatus =
+  | "NEW"
+  | "CONFIRMED"
+  | "PROCESSING"
+  | "SHIPPED"
+  | "COMPLETED"
+  | "PAID"
+  | "CANCELED";
 
 export type AdminPaymentStatus =
   | "PENDING"
@@ -189,6 +196,7 @@ export type AdminOrderItem = {
   sellerId: number;
   sku: string;
   productTitle: string;
+  brandName: string | null;
   size: string;
   color: string;
   imageUrl: string | null;

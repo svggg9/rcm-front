@@ -185,7 +185,7 @@ export function AccountOrderDetails({
             </OrderDetailSection>
           ) : null}
 
-          <OrderDetailSection title="Получатель">
+          <OrderDetailSection title="Получатель" icon="info">
             <OrderDetailFields>
               <OrderDetailField label="ФИО" value={order.recipientName?.trim() || null} />
               <OrderDetailField
@@ -195,7 +195,7 @@ export function AccountOrderDetails({
             </OrderDetailFields>
           </OrderDetailSection>
 
-          <OrderDetailSection title="Доставка">
+          <OrderDetailSection title="Доставка" icon="address">
             <OrderDetailFields>
               <OrderDetailField
                 label="Способ доставки"
@@ -238,7 +238,7 @@ export function AccountOrderDetails({
       }
       aside={
         <>
-          <OrderDetailSection title="Информация" panel>
+          <OrderDetailSection title="Информация" icon="check" panel>
             <OrderDetailPanelFields>
               <OrderDetailField
                 label="Статус оплаты"

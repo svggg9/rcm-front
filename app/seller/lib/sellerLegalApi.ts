@@ -11,6 +11,7 @@ export type SellerLegalInfo = {
   ogrnip: string | null;
   companyName: string | null;
   legalName: string | null;
+  phone: string | null;
   legalAddress: string | null;
   shippingCountryCode: string | null;
   shippingCityCode: number | null;
@@ -34,6 +35,7 @@ export type SellerLegalInfoForm = {
   ogrnip: string;
   companyName: string;
   legalName: string;
+  phone: string;
   legalAddress: string;
   shippingCountryCode: string;
   shippingCityCode: string;

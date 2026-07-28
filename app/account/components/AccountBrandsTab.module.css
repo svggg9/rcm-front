@@ -64,6 +64,10 @@
   padding: 24px;
 }
 
+.brandPhoto {
+  object-fit: cover;
+}
+
 .link strong {
   overflow: hidden;
   color: var(--black);
