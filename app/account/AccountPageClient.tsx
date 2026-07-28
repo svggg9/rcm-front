@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 
@@ -10,7 +10,10 @@ import { useSessionResourceCache } from "../lib/useSessionResourceCache";
 
 import { AccountSidebar } from "./components/AccountSidebar";
 import { AccountHomeTab } from "./components/AccountHomeTab";
-import { AccountProfileTab } from "./components/AccountProfileTab";
+import {
+  AccountProfileTab,
+  type AccountProfileUpdate,
+} from "./components/AccountProfileTab";
 import { AccountOrdersTab } from "./components/AccountOrdersTab";
 import { AccountOrderDetails } from "./components/AccountOrderDetails";
 import { AccountFavoritesTab } from "./components/AccountFavoritesTab";
@@ -18,6 +21,7 @@ import { AccountBrandsTab } from "./components/AccountBrandsTab";
 import { AccountInfoTab } from "./components/AccountInfoTab";
 import { AccountReturnsTab } from "./components/AccountReturnsTab";
 import { CabinetSkeleton } from "../components/ui/CabinetSkeleton";
+import { CabinetTabs } from "../components/ui/CabinetTabs";
 
 import styles from "./AccountPageClient.module.css";
 
@@ -31,13 +35,7 @@ import type {
 } from "./types";
 
 type AccountTab =
-  | "home"
-  | "orders"
-  | "returns"
-  | "profile"
-  | "favorites"
-  | "brands"
-  | "info";
+  "home" | "orders" | "returns" | "favorites" | "brands" | "info";
 
 function formatOrderStatus(status: OrderStatus): string {
   switch (status) {
@@ -45,8 +43,14 @@ function formatOrderStatus(status: OrderStatus): string {
       return "Новый";
     case "CONFIRMED":
       return "Подтверждён";
+    case "PROCESSING":
+      return "В обработке";
+    case "SHIPPED":
+      return "Отправлен";
     case "COMPLETED":
       return "Завершён";
+    case "PAID":
+      return "Оплачен";
     case "CANCELED":
       return "Отменён";
     default:
@@ -64,6 +68,8 @@ function formatPaymentStatus(status: PaymentStatus): string {
       return "Ошибка оплаты";
     case "CANCELED":
       return "Оплата отменена";
+    case "REFUNDED":
+      return "Возвращён";
     default:
       return status;
   }
@@ -72,13 +78,19 @@ function formatPaymentStatus(status: PaymentStatus): string {
 function formatDeliveryStatus(status: DeliveryStatus): string {
   switch (status) {
     case "PENDING":
-      return "Ожидает обработки";
+      return "Оформление доставки";
     case "READY_FOR_SHIPMENT":
-      return "Готов к отправке";
+      return "Готовится к отправке";
+    case "READY_FOR_PICKUP":
+      return "Ожидает получения";
     case "IN_TRANSIT":
       return "В пути";
     case "DELIVERED":
       return "Доставлен";
+    case "RETURNED":
+      return "Возвращён";
+    case "CANCELLED":
+      return "Отменён";
     default:
       return status;
   }
@@ -95,67 +107,25 @@ function isActiveAccountOrder(order: OrderListItem): boolean {
 function buildOrderStatusLabel(order: Order | OrderListItem): string {
   if (order.status === "CANCELED") return "Отменён";
   if (order.paymentStatus === "CANCELED") return "Оплата отменена";
-  if (order.paymentStatus === "PENDING") return "Ожидает оплаты";
+  if (order.deliveryStatus === "CANCELLED") return "Отменён";
   if (order.paymentStatus === "FAILED") return "Ошибка оплаты";
+  if (
+    order.paymentStatus === "REFUNDED" ||
+    order.deliveryStatus === "RETURNED"
+  ) {
+    return "Возвращён";
+  }
+  if (order.paymentStatus === "PENDING") return "Ожидает оплаты";
   if (order.deliveryStatus === "DELIVERED") return "Доставлен";
+  if (order.deliveryStatus === "READY_FOR_PICKUP") return "Ожидает получения";
   if (order.deliveryStatus === "IN_TRANSIT") return "В пути";
-  if (order.deliveryStatus === "READY_FOR_SHIPMENT") return "Готовится к отправке";
-  if (order.paymentStatus === "PAID") return "Оплачен";
+  if (order.deliveryStatus === "READY_FOR_SHIPMENT")
+    return "Готовится к отправке";
+  if (order.paymentStatus === "PAID" && order.deliveryStatus === "PENDING") {
+    return "Оформление доставки";
+  }
 
   return formatOrderStatus(order.status);
-}
-
-type ProfileForm = {
-  lastName: string;
-  firstName: string;
-  middleName: string;
-  birthDate: string;
-  phone: string;
-  deliveryFullName: string;
-  defaultDeliveryAddress: string;
-  defaultDeliveryCityName: string;
-  defaultDeliveryApartment: string;
-  defaultDeliveryFloor: string;
-  defaultDeliveryIntercom: string;
-};
-
-function buildProfileForm(me: Me): ProfileForm {
-  const deliveryFullName = buildFullName(
-    me.lastName ?? "",
-    me.firstName ?? "",
-    me.middleName ?? ""
-  );
-
-  return {
-    lastName: me.lastName ?? "",
-    firstName: me.firstName ?? "",
-    middleName: me.middleName ?? "",
-    birthDate: me.birthDate ?? "",
-    phone: me.phone ?? "",
-    deliveryFullName,
-    defaultDeliveryAddress: me.defaultDeliveryAddress ?? "",
-    defaultDeliveryCityName: me.defaultDeliveryCityName ?? "",
-    defaultDeliveryApartment: me.defaultDeliveryApartment ?? "",
-    defaultDeliveryFloor: me.defaultDeliveryFloor ?? "",
-    defaultDeliveryIntercom: me.defaultDeliveryIntercom ?? "",
-  };
-}
-
-function buildFullName(lastName: string, firstName: string, middleName: string): string {
-  return [lastName, firstName, middleName]
-    .map((value) => value.trim())
-    .filter(Boolean)
-    .join(" ");
-}
-
-function parseFullName(value: string) {
-  const parts = value.trim().split(/\s+/).filter(Boolean);
-
-  return {
-    lastName: parts[0] ?? "",
-    firstName: parts[1] ?? "",
-    middleName: parts.slice(2).join(" "),
-  };
 }
 
 type Props = {
@@ -186,7 +156,7 @@ function AccountPageContent({
   const [me, setMe] = useState<Me | null>(initialMe);
   const [orders, setOrders] = useState<OrderListItem[]>(initialOrders);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(
-    initialSelectedOrder
+    initialSelectedOrder,
   );
   const {
     get: getOrderDetails,
@@ -200,10 +170,10 @@ function AccountPageContent({
   const [error, setError] = useState<string | null>(null);
 
   const tabParam = searchParams.get("tab");
+  const profileRequested = tabParam === "profile";
   const currentTab: AccountTab =
     tabParam === "orders" ||
     tabParam === "returns" ||
-    tabParam === "profile" ||
     tabParam === "favorites" ||
     tabParam === "brands" ||
     tabParam === "info"
@@ -212,37 +182,7 @@ function AccountPageContent({
 
   const selectedOrderId = searchParams.get("orderId");
   const [visitedTabs, setVisitedTabs] = useState<Set<AccountTab>>(
-    () => new Set([currentTab])
-  );
-  const initialProfileForm = useMemo(() => buildProfileForm(initialMe), [initialMe]);
-
-  const [lastName, setLastName] = useState(initialProfileForm.lastName);
-  const [firstName, setFirstName] = useState(initialProfileForm.firstName);
-  const [middleName, setMiddleName] = useState(initialProfileForm.middleName);
-  const [birthDate, setBirthDate] = useState(initialProfileForm.birthDate);
-  const [phone, setPhone] = useState(initialProfileForm.phone);
-  const [deliveryFullName, setDeliveryFullName] = useState(
-    initialProfileForm.deliveryFullName
-  );
-  const [defaultDeliveryAddress, setDefaultDeliveryAddress] = useState(
-    initialProfileForm.defaultDeliveryAddress
-  );
-  const [defaultDeliveryCityName, setDefaultDeliveryCityName] = useState(
-    initialProfileForm.defaultDeliveryCityName
-  );
-  const [defaultDeliveryApartment, setDefaultDeliveryApartment] = useState(
-    initialProfileForm.defaultDeliveryApartment
-  );
-  const [defaultDeliveryFloor, setDefaultDeliveryFloor] = useState(
-    initialProfileForm.defaultDeliveryFloor
-  );
-  const [defaultDeliveryIntercom, setDefaultDeliveryIntercom] = useState(
-    initialProfileForm.defaultDeliveryIntercom
-  );
-  const [savedProfileForm, setSavedProfileForm] =
-    useState<ProfileForm>(initialProfileForm);
-  const [profileSavedMessage, setProfileSavedMessage] = useState<string | null>(
-    null
+    () => new Set([currentTab]),
   );
 
   useEffect(() => {
@@ -290,7 +230,9 @@ function AccountPageContent({
         }
       } catch (e) {
         if (!cancelled) {
-          setError(e instanceof Error ? e.message : "Не удалось загрузить заказ");
+          setError(
+            e instanceof Error ? e.message : "Не удалось загрузить заказ",
+          );
         }
       } finally {
         if (!cancelled) {
@@ -308,51 +250,35 @@ function AccountPageContent({
 
   useEffect(() => {
     setMe(initialMe);
-    setLastName(initialProfileForm.lastName);
-    setFirstName(initialProfileForm.firstName);
-    setMiddleName(initialProfileForm.middleName);
-    setBirthDate(initialProfileForm.birthDate);
-    setPhone(initialProfileForm.phone);
-    setDeliveryFullName(initialProfileForm.deliveryFullName);
-    setDefaultDeliveryAddress(initialProfileForm.defaultDeliveryAddress);
-    setDefaultDeliveryCityName(initialProfileForm.defaultDeliveryCityName);
-    setDefaultDeliveryApartment(initialProfileForm.defaultDeliveryApartment);
-    setDefaultDeliveryFloor(initialProfileForm.defaultDeliveryFloor);
-    setDefaultDeliveryIntercom(initialProfileForm.defaultDeliveryIntercom);
-    setSavedProfileForm(initialProfileForm);
-    setProfileSavedMessage(null);
-  }, [initialMe, initialProfileForm]);
+  }, [initialMe]);
 
   useEffect(() => {
     setOrders(initialOrders);
   }, [initialOrders]);
 
-  async function saveProfile() {
-    if (profileSaving) return;
+  async function saveProfile(
+    values: AccountProfileUpdate,
+  ): Promise<boolean> {
+    if (profileSaving) return false;
 
     setProfileSaving(true);
     setError(null);
 
     try {
-      const parsedDeliveryName = parseFullName(deliveryFullName);
-      const nextFirstName = firstName.trim() || parsedDeliveryName.firstName;
-      const nextLastName = parsedDeliveryName.lastName;
-      const nextMiddleName = parsedDeliveryName.middleName;
-
       const response = await apiFetch(`${API_URL}/api/profile`, {
         method: "PUT",
         body: JSON.stringify({
-          firstName: nextFirstName,
-          lastName: nextLastName,
-          middleName: nextMiddleName,
-          birthDate,
-          gender: me?.gender ?? null,
-          phone,
-          defaultDeliveryAddress,
-          defaultDeliveryCityName,
-          defaultDeliveryApartment,
-          defaultDeliveryFloor,
-          defaultDeliveryIntercom,
+          firstName: values.firstName,
+          lastName: values.lastName,
+          middleName: me?.middleName ?? null,
+          birthDate: values.birthDate || null,
+          gender: values.gender,
+          phone: values.phone || null,
+          defaultDeliveryAddress: me?.defaultDeliveryAddress ?? null,
+          defaultDeliveryCityName: me?.defaultDeliveryCityName ?? null,
+          defaultDeliveryApartment: me?.defaultDeliveryApartment ?? null,
+          defaultDeliveryFloor: me?.defaultDeliveryFloor ?? null,
+          defaultDeliveryIntercom: me?.defaultDeliveryIntercom ?? null,
         }),
       });
 
@@ -362,26 +288,15 @@ function AccountPageContent({
       }
 
       const updated: Me = await response.json();
-      const updatedProfileForm = buildProfileForm(updated);
 
       setMe(updated);
-      setLastName(updatedProfileForm.lastName);
-      setFirstName(updatedProfileForm.firstName);
-      setMiddleName(updatedProfileForm.middleName);
-      setBirthDate(updatedProfileForm.birthDate);
-      setPhone(updatedProfileForm.phone);
-      setDeliveryFullName(updatedProfileForm.deliveryFullName);
-      setDefaultDeliveryAddress(updatedProfileForm.defaultDeliveryAddress);
-      setDefaultDeliveryCityName(updatedProfileForm.defaultDeliveryCityName);
-      setDefaultDeliveryApartment(updatedProfileForm.defaultDeliveryApartment);
-      setDefaultDeliveryFloor(updatedProfileForm.defaultDeliveryFloor);
-      setDefaultDeliveryIntercom(updatedProfileForm.defaultDeliveryIntercom);
-      setSavedProfileForm(updatedProfileForm);
-      setProfileSavedMessage("Профиль сохранён");
-
       router.refresh();
+      return true;
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Не удалось сохранить профиль");
+      toast.error(
+        e instanceof Error ? e.message : "Не удалось сохранить профиль",
+      );
+      return false;
     } finally {
       setProfileSaving(false);
     }
@@ -396,6 +311,9 @@ function AccountPageContent({
   function openOrder(orderId: number) {
     prefetchOrderDetails(orderId);
     navigateAccount(`/account?tab=orders&orderId=${orderId}`);
+    window.requestAnimationFrame(() => {
+      window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+    });
   }
 
   function openTab(tab: AccountTab) {
@@ -419,8 +337,8 @@ function AccountPageContent({
               deliveryStatus: updatedOrder.deliveryStatus,
               totalAmount: updatedOrder.totalAmount,
             }
-          : order
-      )
+          : order,
+      ),
     );
   }
 
@@ -428,87 +346,21 @@ function AccountPageContent({
     window.history.pushState(null, "", href);
   }
 
-  const profileForm = useMemo(
-    () => ({
-      lastName,
-      firstName,
-      middleName,
-      birthDate,
-      phone,
-      deliveryFullName,
-      defaultDeliveryAddress,
-      defaultDeliveryCityName,
-      defaultDeliveryApartment,
-      defaultDeliveryFloor,
-      defaultDeliveryIntercom,
-    }),
-    [
-      lastName,
-      firstName,
-      middleName,
-      birthDate,
-      phone,
-      deliveryFullName,
-      defaultDeliveryAddress,
-      defaultDeliveryCityName,
-      defaultDeliveryApartment,
-      defaultDeliveryFloor,
-      defaultDeliveryIntercom,
-    ]
-  );
-  const profileChanged =
-    JSON.stringify(profileForm) !== JSON.stringify(savedProfileForm);
+  function handleProfileEditingChange(editing: boolean) {
+    const activeTab = new URL(window.location.href).searchParams.get("tab");
 
-  function updateFirstName(value: string) {
-    setFirstName(value);
-    setProfileSavedMessage(null);
-  }
-
-  function updateLastName(value: string) {
-    setLastName(value);
-    setProfileSavedMessage(null);
-  }
-
-  function updatePhone(value: string) {
-    setPhone(value);
-    setProfileSavedMessage(null);
-  }
-
-  function updateDeliveryFullName(value: string) {
-    setDeliveryFullName(value);
-    setProfileSavedMessage(null);
-  }
-
-  function updateDefaultDeliveryAddress(value: string) {
-    setDefaultDeliveryAddress(value);
-    setProfileSavedMessage(null);
-  }
-
-  function updateDefaultDeliveryCityName(value: string) {
-    setDefaultDeliveryCityName(value);
-    setProfileSavedMessage(null);
-  }
-
-  function updateDefaultDeliveryApartment(value: string) {
-    setDefaultDeliveryApartment(value);
-    setProfileSavedMessage(null);
-  }
-
-  function updateDefaultDeliveryFloor(value: string) {
-    setDefaultDeliveryFloor(value);
-    setProfileSavedMessage(null);
-  }
-
-  function updateDefaultDeliveryIntercom(value: string) {
-    setDefaultDeliveryIntercom(value);
-    setProfileSavedMessage(null);
+    if (!editing && activeTab === "profile") {
+      window.history.replaceState(null, "", "/account");
+    }
   }
 
   if (error && !selectedOrderId) {
     return (
       <div className="pageContainer">
         <div className={styles.page}>
-          <div className={styles.sectionTitle}>Не удалось загрузить аккаунт</div>
+          <div className={styles.sectionTitle}>
+            Не удалось загрузить аккаунт
+          </div>
           <div className={styles.errorText}>{error}</div>
         </div>
       </div>
@@ -516,54 +368,63 @@ function AccountPageContent({
   }
 
   const activeOrdersCount = orders.filter(isActiveAccountOrder).length;
+  const accountName =
+    me?.displayName?.trim() ||
+    [me?.firstName, me?.lastName].filter(Boolean).join(" ").trim() ||
+    me?.username ||
+    "Профиль";
 
   return (
     <div className="pageContainer">
       <div className={styles.page}>
-        <header className={styles.header}>
-          <h1>Профиль</h1>
-          <button type="button" className={styles.logoutButton} onClick={() => void logout()}>
-            Выйти
-          </button>
-        </header>
-
         <div className={styles.layout}>
           <AccountSidebar
             currentTab={currentTab}
             ordersCount={activeOrdersCount}
+            userName={accountName}
             onNavigate={navigateAccount}
+            onLogout={() => void logout()}
           />
 
           <div className={styles.content}>
-            {visitedTabs.has("home") ? (
-              <div hidden={currentTab !== "home"}>
-                <AccountHomeTab
-                  me={me}
-                  orders={orders}
-                  buildOrderStatusLabel={buildOrderStatusLabel}
-                  onOpenOrder={openOrder}
-                  onPrefetchOrder={prefetchOrderDetails}
-                  onOpenOrders={() => openTab("orders")}
-                  onOpenProfile={() => openTab("profile")}
-                  onOpenFavorites={() => openTab("favorites")}
+            {currentTab === "orders" || currentTab === "returns" ? (
+              <div className={styles.orderSectionTabs}>
+                <CabinetTabs<"orders" | "returns">
+                  items={[
+                    { value: "orders", label: "Заказы" },
+                    { value: "returns", label: "Возвраты" },
+                  ]}
+                  value={currentTab}
+                  onChange={(tab) => openTab(tab)}
+                  ariaLabel="Заказы и возвраты"
+                  appearance="line"
                 />
               </div>
             ) : null}
 
-            {visitedTabs.has("profile") ? (
-              <div hidden={currentTab !== "profile"}>
-                <AccountProfileTab
-                  email={me?.email?.trim() || "?"}
-                  firstName={firstName}
-                  lastName={lastName}
-                  phone={phone}
-                  saving={profileSaving}
-                  changed={profileChanged}
-                  savedMessage={profileSavedMessage}
-                  onFirstNameChange={updateFirstName}
-                  onLastNameChange={updateLastName}
-                  onPhoneChange={updatePhone}
-                  onSave={() => void saveProfile()}
+            {visitedTabs.has("home") ? (
+              <div hidden={currentTab !== "home"}>
+                <AccountHomeTab
+                  orders={orders}
+                  buildOrderStatusLabel={buildOrderStatusLabel}
+                  onOpenOrder={openOrder}
+                  onLoadOrder={getOrderDetails}
+                  onPrefetchOrder={prefetchOrderDetails}
+                  onOpenOrders={() => openTab("orders")}
+                  profileEditor={
+                    <AccountProfileTab
+                      email={me?.email?.trim() || ""}
+                      firstName={me?.firstName ?? ""}
+                      lastName={me?.lastName ?? ""}
+                      phone={me?.phone ?? ""}
+                      birthDate={me?.birthDate ?? ""}
+                      gender={me?.gender ?? null}
+                      saving={profileSaving}
+                      initialEditing={profileRequested}
+                      onEditingChange={handleProfileEditingChange}
+                      onSave={saveProfile}
+                    />
+                  }
                 />
               </div>
             ) : null}
@@ -611,6 +472,7 @@ function AccountPageContent({
                     orders={orders}
                     buildOrderStatusLabel={buildOrderStatusLabel}
                     onOpenOrder={openOrder}
+                    onLoadOrder={getOrderDetails}
                     onPrefetchOrder={prefetchOrderDetails}
                   />
                 )}

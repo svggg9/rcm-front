@@ -102,9 +102,22 @@
 }
 
 .sectionTitle {
-  margin: 0 0 5px;
+  margin: 0;
   color: var(--black);
   font-weight: 400;
+}
+
+.sectionHeading {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 9px;
+}
+
+.sectionIcon {
+  width: 22px;
+  height: 22px;
+  flex: 0 0 auto;
 }
 
 .products {
@@ -161,6 +174,10 @@
 
 .productTitle {
   color: var(--black);
+}
+
+.productBrand {
+  color: var(--black-soft);
 }
 
 .productMeta {

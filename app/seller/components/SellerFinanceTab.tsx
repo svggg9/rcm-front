@@ -26,9 +26,6 @@ export function SellerFinanceTab({ finance, onPrefetchOrder }: Props) {
   if (!finance) {
     return (
       <section className={styles.page}>
-        <header className={styles.header}>
-          <h1>Финансы</h1>
-        </header>
         <div className={styles.empty}>Финансовая сводка временно недоступна</div>
       </section>
     );
@@ -36,12 +33,6 @@ export function SellerFinanceTab({ finance, onPrefetchOrder }: Props) {
 
   return (
     <section className={styles.page}>
-      <header className={styles.header}>
-        <div>
-          <h1>Финансы</h1>
-        </div>
-      </header>
-
       <nav className={styles.tabs} aria-label="Разделы финансов">
         <Tab active={view === "overview"} onClick={() => setView("overview")}>
           Обзор

@@ -10,6 +10,11 @@ export type FavoriteBrand = {
   slug: string;
   logoUrl: string | null;
   country: string | null;
+  images?: {
+    id: number;
+    imageUrl: string;
+    sortOrder: number;
+  }[];
 };
 
 type Snapshot = {

@@ -1,71 +1,162 @@
 .page {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 16px;
 }
 
-.header {
-  min-height: 48px;
+.hero {
+  min-height: 244px;
   display: flex;
-  align-items: flex-start;
+  align-items: flex-end;
   justify-content: space-between;
-  gap: 20px;
+  gap: 32px;
+  padding: 30px;
+  overflow: hidden;
+  position: relative;
+  background:
+    radial-gradient(circle at 86% 10%, rgba(255, 255, 255, 0.22) 0 6%, transparent 6.5%),
+    radial-gradient(circle at 91% 15%, rgba(255, 255, 255, 0.13) 0 16%, transparent 16.5%),
+    #b9d6ff;
+  color: #111;
 }
 
-.header h1 {
+.hero::after {
+  width: 180px;
+  height: 180px;
+  border: 1px solid rgba(17, 17, 17, 0.18);
+  border-radius: 50%;
+  position: absolute;
+  top: -74px;
+  right: 54px;
+  content: "";
+}
+
+.heroCopy {
+  max-width: 600px;
+  position: relative;
+  z-index: 1;
+}
+
+.eyebrow {
+  display: block;
+  margin-bottom: 16px;
+  font-size: 11px;
+  line-height: 1;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.hero h1 {
+  max-width: 570px;
   margin: 0;
-  color: var(--black);
-  font-size: 28px;
-  line-height: 1.15;
+  font-size: clamp(30px, 4vw, 48px);
+  line-height: 1.02;
   font-weight: 400;
-  letter-spacing: 0;
+  letter-spacing: -0.035em;
 }
 
-.header p {
-  margin: 6px 0 0;
-  color: var(--muted);
+.hero p {
+  max-width: 490px;
+  margin: 18px 0 0;
   font-size: var(--font-sm);
-  line-height: 1.4;
+  line-height: 1.5;
   font-weight: 300;
 }
 
-.primaryAction {
-  min-height: 42px;
+.heroAction {
+  min-height: 44px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  padding: 0 16px;
-  border: 0;
+  gap: 9px;
+  padding: 0 18px;
+  position: relative;
+  z-index: 1;
   background: var(--black);
   color: var(--white);
-  font: inherit;
   font-size: var(--font-sm);
-  cursor: pointer;
-  transition: opacity var(--transition-fast);
+  text-decoration: none;
+  white-space: nowrap;
+  transition: transform var(--transition-fast), opacity var(--transition-fast);
 }
 
-.primaryAction:disabled {
-  cursor: wait;
-  opacity: 0.55;
+.heroAction:hover {
+  opacity: 0.86;
+  transform: translateY(-1px);
+}
+
+.statusStrip {
+  min-height: 80px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 16px 18px;
+  border: 1px solid var(--line);
+  background: var(--white);
+}
+
+.statusLead {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 13px;
+}
+
+.statusIcon {
+  width: 40px;
+  height: 40px;
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: #fff0cf;
+  color: #7e5700;
+}
+
+.statusLead strong {
+  display: block;
+  font-size: var(--font-sm);
+  line-height: 1.3;
+  font-weight: 500;
+}
+
+.statusLead p {
+  margin: 3px 0 0;
+  color: var(--muted);
+  font-size: var(--font-xs);
+  line-height: 1.35;
+  font-weight: 300;
+}
+
+.statusStrip > a {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 4px;
+  color: var(--black);
+  font-size: var(--font-xs);
+  font-weight: 500;
+  text-decoration: none;
 }
 
 .widgetGrid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
 }
 
 .widget {
   min-width: 0;
-  min-height: 156px;
+  min-height: 124px;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  gap: 24px;
-  padding: 18px;
-  border: 1px solid var(--line);
-  background: var(--white);
+  gap: 16px;
+  padding: 14px;
+  border: 1px solid transparent;
   color: var(--black);
   text-decoration: none;
   transition:
@@ -74,8 +165,7 @@
 }
 
 .widget:hover {
-  border-color: var(--black);
-  background: var(--soft);
+  border-color: rgba(17, 17, 17, 0.38);
 }
 
 .widgetHead,
@@ -86,8 +176,46 @@
   gap: 12px;
 }
 
-.widgetHead > svg:first-child {
+.widgetHeading {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.widgetIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   color: var(--black);
+}
+
+.widgetTitle {
+  overflow: hidden;
+  color: var(--black);
+  font-size: var(--font-xs);
+  line-height: 1.3;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.blue {
+  background: #e9f2ff;
+}
+
+.coral {
+  background: #ffe9e1;
+}
+
+.lilac {
+  background: #f0eaff;
+}
+
+.sand {
+  background: #f4efdf;
 }
 
 .arrow {
@@ -95,11 +223,14 @@
   color: var(--muted);
 }
 
+.widget .arrow {
+  color: var(--black);
+}
+
 .widgetText {
   min-width: 0;
 }
 
-.widgetText > span,
 .financeBody span {
   display: block;
   color: var(--muted);
@@ -110,22 +241,22 @@
 
 .widgetText strong {
   display: block;
-  margin-top: 6px;
   overflow: hidden;
   color: var(--black);
-  font-size: 20px;
-  line-height: 1.25;
-  font-weight: 400;
+  font-size: 16px;
+  line-height: 1.2;
+  font-weight: 500;
+  letter-spacing: -0.01em;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .widgetText p {
-  margin: 5px 0 0;
-  color: var(--muted);
-  font-size: var(--font-xs);
-  line-height: 1.35;
-  font-weight: 300;
+  margin: 6px 0 0;
+  color: rgba(17, 17, 17, 0.62);
+  font-size: 11px;
+  line-height: 1.3;
+  font-weight: 400;
 }
 
 .financeWidget {
@@ -137,6 +268,11 @@
   background: var(--black);
   color: var(--white);
   text-decoration: none;
+  transition: opacity var(--transition-fast);
+}
+
+.financeWidget:hover {
+  opacity: 0.92;
 }
 
 .financeIcon {
@@ -189,17 +325,23 @@
     padding: 18px 14px 36px;
   }
 
-  .header h1 {
-    font-size: 24px;
+  .hero {
+    min-height: 220px;
+    padding: 24px 20px;
+  }
+
+  .hero h1 {
+    font-size: 32px;
   }
 
   .widgetGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 10px;
   }
 
   .widget {
-    min-height: 148px;
-    padding: 15px;
+    min-height: 120px;
+    padding: 14px;
   }
 
   .financeWidget {
@@ -208,14 +350,21 @@
 }
 
 @media (max-width: 520px) {
-  .header {
-    align-items: stretch;
+  .hero {
+    min-height: 300px;
+    align-items: flex-start;
     flex-direction: column;
-    gap: 14px;
   }
 
-  .primaryAction {
+  .heroAction {
     width: 100%;
+    margin-top: auto;
+  }
+
+  .statusStrip {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 14px;
   }
 
   .widgetGrid {
@@ -223,8 +372,8 @@
   }
 
   .widget {
-    min-height: 132px;
-    gap: 18px;
+    min-height: 116px;
+    gap: 14px;
   }
 
   .financeBody {

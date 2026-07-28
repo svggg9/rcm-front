@@ -6,14 +6,12 @@ import {
   getSellerBrandsServer,
   getSellerFinanceServer,
   getSellerOnboardingStatusServer,
-  getSellerOrderServer,
   getSellerOrdersServer,
   getSellerProductsServer,
 } from "./lib/sellerServerApi";
 import type {
   SellerBrand,
   SellerFinanceSummary,
-  SellerOrder,
   SellerOrderListItem,
   SellerProductListItem,
   SellerTab,
@@ -41,7 +39,6 @@ export default async function SellerPage({ searchParams: _searchParams }: Props)
   const searchParams = await _searchParams;
   const initialTab = parseSellerTab(searchParams?.tab);
   const initialOrderId = searchParams?.orderId ?? null;
-  const parsedOrderId = initialOrderId ? Number(initialOrderId) : NaN;
 
   const [
     initialProducts,
@@ -49,23 +46,18 @@ export default async function SellerPage({ searchParams: _searchParams }: Props)
     initialBrands,
     initialFinance,
     initialOnboardingStatus,
-    initialSelectedOrder,
   ]: [
     SellerProductListItem[],
     SellerOrderListItem[],
     SellerBrand[],
     SellerFinanceSummary | null,
     SellerOnboardingStatus | null,
-    SellerOrder | null,
   ] = await Promise.all([
     getSellerProductsServer(),
     getSellerOrdersServer(),
     getSellerBrandsServer(),
     getSellerFinanceServer(),
     getSellerOnboardingStatusServer(),
-    initialTab === "orders" && Number.isFinite(parsedOrderId)
-      ? getSellerOrderServer(parsedOrderId)
-      : Promise.resolve(null),
   ]);
 
   return (
@@ -77,7 +69,6 @@ export default async function SellerPage({ searchParams: _searchParams }: Props)
       initialOnboardingStatus={initialOnboardingStatus}
       initialTab={initialTab}
       initialOrderId={initialOrderId}
-      initialSelectedOrder={initialSelectedOrder}
     />
   );
 }

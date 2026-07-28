@@ -22,6 +22,7 @@ export function SellerSidebar({
       ariaLabel="Меню продавца"
       subtitle="Кабинет продавца"
       title={storeName ?? undefined}
+      titleIcon="store"
       mobileInline
       items={[
         {
@@ -53,8 +54,8 @@ export function SellerSidebar({
         },
         {
           href: "/seller?tab=brand",
-          label: "Страница бренда",
-          mobileLabel: "Бренд",
+          label: "Витрина магазина",
+          mobileLabel: "Витрина",
           icon: "store",
           active: currentTab === "brand",
         },

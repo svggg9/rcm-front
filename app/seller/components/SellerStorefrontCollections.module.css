@@ -1,0 +1,310 @@
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding-top: 28px;
+  border-top: 1px solid var(--line);
+}
+
+.header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+}
+
+.kicker {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--gold);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.header h2 {
+  margin: 0;
+  font-size: var(--font-lg);
+  line-height: 1.25;
+  font-weight: 500;
+}
+
+.header p {
+  margin: 5px 0 0;
+  color: var(--muted);
+  font-size: var(--font-xs);
+  font-weight: 300;
+}
+
+.header > button,
+.saveButton {
+  min-height: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 0 15px;
+  border: 1px solid var(--black);
+  background: var(--black);
+  color: var(--white);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.editor {
+  padding: 20px;
+  background: var(--soft);
+}
+
+.fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.fields label {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  font-size: 12px;
+}
+
+.fields input {
+  height: 42px;
+  padding: 0 13px;
+  border: 1px solid var(--line);
+  border-radius: 0;
+  background: var(--white);
+  color: var(--black);
+  font: inherit;
+  outline: none;
+}
+
+.fields input:focus {
+  border-color: var(--black);
+}
+
+.productPicker {
+  margin-top: 20px;
+}
+
+.pickerHeading {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 10px;
+  font-size: 12px;
+}
+
+.pickerHeading strong {
+  font-weight: 500;
+}
+
+.pickerHeading span {
+  color: var(--muted);
+}
+
+.productGrid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.productGrid > button {
+  min-width: 0;
+  padding: 6px;
+  position: relative;
+  border: 1px solid transparent;
+  background: var(--white);
+  color: var(--black);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.productGrid > .productSelected {
+  border-color: var(--black);
+}
+
+.productImage {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  aspect-ratio: 4 / 5;
+  position: relative;
+  background: var(--soft);
+}
+
+.productImage img,
+.collectionProducts img {
+  object-fit: cover;
+}
+
+.productName {
+  display: block;
+  margin-top: 6px;
+  overflow: hidden;
+  font-size: 11px;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.check {
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  border: 1px solid var(--black);
+  background: var(--white);
+}
+
+.productSelected .check {
+  background: var(--black);
+  color: var(--white);
+}
+
+.editorActions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 16px;
+}
+
+.saveButton:disabled {
+  cursor: default;
+  opacity: 0.42;
+}
+
+.collectionList {
+  display: grid;
+  gap: 8px;
+}
+
+.collectionCard {
+  min-height: 104px;
+  display: grid;
+  grid-template-columns: minmax(160px, 1fr) auto 32px;
+  align-items: center;
+  gap: 18px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+}
+
+.collectionCard > div:first-child > span {
+  color: #497351;
+  font-size: 10px;
+  text-transform: uppercase;
+}
+
+.collectionCard h3 {
+  margin: 5px 0 0;
+  font-size: 16px;
+  font-weight: 500;
+}
+
+.collectionCard p {
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.collectionProducts {
+  display: flex;
+}
+
+.collectionProducts > span {
+  width: 56px;
+  aspect-ratio: 4 / 5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: -8px;
+  position: relative;
+  border: 2px solid var(--white);
+  background: var(--soft);
+}
+
+.collectionProducts > span:first-child {
+  margin-left: 0;
+}
+
+.deleteButton {
+  width: 32px;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.emptyState,
+.empty {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.emptyState {
+  min-height: 150px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border: 1px dashed var(--line);
+  text-align: center;
+}
+
+.emptyState strong {
+  color: var(--black);
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.error {
+  margin: 0;
+  color: var(--danger);
+  font-size: 12px;
+}
+
+@media (max-width: 760px) {
+  .productGrid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 560px) {
+  .header,
+  .fields {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .header > button {
+    width: 100%;
+  }
+
+  .fields {
+    gap: 12px;
+  }
+
+  .productGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .collectionCard {
+    grid-template-columns: minmax(0, 1fr) 32px;
+  }
+
+  .collectionProducts {
+    display: none;
+  }
+}

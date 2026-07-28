@@ -318,9 +318,9 @@ export function ProductVariantsCard({
           <button
             type="button"
             onClick={addSizeRow}
-            className={`${styles.variantAddSizeBtn} buttonPrimary`}
+            className={styles.variantAddSizeBtn}
           >
-            <span className="buttonContent">Добавить размер</span>
+            Добавить размер
           </button>
         </div>
       </div>

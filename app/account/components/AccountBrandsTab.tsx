@@ -44,13 +44,17 @@ export function AccountBrandsTab() {
             <li className={styles.card} key={brand.id}>
               <Link href={`/brand/${brand.slug}`} className={styles.link}>
                 <span className={styles.logo}>
-                  {brand.logoUrl ? (
+                  {brand.images?.[0]?.imageUrl || brand.logoUrl ? (
                     <Image
-                      src={brand.logoUrl}
+                      src={brand.images?.[0]?.imageUrl ?? brand.logoUrl!}
                       alt=""
                       fill
                       sizes="160px"
-                      className={styles.logoImage}
+                      className={
+                        brand.images?.[0]?.imageUrl
+                          ? styles.brandPhoto
+                          : styles.logoImage
+                      }
                     />
                   ) : (
                     <span>{brand.name.slice(0, 1)}</span>

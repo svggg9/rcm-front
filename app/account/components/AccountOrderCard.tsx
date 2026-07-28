@@ -1,7 +1,5 @@
 "use client";
 
-import Image from "next/image";
-
 import { StatusBadge } from "../../components/ui/StatusBadge";
 import styles from "./AccountOrderCard.module.css";
 
@@ -20,7 +18,6 @@ export function AccountOrderCard({
   onClick,
   onPrefetch,
 }: Props) {
-  const extraItemsCount = Math.max(order.itemsCount - 1, 0);
   const productTitles =
     order.productTitles && order.productTitles.length > 0
       ? order.productTitles.slice(0, 4)
@@ -43,26 +40,6 @@ export function AccountOrderCard({
         }
       }}
     >
-      <div className={styles.orderPreview}>
-        {order.firstImageUrl ? (
-          <Image
-            src={order.firstImageUrl}
-            alt=""
-            width={48}
-            height={64}
-            className={styles.orderImage}
-          />
-        ) : (
-          <div className={styles.orderImagePlaceholder} />
-        )}
-
-        {extraItemsCount > 0 ? (
-          <span className={`${styles.extraItems} textMicro`}>
-            +{extraItemsCount}
-          </span>
-        ) : null}
-      </div>
-
       <div className={styles.orderMain}>
         <div className={styles.orderContent}>
           <div className={styles.orderDetails}>

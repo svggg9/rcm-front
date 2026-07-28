@@ -5,7 +5,6 @@ import type {
   PageResponse,
   SellerBrand,
   SellerFinanceSummary,
-  SellerOrder,
   SellerOrderListItem,
   SellerProductListItem,
 } from "../types";
@@ -46,10 +45,6 @@ export async function getSellerBrandsServer(): Promise<SellerBrand[]> {
   const data = await serverFetch<SellerBrand[]>("/api/seller/brands");
 
   return Array.isArray(data) ? data : [];
-}
-
-export async function getSellerOrderServer(orderId: number): Promise<SellerOrder | null> {
-  return serverFetch<SellerOrder>(`/api/seller/orders/${orderId}`);
 }
 
 export async function getSellerFinanceServer(): Promise<SellerFinanceSummary | null> {

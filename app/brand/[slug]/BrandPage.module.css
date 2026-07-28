@@ -117,6 +117,90 @@
   letter-spacing: 0;
 }
 
+.brandCarousel {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 7;
+  overflow: hidden;
+  background: var(--soft);
+}
+
+.brandCarouselTrack {
+  height: 100%;
+  display: flex;
+  transition: transform 420ms ease;
+}
+
+.brandCarouselSlide {
+  position: relative;
+  flex: 0 0 100%;
+  height: 100%;
+}
+
+.brandCarouselSlide img {
+  object-fit: cover;
+}
+
+.brandCarouselDots {
+  position: absolute;
+  right: 16px;
+  bottom: 14px;
+  left: 16px;
+  display: flex;
+  justify-content: center;
+  gap: 5px;
+}
+
+.brandCarouselDots button {
+  width: 22px;
+  height: 2px;
+  padding: 0;
+  border: 0;
+  background: rgb(255 255 255 / 55%);
+  cursor: pointer;
+}
+
+.brandCarouselDots .brandCarouselDotActive {
+  background: var(--white);
+}
+
+.storefrontCollections {
+  display: flex;
+  flex-direction: column;
+  gap: 48px;
+  padding-top: 44px;
+}
+
+.collectionHeader {
+  max-width: 620px;
+  margin-bottom: 20px;
+}
+
+.collectionHeader h2 {
+  margin: 0;
+  color: var(--black);
+  font-size: 24px;
+  line-height: 1.15;
+  font-weight: 500;
+}
+
+.collectionHeader p {
+  margin: 7px 0 0;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.45;
+  font-weight: 300;
+}
+
+.collectionGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
 .results {
   padding-top: 44px;
   scroll-margin-top: calc(var(--site-header-height) + 20px);
@@ -250,6 +334,10 @@
   .categoryGallery {
     grid-template-columns: repeat(4, minmax(0, 1fr));
   }
+
+  .collectionGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 @media (max-width: 560px) {
@@ -265,11 +353,29 @@
     font-size: 13px;
   }
 
+  .brandCarousel {
+    width: 100vw;
+    margin-left: calc(50% - 50vw);
+    aspect-ratio: 4 / 5;
+  }
+
   .categoryGallery {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .grid {
     grid-template-columns: 1fr;
+  }
+
+  .collectionGrid {
+    display: flex;
+    gap: 10px;
+    margin-right: calc(50% - 50vw);
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .collectionGrid > li {
+    flex: 0 0 72vw;
   }
 }

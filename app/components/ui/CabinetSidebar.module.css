@@ -32,6 +32,24 @@
   font-weight: 500;
 }
 
+.identity {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.identityIcon {
+  flex: 0 0 auto;
+  color: var(--black);
+}
+
+.identity .title {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .titleSkeleton {
   position: relative;
   overflow: hidden;

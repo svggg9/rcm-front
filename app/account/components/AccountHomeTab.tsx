@@ -1,69 +1,74 @@
 ﻿"use client";
 
-import { Button } from "../../components/ui/Button";
+import type { ReactNode } from "react";
+
 import { EmptyState } from "../../components/ui/EmptyState";
-import { formatRussianPhone } from "../../lib/phone";
-import { AccountOrderCard } from "./AccountOrderCard";
+import { Icon } from "../../components/ui/Icon";
+import {
+  SellerOrderCard,
+  type OrderCardDetails,
+} from "../../seller/components/SellerOrderCard";
 
 import styles from "./AccountHomeTab.module.css";
 
-import type { Me, OrderListItem } from "../types";
+import type { OrderListItem } from "../types";
 
 type Props = {
-  me: Me | null;
   orders: OrderListItem[];
   buildOrderStatusLabel: (order: OrderListItem) => string;
   onOpenOrder: (orderId: number) => void;
+  onLoadOrder: (orderId: number) => Promise<OrderCardDetails>;
   onPrefetchOrder?: (orderId: number) => void;
   onOpenOrders: () => void;
-  onOpenProfile: () => void;
-  onOpenFavorites: () => void;
+  profileEditor: ReactNode;
 };
 
-function formatFullName(me: Me | null): string {
-  if (!me) return "—";
-
-  const fullName = [me.lastName, me.firstName, me.middleName]
-    .map((value) => value?.trim())
-    .filter(Boolean)
-    .join(" ");
-
-  return fullName || me.displayName || me.email || "—";
-}
-
 export function AccountHomeTab({
-  me,
   orders,
   buildOrderStatusLabel,
   onOpenOrder,
+  onLoadOrder,
   onPrefetchOrder,
   onOpenOrders,
-  onOpenProfile,
-  onOpenFavorites,
+  profileEditor,
 }: Props) {
-  const recentOrders = orders.slice(0, 3);
+  const recentOrders = orders.slice(0, 2);
 
   return (
     <section className={styles.page}>
-      <section className={styles.section}>
-        <div className={styles.sectionHeader}>
-          <h2>Последние заказы</h2>
-          {orders.length > 0 ? (
-            <button type="button" className={styles.textButton} onClick={onOpenOrders}>
-              Все заказы
+      <section className={styles.profileSection} aria-label="Личные данные">
+        {profileEditor}
+      </section>
+
+      <section className={styles.section} aria-label="Последние заказы">
+        {orders.length > 0 ? (
+          <div className={styles.ordersToolbar}>
+            <button
+              type="button"
+              className={styles.textButton}
+              onClick={onOpenOrders}
+            >
+              <span>Все заказы</span>
+              <Icon name="chevron-right" size={15} strokeWidth={1.5} />
             </button>
-          ) : null}
-        </div>
+          </div>
+        ) : null}
 
         {recentOrders.length > 0 ? (
           <div className={styles.ordersList}>
             {recentOrders.map((order) => (
-              <AccountOrderCard
+              <SellerOrderCard
                 key={order.id}
                 order={order}
                 statusLabel={buildOrderStatusLabel(order)}
-                onClick={() => onOpenOrder(order.id)}
-                onPrefetch={() => onPrefetchOrder?.(order.id)}
+                onOpenOrder={onOpenOrder}
+                onLoadDetails={onLoadOrder}
+                onPrefetch={onPrefetchOrder}
+                audience="buyer"
+                showDeliveryLabel={false}
+                showStageElapsed={false}
+                openButtonLabel="Управление заказом"
+                detailsIdPrefix="account-home-order"
               />
             ))}
           </div>
@@ -75,36 +80,6 @@ export function AccountHomeTab({
             text="Когда вы оформите первый заказ, он появится здесь."
           />
         )}
-      </section>
-
-      <section className={styles.section}>
-        <div className={styles.sectionHeader}>
-          <h2>Личные данные</h2>
-          <button type="button" className={styles.textButton} onClick={onOpenProfile}>
-            Изменить
-          </button>
-        </div>
-
-        <dl className={styles.profileGrid}>
-          <div>
-            <dt>Имя</dt>
-            <dd>{formatFullName(me)}</dd>
-          </div>
-          <div>
-            <dt>Электронная почта</dt>
-            <dd>{me?.email || "—"}</dd>
-          </div>
-          <div>
-            <dt>Телефон</dt>
-            <dd>{formatRussianPhone(me?.phone) || "—"}</dd>
-          </div>
-        </dl>
-      </section>
-
-      <section className={styles.quickSection}>
-        <Button type="button" variant="secondary" onClick={onOpenFavorites}>
-          Перейти в избранное
-        </Button>
       </section>
     </section>
   );

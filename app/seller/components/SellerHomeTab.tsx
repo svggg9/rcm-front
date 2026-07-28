@@ -17,8 +17,6 @@ type Props = {
   orders: SellerOrderListItem[];
   brand: SellerBrand | null;
   finance: SellerFinanceSummary | null;
-  creatingProduct: boolean;
-  onCreateProduct: () => void;
 };
 
 export function SellerHomeTab({
@@ -26,8 +24,6 @@ export function SellerHomeTab({
   orders,
   brand,
   finance,
-  creatingProduct,
-  onCreateProduct,
 }: Props) {
   const activeProducts = products.filter((product) => product.status === "ACTIVE").length;
   const attentionProducts = products.filter((product) =>
@@ -43,25 +39,50 @@ export function SellerHomeTab({
   const brandCompleteness = brand
     ? Math.round((brandFields.filter(Boolean).length / brandFields.length) * 100)
     : 0;
+  const storeName = brand?.name?.trim() || "вашего магазина";
+  const needsAttention = readyOrders + attentionProducts;
 
   return (
     <section className={styles.page}>
-      <header className={styles.header}>
-        <div>
-          <h1>Дашборд</h1>
-          <p>{brand?.name || "Кабинет продавца"}</p>
+      <header className={styles.hero}>
+        <div className={styles.heroCopy}>
+          <span className={styles.eyebrow}>Обзор магазина</span>
+          <h1>Добро пожаловать в кабинет {storeName}</h1>
+          <p>
+            Следите за заказами, обновляйте ассортимент и управляйте брендом
+            в одном месте.
+          </p>
         </div>
 
-        <button
-          type="button"
-          className={styles.primaryAction}
-          onClick={onCreateProduct}
-          disabled={creatingProduct}
-        >
-          <Icon name="plus" size={16} />
+        <Link href="/seller?tab=products" className={styles.heroAction}>
+          <Icon name="plus" size={17} />
           <span>Добавить товар</span>
-        </button>
+        </Link>
       </header>
+
+      <div className={styles.statusStrip}>
+        <div className={styles.statusLead}>
+          <span className={styles.statusIcon}>
+            <Icon name={needsAttention > 0 ? "bell" : "check"} size={18} />
+          </span>
+          <div>
+            <strong>
+              {needsAttention > 0
+                ? `${needsAttention} ${pluralizeTask(needsAttention)} требуют внимания`
+                : "Всё под контролем"}
+            </strong>
+            <p>
+              {needsAttention > 0
+                ? "Проверьте заказы к отправке и карточки товаров."
+                : "Новых задач по магазину пока нет."}
+            </p>
+          </div>
+        </div>
+        <Link href={readyOrders > 0 ? "/seller?tab=orders" : "/seller?tab=products"}>
+          Перейти к задачам
+          <Icon name="chevron-right" size={16} />
+        </Link>
+      </div>
 
       <div className={styles.widgetGrid}>
         <DashboardWidget
@@ -74,6 +95,7 @@ export function SellerHomeTab({
               ? `${attentionProducts} требуют внимания`
               : `${products.length} всего`
           }
+          tone="blue"
         />
 
         <DashboardWidget
@@ -82,14 +104,16 @@ export function SellerHomeTab({
           title="Заказы"
           value={readyOrders > 0 ? `${readyOrders} к отправке` : `${activeOrders} в работе`}
           meta={`${orders.length} всего`}
+          tone="coral"
         />
 
         <DashboardWidget
           href="/seller?tab=brand"
           icon="store"
-          title="Бренд"
+          title="Витрина"
           value={brand?.name || "Заполните профиль"}
           meta={brand ? `Профиль заполнен на ${brandCompleteness}%` : "Добавьте данные бренда"}
+          tone="lilac"
         />
 
         <DashboardWidget
@@ -98,6 +122,7 @@ export function SellerHomeTab({
           title="Информация"
           value="Реквизиты и доставка"
           meta="Данные для работы магазина"
+          tone="sand"
         />
       </div>
 
@@ -133,21 +158,27 @@ function DashboardWidget({
   title,
   value,
   meta,
+  tone,
 }: {
   href: string;
   icon: IconName;
   title: string;
   value: string;
   meta: string;
+  tone: "blue" | "coral" | "lilac" | "sand";
 }) {
   return (
-    <Link href={href} className={styles.widget}>
+    <Link href={href} className={`${styles.widget} ${styles[tone]}`}>
       <div className={styles.widgetHead}>
-        <Icon name={icon} size={20} />
+        <div className={styles.widgetHeading}>
+          <span className={styles.widgetIcon}>
+            <Icon name={icon} size={20} />
+          </span>
+          <span className={styles.widgetTitle}>{title}</span>
+        </div>
         <Icon name="arrow-up-right" size={17} className={styles.arrow} />
       </div>
       <div className={styles.widgetText}>
-        <span>{title}</span>
         <strong>{value}</strong>
         <p>{meta}</p>
       </div>
@@ -158,9 +189,8 @@ function DashboardWidget({
 function isReadyOrder(order: SellerOrderListItem) {
   return (
     order.paymentStatus === "PAID" &&
-    (order.deliveryStatus === "PENDING" ||
-      order.deliveryStatus === "READY_FOR_SHIPMENT" ||
-      order.deliveryStatus === "READY_FOR_PICKUP")
+    (order.deliveryStatus === "READY_FOR_SHIPMENT" ||
+      order.status === "PROCESSING")
   );
 }
 
@@ -170,4 +200,15 @@ function formatMoney(value: number) {
     currency: "RUB",
     maximumFractionDigits: 0,
   }).format(Number(value || 0));
+}
+
+function pluralizeTask(value: number) {
+  const mod10 = value % 10;
+  const mod100 = value % 100;
+
+  if (mod10 === 1 && mod100 !== 11) return "задача";
+  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) {
+    return "задачи";
+  }
+  return "задач";
 }

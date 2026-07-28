@@ -998,17 +998,19 @@
 }
 
 .variantAddSizeBtn {
-  width: 100%;
-  min-height: 34px;
-  border: 1px solid var(--black);
-  background: var(--white);
-  color: var(--muted);
-  padding: 0 12px;
+  align-self: flex-end;
+  width: auto;
+  min-height: auto;
+  border: 0;
+  background: transparent;
+  color: var(--black);
+  padding: 4px 0;
   display: inline-flex;
   align-items: center;
-  justify-content: center;
-  gap: 7px;
-  font-size: var(--font-xs);
+  justify-content: flex-end;
+  font-family: inherit;
+  font-size: var(--font-sm);
+  font-weight: 700;
   cursor: pointer;
 }
 
@@ -1024,17 +1026,9 @@
   stroke-linecap: round;
 }
 
-.variantAddSizeBtn {
-  border-color: var(--black);
-  background: var(--black);
-  color: var(--white);
-  font-weight: 600;
-}
-
 .variantAddSizeBtn:hover {
-  background: var(--black);
-  border-color: var(--black);
-  color: var(--white);
+  background: transparent;
+  color: var(--black);
   opacity: 0.72;
 }
 

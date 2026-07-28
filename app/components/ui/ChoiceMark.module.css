@@ -20,6 +20,17 @@
   color: var(--white);
 }
 
+.mark[data-appearance="outline-check"] {
+  border-color: var(--black);
+  background: var(--white);
+}
+
+.mark[data-appearance="outline-check"][data-checked="true"] {
+  border-color: var(--black);
+  background: var(--white);
+  color: var(--black);
+}
+
 .mark svg {
   width: 18px;
   height: 18px;
@@ -29,4 +40,10 @@
   stroke-linecap: round;
   stroke-linejoin: round;
   transform: scale(1.18);
+}
+
+.mark[data-appearance="outline-check"] svg {
+  width: 12px;
+  height: 12px;
+  transform: none;
 }

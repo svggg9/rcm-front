@@ -1,35 +1,40 @@
 ﻿"use client";
 
 import { CabinetSidebar } from "../../components/ui/CabinetSidebar";
+import styles from "./AccountSidebar.module.css";
 
 type AccountTab =
-  | "home"
-  | "orders"
-  | "returns"
-  | "profile"
-  | "favorites"
-  | "brands"
-  | "info";
+  "home" | "orders" | "returns" | "favorites" | "brands" | "info";
 
 type Props = {
   currentTab: AccountTab;
   ordersCount: number;
+  userName?: string;
   onNavigate?: (href: string) => void;
+  onLogout: () => void;
 };
 
-export function AccountSidebar({ currentTab, ordersCount, onNavigate }: Props) {
+export function AccountSidebar({
+  currentTab,
+  ordersCount,
+  userName,
+  onNavigate,
+  onLogout,
+}: Props) {
   return (
     <CabinetSidebar
       ariaLabel="Меню аккаунта"
+      subtitle="Личный кабинет"
+      title={userName}
+      titleIcon="user"
       mobileInline
       onNavigate={onNavigate}
+      footer={
+        <button type="button" className={styles.logout} onClick={onLogout}>
+          Выйти
+        </button>
+      }
       items={[
-        {
-          href: "/account?tab=returns",
-          label: "Возвраты",
-          icon: "package",
-          active: currentTab === "returns",
-        },
         {
           href: "/account",
           label: "Главная",
@@ -38,16 +43,10 @@ export function AccountSidebar({ currentTab, ordersCount, onNavigate }: Props) {
         },
         {
           href: "/account?tab=orders",
-          label: "Заказы",
+          label: "Заказы и возвраты",
           icon: "shopping-bag",
-          active: currentTab === "orders",
+          active: currentTab === "orders" || currentTab === "returns",
           count: ordersCount,
-        },
-        {
-          href: "/account?tab=profile",
-          label: "Личные данные",
-          icon: "settings",
-          active: currentTab === "profile",
         },
         {
           href: "/account?tab=favorites",

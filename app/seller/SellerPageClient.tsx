@@ -6,13 +6,11 @@ import { toast } from "sonner";
 
 import { apiFetch, API_URL } from "../lib/api";
 import { useSessionResourceCache } from "../lib/useSessionResourceCache";
-import { CabinetSkeleton } from "../components/ui/CabinetSkeleton";
 import { CabinetTabs } from "../components/ui/CabinetTabs";
 
 import { SellerSidebar } from "./components/SellerSidebar";
 import { SellerOrdersTab } from "./components/SellerOrdersTab";
 import { SellerReturnsTab } from "./components/SellerReturnsTab";
-import { SellerOrderDetails } from "./components/SellerOrderDetails";
 import { SellerProductsTab } from "./components/SellerProductsTab";
 import { SellerBrandTab } from "./components/SellerBrandTab";
 import { SellerFinanceTab } from "./components/SellerFinanceTab";
@@ -22,11 +20,9 @@ import { SellerOnboardingStatus } from "./components/SellerOnboardingStatus";
 import type { SellerOnboardingStatus as SellerOnboardingStatusType } from "./lib/sellerOnboardingApi";
 
 import type {
-  SellerDeliveryStatus,
   SellerOrder,
   SellerOrderListItem,
   SellerOrderStatus,
-  SellerPaymentStatus,
   SellerBrand,
   SellerFinanceSummary,
   SellerProductListItem,
@@ -41,6 +37,12 @@ function formatOrderStatus(status: SellerOrderStatus): string {
       return "Новый";
     case "CONFIRMED":
       return "Подтверждён";
+    case "PROCESSING":
+      return "В обработке";
+    case "SHIPPED":
+      return "Отправлен";
+    case "PAID":
+      return "Оплачен";
     case "COMPLETED":
       return "Завершён";
     case "CANCELED":
@@ -50,51 +52,21 @@ function formatOrderStatus(status: SellerOrderStatus): string {
   }
 }
 
-function formatPaymentStatus(status: SellerPaymentStatus): string {
-  switch (status) {
-    case "PENDING":
-      return "Ожидает оплаты";
-    case "PAID":
-      return "Оплачен";
-    case "FAILED":
-      return "Ошибка оплаты";
-    case "CANCELED":
-      return "Оплата отменена";
-    default:
-      return status;
-  }
-}
-
-function formatDeliveryStatus(status: SellerDeliveryStatus): string {
-  switch (status) {
-    case "PENDING":
-      return "Ожидает обработки";
-    case "READY_FOR_SHIPMENT":
-      return "Готов к отправке";
-    case "READY_FOR_PICKUP":
-      return "Готов к выдаче";
-    case "IN_TRANSIT":
-      return "В пути";
-    case "DELIVERED":
-      return "Доставлен";
-    case "RETURNED":
-      return "Возвращён";
-    case "CANCELLED":
-      return "Отменён";
-    default:
-      return status;
-  }
-}
-
 function buildSellerStatusLabel(order: SellerOrder | SellerOrderListItem): string {
+  if (order.status === "CANCELED") return "Отменён";
   if (order.paymentStatus === "PENDING") return "Ожидает оплаты";
   if (order.paymentStatus === "FAILED") return "Ошибка оплаты";
-  if (order.deliveryStatus === "READY_FOR_SHIPMENT") return "Готов к отправке";
-  if (order.deliveryStatus === "READY_FOR_PICKUP") return "Готов к выдаче";
+  if (order.paymentStatus === "CANCELED") return "Оплата отменена";
+  if (order.paymentStatus === "REFUNDED") return "Возвращён";
+  if (order.deliveryStatus === "READY_FOR_SHIPMENT") return "Передайте в СДЭК";
+  if (order.deliveryStatus === "READY_FOR_PICKUP") return "Ожидает получения";
   if (order.deliveryStatus === "IN_TRANSIT") return "В пути";
   if (order.deliveryStatus === "DELIVERED") return "Доставлен";
   if (order.deliveryStatus === "RETURNED") return "Возвращён";
   if (order.deliveryStatus === "CANCELLED") return "Отменён";
+  if (order.paymentStatus === "PAID" && order.deliveryStatus === "PENDING") {
+    return "Оформление доставки";
+  }
 
   return formatOrderStatus(order.status);
 }
@@ -115,7 +87,6 @@ type Props = {
   initialOnboardingStatus: SellerOnboardingStatusType | null;
   initialTab: SellerTab;
   initialOrderId: string | null;
-  initialSelectedOrder: SellerOrder | null;
 };
 
 async function fetchSellerOrder(orderId: number): Promise<SellerOrder> {
@@ -137,7 +108,6 @@ function SellerPageContent({
   initialOnboardingStatus,
   initialTab,
   initialOrderId,
-  initialSelectedOrder,
 }: Props) {
   const router = useRouter();
   const [currentTab, setCurrentTab] = useState<SellerTab>(initialTab);
@@ -150,20 +120,12 @@ function SellerPageContent({
   const [products, setProducts] = useState<SellerProductListItem[]>(initialProducts);
   const storeName = initialBrands[0]?.name?.trim() || null;
 
-  const [selectedOrder, setSelectedOrder] = useState<SellerOrder | null>(
-    initialSelectedOrder
-  );
-  const [detailsLoading, setDetailsLoading] = useState(false);
   const {
     get: getOrderDetails,
-    peek: peekOrderDetails,
-    seed: seedOrderDetails,
     prefetch: prefetchOrderDetails,
   } = useSessionResourceCache<number, SellerOrder>(fetchSellerOrder);
 
   const [creatingProduct, setCreatingProduct] = useState(false);
-
-  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     setProducts(initialProducts);
@@ -174,13 +136,6 @@ function SellerPageContent({
   }, [initialOrders]);
 
   useEffect(() => {
-    if (initialSelectedOrder) {
-      seedOrderDetails(initialSelectedOrder.id, initialSelectedOrder);
-      setSelectedOrder(initialSelectedOrder);
-    }
-  }, [initialSelectedOrder, seedOrderDetails]);
-
-  useEffect(() => {
     const syncFromHistory = () => {
       const params = new URLSearchParams(window.location.search);
       const nextTab = parseSellerTab(params.get("tab"));
@@ -188,7 +143,6 @@ function SellerPageContent({
       setCurrentTab(nextTab);
       setSelectedOrderId(params.get("orderId"));
       setVisitedTabs((current) => addVisitedTab(current, nextTab));
-      setError(null);
     };
 
     window.addEventListener("popstate", syncFromHistory);
@@ -206,7 +160,6 @@ function SellerPageContent({
     setCurrentTab(nextTab);
     setSelectedOrderId(url.searchParams.get("orderId"));
     setVisitedTabs((current) => addVisitedTab(current, nextTab));
-    setError(null);
   }
 
   function handleSellerNavigation(event: MouseEvent<HTMLDivElement>) {
@@ -234,55 +187,6 @@ function SellerPageContent({
 
     event.preventDefault();
     navigateSeller(`${url.pathname}${url.search}`);
-  }
-
-  useEffect(() => {
-    if (currentTab !== "orders" || !selectedOrderId) {
-      setSelectedOrder(null);
-      return;
-    }
-
-    const orderId = Number(selectedOrderId);
-    if (!Number.isFinite(orderId)) {
-      setSelectedOrder(null);
-      return;
-    }
-
-    const cached = peekOrderDetails(orderId);
-    if (cached) {
-      setSelectedOrder(cached);
-      setDetailsLoading(false);
-      return;
-    }
-
-    let cancelled = false;
-
-    setSelectedOrder(null);
-    setDetailsLoading(true);
-    setError(null);
-
-    getOrderDetails(orderId)
-      .then((data) => {
-        if (cancelled) return;
-        setSelectedOrder(data);
-      })
-      .catch((e: Error) => {
-        if (cancelled) return;
-        setError(e.message);
-      })
-      .finally(() => {
-        if (cancelled) return;
-        setDetailsLoading(false);
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [currentTab, getOrderDetails, peekOrderDetails, selectedOrderId]);
-
-  function openOrder(orderId: number) {
-    prefetchOrderDetails(orderId);
-    navigateSeller(`/seller?tab=orders&orderId=${orderId}`);
   }
 
   async function createDraftProduct() {
@@ -330,24 +234,23 @@ function SellerPageContent({
 
           <div className={styles.content}>
             {currentTab === "orders" || currentTab === "returns" ? (
-              <CabinetTabs<"orders" | "returns">
-                items={[
-                  { value: "orders", label: "Заказы" },
-                  { value: "returns", label: "Возвраты" },
-                ]}
-                value={currentTab}
-                onChange={(tab) => {
-                  setSelectedOrder(null);
-                  navigateSeller(
-                    tab === "orders" ? "/seller?tab=orders" : "/seller?tab=returns"
-                  );
-                }}
-                ariaLabel="Заказы и возвраты"
-                appearance="line"
-              />
+              <div className={styles.orderSectionTabs}>
+                <CabinetTabs<"orders" | "returns">
+                  items={[
+                    { value: "orders", label: "Заказы" },
+                    { value: "returns", label: "Возвраты" },
+                  ]}
+                  value={currentTab}
+                  onChange={(tab) => {
+                    navigateSeller(
+                      tab === "orders" ? "/seller?tab=orders" : "/seller?tab=returns"
+                    );
+                  }}
+                  ariaLabel="Заказы и возвраты"
+                  appearance="line"
+                />
+              </div>
             ) : null}
-
-            {error ? <div className={styles.error}>{error}</div> : null}
 
             {visitedTabs.has("home") ? (
               <div hidden={currentTab !== "home"}>
@@ -357,8 +260,6 @@ function SellerPageContent({
                   orders={orders}
                   brand={initialBrands[0] ?? null}
                   finance={initialFinance}
-                  creatingProduct={creatingProduct}
-                  onCreateProduct={() => void createDraftProduct()}
                 />
               </div>
             ) : null}
@@ -374,7 +275,10 @@ function SellerPageContent({
 
             {visitedTabs.has("brand") ? (
               <div hidden={currentTab !== "brand"}>
-                <SellerBrandTab initialBrands={initialBrands} />
+                <SellerBrandTab
+                  initialBrands={initialBrands}
+                  products={products}
+                />
               </div>
             ) : null}
 
@@ -396,25 +300,15 @@ function SellerPageContent({
             ) : null}
 
             {visitedTabs.has("orders") ? (
-              <div hidden={currentTab !== "orders"} aria-busy={detailsLoading}>
-                {selectedOrder ? (
-                  <SellerOrderDetails
-                    order={selectedOrder}
-                    formatOrderStatus={formatOrderStatus}
-                    formatPaymentStatus={formatPaymentStatus}
-                    formatDeliveryStatus={formatDeliveryStatus}
-                    buildSellerStatusLabel={buildSellerStatusLabel}
-                  />
-                ) : selectedOrderId && detailsLoading ? (
-                  <CabinetSkeleton variant="detail" />
-                ) : (
-                  <SellerOrdersTab
-                    orders={orders}
-                    buildSellerStatusLabel={buildSellerStatusLabel}
-                    onOpenOrder={openOrder}
-                    onPrefetchOrder={prefetchOrderDetails}
-                  />
-                )}
+              <div hidden={currentTab !== "orders"}>
+                <SellerOrdersTab
+                  orders={orders}
+                  buildSellerStatusLabel={buildSellerStatusLabel}
+                  expandedOrderId={parseOrderId(selectedOrderId)}
+                  onLoadOrder={getOrderDetails}
+                  onPrefetchOrder={prefetchOrderDetails}
+                  showStageElapsed
+                />
               </div>
             ) : null}
 
@@ -455,4 +349,10 @@ function addVisitedTab(current: Set<SellerTab>, tab: SellerTab) {
   const next = new Set(current);
   next.add(tab);
   return next;
+}
+
+function parseOrderId(value: string | null) {
+  if (!value) return null;
+  const orderId = Number(value);
+  return Number.isFinite(orderId) ? orderId : null;
 }

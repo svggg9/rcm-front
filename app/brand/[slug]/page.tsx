@@ -6,6 +6,8 @@ import { notFound } from "next/navigation";
 import { API_URL } from "../../lib/api";
 import { BrandFavoriteButton } from "./BrandFavoriteButton";
 import { BrandCatalog } from "./BrandCatalog";
+import { BrandImageCarousel } from "./BrandImageCarousel";
+import { BrandCollections } from "./BrandCollections";
 import styles from "./BrandPage.module.css";
 
 import type { PaginatedProducts } from "../../components/Catalog/catalogTypes";
@@ -25,6 +27,17 @@ type BrandResponse = {
   vk: string | null;
   country: string | null;
   foundationYear: number | null;
+  images: {
+    id: number;
+    imageUrl: string;
+    sortOrder: number;
+  }[];
+  collections?: {
+    id: number;
+    title: string;
+    description: string | null;
+    products: unknown[];
+  }[];
 };
 
 async function getBrand(slug: string): Promise<BrandResponse | null> {
@@ -179,6 +192,13 @@ export default async function BrandPage({
           ) : null}
         </div>
 
+        <BrandImageCarousel images={brand.images ?? []} />
+        <BrandCollections
+          collections={(brand.collections ?? []).map((collection) => ({
+            ...collection,
+            products: normalizeProducts(collection.products),
+          }))}
+        />
         <BrandCatalog products={products.items} />
       </div>
     </div>

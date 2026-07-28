@@ -3,36 +3,10 @@
   flex-direction: column;
 }
 
-.pageHeader {
-  margin-bottom: 24px;
-}
-
-.pageHeader h1,
-.empty h2 {
-  margin: 0;
-  color: var(--black);
-  font-weight: 400;
-}
-
-.pageHeader h1 {
-  font-size: var(--font-2xl);
-}
-
-.pageHeader p,
-.empty p,
 .muted {
   margin: 7px 0 0;
   color: var(--muted);
   font-size: var(--font-sm);
-}
-
-.empty {
-  border: 1px solid var(--black);
-  padding: 24px;
-}
-
-.empty h2 {
-  font-size: var(--font-lg);
 }
 
 .list {
@@ -148,10 +122,6 @@
 }
 
 @media (max-width: 768px) {
-  .pageHeader h1 {
-    font-size: var(--font-xl);
-  }
-
   .header {
     flex-direction: column;
   }
