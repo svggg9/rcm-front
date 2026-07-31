@@ -2,8 +2,9 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 
 import styles from "./ProductTile.module.css";
 import { Price } from "../ui/Price";
@@ -34,6 +35,8 @@ export function ProductTile({
 
   const { favoriteIds, toggle } = useFavorites();
   const fav = favoriteIds.includes(product.id);
+  const [favoritePending, setFavoritePending] = useState(false);
+  const favoritePendingRef = useRef(false);
 
   const prefetchedRef = useRef(false);
 
@@ -51,9 +54,24 @@ export function ProductTile({
 
   async function onLike(e: React.MouseEvent<HTMLButtonElement>) {
     e.stopPropagation();
-    const nextFavorite = !fav;
-    await toggle(product.id);
-    onFavoriteChange?.(product.id, nextFavorite);
+    if (favoritePendingRef.current) return;
+
+    try {
+      favoritePendingRef.current = true;
+      setFavoritePending(true);
+      const nextFavorite = !fav;
+      await toggle(product.id);
+      onFavoriteChange?.(product.id, nextFavorite);
+    } catch (error) {
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Не удалось обновить избранное"
+      );
+    } finally {
+      favoritePendingRef.current = false;
+      setFavoritePending(false);
+    }
   }
 
   return (
@@ -93,6 +111,8 @@ export function ProductTile({
             type="button"
             className={`${styles.like} ${fav ? styles.liked : ""}`}
             onClick={onLike}
+            disabled={favoritePending}
+            aria-busy={favoritePending || undefined}
             aria-label={fav ? "Убрать из избранного" : "Сохранить"}
             title={fav ? "Убрать" : "Сохранить"}
           >

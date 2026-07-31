@@ -108,7 +108,7 @@
   color: var(--black);
 
   font-size: 14px;
-  font-weight: 300;
+  font-weight: 600;
 }
 
 .like {
@@ -133,6 +133,11 @@
 
 .like:hover {
   transform: scale(1.04);
+}
+
+.like:disabled {
+  opacity: 0.55;
+  cursor: wait;
 }
 
 .like img {

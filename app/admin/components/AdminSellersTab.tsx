@@ -1,12 +1,16 @@
+"use client";
+
 import { useMemo, useState, type ReactNode } from "react";
 
-import styles from "../Admin.module.css";
-
-import { EmptyState } from "../../components/ui/EmptyState";
-import { StatusBadge } from "../../components/ui/StatusBadge";
+import { Button } from "../../components/ui/Button";
 import { CabinetTabs, type CabinetTabItem } from "../../components/ui/CabinetTabs";
+import { EmptyState } from "../../components/ui/EmptyState";
+import { Icon } from "../../components/ui/Icon";
+import { StatusBadge, type StatusBadgeTone } from "../../components/ui/StatusBadge";
 import { formatRussianPhone } from "../../lib/phone";
 
+import { AdminSellerBrandProfile } from "./AdminSellerBrandProfile";
+import styles from "./AdminSellersTab.module.css";
 import type {
   AdminSellerApplication,
   SellerApplicationStatus,
@@ -15,7 +19,6 @@ import type {
 type Props = {
   applications: AdminSellerApplication[];
   status: SellerApplicationStatus | "ALL";
-  totalElements: number;
   refreshing: boolean;
   actionApplicationId: number | null;
   statusCounts: Record<SellerApplicationStatus | "ALL", number>;
@@ -24,6 +27,8 @@ type Props = {
   onApprove: (id: number) => Promise<void>;
   onReject: (id: number, comment?: string) => Promise<void>;
 };
+
+type ApplicationAction = "approve" | "requestChanges" | "reject";
 
 const FILTERS: Array<SellerApplicationStatus | "ALL"> = [
   "NEW",
@@ -39,11 +44,9 @@ function formatFilter(status: SellerApplicationStatus | "ALL") {
     case "APPROVED":
       return "Одобренные";
     case "REJECTED":
-      return "Отклоненные";
+      return "Отклонённые";
     case "ALL":
       return "Все";
-    default:
-      return status;
   }
 }
 
@@ -55,12 +58,10 @@ function formatStatus(status: SellerApplicationStatus) {
       return "Одобрена";
     case "REJECTED":
       return "Отклонена";
-    default:
-      return status;
   }
 }
 
-function getStatusTone(status: SellerApplicationStatus) {
+function getStatusTone(status: SellerApplicationStatus): StatusBadgeTone {
   switch (status) {
     case "NEW":
       return "warning";
@@ -68,8 +69,6 @@ function getStatusTone(status: SellerApplicationStatus) {
       return "success";
     case "REJECTED":
       return "danger";
-    default:
-      return "default";
   }
 }
 
@@ -84,7 +83,6 @@ function formatDate(value: string) {
 export function AdminSellersTab({
   applications,
   status,
-  totalElements,
   refreshing,
   actionApplicationId,
   statusCounts,
@@ -93,15 +91,19 @@ export function AdminSellersTab({
   onApprove,
   onReject,
 }: Props) {
-  const [selectedApplicationId, setSelectedApplicationId] = useState<number | null>(null);
+  const [selectedApplicationId, setSelectedApplicationId] = useState<number | null>(
+    null
+  );
   const [adminComment, setAdminComment] = useState("");
   const [actionMessage, setActionMessage] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [pendingAction, setPendingAction] = useState<ApplicationAction | null>(null);
 
   const selectedApplication = useMemo(
     () =>
-      applications.find((application) => application.id === selectedApplicationId) ??
-      null,
+      applications.find(
+        (application) => application.id === selectedApplicationId
+      ) ?? null,
     [applications, selectedApplicationId]
   );
 
@@ -112,55 +114,74 @@ export function AdminSellersTab({
       count: statusCounts[value] ?? 0,
     }));
 
+  function closeDetails() {
+    setSelectedApplicationId(null);
+    setActionMessage(null);
+    setActionError(null);
+    setPendingAction(null);
+    setAdminComment("");
+  }
+
   async function runAction(
+    type: ApplicationAction,
     action: () => Promise<void>,
     successMessage: string
   ) {
     setActionMessage(null);
     setActionError(null);
+    setPendingAction(type);
 
     try {
       await action();
       setActionMessage(successMessage);
+      setSelectedApplicationId(null);
+      setAdminComment("");
     } catch (error) {
       setActionError(
         error instanceof Error ? error.message : "Не удалось выполнить действие"
       );
+    } finally {
+      setPendingAction(null);
     }
   }
 
   if (selectedApplication) {
-    const loading = actionApplicationId === selectedApplication.id;
-
     return (
       <SellerApplicationDetails
         application={selectedApplication}
-        loading={loading}
+        loading={actionApplicationId === selectedApplication.id}
+        pendingAction={pendingAction}
         adminComment={adminComment}
         actionMessage={actionMessage}
         actionError={actionError}
         onAdminCommentChange={setAdminComment}
-        onBack={() => {
-          setSelectedApplicationId(null);
-          setActionMessage(null);
-          setActionError(null);
-          setAdminComment("");
-        }}
+        onBack={closeDetails}
         onApprove={() =>
           void runAction(
+            "approve",
             () => onApprove(selectedApplication.id),
             "Заявка одобрена"
           )
         }
         onReject={() =>
           void runAction(
-            () => onReject(selectedApplication.id, adminComment.trim() || undefined),
+            "reject",
+            () =>
+              onReject(
+                selectedApplication.id,
+                adminComment.trim() || undefined
+              ),
             "Заявка отклонена"
           )
         }
         onRequestChanges={() =>
           void runAction(
-            () => onReject(selectedApplication.id, adminComment.trim() || undefined),
+            "requestChanges",
+            () =>
+              onReject(
+                selectedApplication.id,
+                adminComment.trim() || undefined
+              ),
             "Запрос правок отправлен"
           )
         }
@@ -169,59 +190,46 @@ export function AdminSellersTab({
   }
 
   return (
-    <>
-      <div className={styles.header}>
-        <div>
-          <h1 className={`${styles.sectionTitleNoMargin} textTitle`}>
-            Заявки продавцов
-          </h1>
-          <div className={`${styles.muted} textCaption`}>
-            Найдено: {totalElements}
-          </div>
-        </div>
-
-        <button
-          type="button"
-          className={`${styles.refreshBtn} textButton`}
-          onClick={onRefresh}
-          disabled={refreshing}
-        >
-          {refreshing ? "Обновляем..." : "Обновить"}
-        </button>
-      </div>
-
-      <div className={styles.filters}>
+    <section className={styles.page}>
+      <div className={styles.toolbar}>
         <CabinetTabs
           items={filterTabs}
           value={status}
           onChange={onStatusChange}
           ariaLabel="Фильтр заявок продавцов по статусу"
-          fullBleedMobile
-          pinFirst
           countTone="gold"
-          tone="gold"
+          appearance="line"
         />
+
+        <Button
+          type="button"
+          variant="secondary"
+          loading={refreshing}
+          onClick={onRefresh}
+          className={styles.refreshButton}
+        >
+          Обновить
+        </Button>
       </div>
 
-      {actionMessage ? (
-        <div className={`${styles.actionNotice} ${styles.actionNoticeSuccess} textSmall`}>
-          {actionMessage}
-        </div>
-      ) : null}
-
-      {actionError ? (
-        <div className={`${styles.actionNotice} ${styles.actionNoticeError} textSmall`}>
-          {actionError}
-        </div>
-      ) : null}
+      <ActionNotice message={actionMessage} tone="success" />
+      <ActionNotice message={actionError} tone="danger" />
 
       {applications.length === 0 ? (
-        <EmptyState
-          icon="store"
-          tone="gold"
-          title="Заявок нет"
-          text="По выбранному фильтру ничего не найдено."
-        />
+        statusCounts.ALL === 0 ? (
+          <EmptyState
+            icon="store"
+            tone="gold"
+            title="Заявок пока нет"
+            text="Новые заявки продавцов появятся здесь."
+          />
+        ) : (
+          <EmptyState
+            icon="search"
+            title="Заявок нет"
+            text="По выбранному статусу ничего не найдено."
+          />
+        )
       ) : (
         <div className={styles.list}>
           {applications.map((application) => (
@@ -232,13 +240,14 @@ export function AdminSellersTab({
                 setSelectedApplicationId(application.id);
                 setActionMessage(null);
                 setActionError(null);
+                setPendingAction(null);
                 setAdminComment(application.adminComment ?? "");
               }}
             />
           ))}
         </div>
       )}
-    </>
+    </section>
   );
 }
 
@@ -250,61 +259,86 @@ function SellerApplicationCard({
   onOpen: () => void;
 }) {
   return (
-    <article
-      className={styles.sellerCard}
-      role="button"
-      tabIndex={0}
-      onClick={onOpen}
-      onKeyDown={(event) => {
-        if (event.key === "Enter" || event.key === " ") {
-          event.preventDefault();
-          onOpen();
-        }
-      }}
-    >
-      <div className={styles.sellerMain}>
-        <div className={styles.sellerHeader}>
-          <div className={styles.sellerTitleBlock}>
-            <div className={`${styles.sellerTitle} textBody`}>
-              {application.brandName}
-            </div>
-
-            <div className={`${styles.sellerSubline} textCaption`}>
-              ID {application.id} · user {application.userId} ·{" "}
-              {formatDate(application.createdAt)}
-            </div>
-          </div>
-
-          <div className={styles.sellerCardState}>
-            <StatusBadge tone={getStatusTone(application.status)}>
-              {formatStatus(application.status)}
-            </StatusBadge>
-            <span className={`${styles.sellerOpenLabel} textCaption`}>
-              Открыть
-            </span>
-          </div>
+    <article className={styles.card}>
+      <div
+        className={styles.cardMain}
+        role="button"
+        tabIndex={0}
+        aria-label={`Открыть заявку бренда «${application.brandName}»`}
+        onClick={onOpen}
+        onKeyDown={(event) => {
+          if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault();
+            onOpen();
+          }
+        }}
+      >
+        <div className={styles.identity}>
+          <span className={styles.label}>Бренд</span>
+          <strong className={styles.title}>{application.brandName}</strong>
+          <span className={styles.meta}>
+            ID {application.id} · пользователь {application.userId}
+          </span>
         </div>
 
-        {application.brandDescription ? (
-          <p className={`${styles.sellerDescription} textCaption`}>
-            {application.brandDescription}
-          </p>
-        ) : null}
+        <ApplicationFact
+          label="Контакт"
+          value={application.contactName}
+          secondary={formatRussianPhone(application.phone)}
+        />
+        <ApplicationFact
+          label="Почта"
+          value={application.email}
+          secondary={`@${application.username}`}
+        />
+        <ApplicationFact
+          label="Категория"
+          value={application.category || "Не указана"}
+          secondary={application.productionRegion || undefined}
+        />
 
-        <div className={styles.sellerMetaGrid}>
-          <Info label="Контакт" value={application.contactName} />
-          <Info label="Телефон" value={formatRussianPhone(application.phone)} />
-          <Info label="Email" value={application.email} />
-          <Info label="Категория" value={application.category || "—"} />
+        <div className={styles.state}>
+          <span className={styles.label}>Статус</span>
+          <StatusBadge tone={getStatusTone(application.status)} size="regular">
+            {formatStatus(application.status)}
+          </StatusBadge>
+          <span className={styles.date}>{formatDate(application.createdAt)}</span>
         </div>
+
+        <span className={styles.chevron} aria-hidden="true">
+          <Icon name="chevron-right" size={18} strokeWidth={1.5} />
+        </span>
       </div>
+
+      {application.brandDescription ? (
+        <p className={styles.description}>{application.brandDescription}</p>
+      ) : null}
     </article>
+  );
+}
+
+function ApplicationFact({
+  label,
+  value,
+  secondary,
+}: {
+  label: string;
+  value: string;
+  secondary?: string;
+}) {
+  return (
+    <div className={styles.fact}>
+      <span className={styles.label}>{label}</span>
+      <strong>{value}</strong>
+      {secondary ? <span className={styles.factSecondary}>{secondary}</span> : null}
+    </div>
   );
 }
 
 function SellerApplicationDetails({
   application,
   loading,
+  pendingAction,
   adminComment,
   actionMessage,
   actionError,
@@ -316,6 +350,7 @@ function SellerApplicationDetails({
 }: {
   application: AdminSellerApplication;
   loading: boolean;
+  pendingAction: ApplicationAction | null;
   adminComment: string;
   actionMessage: string | null;
   actionError: string | null;
@@ -328,66 +363,51 @@ function SellerApplicationDetails({
   const canModerate = application.status === "NEW";
 
   return (
-    <>
-      <div className={styles.detailsHeader}>
-        <button
-          type="button"
-          className={`${styles.backBtn} textButton`}
-          onClick={onBack}
-        >
+    <section className={styles.detailsPage}>
+      <header className={styles.detailsHeader}>
+        <Button type="button" variant="ghost" onClick={onBack}>
+          <Icon name="chevron-left" size={16} strokeWidth={1.5} />
           Назад
-        </button>
+        </Button>
 
         <div className={styles.detailsTitleBlock}>
-          <h1 className={`${styles.sectionTitleNoMargin} textTitle`}>
-            {application.brandName}
-          </h1>
-
-          <div className={`${styles.detailsMeta} textCaption`}>
+          <h1 className={styles.detailsTitle}>{application.brandName}</h1>
+          <div className={styles.detailsMeta}>
             <span>Заявка {application.id}</span>
             <span>{formatDate(application.createdAt)}</span>
-            <StatusBadge tone={getStatusTone(application.status)}>
+            <StatusBadge tone={getStatusTone(application.status)} size="regular">
               {formatStatus(application.status)}
             </StatusBadge>
           </div>
         </div>
-      </div>
+      </header>
 
-      {actionMessage ? (
-        <div className={`${styles.actionNotice} ${styles.actionNoticeSuccess} textSmall`}>
-          {actionMessage}
-        </div>
-      ) : null}
-
-      {actionError ? (
-        <div className={`${styles.actionNotice} ${styles.actionNoticeError} textSmall`}>
-          {actionError}
-        </div>
-      ) : null}
+      <ActionNotice message={actionMessage} tone="success" />
+      <ActionNotice message={actionError} tone="danger" />
 
       <div className={styles.detailsLayout}>
         <main className={styles.detailsMain}>
-          <section className={styles.detailsSection}>
-            <h2 className={`${styles.detailsSectionTitle} textBody`}>Магазин</h2>
+          <DetailsSection title="Магазин">
             <div className={styles.infoGrid}>
               <InfoRow label="Название" value={application.brandName} />
               <InfoRow label="Username" value={application.username} />
               <InfoRow label="ID пользователя" value={String(application.userId)} />
             </div>
-          </section>
+          </DetailsSection>
 
-          <section className={styles.detailsSection}>
-            <h2 className={`${styles.detailsSectionTitle} textBody`}>Контакты</h2>
+          <DetailsSection title="Контакты">
             <div className={styles.infoGrid}>
               <InfoRow label="Контактное лицо" value={application.contactName} />
-              <InfoRow label="Телефон" value={formatRussianPhone(application.phone)} />
-              <InfoRow label="Email" value={application.email} />
+              <InfoRow
+                label="Телефон"
+                value={formatRussianPhone(application.phone)}
+              />
+              <InfoRow label="Электронная почта" value={application.email} />
               <InfoRow label="Telegram" value={application.telegram || "—"} />
             </div>
-          </section>
+          </DetailsSection>
 
-          <section className={styles.detailsSection}>
-            <h2 className={`${styles.detailsSectionTitle} textBody`}>Бренд</h2>
+          <DetailsSection title="Бренд">
             <div className={styles.infoGrid}>
               <InfoRow label="Категория" value={application.category || "—"} />
               <InfoRow
@@ -397,46 +417,36 @@ function SellerApplicationDetails({
               <InfoRow label="Сайт" value={application.website || "—"} />
             </div>
 
-            <div className={styles.descriptionBlock}>
-              <div className={`${styles.infoLabel} textSmall`}>Описание</div>
-              <p className="textSmall">
-                {application.brandDescription || "Описание не заполнено"}
-              </p>
+            <div className={styles.textBlock}>
+              <span className={styles.infoLabel}>Описание</span>
+              <p>{application.brandDescription || "Описание не заполнено"}</p>
             </div>
 
             {application.comment ? (
-              <div className={styles.infoBlock}>
-                <span className={`${styles.infoLabel} textSmall`}>
-                  Комментарий селлера
-                </span>
-                <span className={`${styles.infoValue} textSmall`}>
-                  {application.comment}
-                </span>
+              <div className={styles.textBlock}>
+                <span className={styles.infoLabel}>Комментарий продавца</span>
+                <p>{application.comment}</p>
               </div>
             ) : null}
-          </section>
+          </DetailsSection>
 
-          <section className={styles.detailsSection}>
-            <h2 className={`${styles.detailsSectionTitle} textBody`}>
-              Реквизиты
-            </h2>
-            <div className={`${styles.empty} textCaption`}>
+          <DetailsSection title="Реквизиты">
+            <p className={styles.emptyText}>
               Реквизиты не переданы в заявке продавца.
-            </div>
-          </section>
+            </p>
+          </DetailsSection>
         </main>
 
         <aside className={styles.detailsAside}>
-          <section className={styles.detailsSection}>
-            <h2 className={`${styles.detailsSectionTitle} textBody`}>
-              Статус
-            </h2>
-
+          <DetailsSection title="Статус">
             <div className={styles.infoGrid}>
               <InfoRow
                 label="Заявка"
                 value={
-                  <StatusBadge tone={getStatusTone(application.status)}>
+                  <StatusBadge
+                    tone={getStatusTone(application.status)}
+                    size="regular"
+                  >
                     {formatStatus(application.status)}
                   </StatusBadge>
                 }
@@ -444,91 +454,116 @@ function SellerApplicationDetails({
               <InfoRow label="Создана" value={formatDate(application.createdAt)} />
               <InfoRow label="Обновлена" value={formatDate(application.updatedAt)} />
             </div>
-          </section>
+          </DetailsSection>
 
-          <section className={styles.detailsSection}>
-            <h2 className={`${styles.detailsSectionTitle} textBody`}>
-              Действия
-            </h2>
-
-            <label className={styles.adminTextareaField}>
-              <span className="textCaption">Комментарий администратора</span>
+          <DetailsSection title="Решение">
+            <label className={styles.textareaField}>
+              <span>Комментарий администратора</span>
               <textarea
                 value={adminComment}
                 onChange={(event) => onAdminCommentChange(event.target.value)}
-                className={`${styles.textarea} textBody`}
-                rows={4}
+                rows={5}
               />
             </label>
 
             {application.adminComment ? (
-              <div className={styles.infoBlock}>
-                <span className={`${styles.infoLabel} textSmall`}>
-                  Последний комментарий
-                </span>
-                <span className={`${styles.infoValue} textSmall`}>
-                  {application.adminComment}
-                </span>
+              <div className={styles.textBlock}>
+                <span className={styles.infoLabel}>Последний комментарий</span>
+                <p>{application.adminComment}</p>
               </div>
             ) : null}
 
-            <div className={styles.detailsActions}>
-              {canModerate ? (
-                <>
-                  <button
-                    type="button"
-                    className={`${styles.primaryBtn} textButton`}
-                    disabled={loading}
-                    onClick={onApprove}
-                  >
-                    Одобрить
-                  </button>
-
-                  <button
-                    type="button"
-                    className={`${styles.secondaryBtn} textButton`}
-                    disabled={loading || !adminComment.trim()}
-                    onClick={onRequestChanges}
-                  >
-                    Запросить правки
-                  </button>
-
-                  <button
-                    type="button"
-                    className={`${styles.dangerBtn} textButton`}
-                    disabled={loading}
-                    onClick={onReject}
-                  >
-                    Отклонить
-                  </button>
-                </>
-              ) : (
-                <div className={`${styles.empty} textCaption`}>
-                  Действия для этого статуса недоступны.
-                </div>
-              )}
-            </div>
-          </section>
+            {canModerate ? (
+              <div className={styles.detailsActions}>
+                <Button
+                  type="button"
+                  variant="primary"
+                  disabled={loading}
+                  loading={loading && pendingAction === "approve"}
+                  onClick={onApprove}
+                >
+                  Одобрить
+                </Button>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  disabled={loading || !adminComment.trim()}
+                  loading={loading && pendingAction === "requestChanges"}
+                  onClick={onRequestChanges}
+                >
+                  Запросить правки
+                </Button>
+                <Button
+                  type="button"
+                  variant="danger"
+                  disabled={loading}
+                  loading={loading && pendingAction === "reject"}
+                  onClick={onReject}
+                >
+                  Отклонить
+                </Button>
+              </div>
+            ) : (
+              <p className={styles.emptyText}>
+                Действия для этого статуса недоступны.
+              </p>
+            )}
+          </DetailsSection>
         </aside>
       </div>
-    </>
+
+      <AdminSellerBrandProfile
+        key={application.id}
+        userId={application.userId}
+        brandName={application.brandName}
+        status={application.status}
+      />
+    </section>
   );
 }
 
-function Info({ label, value }: { label: string; value: string }) {
+function DetailsSection({
+  title,
+  children,
+}: {
+  title: string;
+  children: ReactNode;
+}) {
   return (
-    <div>
-      <span className={`${styles.infoLabel} textSmall`}>{label}</span>
-      <span className={`${styles.infoValue} textSmall`}>{value}</span>
-    </div>
+    <section className={styles.detailsSection}>
+      <h2>{title}</h2>
+      {children}
+    </section>
   );
 }
 
 function InfoRow({ label, value }: { label: string; value: ReactNode }) {
   return (
     <div className={styles.infoRow}>
-      <span className={`${styles.infoLabel} textSmall`}>{label}</span>
-      <span className={`${styles.infoValue} textSmall`}>{value}</span>
+      <span className={styles.infoLabel}>{label}</span>
+      <span className={styles.infoValue}>{value}</span>
+    </div>
+  );
+}
+
+function ActionNotice({
+  message,
+  tone,
+}: {
+  message: string | null;
+  tone: "success" | "danger";
+}) {
+  if (!message) return null;
+
+  return (
+    <div
+      className={`${styles.notice} ${
+        tone === "success" ? styles.noticeSuccess : styles.noticeDanger
+      }`}
+      role={tone === "danger" ? "alert" : "status"}
+    >
+      <Icon name={tone === "success" ? "check-circle" : "info"} size={20} />
+      <span>{message}</span>
     </div>
   );
 }

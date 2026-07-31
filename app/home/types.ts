@@ -17,11 +17,13 @@ export type HomeProduct = {
 export type HeroBlock = {
   eyebrow?: string;
   title: string;
-  text: string;
+  text?: string;
   buttonLabel: string;
   buttonHref: string;
   image: string;
   imageAlt: string;
+  imagePositionX?: number;
+  imagePositionY?: number;
 };
 
 export type ProductShowcaseData = {

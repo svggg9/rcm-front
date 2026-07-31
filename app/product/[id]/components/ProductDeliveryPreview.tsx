@@ -163,7 +163,7 @@ export function ProductDeliveryPreview({ productId }: Props) {
   const [editing, setEditing] = useState(false);
   const [query, setQuery] = useState("");
   const [options, setOptions] = useState<CityOption[]>([]);
-  const [, setCityLoading] = useState(false);
+  const [cityLoading, setCityLoading] = useState(false);
   const hydratedRef = useRef(false);
 
   const cityLabel = useMemo(() => formatCityName(city.fullName), [city.fullName]);
@@ -295,7 +295,7 @@ export function ProductDeliveryPreview({ productId }: Props) {
   return (
     <section className={styles.deliveryPreview}>
       <div className={styles.deliveryPreviewHeader}>
-        <div>
+        <div className={styles.deliveryPreviewCity}>
           <span className={styles.deliveryPreviewLabel}>Ваш город</span>
           <strong>{cityLabel}</strong>
         </div>
@@ -305,7 +305,7 @@ export function ProductDeliveryPreview({ productId }: Props) {
       </div>
 
       {editing ? (
-        <div className={styles.deliveryCitySearch}>
+        <div className={styles.deliveryCitySearch} aria-busy={cityLoading}>
           <input
             value={query}
             onChange={(event) => setQuery(event.target.value)}
@@ -332,7 +332,7 @@ export function ProductDeliveryPreview({ productId }: Props) {
         {loading ? (
           <div className={styles.deliveryPreviewItem}>
             <span className={styles.deliveryPreviewIcon}>
-              <Icon name="store" size={18} strokeWidth={1.6} />
+              <Icon name="pickup-point" size={18} strokeWidth={1.35} />
             </span>
             <span>Доставка в пункт выдачи</span>
           </div>
@@ -340,7 +340,7 @@ export function ProductDeliveryPreview({ productId }: Props) {
         {pickupText ? (
           <div className={styles.deliveryPreviewItem}>
             <span className={styles.deliveryPreviewIcon}>
-              <Icon name="store" size={18} strokeWidth={1.6} />
+              <Icon name="pickup-point" size={18} strokeWidth={1.35} />
             </span>
             <span>
               Доставка {preview?.pickupPointCount ? `в один из ${preview.pickupPointCount} пунктов выдачи` : "в пункт выдачи"}

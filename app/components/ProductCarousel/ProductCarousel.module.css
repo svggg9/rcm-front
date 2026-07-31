@@ -44,6 +44,15 @@
   scroll-snap-align: start;
 }
 
+.compact .scroller {
+  gap: 16px;
+}
+
+.compact .item {
+  flex-basis: 250px;
+  min-width: 250px;
+}
+
 .arrow {
   position: absolute;
   top: 50%;
@@ -97,6 +106,11 @@
     flex-basis: 280px;
     min-width: 280px;
   }
+
+  .compact .item {
+    flex-basis: 220px;
+    min-width: 220px;
+  }
 }
 
 @media (max-width: 768px) {
@@ -112,6 +126,16 @@
   .item {
     flex-basis: 220px;
     min-width: 220px;
+  }
+
+
+  .compact .scroller {
+    gap: 10px;
+  }
+
+  .compact .item {
+    flex-basis: calc((100% - 10px) / 2);
+    min-width: calc((100% - 10px) / 2);
   }
 
   .arrow {

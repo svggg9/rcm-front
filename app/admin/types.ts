@@ -1,4 +1,49 @@
-export type AdminTab = "products" | "orders" | "sellers" | "dictionaries" | "finance" | "delivery";
+export type AdminTab =
+  | "storefront"
+  | "products"
+  | "orders"
+  | "sellers"
+  | "dictionaries"
+  | "finance"
+  | "delivery";
+
+export type AdminStorefrontHome = {
+  heroImageUrl: string | null;
+  updatedAt: string | null;
+  heroPositionX: number;
+  heroPositionY: number;
+  collections: AdminStorefrontCollection[];
+};
+
+export type AdminStorefrontProduct = {
+  id: number;
+  publicId: string | null;
+  title: string;
+  brand: string | null;
+  category: string | null;
+  audience: "MEN" | "WOMEN" | "UNISEX";
+  status: string | null;
+  coverImage: string | null;
+  hoverImage: string | null;
+  minPrice: number;
+  inStock: boolean;
+};
+
+export type AdminStorefrontCollection = {
+  id: number;
+  title: string;
+  description: string | null;
+  active: boolean;
+  sortOrder: number;
+  products: AdminStorefrontProduct[];
+};
+
+export type AdminStorefrontCollectionRequest = {
+  title: string;
+  description: string;
+  active: boolean;
+  productIds: number[];
+};
 
 export type ProductStatus =
   | "DRAFT"
@@ -59,6 +104,8 @@ export type DictionaryItem = {
   id: number;
   name: string;
   slug?: string | null;
+  logoUrl?: string | null;
+  wordmarkUrl?: string | null;
   sortOrder?: number | null;
   isActive?: boolean | null;
   status?: "ACTIVE" | "MODERATION" | "DISABLED" | string | null;
@@ -320,7 +367,6 @@ export type AdminInitialData = {
   cdekWebhookEvents: AdminCdekWebhookEvent[];
   totalCdekWebhookEvents: number;
   categories: DictionaryItem[];
-  brands: DictionaryItem[];
   sizes: DictionaryItem[];
   error: string | null;
 };

@@ -1,0 +1,36 @@
+.page {
+  min-width: 0;
+}
+
+.toolbar {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  gap: 20px;
+  margin-bottom: 20px;
+}
+
+.refreshButton {
+  min-width: 126px;
+  margin-bottom: 5px;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+@media (max-width: 720px) {
+  .toolbar {
+    grid-template-columns: 1fr;
+    align-items: stretch;
+    gap: 10px;
+  }
+
+  .refreshButton {
+    width: 100%;
+    margin-bottom: 0;
+  }
+}

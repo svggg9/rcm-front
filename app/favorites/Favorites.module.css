@@ -33,6 +33,29 @@
   list-style: none;
 }
 
+.collections {
+  margin-top: 48px;
+}
+
+.collectionsTitle {
+  margin: 0 0 28px;
+  color: var(--black);
+  font-size: var(--font-2xl);
+  line-height: 1.1;
+  font-weight: 500;
+  letter-spacing: -0.03em;
+}
+
+.collectionList {
+  display: flex;
+  flex-direction: column;
+  gap: 56px;
+}
+
+.collection {
+  margin: 0;
+}
+
 @media (min-width: 600px) {
   .grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -61,5 +84,18 @@
 
   .header {
     margin-bottom: 22px;
+  }
+
+  .collections {
+    margin-top: 32px;
+  }
+
+  .collectionsTitle {
+    margin-bottom: 24px;
+    font-size: var(--font-xl);
+  }
+
+  .collectionList {
+    gap: 40px;
   }
 }

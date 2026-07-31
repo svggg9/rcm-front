@@ -15,13 +15,14 @@ import styles from "./ProductCarousel.module.css";
 type Props = {
   title?: string;
   products: CarouselProduct[];
+  density?: "default" | "compact";
 };
 
 const CARD_WIDTH = 325;
 const CARD_GAP = 18;
 const SCROLL_STEP = CARD_WIDTH * 4 + CARD_GAP * 4;
 
-export function ProductCarousel({ title, products }: Props) {
+export function ProductCarousel({ title, products, density = "default" }: Props) {
   const scrollerRef = useRef<HTMLDivElement | null>(null);
 
   const [canScrollLeft, setCanScrollLeft] = useState(false);
@@ -51,8 +52,13 @@ export function ProductCarousel({ title, products }: Props) {
     const node = scrollerRef.current;
     if (!node) return;
 
+    const scrollStep =
+      density === "compact"
+        ? Math.max(node.clientWidth - 40, 240)
+        : SCROLL_STEP;
+
     node.scrollBy({
-      left: direction === "left" ? -SCROLL_STEP : SCROLL_STEP,
+      left: direction === "left" ? -scrollStep : scrollStep,
       behavior: "smooth",
     });
   }
@@ -60,7 +66,11 @@ export function ProductCarousel({ title, products }: Props) {
   if (!visibleProducts.length) return null;
 
   return (
-    <div className={styles.section}>
+    <div
+      className={`${styles.section} ${
+        density === "compact" ? styles.compact : ""
+      }`.trim()}
+    >
       {title ? (
         <div className={styles.header}>
           <h2 className={styles.title}>{title}</h2>

@@ -32,6 +32,7 @@ type Props = {
 };
 
 function normalizeTab(raw?: string): AdminTab {
+  if (raw === "storefront") return "storefront";
   if (raw === "orders") return "orders";
   if (raw === "sellers") return "sellers";
   if (raw === "dictionaries") return "dictionaries";
@@ -107,7 +108,6 @@ async function getInitialData(params: Awaited<Props["searchParams"]>) {
     cdekWebhookEvents: [],
     totalCdekWebhookEvents: 0,
     categories: [],
-    brands: [],
     sizes: [],
     error: null,
   };
@@ -164,14 +164,12 @@ async function getInitialData(params: Awaited<Props["searchParams"]>) {
     }
 
     if (tab === "dictionaries") {
-      const [categories, brands, sizes] = await Promise.all([
+      const [categories, sizes] = await Promise.all([
         getAdminDictionaryServer("categories"),
-        getAdminDictionaryServer("brands"),
         getAdminDictionaryServer("sizes"),
       ]);
 
       initialData.categories = categories;
-      initialData.brands = brands;
       initialData.sizes = sizes;
     }
 

@@ -1,5 +1,62 @@
 .page {
   width: 100%;
-  padding-bottom: 0;
+  padding-bottom: 64px;
   background: var(--bg);
+}
+
+.serviceStrip {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin-top: 80px;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+
+.serviceStrip > div {
+  min-height: 116px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 5px;
+  padding: 24px;
+  border-left: 1px solid var(--line);
+}
+
+.serviceStrip > div:first-child {
+  border-left: 0;
+}
+
+.serviceStrip strong {
+  color: var(--black);
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.serviceStrip span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 300;
+}
+
+@media (max-width: 720px) {
+  .page {
+    padding-bottom: 40px;
+  }
+
+  .serviceStrip {
+    grid-template-columns: 1fr;
+    margin-top: 56px;
+  }
+
+  .serviceStrip > div {
+    min-height: 92px;
+    padding: 20px 0;
+    border-top: 1px solid var(--line);
+    border-left: 0;
+  }
+
+  .serviceStrip > div:first-child {
+    border-top: 0;
+  }
 }

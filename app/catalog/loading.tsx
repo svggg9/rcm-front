@@ -8,16 +8,14 @@ export default function Loading() {
       <div className={styles.catalogPage}>
         <div className={styles.skeletonTop}>
           <div className={styles.skeletonBreadcrumb} />
+          <div className={styles.skeletonHeading} />
+          <div className={styles.skeletonCount} />
         </div>
 
         <div className={styles.skeletonActions}>
           <div className={styles.skeletonChip} />
-          <div className={styles.skeletonChip} />
-          <div className={styles.skeletonChip} />
           <div className={styles.skeletonSort} />
         </div>
-
-        <div className={styles.skeletonCount} />
 
         <ul className={styles.grid} aria-hidden="true">
           {Array.from({ length: 12 }).map((_, index) => (

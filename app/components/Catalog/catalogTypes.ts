@@ -5,6 +5,39 @@ export type Variant = {
 export type Audience = "MEN" | "WOMEN" | "UNISEX";
 export type SelectedAudience = "men" | "women" | "all";
 export type SortValue = "" | "newest" | "price-asc" | "price-desc";
+export type CatalogView = "" | "new";
+
+export type CatalogCollectionOption = {
+  id: number;
+  title: string;
+};
+
+export type CatalogCategory = {
+  id: number;
+  name: string;
+  slug?: string | null;
+  sortOrder?: number | null;
+};
+
+export type CatalogSize = {
+  id: number;
+  name: string;
+  sortOrder?: number | null;
+};
+
+export type CatalogCategoryGroup = {
+  name: string;
+  rootCategory?: CatalogCategory;
+  categories: Array<CatalogCategory & { label: string }>;
+};
+
+export type CatalogFilterSelection = {
+  category: string;
+  brands: string[];
+  sizes: string[];
+  minPrice?: number;
+  maxPrice?: number;
+};
 
 export type CatalogProduct = {
   id: number;
@@ -28,10 +61,19 @@ export type PaginatedProducts = {
   totalProducts: number;
 };
 
+export type CatalogSearchParamValue = string | string[] | undefined;
+
 export type CatalogSearchParams = {
-  category?: string;
-  audience?: string;
-  q?: string;
-  page?: string;
-  sort?: string;
+  category?: CatalogSearchParamValue;
+  audience?: CatalogSearchParamValue;
+  q?: CatalogSearchParamValue;
+  page?: CatalogSearchParamValue;
+  sort?: CatalogSearchParamValue;
+  brand?: CatalogSearchParamValue;
+  brands?: CatalogSearchParamValue;
+  sizes?: CatalogSearchParamValue;
+  minPrice?: CatalogSearchParamValue;
+  maxPrice?: CatalogSearchParamValue;
+  view?: CatalogSearchParamValue;
+  collection?: CatalogSearchParamValue;
 };

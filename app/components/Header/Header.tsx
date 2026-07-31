@@ -113,7 +113,7 @@ function HeaderContent() {
       setLoadingCategories(true);
 
       try {
-        const response = await apiFetch(`${API_URL}/api/categories`);
+        const response = await apiFetch(`${API_URL}/api/catalog/categories`);
 
         if (!response.ok) {
           throw new Error("Failed to load categories");
@@ -127,7 +127,8 @@ function HeaderContent() {
               ? (data as Category[]).filter(
                   (category) =>
                     category.isActive !== false &&
-                    category.status !== "DISABLED"
+                    category.status !== "DISABLED" &&
+                    !category.name.includes("/")
                 )
               : []
           );
@@ -268,7 +269,7 @@ function HeaderContent() {
                 aria-label="Кабинет продавца"
                 title="Кабинет продавца"
               >
-                <Icon name="store" size={24} strokeWidth={1.25} />
+                <Icon name="log-in" size={24} strokeWidth={1.25} />
                 {sellerBrandName}
               </Link>
             ) : null}
@@ -382,7 +383,7 @@ function HeaderContent() {
                     key={category.id}
                     type="button"
                     className={`${styles.mobileCategory} ${
-                      activeCategory === category.name
+                      activeCategory?.split("/")[0].trim() === category.name
                         ? styles.mobileCategoryActive
                         : ""
                     }`}

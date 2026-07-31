@@ -6,17 +6,19 @@ import styles from "../Cart.module.css";
 
 type Props = {
   subtotal: number;
+  itemCount: number;
   onCheckout: () => void;
   disabled: boolean;
 };
 
-export function CartSummary({ subtotal, onCheckout, disabled }: Props) {
+export function CartSummary({ subtotal, itemCount, onCheckout, disabled }: Props) {
   return (
     <aside className={styles.summary}>
+      <h2 className={styles.summaryTitle}>Итого</h2>
 
       <div className={styles.summaryBlock}>
         <div className={styles.summaryRow}>
-          <span>Товары</span>
+          <span>Товары, {itemCount} шт.</span>
           <span>
             <Price amount={subtotal} />
           </span>
@@ -24,14 +26,12 @@ export function CartSummary({ subtotal, onCheckout, disabled }: Props) {
 
         <div className={styles.summaryRow}>
           <span>Доставка</span>
-          <span>
-            <Price amount={0} />
-          </span>
+          <span className={styles.deliveryValue}>Рассчитаем при оформлении</span>
         </div>
       </div>
 
       <div className={styles.summaryTotal}>
-        <span>Итого</span>
+        <span>К оплате</span>
         <span>
           <Price amount={subtotal} />
         </span>
@@ -39,13 +39,17 @@ export function CartSummary({ subtotal, onCheckout, disabled }: Props) {
 
       <Button
         type="button"
-        variant="primaryShimmer"
+        variant="primary"
         className={styles.checkoutBtn}
         onClick={onCheckout}
         disabled={disabled}
       >
-        Перейти к оплате
+        Перейти к оформлению
       </Button>
+
+      <p className={styles.summaryNote}>
+        Способы доставки и оплаты можно выбрать на следующем шаге.
+      </p>
     </aside>
   );
 }

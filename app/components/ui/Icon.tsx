@@ -18,11 +18,13 @@ import {
   LayoutDashboard,
   List,
   ListOrdered,
+  LogIn,
   Minus,
   Package,
   Plus,
   Search,
   Settings,
+  SlidersHorizontal,
   ShoppingBag,
   ShoppingCart,
   Store,
@@ -55,6 +57,7 @@ export type IconName =
   | "info"
   | "list"
   | "list-ordered"
+  | "log-in"
   | "money"
   | "minus"
   | "package"
@@ -63,6 +66,7 @@ export type IconName =
   | "return-circle"
   | "search"
   | "settings"
+  | "sliders"
   | "shipment-handoff"
   | "shopping-bag"
   | "store"
@@ -106,12 +110,14 @@ const icons: Record<Exclude<IconName, CustomIconName>, LucideIcon> = {
   info: Info,
   list: List,
   "list-ordered": ListOrdered,
+  "log-in": LogIn,
   money: CircleDollarSign,
   minus: Minus,
   package: Package,
   plus: Plus,
   search: Search,
   settings: Settings,
+  sliders: SlidersHorizontal,
   "shopping-bag": ShoppingBag,
   store: Store,
   truck: Truck,

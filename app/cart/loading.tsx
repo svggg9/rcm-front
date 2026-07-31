@@ -6,7 +6,8 @@ export default function CartLoading() {
     <div className="pageContainer">
       <div className={styles.page}>
         <div className={styles.top}>
-          <h1 className={styles.title}>КОРЗИНА</h1>
+          <h1 className={styles.title}>Корзина</h1>
+          <p className={styles.count}>Загрузка…</p>
         </div>
         <CartContentSkeleton />
       </div>

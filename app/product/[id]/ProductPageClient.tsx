@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import styles from "./ProductPage.module.css";
@@ -43,6 +43,11 @@ export default function ProductPageClient({
   const isSellerView = sellerPreview || isAdmin || isOwnSellerProduct;
 
   const [adding, setAdding] = useState(false);
+  const [addSuccess, setAddSuccess] = useState(false);
+  const [favoritePending, setFavoritePending] = useState(false);
+  const addSuccessTimerRef = useRef<number | null>(null);
+  const addInFlightRef = useRef(false);
+  const favoriteInFlightRef = useRef(false);
   const [openDescription, setOpenDescription] = useState(true);
   const [openBrand, setOpenBrand] = useState(false);
 
@@ -94,7 +99,11 @@ export default function ProductPageClient({
     return visibleVariants.length === 1 ? visibleVariants[0] : null;
   }, [visibleVariants, selectedVariantId]);
 
-  const currentPrice = selectedVariant?.price ?? getMinPrice(product);
+  const currentPrice =
+    selectedVariant?.price ??
+    (visibleVariants.length > 0
+      ? Math.min(...visibleVariants.map((variant) => variant.price))
+      : getMinPrice(product));
   const sameBrandProducts = useMemo(
     () => related.filter((item) => item.brand === product.brand),
     [product.brand, related]
@@ -144,6 +153,19 @@ export default function ProductPageClient({
     };
   }, [viewerOpen, displayImages]);
 
+  useEffect(() => {
+    return () => {
+      if (addSuccessTimerRef.current !== null) {
+        window.clearTimeout(addSuccessTimerRef.current);
+      }
+    };
+  }, []);
+
+  function handleChangeColorway(colorwayId: number) {
+    setSelectedColorwayId(colorwayId);
+    setSelectedVariantId(null);
+  }
+
   function handleChangeVariant(variantId: number) {
     const nextVariant = product.variants.find((variant) => variant.id === variantId);
 
@@ -155,7 +177,14 @@ export default function ProductPageClient({
   }
 
   async function handleAddToCart() {
+    if (addInFlightRef.current || addSuccess) return;
+
+    addInFlightRef.current = true;
+
     try {
+      setAdding(true);
+      setAddSuccess(false);
+
       const cartId = await ensureCartId();
 
       if (!cartId) {
@@ -176,37 +205,52 @@ export default function ProductPageClient({
         return;
       }
 
-      setAdding(true);
-
       await addVariantToCart({
         cartId,
         variantId: selectedVariant.id,
         qty: 1,
       });
 
-      toast.success("Товар добавлен в корзину");
-
       emitCartChanged();
+      setAddSuccess(true);
+
+      if (addSuccessTimerRef.current !== null) {
+        window.clearTimeout(addSuccessTimerRef.current);
+      }
+
+      addSuccessTimerRef.current = window.setTimeout(() => {
+        setAddSuccess(false);
+        addSuccessTimerRef.current = null;
+      }, 1200);
     } catch (error) {
         toast.error(
           error instanceof Error ? error.message : "Не удалось добавить в корзину"
         );
     } finally {
+      addInFlightRef.current = false;
       setAdding(false);
     }
   }
 
   async function handleToggleFavorite() {
-      try {
-        await toggle(product.id);
+    if (favoriteInFlightRef.current) return;
 
-        toast(isFav ? "Удалено из избранного" : "Добавлено в избранное");
-      } catch (error) {
-        toast.error(
-          error instanceof Error ? error.message : "Не удалось обновить избранное"
-        );
-      }
+    favoriteInFlightRef.current = true;
+
+    try {
+      setFavoritePending(true);
+      await toggle(product.id);
+
+      toast(isFav ? "Удалено из избранного" : "Добавлено в избранное");
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "Не удалось обновить избранное"
+      );
+    } finally {
+      favoriteInFlightRef.current = false;
+      setFavoritePending(false);
     }
+  }
 
   function openViewer(index: number) {
     setViewerIndex(index);
@@ -235,33 +279,40 @@ export default function ProductPageClient({
     <>
       <div className="pageContainer">
         <div className={styles.page}>
-          <nav className={styles.breadcrumbs} aria-label="Навигационная цепочка">
-  <ol className={styles.breadcrumbList}>
-    <li className={styles.breadcrumbItem}>
-      <Link href="/catalog" className={styles.breadcrumbLink}>
-        Каталог
-      </Link>
-    </li>
+          <nav
+            className={styles.breadcrumbs}
+            aria-label="Навигационная цепочка"
+          >
+            <ol className={styles.breadcrumbList}>
+              <li className={styles.breadcrumbItem}>
+                <Link href="/catalog" className={styles.breadcrumbLink}>
+                  Каталог
+                </Link>
+              </li>
 
-    {product.brand ? (
-      <li className={styles.breadcrumbSeparator} aria-hidden="true">
-        <Icon name="chevron-right" size={13} strokeWidth={1.4} />
-      </li>
-    ) : null}
+              {product.brand ? (
+                <li className={styles.breadcrumbSeparator} aria-hidden="true">
+                  <Icon name="chevron-right" size={13} strokeWidth={1.4} />
+                </li>
+              ) : null}
 
-    {product.brandSlug ? (
-      <li className={styles.breadcrumbItem}>
-        <Link href={`/brand/${product.brandSlug}`} className={styles.breadcrumbLink}>
-          {product.brand}
-        </Link>
-      </li>
-    ) : product.brand ? (
-      <li className={styles.breadcrumbItem}>
-        <span className={styles.breadcrumbCurrent}>{product.brand}</span>
-      </li>
-    ) : null}
-
-  </ol>
+              {product.brandSlug ? (
+                <li className={styles.breadcrumbItem}>
+                  <Link
+                    href={`/brand/${product.brandSlug}`}
+                    className={styles.breadcrumbLink}
+                  >
+                    {product.brand}
+                  </Link>
+                </li>
+              ) : product.brand ? (
+                <li className={styles.breadcrumbItem}>
+                  <span className={styles.breadcrumbCurrent}>
+                    {product.brand}
+                  </span>
+                </li>
+              ) : null}
+            </ol>
           </nav>
           <div className={styles.top}>
             <ProductGallery
@@ -279,11 +330,17 @@ export default function ProductPageClient({
               selectedVariant={selectedVariant}
               currentPrice={currentPrice}
               adding={adding}
+              addSuccess={addSuccess}
               isFav={isFav}
+              favoritePending={favoritePending}
               isSellerView={isSellerView}
               onAddToCart={handleAddToCart}
               onToggleFavorite={handleToggleFavorite}
-              onEditProduct={() => router.push(`/seller/products/${product.id}/edit`)}
+              onEditProduct={() =>
+                router.push(`/seller/products/${product.id}/edit`)
+              }
+              selectedColorwayId={selectedColorwayId}
+              onChangeColorway={handleChangeColorway}
               openDescription={openDescription}
               openBrand={openBrand}
               onToggleDescription={() => setOpenDescription((prev) => !prev)}
@@ -294,12 +351,14 @@ export default function ProductPageClient({
           <ProductShowcase
             className={styles.relatedSection}
             variant="carousel"
+            density="compact"
             title={`Еще от ${product.brand}`}
             products={sameBrandProducts}
           />
           <ProductShowcase
             className={styles.relatedSection}
             variant="carousel"
+            density="compact"
             title="Похожие товары"
             products={sameCategoryProducts}
           />

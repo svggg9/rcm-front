@@ -127,14 +127,15 @@ export default async function BrandPage({
 }) {
   const { slug } = await params;
 
-  const [brand, products] = await Promise.all([
-    getBrand(slug),
-    getBrandProducts(slug),
-  ]);
+  const brand = await getBrand(slug);
 
   if (!brand) {
     notFound();
   }
+
+  // The requested route may be a legacy slug or a brand name. Always load
+  // products with the canonical slug returned by the brand API.
+  const products = await getBrandProducts(brand.slug);
 
   return (
     <div className="pageContainer">

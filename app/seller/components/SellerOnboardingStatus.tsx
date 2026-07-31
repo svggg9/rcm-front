@@ -1,21 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
 
 import { Icon, type IconName } from "../../components/ui/Icon";
-import {
-  getSellerOnboardingStatus,
-  type SellerOnboardingStatus as SellerOnboardingStatusType,
-} from "../lib/sellerOnboardingApi";
-import { SELLER_ONBOARDING_EVENT } from "../lib/sellerOnboardingEvents";
+import type { SellerOnboardingStatus as SellerOnboardingStatusType } from "../lib/sellerOnboardingApi";
 
 import styles from "./SellerOnboardingStatus.module.css";
 
 type StepKey = keyof Pick<
   SellerOnboardingStatusType,
   | "applicationCompleted"
-  | "brandCompleted"
   | "legalCompleted"
   | "agreementAccepted"
 >;
@@ -29,7 +23,7 @@ type Step = {
 };
 
 type Props = {
-  initialStatus: SellerOnboardingStatusType | null;
+  status: SellerOnboardingStatusType | null;
 };
 
 const STEPS: Step[] = [
@@ -38,13 +32,6 @@ const STEPS: Step[] = [
     title: "Одобрение продавца",
     description: "Заявка рассматривается",
     icon: "clock",
-  },
-  {
-    key: "brandCompleted",
-    title: "Оформить профиль бренда",
-    description: "Название, описание и логотип",
-    href: "/seller?tab=brand",
-    icon: "store",
   },
   {
     key: "legalCompleted",
@@ -62,38 +49,18 @@ const STEPS: Step[] = [
   },
 ];
 
-export function SellerOnboardingStatus({ initialStatus }: Props) {
-  const [status, setStatus] = useState(initialStatus);
-
-  useEffect(() => {
-    async function refreshStatus() {
-      try {
-        setStatus(await getSellerOnboardingStatus());
-      } catch {
-        // Readiness is supplementary and must not block the seller cabinet.
-      }
-    }
-
-    const handleChange = () => {
-      void refreshStatus();
-    };
-
-    if (!initialStatus) {
-      void refreshStatus();
-    }
-
-    window.addEventListener(SELLER_ONBOARDING_EVENT, handleChange);
-
-    return () => {
-      window.removeEventListener(SELLER_ONBOARDING_EVENT, handleChange);
-    };
-  }, [initialStatus]);
-
-  if (!status || status.progress >= 100) {
+export function SellerOnboardingStatus({ status }: Props) {
+  if (!status) {
     return null;
   }
 
   const pendingSteps = STEPS.filter((step) => !status[step.key]);
+  const completedSteps = STEPS.length - pendingSteps.length;
+  const progress = Math.round((completedSteps / STEPS.length) * 100);
+
+  if (pendingSteps.length === 0) {
+    return null;
+  }
 
   return (
     <section className={styles.section} aria-labelledby="seller-readiness-title">
@@ -103,15 +70,15 @@ export function SellerOnboardingStatus({ initialStatus }: Props) {
           <p>{formatRemainingSteps(pendingSteps.length)}</p>
         </div>
         <span className={styles.counter}>
-          {status.completedSteps}/{status.totalSteps}
+          {completedSteps}/{STEPS.length}
         </span>
       </div>
 
-      <div className={styles.progress} aria-label={`Готово на ${status.progress}%`}>
-        {Array.from({ length: status.totalSteps }, (_, index) => (
+      <div className={styles.progress} aria-label={`Готово на ${progress}%`}>
+        {Array.from({ length: STEPS.length }, (_, index) => (
           <span
             key={index}
-            className={index < status.completedSteps ? styles.progressDone : undefined}
+            className={index < completedSteps ? styles.progressDone : undefined}
           />
         ))}
       </div>

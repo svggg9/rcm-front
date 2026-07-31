@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 
 import styles from "../ProductPage.module.css";
 import { Price } from "../../../components/ui/Price";
+import { Icon } from "../../../components/ui/Icon";
 
 import type { Variant } from "../lib/types";
 
@@ -53,17 +54,16 @@ export function ProductVariantSelect({
         }`.trim()}
         onClick={() => setOpen((current) => !current)}
         aria-expanded={open}
+        aria-haspopup="listbox"
       >
         <span>{selectedVariant ? selectedVariant.size : "Выберите размер"}</span>
         <span className={styles.variantSelectChevron} aria-hidden="true">
-          <svg viewBox="0 0 16 16" focusable="false">
-            <path d="M4 6L8 10L12 6" />
-          </svg>
+          <Icon name="chevron-down" size={17} strokeWidth={1.35} />
         </span>
       </button>
 
-      <div className={styles.variantSelectMenu}>
-        <div className={styles.variantSelectOptions}>
+      <div className={styles.variantSelectMenu} aria-hidden={!open}>
+        <div className={styles.variantSelectOptions} role="listbox" aria-label="Размер">
           {variants.map((variant) => {
             const disabled =
               variant.availableQuantity !== null && variant.availableQuantity <= 0;
@@ -74,6 +74,9 @@ export function ProductVariantSelect({
                 type="button"
                 className={styles.variantSelectOption}
                 disabled={disabled}
+                role="option"
+                aria-selected={variant.id === selectedVariantId}
+                tabIndex={open ? 0 : -1}
                 onClick={() => {
                   onChange(variant.id);
                   setOpen(false);

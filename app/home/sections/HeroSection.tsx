@@ -1,7 +1,7 @@
 import Link from "next/link";
 import styles from "./HeroSection.module.css";
 import { HeroBlock } from "../types";
-import Image from "next/image";
+import { HeroImage } from "./HeroImage";
 
 type HeroSectionProps = {
   block: HeroBlock;
@@ -11,13 +11,12 @@ export function HeroSection({ block }: HeroSectionProps) {
   return (
     <section className={styles.hero}>
       <div className={styles.imageWrap}>
-        <Image
-          fill
+        <HeroImage
           src={block.image}
           alt={block.imageAlt}
-          sizes="100vw"
           className={styles.image}
-          priority
+          positionX={block.imagePositionX}
+          positionY={block.imagePositionY}
         />
       </div>
 
@@ -26,7 +25,7 @@ export function HeroSection({ block }: HeroSectionProps) {
           <span className={styles.eyebrow}>{block.eyebrow}</span>
         ) : null}
         <h1 className={styles.title}>{block.title}</h1>
-        <p className={styles.text}>{block.text}</p>
+        {block.text ? <p className={styles.text}>{block.text}</p> : null}
 
         <div className={styles.actions}>
           <Link href={block.buttonHref} className={styles.button}>

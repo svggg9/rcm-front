@@ -17,7 +17,11 @@ import { SellerFinanceTab } from "./components/SellerFinanceTab";
 import { SellerHomeTab } from "./components/SellerHomeTab";
 import { SellerLegalTab } from "./components/SellerLegalTab";
 import { SellerOnboardingStatus } from "./components/SellerOnboardingStatus";
-import type { SellerOnboardingStatus as SellerOnboardingStatusType } from "./lib/sellerOnboardingApi";
+import {
+  getSellerOnboardingStatus,
+  type SellerOnboardingStatus as SellerOnboardingStatusType,
+} from "./lib/sellerOnboardingApi";
+import { SELLER_ONBOARDING_EVENT } from "./lib/sellerOnboardingEvents";
 
 import type {
   SellerOrder,
@@ -118,6 +122,8 @@ function SellerPageContent({
 
   const [orders, setOrders] = useState<SellerOrderListItem[]>(initialOrders);
   const [products, setProducts] = useState<SellerProductListItem[]>(initialProducts);
+  const [onboardingStatus, setOnboardingStatus] =
+    useState<SellerOnboardingStatusType | null>(initialOnboardingStatus);
   const storeName = initialBrands[0]?.name?.trim() || null;
 
   const {
@@ -134,6 +140,40 @@ function SellerPageContent({
   useEffect(() => {
     setOrders(initialOrders);
   }, [initialOrders]);
+
+  useEffect(() => {
+    setOnboardingStatus(initialOnboardingStatus);
+  }, [initialOnboardingStatus]);
+
+  useEffect(() => {
+    let active = true;
+
+    async function refreshOnboardingStatus() {
+      try {
+        const nextStatus = await getSellerOnboardingStatus();
+        if (active) {
+          setOnboardingStatus(nextStatus);
+        }
+      } catch {
+        // Readiness is supplementary and must not block the seller cabinet.
+      }
+    }
+
+    const handleOnboardingChange = () => {
+      void refreshOnboardingStatus();
+    };
+
+    if (!initialOnboardingStatus) {
+      void refreshOnboardingStatus();
+    }
+
+    window.addEventListener(SELLER_ONBOARDING_EVENT, handleOnboardingChange);
+
+    return () => {
+      active = false;
+      window.removeEventListener(SELLER_ONBOARDING_EVENT, handleOnboardingChange);
+    };
+  }, [initialOnboardingStatus]);
 
   useEffect(() => {
     const syncFromHistory = () => {
@@ -220,6 +260,10 @@ function SellerPageContent({
 
   const activeOrdersCount = orders.filter(isActiveSellerOrder).length;
   const activeProductsCount = products.filter(isActiveSellerProduct).length;
+  const storeNotReady = Boolean(
+    onboardingStatus &&
+      (!onboardingStatus.legalCompleted || !onboardingStatus.agreementAccepted)
+  );
 
   return (
     <div className="pageContainer">
@@ -230,6 +274,7 @@ function SellerPageContent({
             ordersCount={activeOrdersCount}
             productsCount={activeProductsCount}
             storeName={storeName}
+            storeNotReady={storeNotReady}
           />
 
           <div className={styles.content}>
@@ -254,7 +299,7 @@ function SellerPageContent({
 
             {visitedTabs.has("home") ? (
               <div hidden={currentTab !== "home"}>
-                <SellerOnboardingStatus initialStatus={initialOnboardingStatus} />
+                <SellerOnboardingStatus status={onboardingStatus} />
                 <SellerHomeTab
                   products={products}
                   orders={orders}
