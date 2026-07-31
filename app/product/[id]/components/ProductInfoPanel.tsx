@@ -19,17 +19,20 @@ type Props = {
   selectedVariant: Variant | null;
   currentPrice: number;
   adding: boolean;
+  addSuccess: boolean;
   isFav: boolean;
+  favoritePending: boolean;
   onAddToCart: () => void;
   onToggleFavorite: () => void | Promise<void>;
   isSellerView: boolean;
   onEditProduct: () => void;
+  selectedColorwayId: number | null;
+  onChangeColorway: (colorwayId: number) => void;
   openDescription: boolean;
   openBrand: boolean;
   onToggleDescription: () => void;
   onToggleBrand: () => void;
 };
-
 
 export function ProductInfoPanel({
   product,
@@ -39,16 +42,47 @@ export function ProductInfoPanel({
   selectedVariant,
   currentPrice,
   adding,
+  addSuccess,
   isFav,
+  favoritePending,
   onAddToCart,
   onToggleFavorite,
   isSellerView,
   onEditProduct,
+  selectedColorwayId,
+  onChangeColorway,
   openDescription,
   openBrand,
   onToggleDescription,
   onToggleBrand,
 }: Props) {
+  const colorways = product.colorways ?? [];
+  const selectedColorway =
+    colorways.find((colorway) => colorway.id === selectedColorwayId) ??
+    colorways[0] ??
+    null;
+  const hasAvailableVariant = variants.some(
+    (variant) =>
+      variant.availableQuantity === null || variant.availableQuantity > 0
+  );
+  const needsVariantSelection = variants.length > 1 && !selectedVariant;
+  const selectedVariantUnavailable = Boolean(
+    selectedVariant &&
+      selectedVariant.availableQuantity !== null &&
+      selectedVariant.availableQuantity <= 0
+  );
+  const purchaseDisabled =
+    adding ||
+    addSuccess ||
+    !hasAvailableVariant ||
+    needsVariantSelection ||
+    selectedVariantUnavailable;
+  const purchaseLabel = !hasAvailableVariant
+    ? "Нет в наличии"
+    : needsVariantSelection
+      ? "Выберите размер"
+      : "Добавить в корзину";
+
   return (
     <aside className={styles.info}>
       <div className={styles.heading}>
@@ -66,8 +100,12 @@ export function ProductInfoPanel({
           {!isSellerView ? (
             <button
               type="button"
-              className={`${styles.favoriteIconBtn} ${isFav ? styles.favoriteIconBtnActive : ""}`}
+              className={`${styles.favoriteIconBtn} ${
+                isFav ? styles.favoriteIconBtnActive : ""
+              }`}
               onClick={() => void onToggleFavorite()}
+              disabled={favoritePending}
+              aria-busy={favoritePending || undefined}
               aria-label={isFav ? "Убрать из избранного" : "Добавить в избранное"}
               aria-pressed={isFav}
             >
@@ -87,11 +125,65 @@ export function ProductInfoPanel({
 
       <div className={styles.priceBlock}>
         <div className={styles.price}>
+          {needsVariantSelection ? (
+            <span className={styles.priceFrom}>от</span>
+          ) : null}
           <Price amount={currentPrice} />
         </div>
       </div>
 
       <div className={styles.variantBlock}>
+        {colorways.length > 1 ? (
+          <div className={styles.colorways}>
+            <div className={styles.colorwayHeader}>
+              <span>Цвет</span>
+              <strong>{selectedColorway?.color || "Не указан"}</strong>
+            </div>
+
+            <div
+              className={styles.colorwayList}
+              role="group"
+              aria-label="Цвет товара"
+            >
+              {colorways.map((colorway) => {
+                const preview = colorway.images?.[0];
+                const active = colorway.id === selectedColorway?.id;
+
+                return (
+                  <button
+                    key={colorway.id}
+                    type="button"
+                    className={`${styles.colorwayOption} ${
+                      active ? styles.colorwayOptionActive : ""
+                    }`.trim()}
+                    onClick={() => onChangeColorway(colorway.id)}
+                    aria-label={`Цвет: ${colorway.color || "не указан"}`}
+                    aria-pressed={active}
+                  >
+                    {preview ? (
+                      <Image
+                        src={preview}
+                        alt=""
+                        fill
+                        sizes="54px"
+                        className={styles.colorwayImage}
+                      />
+                    ) : (
+                      <span
+                        className={styles.colorwaySwatch}
+                        style={{
+                          backgroundColor: colorway.colorHex || "#f7f7f7",
+                        }}
+                        aria-hidden="true"
+                      />
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        ) : null}
+
         <ProductVariantSelect
           variants={variants}
           selectedVariantId={selectedVariantId}
@@ -102,7 +194,7 @@ export function ProductInfoPanel({
           {isSellerView ? (
             <Button
               type="button"
-              variant="primaryShimmer"
+              variant="primary"
               className={styles.addBtn}
               onClick={onEditProduct}
             >
@@ -111,17 +203,21 @@ export function ProductInfoPanel({
           ) : (
             <Button
               type="button"
-              variant="primaryShimmer"
+              variant="primary"
               className={styles.addBtn}
               onClick={onAddToCart}
-              disabled={
-                adding ||
-                !selectedVariant ||
-                (selectedVariant.availableQuantity !== null &&
-                  selectedVariant.availableQuantity <= 0)
+              loading={adding}
+              success={addSuccess}
+              disabled={purchaseDisabled}
+              aria-label={
+                adding
+                  ? "Добавляем в корзину"
+                  : addSuccess
+                    ? "Добавлено в корзину"
+                    : purchaseLabel
               }
             >
-              Добавить в корзину
+              {purchaseLabel}
             </Button>
           )}
         </div>
@@ -134,6 +230,7 @@ export function ProductInfoPanel({
         selectedVariant={selectedVariant}
         openDescription={openDescription}
         openBrand={openBrand}
+        isSellerView={isSellerView}
         onToggleDescription={onToggleDescription}
         onToggleBrand={onToggleBrand}
       />

@@ -10,6 +10,10 @@ import { getGuestFavoriteIds } from "../lib/favorites";
 import { EmptyState } from "../components/ui/EmptyState";
 import { ProductTileSkeleton } from "../components/ui/CommerceSkeleton";
 import { ProductTile } from "../components/ProductTile/ProductTile";
+import { ProductShowcase } from "../components/ProductShowcase/ProductShowcase";
+import type { CarouselProduct } from "../components/ProductCarousel/types";
+import { getStorefrontHome } from "../home/lib/getStorefrontHome";
+import { getHomePageData } from "../home/lib/getHomePageData";
 
 type ProductVariantApi = {
   id: number;
@@ -41,6 +45,13 @@ type FavoriteProduct = {
   brandSlug?: string | null;
   images: string[];
   minPrice: number;
+};
+
+type FavoriteCollection = {
+  key: string;
+  title: string;
+  href: string;
+  products: CarouselProduct[];
 };
 
 function resolveMinPrice(product: ProductApi): number {
@@ -82,6 +93,7 @@ function toTileProduct(product: ProductApi): FavoriteProduct {
 
 export default function FavoritesPage() {
   const [products, setProducts] = useState<FavoriteProduct[]>([]);
+  const [collections, setCollections] = useState<FavoriteCollection[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -158,10 +170,102 @@ export default function FavoritesPage() {
     };
   }, []);
 
+  useEffect(() => {
+    let alive = true;
+
+    async function loadCollections() {
+      const [storefront, fallback] = await Promise.all([
+        getStorefrontHome(),
+        getHomePageData("all"),
+      ]);
+      if (!alive) return;
+
+      const managed = (storefront?.collections ?? [])
+        .map((collection) => ({
+          key: `managed-${collection.id}`,
+          title: collection.title,
+          href: `/catalog?collection=${collection.id}`,
+          products: collection.products.map((product) => ({
+            id: product.id,
+            publicId: product.publicId,
+            title: product.title,
+            brand: product.brand,
+            category: product.category,
+            images: [product.coverImage, product.hoverImage].filter(
+              (image): image is string => Boolean(image)
+            ),
+            minPrice: product.minPrice,
+          })),
+        }))
+        .filter((collection) => collection.products.length > 0)
+        .slice(0, 3);
+
+      if (managed.length > 0) {
+        setCollections(managed);
+        return;
+      }
+
+      const seenProductIds = new Set<number>();
+      const fallbackCandidates = [
+        fallback.brandShowcase,
+        fallback.categoryShowcase,
+        fallback.latestShowcase,
+      ];
+      const automatic = fallbackCandidates.flatMap((collection, index) => {
+        const uniqueProducts = collection.products.filter(
+          (product) => !seenProductIds.has(product.id)
+        );
+
+        if (uniqueProducts.length < 2) return [];
+
+        uniqueProducts.forEach((product) => seenProductIds.add(product.id));
+
+        return [{
+          key: `automatic-${index}`,
+          title: collection.title,
+          href: collection.href,
+          products: uniqueProducts,
+        }];
+      });
+
+      if (automatic.length === 0 && fallback.latestShowcase.products.length > 0) {
+        automatic.push({
+          key: "automatic-latest",
+          title: fallback.latestShowcase.title,
+          href: fallback.latestShowcase.href,
+          products: fallback.latestShowcase.products,
+        });
+      }
+
+      setCollections(automatic);
+    }
+
+    void loadCollections();
+
+    return () => {
+      alive = false;
+    };
+  }, []);
+
   function handleFavoriteChange(productId: number, isFavorite: boolean) {
     if (isFavorite) return;
 
     setProducts((current) => current.filter((product) => product.id !== productId));
+  }
+
+  function handleCollectionFavoriteChange(
+    product: CarouselProduct,
+    isFavorite: boolean
+  ) {
+    if (!isFavorite) {
+      setProducts((current) => current.filter((item) => item.id !== product.id));
+      return;
+    }
+
+    setProducts((current) => {
+      if (current.some((item) => item.id === product.id)) return current;
+      return [...current, product];
+    });
   }
 
   return (
@@ -175,34 +279,63 @@ export default function FavoritesPage() {
           ) : null}
         </div>
 
-        {loading ? (
-          <ul
-            className={styles.grid}
-            aria-label="Загрузка избранного"
-            aria-busy="true"
+        <div>
+          {loading ? (
+            <ul
+              className={styles.grid}
+              aria-label="Загрузка избранного"
+              aria-busy="true"
+            >
+              {Array.from({ length: 8 }).map((_, index) => (
+                <ProductTileSkeleton key={index} />
+              ))}
+            </ul>
+          ) : products.length === 0 ? (
+            <EmptyState
+              icon="heart"
+              tone="gold"
+              title="В избранном пока пусто"
+              text="Сохраняйте товары, чтобы вернуться к ним позже"
+            />
+          ) : (
+            <ul className={styles.grid}>
+              {products.map((product) => (
+                <ProductTile
+                  key={product.id}
+                  product={product}
+                  onFavoriteChange={handleFavoriteChange}
+                />
+              ))}
+            </ul>
+          )}
+        </div>
+
+        {collections.length > 0 ? (
+          <section
+            className={styles.collections}
+            aria-labelledby="favorite-collections-title"
           >
-            {Array.from({ length: 8 }).map((_, index) => (
-              <ProductTileSkeleton key={index} />
-            ))}
-          </ul>
-        ) : products.length === 0 ? (
-          <EmptyState
-            icon="heart"
-            tone="gold"
-            title="В избранном пока пусто"
-            text="Сохраняйте товары, чтобы вернуться к ним позже"
-          />
-        ) : (
-          <ul className={styles.grid}>
-            {products.map((product) => (
-              <ProductTile
-                key={product.id}
-                product={product}
-                onFavoriteChange={handleFavoriteChange}
-              />
-            ))}
-          </ul>
-        )}
+            <h2 id="favorite-collections-title" className={styles.collectionsTitle}>
+              Подборки
+            </h2>
+
+            <div className={styles.collectionList}>
+              {collections.map((collection) => (
+                <ProductShowcase
+                  key={collection.key}
+                  className={styles.collection}
+                  title={collection.title}
+                  products={collection.products}
+                  variant="grid"
+                  density="compact"
+                  href={collection.href}
+                  actionLabel="Смотреть все"
+                  onFavoriteChange={handleCollectionFavoriteChange}
+                />
+              ))}
+            </div>
+          </section>
+        ) : null}
       </div>
     </div>
   );

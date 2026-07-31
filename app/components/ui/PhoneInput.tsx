@@ -58,6 +58,7 @@ export function PhoneInput({
   ...props
 }: Props) {
   const displayValue = formatRussianPhoneInput(value);
+  const visibleError = error?.trim();
 
   function handleChange(event: React.ChangeEvent<HTMLInputElement>) {
     const formatted = normalizeRussianPhone(event.target.value);
@@ -106,6 +107,7 @@ export function PhoneInput({
           onBlur={handleBlur}
         />
       </span>
+      {visibleError ? <div className="fieldError">{visibleError}</div> : null}
     </Field>
   );
 }

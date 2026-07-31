@@ -39,6 +39,10 @@
   object-fit: cover;
 }
 
+.imageContain {
+  object-fit: contain;
+}
+
 .placeholder {
   display: flex;
   align-items: center;

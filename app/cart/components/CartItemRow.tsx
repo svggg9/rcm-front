@@ -11,6 +11,7 @@ import styles from "../Cart.module.css";
 type Props = {
   item: CartItem;
   showQuantityControls?: boolean;
+  pending?: boolean;
   onChangeQty: (variantId: number, qty: number) => void;
   onRemove: (variantId: number) => void;
 };
@@ -18,6 +19,7 @@ type Props = {
 export function CartItemRow({
   item,
   showQuantityControls = true,
+  pending = false,
   onChangeQty,
   onRemove,
 }: Props) {
@@ -32,7 +34,7 @@ export function CartItemRow({
   });
 
   return (
-    <div className={styles.item}>
+    <article className={styles.item} aria-busy={pending || undefined}>
       <div className={styles.media}>
         <Link
           href={href}
@@ -43,64 +45,51 @@ export function CartItemRow({
             src={item.imageUrl ?? "/placeholder.png"}
             alt={item.title}
             fill
-            sizes="80px"
+            sizes="(max-width: 640px) 104px, 136px"
             className={styles.image}
           />
         </Link>
-
-        <button type="button" className={styles.likeBtn} aria-label="В избранное">
-          <Image
-            src="/icons/like.svg"
-            alt=""
-            width={20}
-            height={20}
-            className={styles.likeIcon}
-          />
-        </button>
       </div>
 
       <div className={styles.content}>
-        <Link href={href} className={styles.main}>
-          {brand ? <div className={styles.brand}>{brand}</div> : null}
-          <div className={styles.productTitle}>{item.title}</div>
+        <div className={styles.itemHeader}>
+          <Link href={href} className={styles.main}>
+            {brand ? <div className={styles.brand}>{brand}</div> : null}
+            <div className={styles.productTitle}>{item.title}</div>
+          </Link>
 
-          {size ? <div className={styles.meta}>Размер: {size}</div> : null}
-          {color ? <div className={styles.meta}>Цвет: {color}</div> : null}
-        </Link>
-      </div>
-
-      <div className={styles.side}>
-        <div className={styles.sideTop}>
           <div className={styles.price}>
             <Price amount={item.price} />
           </div>
-
-          <button
-            type="button"
-            className={styles.removeBtn}
-            onClick={() => onRemove(item.variantId)}
-            aria-label="Удалить"
-          >
-            <Icon name="x" size={15} strokeWidth={1.4} />
-          </button>
         </div>
 
-        {showQuantityControls ? (
-          <div className={styles.controls}>
+        {size || color ? (
+          <div className={styles.variantMeta}>
+            {size ? <span>Размер: {size}</span> : null}
+            {size && color ? <span aria-hidden="true">·</span> : null}
+            {color ? <span>Цвет: {color}</span> : null}
+          </div>
+        ) : null}
+
+        <div className={styles.itemActions}>
+          {showQuantityControls ? (
+            <div className={styles.quantityControl}>
+              <span className={styles.quantityLabel}>Количество</span>
             <div className={styles.qty}>
               <button
                 type="button"
-                disabled={item.quantity <= 1}
+                  disabled={pending || item.quantity <= 1}
                 onClick={() => onChangeQty(item.variantId, item.quantity - 1)}
                 aria-label="Уменьшить количество"
               >
                 <Icon name="minus" size={15} strokeWidth={1.4} />
               </button>
 
-              <span>{item.quantity}</span>
+                <span aria-live="polite">{item.quantity}</span>
 
               <button
                 type="button"
+                  disabled={pending}
                 onClick={() => onChangeQty(item.variantId, item.quantity + 1)}
                 aria-label="Увеличить количество"
               >
@@ -108,8 +97,19 @@ export function CartItemRow({
               </button>
             </div>
           </div>
-        ) : null}
+          ) : null}
+
+          <button
+            type="button"
+            className={styles.removeBtn}
+            disabled={pending}
+            onClick={() => onRemove(item.variantId)}
+          >
+            <Icon name="x" size={14} strokeWidth={1.4} />
+            <span>Удалить</span>
+          </button>
+        </div>
       </div>
-    </div>
+    </article>
   );
 }

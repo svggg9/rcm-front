@@ -4,6 +4,7 @@ import Image from "next/image";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { ProductImageCarousel } from "../../../components/ProductImageCarousel/ProductImageCarousel";
+import { Icon } from "../../../components/ui/Icon";
 import styles from "../ProductPage.module.css";
 
 type Props = {
@@ -67,9 +68,7 @@ export function ProductGallery({ title, images, onOpenImage }: Props) {
             onClick={() => scrollThumbs("up")}
             aria-label="Показать предыдущие фото"
           >
-            <svg viewBox="0 0 16 16" focusable="false" aria-hidden="true">
-              <path d="M4 10L8 6L12 10" />
-            </svg>
+            <Icon name="chevron-up" size={17} strokeWidth={1.35} />
           </button>
         ) : null}
 
@@ -107,9 +106,7 @@ export function ProductGallery({ title, images, onOpenImage }: Props) {
             onClick={() => scrollThumbs("down")}
             aria-label="Показать следующие фото"
           >
-            <svg viewBox="0 0 16 16" focusable="false" aria-hidden="true">
-              <path d="M4 6L8 10L12 6" />
-            </svg>
+            <Icon name="chevron-down" size={17} strokeWidth={1.35} />
           </button>
         ) : null}
       </div>
@@ -133,6 +130,7 @@ export function ProductGallery({ title, images, onOpenImage }: Props) {
         <ProductImageCarousel
           title={title}
           images={images}
+          fit="contain"
           onImageClick={onOpenImage}
         />
       </div>

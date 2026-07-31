@@ -734,7 +734,10 @@ export function ProductEditPageClient({
   }
 
   function isSellerReadyForPublish() {
-    return onboardingStatus === null || onboardingStatus.progress === 100;
+    return (
+      onboardingStatus === null ||
+      (onboardingStatus.legalCompleted && onboardingStatus.agreementAccepted)
+    );
   }
 
   function updateVariant(index: number, patch: Partial<ProductVariant>) {
@@ -862,9 +865,12 @@ export function ProductEditPageClient({
     product?.status === "ACTIVE" && !moderationChangesPending;
   const canPublish =
     isSellerReadyForPublish() && !activeProductWithoutModerationChanges;
+  const onboardingRequirementsPending =
+    onboardingStatus !== null &&
+    (!onboardingStatus.legalCompleted || !onboardingStatus.agreementAccepted);
 
   const publishBlockedReason =
-    onboardingStatus && onboardingStatus.progress < 100
+    onboardingRequirementsPending
       ? "Заполните реквизиты и примите оферту продавца"
       : activeProductWithoutModerationChanges
         ? "Для цены, остатков и артикула продавца модерация не нужна"
@@ -883,6 +889,7 @@ export function ProductEditPageClient({
           ordersCount={initialOrdersCount}
           productsCount={initialProductsCount}
           storeName={storeName}
+          storeNotReady={onboardingRequirementsPending}
         />
 
         <div className={styles.editorContent}>
@@ -898,7 +905,7 @@ export function ProductEditPageClient({
             <span>/</span>
             <span>Редактирование товара</span>
           </nav>
-        {onboardingStatus && onboardingStatus.progress < 100 ? (
+        {onboardingRequirementsPending ? (
           <div className={styles.onboardingWarning}>
             <strong>Магазин не готов к публикации</strong>
             <p>

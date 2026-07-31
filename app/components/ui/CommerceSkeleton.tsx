@@ -28,17 +28,21 @@ export function CartContentSkeleton() {
           <div className={styles.cartItem} key={index}>
             <Block className={styles.cartMedia} />
             <div className={styles.cartContent}>
-              <Block className={styles.cartBrand} />
-              <Block className={styles.cartTitle} />
-              <Block className={styles.cartMeta} />
-            </div>
-            <div className={styles.cartSide}>
-              <Block className={styles.cartRemove} />
-              <Block className={styles.cartAmount} />
-              <div className={styles.cartCounter}>
-                <Block />
-                <Block />
-                <Block />
+              <div className={styles.cartHeader}>
+                <div className={styles.cartText}>
+                  <Block className={styles.cartBrand} />
+                  <Block className={styles.cartTitle} />
+                  <Block className={styles.cartMeta} />
+                </div>
+                <Block className={styles.cartAmount} />
+              </div>
+              <div className={styles.cartActions}>
+                <div className={styles.cartCounter}>
+                  <Block />
+                  <Block />
+                  <Block />
+                </div>
+                <Block className={styles.cartRemove} />
               </div>
             </div>
           </div>
@@ -46,6 +50,7 @@ export function CartContentSkeleton() {
       </div>
 
       <aside className={styles.summary} aria-hidden="true">
+        <Block className={styles.summaryHeading} />
         <div className={styles.summaryRows}>
           <SummaryRow />
           <SummaryRow />

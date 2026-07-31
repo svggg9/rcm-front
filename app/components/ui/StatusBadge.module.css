@@ -13,6 +13,18 @@
   letter-spacing: 0;
 }
 
+.size-compact {
+  min-height: 20px;
+  padding: 0 7px;
+  font-size: 10px;
+}
+
+.size-regular {
+  min-height: 22px;
+  padding: 0 8px;
+  font-size: 11px;
+}
+
 .tone-default {
   background: var(--surface-hover);
   color: var(--black);

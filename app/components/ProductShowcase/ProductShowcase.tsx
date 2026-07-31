@@ -9,32 +9,40 @@ import type { CarouselProduct } from "../ProductCarousel/types";
 import styles from "./ProductShowcase.module.css";
 
 type ShowcaseVariant = "grid" | "carousel";
+type ShowcaseDensity = "default" | "compact";
 
 type Props = {
   title: string;
   products: CarouselProduct[];
   variant?: ShowcaseVariant;
+  density?: ShowcaseDensity;
   href?: string;
   actionLabel?: string;
   emptyText?: string;
   className?: string;
+  onFavoriteChange?: (product: CarouselProduct, isFavorite: boolean) => void;
 };
 
 export function ProductShowcase({
   title,
   products,
   variant = "carousel",
+  density = "default",
   href,
   actionLabel,
   emptyText,
   className,
+  onFavoriteChange,
 }: Props) {
   const scrollerRef = useRef<HTMLUListElement | null>(null);
   const [activeIndex, setActiveIndex] = useState(0);
 
   const visibleProducts = useMemo(
-    () => (variant === "grid" ? products.slice(0, 4) : products),
-    [products, variant]
+    () =>
+      variant === "grid"
+        ? products.slice(0, density === "compact" ? 5 : 4)
+        : products,
+    [density, products, variant]
   );
   const label =
     actionLabel ?? (variant === "grid" ? "В каталог" : "Показать больше");
@@ -54,10 +62,13 @@ export function ProductShowcase({
   if (!visibleProducts.length && !emptyText) return null;
 
   const variantClass = styles[variant] ?? "";
+  const densityClass = density === "compact" ? styles.compact : "";
 
   return (
     <section
-      className={[styles.section, variantClass, className].filter(Boolean).join(" ")}
+      className={[styles.section, variantClass, densityClass, className]
+        .filter(Boolean)
+        .join(" ")}
       data-variant={variant}
     >
       <div className={styles.header}>
@@ -79,7 +90,13 @@ export function ProductShowcase({
               onScroll={handleGridScroll}
             >
               {visibleProducts.map((product) => (
-                <ProductTile key={product.id} product={product} />
+                <ProductTile
+                  key={product.id}
+                  product={product}
+                  onFavoriteChange={(_, isFavorite) =>
+                    onFavoriteChange?.(product, isFavorite)
+                  }
+                />
               ))}
             </ul>
 
@@ -97,7 +114,7 @@ export function ProductShowcase({
             ) : null}
           </>
         ) : (
-          <ProductCarousel products={visibleProducts} />
+          <ProductCarousel products={visibleProducts} density={density} />
         )
       ) : (
         <div className={styles.empty}>{emptyText}</div>

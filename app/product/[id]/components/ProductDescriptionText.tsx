@@ -2,12 +2,12 @@ import styles from "../ProductPage.module.css";
 
 type TextBlock =
   | { type: "paragraph"; text: string }
-  | { type: "ul" | "ol"; items: string[] };
+  | { type: "ul" | "ol" | "dash"; items: string[] };
 
 function parseDescription(value: string): TextBlock[] {
   const blocks: TextBlock[] = [];
   let paragraph: string[] = [];
-  let listType: "ul" | "ol" | null = null;
+  let listType: "ul" | "ol" | "dash" | null = null;
   let listItems: string[] = [];
 
   function flushParagraph() {
@@ -29,7 +29,9 @@ function parseDescription(value: string): TextBlock[] {
     listItems = [];
   }
 
-  for (const rawLine of value.split(/\r?\n/)) {
+  const normalizedValue = value.replace(/\s+•\s*/g, "\n• ");
+
+  for (const rawLine of normalizedValue.split(/\r?\n/)) {
     const line = rawLine.trim();
 
     if (!line) {
@@ -38,14 +40,17 @@ function parseDescription(value: string): TextBlock[] {
       continue;
     }
 
-    const bulletMatch = line.match(/^[-*]\s+(.+)$/);
+    const bulletMatch = line.match(/^[-*•]\s*(.+)$/);
+    const dashMatch = line.match(/^—\s*(.+)$/);
     const orderedMatch = line.match(/^\d+[.)]\s+(.+)$/);
 
-    if (bulletMatch || orderedMatch) {
+    if (bulletMatch || dashMatch || orderedMatch) {
       flushParagraph();
 
-      const nextType = bulletMatch ? "ul" : "ol";
-      const itemText = (bulletMatch?.[1] ?? orderedMatch?.[1] ?? "").trim();
+      const nextType = bulletMatch ? "ul" : dashMatch ? "dash" : "ol";
+      const itemText = (
+        bulletMatch?.[1] ?? dashMatch?.[1] ?? orderedMatch?.[1] ?? ""
+      ).trim();
 
       if (listType && listType !== nextType) {
         flushList();
@@ -93,10 +98,15 @@ export function ProductDescriptionText({ text, fallback }: Props) {
           );
         }
 
-        const ListTag = block.type;
+        const ListTag = block.type === "ol" ? "ol" : "ul";
 
         return (
-          <ListTag key={index} className={styles.list}>
+          <ListTag
+            key={index}
+            className={`${styles.list} ${
+              block.type === "dash" ? styles.dashList : ""
+            }`.trim()}
+          >
             {block.items.map((item, itemIndex) => (
               <li key={itemIndex}>{item}</li>
             ))}

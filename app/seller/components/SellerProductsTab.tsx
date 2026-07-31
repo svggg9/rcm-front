@@ -1,15 +1,17 @@
 "use client";
 
-import Image from "next/image";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import styles from "./SellerProductsTab.module.css";
 import { CabinetTabs, type CabinetTabItem } from "../../components/ui/CabinetTabs";
 import { EmptyState } from "../../components/ui/EmptyState";
-import { Price } from "../../components/ui/Price";
-import { StatusBadge } from "../../components/ui/StatusBadge";
 import { CabinetSkeleton } from "../../components/ui/CabinetSkeleton";
+import { ProductListCard } from "../../components/ProductListCard";
+import {
+  formatProductStatus,
+  getProductStatusTone,
+} from "../../lib/productStatus";
 
 import type { SellerProductListItem } from "../types";
 
@@ -154,10 +156,6 @@ function ProductRow({
 }) {
   const router = useRouter();
 
-  const mainImage = product.coverImage;
-  const minPrice = product.minPrice ?? 0;
-  const totalStock = product.totalStock ?? 0;
-  const variantsCount = product.variantsCount ?? 0;
   const editHref = `/seller/products/${product.id}/edit`;
 
   function openProductEdit() {
@@ -165,114 +163,18 @@ function ProductRow({
   }
 
   return (
-    <article
-      className={styles.productRow}
-      role="button"
-      tabIndex={0}
-      onClick={openProductEdit}
-      onKeyDown={(event) => {
-        if (event.key === "Enter" || event.key === " ") {
-          event.preventDefault();
-          openProductEdit();
-        }
-      }}
-    >
-      <div className={styles.productImageBox}>
-        {mainImage ? (
-          <Image
-            src={mainImage}
-            alt={product.title}
-            className={styles.productImage}
-            width={90}
-            height={112}
-          />
-        ) : (
-          <div className={`${styles.productImagePlaceholder} textMicro`}>
-            Изображение отсутствует
-          </div>
-        )}
-      </div>
-
-      <div className={styles.productMain}>
-        <div className={styles.productContent}>
-          <div className={styles.productDetails}>
-            <div className={styles.productStatus}>
-              <StatusBadge tone={getProductStatusTone(product.status)}>
-                {formatProductStatus(product.status)}
-              </StatusBadge>
-            </div>
-
-            <div className={styles.productInfo}>
-              <h2 className={styles.productTitle}>{product.title || "Без названия"}</h2>
-
-              <div className={styles.productMeta}>
-                <span>ID: {product.id}</span>
-                {product.categoryName ? <span>{product.categoryName}</span> : null}
-              </div>
-            </div>
-          </div>
-
-          <div className={styles.productSide}>
-            <div className={styles.productPrice}>
-              <Price amount={Number(minPrice)} />
-            </div>
-
-            <div className={styles.productTags}>
-              <span>{formatVariantsCount(variantsCount)}</span>
-              <span>Остаток: {Number(totalStock).toLocaleString()}</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-    </article>
+    <ProductListCard
+      id={product.id}
+      title={product.title}
+      imageUrl={product.coverImage}
+      brandName={product.brandName}
+      categoryName={product.categoryName}
+      minPrice={product.minPrice}
+      variantsCount={product.variantsCount}
+      totalStock={product.totalStock}
+      statusLabel={formatProductStatus(product.status)}
+      statusTone={getProductStatusTone(product.status)}
+      onOpen={openProductEdit}
+    />
   );
-}
-
-function formatVariantsCount(count: number) {
-  const mod10 = count % 10;
-  const mod100 = count % 100;
-
-  if (mod10 === 1 && mod100 !== 11) return `${count} вариант`;
-  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) {
-    return `${count} варианта`;
-  }
-
-  return `${count} вариантов`;
-}
-
-function getProductStatusTone(status: SellerProductListItem["status"]) {
-  switch (status) {
-    case "ACTIVE":
-      return "success";
-    case "MODERATION":
-      return "warning";
-    case "NEEDS_REVISION":
-      return "warning";
-    case "BLOCKED":
-      return "danger";
-    case "ARCHIVED":
-      return "default";
-    default:
-      return "default";
-  }
-}
-
-function formatProductStatus(status: SellerProductListItem["status"]) {
-  switch (status) {
-    case "DRAFT":
-      return "Черновик";
-    case "MODERATION":
-      return "На модерации";
-    case "NEEDS_REVISION":
-      return "На доработке";
-    case "ACTIVE":
-      return "Активен";
-    case "ARCHIVED":
-      return "Архив";
-    case "BLOCKED":
-      return "Заблокирован";
-    default:
-      return "Черновик";
-  }
 }

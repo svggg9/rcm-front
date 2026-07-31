@@ -28,6 +28,13 @@ export function AdminSidebar({
       onNavigate={onNavigate}
       items={[
         {
+          href: "/admin?tab=storefront",
+          label: "Витрина",
+          mobileLabel: "Витрина",
+          icon: "dashboard",
+          active: currentTab === "storefront",
+        },
+        {
           href: "/admin?tab=products",
           label: "Товары",
           mobileLabel: "Товары",

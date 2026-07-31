@@ -20,6 +20,7 @@ import { AdminSellersTab } from "./components/AdminSellersTab";
 import { AdminDictionariesTab } from "./components/AdminDictionariesTab";
 import { AdminFinanceTab } from "./components/AdminFinanceTab";
 import { AdminCdekTab } from "./components/AdminCdekTab";
+import { AdminStorefrontTab } from "./components/AdminStorefrontTab";
 
 import {
   approveProduct,
@@ -63,6 +64,7 @@ import type {
 } from "./types";
 
 function normalizeTab(raw: string | null): AdminTab {
+  if (raw === "storefront") return "storefront";
   if (raw === "orders") return "orders";
   if (raw === "sellers") return "sellers";
   if (raw === "dictionaries") return "dictionaries";
@@ -284,9 +286,6 @@ function AdminPageContent({ initialData }: Props) {
   const [sellerApplications, setSellerApplications] = useState<
     AdminSellerApplication[]
   >(initialData?.sellerApplications ?? []);
-  const [totalSellerApplications, setTotalSellerApplications] = useState(
-    initialData?.totalSellerApplications ?? 0
-  );
   const [
     sellerApplicationStatusCounts,
     setSellerApplicationStatusCounts,
@@ -313,9 +312,6 @@ function AdminPageContent({ initialData }: Props) {
 
   const [categories, setCategories] = useState<DictionaryItem[]>(
     initialData?.categories ?? []
-  );
-  const [brands, setBrands] = useState<DictionaryItem[]>(
-    initialData?.brands ?? []
   );
   const [sizes, setSizes] = useState<DictionaryItem[]>(
     initialData?.sizes ?? []
@@ -413,7 +409,6 @@ function AdminPageContent({ initialData }: Props) {
         ]);
 
         setSellerApplications(Array.isArray(data.content) ? data.content : []);
-        setTotalSellerApplications(data.totalElements ?? 0);
         setSellerApplicationStatusCounts(counts);
       } catch (e) {
         setError(e instanceof Error ? e.message : "Не удалось загрузить заявки");
@@ -434,15 +429,12 @@ function AdminPageContent({ initialData }: Props) {
     setError(null);
 
     try {
-      const [categoriesData, brandsData, sizesData] =
-        await Promise.all([
-          getAdminDictionary("categories"),
-          getAdminDictionary("brands"),
-          getAdminDictionary("sizes"),
-        ]);
+      const [categoriesData, sizesData] = await Promise.all([
+        getAdminDictionary("categories"),
+        getAdminDictionary("sizes"),
+      ]);
 
       setCategories(categoriesData);
-      setBrands(brandsData);
       setSizes(sizesData);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Не удалось загрузить справочники");
@@ -550,6 +542,11 @@ function AdminPageContent({ initialData }: Props) {
     }
 
     loadedListKeyByTabRef.current.set(currentTab, listKey);
+
+    if (currentTab === "storefront") {
+      setLoading(false);
+      return;
+    }
 
     if (currentTab === "products") {
       void loadProducts();
@@ -743,6 +740,7 @@ function AdminPageContent({ initialData }: Props) {
       await loadDictionaries({ silent: true });
     } catch (e) {
       setError(e instanceof Error ? e.message : "Не удалось создать значение");
+      throw e;
     } finally {
       setDictionaryActionKey(null);
     }
@@ -761,6 +759,7 @@ function AdminPageContent({ initialData }: Props) {
       await loadDictionaries({ silent: true });
     } catch (e) {
       setError(e instanceof Error ? e.message : "Не удалось обновить значение");
+      throw e;
     } finally {
       setDictionaryActionKey(null);
     }
@@ -775,6 +774,7 @@ function AdminPageContent({ initialData }: Props) {
       await loadDictionaries({ silent: true });
     } catch (e) {
       setError(e instanceof Error ? e.message : "Не удалось выключить значение");
+      throw e;
     } finally {
       setDictionaryActionKey(null);
     }
@@ -870,6 +870,7 @@ function AdminPageContent({ initialData }: Props) {
       await loadSellerApplications({ silent: true });
     } catch (e) {
       setError(e instanceof Error ? e.message : "Не удалось выполнить действие");
+      throw e;
     } finally {
       setActionApplicationId(null);
     }
@@ -887,7 +888,7 @@ function AdminPageContent({ initialData }: Props) {
             currentTab={currentTab}
             productsCount={totalProducts}
             ordersCount={totalOrders}
-            sellersCount={totalSellerApplications}
+            sellersCount={sellerApplicationStatusCounts.ALL}
             onNavigate={navigateAdmin}
           />
 
@@ -896,17 +897,18 @@ function AdminPageContent({ initialData }: Props) {
 
             {loading ? (
               <CabinetSkeleton variant={getAdminSkeletonVariant(currentTab)} />
+            ) : currentTab === "storefront" ? (
+              <AdminStorefrontTab />
             ) : currentTab === "dictionaries" ? (
               <AdminDictionariesTab
                 categories={categories}
-                brands={brands}
                 sizes={sizes}
                 actionKey={dictionaryActionKey}
-                onCreate={(kind, item) => void createDictionaryItem(kind, item)}
+                onCreate={(kind, item) => createDictionaryItem(kind, item)}
                 onUpdate={(kind, id, item) =>
-                  void updateDictionaryItem(kind, id, item)
+                  updateDictionaryItem(kind, id, item)
                 }
-                onDelete={(kind, id) => void deleteDictionaryItem(kind, id)}
+                onDelete={(kind, id) => deleteDictionaryItem(kind, id)}
               />
             ) : currentTab === "finance" ? (
               <AdminFinanceTab
@@ -954,7 +956,6 @@ function AdminPageContent({ initialData }: Props) {
               <AdminSellersTab
                 applications={sellerApplications}
                 status={currentApplicationStatus}
-                totalElements={totalSellerApplications}
                 refreshing={refreshing}
                 actionApplicationId={actionApplicationId}
                 statusCounts={sellerApplicationStatusCounts}
@@ -1000,15 +1001,14 @@ function AdminPageContent({ initialData }: Props) {
                 status={currentStatus}
                 refreshing={refreshing}
                 actionProductId={actionProductId}
-                totalElements={totalProducts}
                 statusCounts={productStatusCounts}
                 onStatusChange={changeProductStatus}
                 onRefresh={() => void loadProducts({ silent: true })}
                 onOpenProduct={openProduct}
                 onPrefetchProduct={prefetchProduct}
-                onApprove={(id) => void runProductAction(id, approveProduct)}
-                onBlock={(id) => void runProductAction(id, blockProduct)}
-                onUnblock={(id) => void runProductAction(id, unblockProduct)}
+                onApprove={(id) => runProductAction(id, approveProduct)}
+                onBlock={(id) => runProductAction(id, blockProduct)}
+                onUnblock={(id) => runProductAction(id, unblockProduct)}
               />
             )}
           </main>
@@ -1023,6 +1023,8 @@ export function AdminPageClient({ initialData }: Props) {
 }
 
 function getAdminSkeletonVariant(tab: AdminTab): CabinetSkeletonVariant {
-  if (tab === "dictionaries" || tab === "sellers") return "form";
+  if (tab === "storefront" || tab === "dictionaries" || tab === "sellers") {
+    return "form";
+  }
   return "list";
 }

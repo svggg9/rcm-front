@@ -27,6 +27,7 @@ type SidebarItem = {
 type Props = {
   title?: string;
   titleIcon?: IconName;
+  titleBadge?: string;
   titleLoading?: boolean;
   subtitle?: string;
   items: SidebarItem[];
@@ -39,6 +40,7 @@ type Props = {
 export function CabinetSidebar({
   title,
   titleIcon,
+  titleBadge,
   titleLoading = false,
   subtitle,
   items,
@@ -76,7 +78,12 @@ export function CabinetSidebar({
                   className={styles.identityIcon}
                 />
               ) : null}
-              <strong className={`${styles.title} textSectionTitle`}>{title}</strong>
+              <div className={styles.identityContent}>
+                <strong className={`${styles.title} textSectionTitle`}>{title}</strong>
+                {titleBadge ? (
+                  <span className={styles.titleBadge}>{titleBadge}</span>
+                ) : null}
+              </div>
             </div>
           ) : null}
         </div>

@@ -1,7 +1,8 @@
 "use client";
 
 import Image from "next/image";
-import { useRef } from "react";
+import { useEffect, useRef } from "react";
+import { Icon } from "../../../components/ui/Icon";
 import styles from "../ProductPage.module.css";
 
 type Props = {
@@ -26,6 +27,19 @@ export function ProductImageViewer({
   onNext,
 }: Props) {
   const touchStartRef = useRef<{ x: number; y: number } | null>(null);
+  const closeButtonRef = useRef<HTMLButtonElement | null>(null);
+  const previousFocusRef = useRef<HTMLElement | null>(null);
+
+  useEffect(() => {
+    if (!open) return;
+
+    previousFocusRef.current = document.activeElement as HTMLElement | null;
+    closeButtonRef.current?.focus();
+
+    return () => {
+      previousFocusRef.current?.focus();
+    };
+  }, [open]);
 
   if (!open || !images.length) return null;
 
@@ -64,9 +78,16 @@ export function ProductImageViewer({
       onClick={onClose}
       role="dialog"
       aria-modal="true"
+      aria-label={`${title} — просмотр фотографий`}
     >
-      <button type="button" className={styles.viewerClose} onClick={onClose}>
-        ×
+      <button
+        ref={closeButtonRef}
+        type="button"
+        className={styles.viewerClose}
+        onClick={onClose}
+        aria-label="Закрыть просмотр"
+      >
+        <Icon name="x" size={24} strokeWidth={1.35} />
       </button>
 
       <div
@@ -74,16 +95,21 @@ export function ProductImageViewer({
         onClick={(event) => event.stopPropagation()}
       >
         <div className={styles.viewerStage}>
-          <button
-            type="button"
-            className={`${styles.viewerArrow} ${styles.viewerArrowLeft}`}
-            onClick={(event) => {
-              event.stopPropagation();
-              onPrev();
-            }}
-          >
-            ‹
-          </button>
+          {images.length > 1 ? (
+            <button
+              type="button"
+              className={`${styles.viewerArrow} ${styles.viewerArrowLeft}`}
+              onClick={(event) => {
+                event.stopPropagation();
+                onPrev();
+              }}
+              aria-label="Предыдущее фото"
+            >
+              <Icon name="chevron-left" size={28} strokeWidth={1.25} />
+            </button>
+          ) : (
+            <span className={styles.viewerArrowSpacer} aria-hidden="true" />
+          )}
 
           <div
             className={styles.viewerImageWrap}
@@ -109,16 +135,21 @@ export function ProductImageViewer({
             </div>
           </div>
 
-          <button
-            type="button"
-            className={`${styles.viewerArrow} ${styles.viewerArrowRight}`}
-            onClick={(event) => {
-              event.stopPropagation();
-              onNext();
-            }}
-          >
-            ›
-          </button>
+          {images.length > 1 ? (
+            <button
+              type="button"
+              className={`${styles.viewerArrow} ${styles.viewerArrowRight}`}
+              onClick={(event) => {
+                event.stopPropagation();
+                onNext();
+              }}
+              aria-label="Следующее фото"
+            >
+              <Icon name="chevron-right" size={28} strokeWidth={1.25} />
+            </button>
+          ) : (
+            <span className={styles.viewerArrowSpacer} aria-hidden="true" />
+          )}
         </div>
 
         <div className={styles.viewerFooter}>

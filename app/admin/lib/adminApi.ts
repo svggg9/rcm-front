@@ -15,6 +15,10 @@ import type {
   AdminCdekWebhookEvent,
   FinancialLedgerEntryType,
   AdminSellerPayout,
+  AdminStorefrontHome,
+  AdminStorefrontCollection,
+  AdminStorefrontCollectionRequest,
+  AdminStorefrontProduct,
   PayoutGenerationResult,
 } from "../types";
 
@@ -432,4 +436,183 @@ export async function assignProductCategory(
   if (!response.ok) {
     throw new Error(await readError(response, "Не удалось назначить категорию"));
   }
+}
+
+function normalizeStorefrontHome(data: unknown): AdminStorefrontHome {
+  if (!data || typeof data !== "object") {
+    return {
+      heroImageUrl: null,
+      updatedAt: null,
+      heroPositionX: 50,
+      heroPositionY: 50,
+      collections: [],
+    };
+  }
+
+  const value = data as Record<string, unknown>;
+
+  return {
+    heroImageUrl:
+      typeof value.heroImageUrl === "string" && value.heroImageUrl.trim()
+        ? value.heroImageUrl.trim()
+        : null,
+    updatedAt:
+      typeof value.updatedAt === "string" && value.updatedAt.trim()
+        ? value.updatedAt.trim()
+        : null,
+    heroPositionX:
+      typeof value.heroPositionX === "number" ? value.heroPositionX : 50,
+    heroPositionY:
+      typeof value.heroPositionY === "number" ? value.heroPositionY : 50,
+    collections: normalizeStorefrontCollections(value.collections),
+  };
+}
+
+function normalizeStorefrontProduct(data: unknown): AdminStorefrontProduct | null {
+  if (!data || typeof data !== "object") return null;
+  const value = data as Record<string, unknown>;
+  if (typeof value.id !== "number" || typeof value.title !== "string") return null;
+  return {
+    id: value.id,
+    publicId: typeof value.publicId === "string" ? value.publicId : null,
+    title: value.title,
+    brand: typeof value.brand === "string" ? value.brand : null,
+    category: typeof value.category === "string" ? value.category : null,
+    audience:
+      value.audience === "MEN" || value.audience === "WOMEN"
+        ? value.audience
+        : "UNISEX",
+    status: typeof value.status === "string" ? value.status : null,
+    coverImage: typeof value.coverImage === "string" ? value.coverImage : null,
+    hoverImage: typeof value.hoverImage === "string" ? value.hoverImage : null,
+    minPrice: typeof value.minPrice === "number" ? value.minPrice : 0,
+    inStock: value.inStock === true,
+  };
+}
+
+function normalizeStorefrontCollections(data: unknown): AdminStorefrontCollection[] {
+  if (!Array.isArray(data)) return [];
+  return data.flatMap((item) => {
+    if (!item || typeof item !== "object") return [];
+    const value = item as Record<string, unknown>;
+    if (typeof value.id !== "number" || typeof value.title !== "string") return [];
+    return [{
+      id: value.id,
+      title: value.title,
+      description: typeof value.description === "string" ? value.description : null,
+      active: value.active === true,
+      sortOrder: typeof value.sortOrder === "number" ? value.sortOrder : 0,
+      products: Array.isArray(value.products)
+        ? value.products.flatMap((product) => {
+            const normalized = normalizeStorefrontProduct(product);
+            return normalized ? [normalized] : [];
+          })
+        : [],
+    }];
+  });
+}
+
+export async function getAdminStorefrontHome(): Promise<AdminStorefrontHome> {
+  const response = await apiFetch(`${API_URL}/api/admin/storefront/home`);
+
+  if (!response.ok) {
+    throw new Error(
+      await readError(response, "Не удалось загрузить настройки витрины")
+    );
+  }
+
+  return normalizeStorefrontHome(await response.json());
+}
+
+export async function uploadAdminStorefrontHero(
+  file: File
+): Promise<AdminStorefrontHome> {
+  const formData = new FormData();
+  formData.append("file", file);
+
+  const response = await apiFetch(
+    `${API_URL}/api/admin/storefront/home/hero-image`,
+    {
+      method: "POST",
+      body: formData,
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error(
+      await readError(response, "Не удалось загрузить hero-изображение")
+    );
+  }
+
+  return normalizeStorefrontHome(await response.json());
+}
+
+export async function updateAdminStorefrontHeroPosition(
+  x: number,
+  y: number
+): Promise<AdminStorefrontHome> {
+  const response = await apiFetch(
+    `${API_URL}/api/admin/storefront/home/hero-position`,
+    {
+      method: "PATCH",
+      body: JSON.stringify({ x: Math.round(x), y: Math.round(y) }),
+    }
+  );
+  if (!response.ok) {
+    throw new Error(await readError(response, "Не удалось сохранить позицию изображения"));
+  }
+  return normalizeStorefrontHome(await response.json());
+}
+
+export async function getAdminStorefrontProducts(): Promise<AdminStorefrontProduct[]> {
+  const response = await apiFetch(`${API_URL}/api/admin/storefront/home/available-products`);
+  if (!response.ok) throw new Error(await readError(response, "Не удалось загрузить товары"));
+  const data: unknown = await response.json();
+  return Array.isArray(data)
+    ? data.flatMap((item) => {
+        const product = normalizeStorefrontProduct(item);
+        return product ? [product] : [];
+      })
+    : [];
+}
+
+export async function createAdminStorefrontCollection(
+  payload: AdminStorefrontCollectionRequest
+): Promise<AdminStorefrontCollection> {
+  const response = await apiFetch(`${API_URL}/api/admin/storefront/home/collections`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+  if (!response.ok) throw new Error(await readError(response, "Не удалось создать подборку"));
+  return normalizeStorefrontCollections([await response.json()])[0];
+}
+
+export async function updateAdminStorefrontCollection(
+  id: number,
+  payload: AdminStorefrontCollectionRequest
+): Promise<AdminStorefrontCollection> {
+  const response = await apiFetch(`${API_URL}/api/admin/storefront/home/collections/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(payload),
+  });
+  if (!response.ok) throw new Error(await readError(response, "Не удалось обновить подборку"));
+  return normalizeStorefrontCollections([await response.json()])[0];
+}
+
+export async function deleteAdminStorefrontCollection(id: number): Promise<void> {
+  const response = await apiFetch(`${API_URL}/api/admin/storefront/home/collections/${id}`, {
+    method: "DELETE",
+  });
+  if (!response.ok) throw new Error(await readError(response, "Не удалось удалить подборку"));
+}
+
+export async function reorderAdminStorefrontCollections(
+  collectionIds: number[]
+): Promise<AdminStorefrontCollection[]> {
+  const response = await apiFetch(`${API_URL}/api/admin/storefront/home/collections/order`, {
+    method: "PUT",
+    body: JSON.stringify({ collectionIds }),
+  });
+  if (!response.ok) throw new Error(await readError(response, "Не удалось изменить порядок"));
+  return normalizeStorefrontCollections(await response.json());
 }

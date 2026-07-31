@@ -106,7 +106,9 @@ export function FavoritesProvider({
         method,
       });
 
-      if (!response.ok) return;
+      if (!response.ok) {
+        throw new Error("Не удалось обновить избранное");
+      }
 
       setFavoriteIds((prev) =>
         isFav ? prev.filter((value) => value !== id) : [...prev, id]

@@ -1,0 +1,199 @@
+.page {
+  width: 100%;
+  min-width: 0;
+}
+
+.header {
+  margin-bottom: 22px;
+}
+
+.header h1 {
+  margin: 0;
+  color: var(--black);
+  font-size: var(--font-xl);
+  line-height: 1.15;
+  font-weight: 600;
+}
+
+.form {
+  width: min(960px, 100%);
+}
+
+.fieldHead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 8px;
+}
+
+.label {
+  color: var(--black);
+  font-size: 12px;
+  line-height: 1.25;
+  font-weight: 300;
+  letter-spacing: -0.01em;
+}
+
+.requirements {
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.3;
+  font-weight: 300;
+}
+
+.dropZone {
+  position: relative;
+  width: 100%;
+  overflow: hidden;
+  border: 0.5px solid var(--black);
+  background: var(--soft);
+  transition: opacity var(--transition-fast);
+}
+
+.positionEditor {
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+}
+
+.positionDragging {
+  cursor: grabbing;
+}
+
+.preview {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+}
+
+.image {
+  object-fit: cover;
+  pointer-events: none;
+}
+
+.dropOverlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(255, 255, 255, 0.88);
+  color: var(--black);
+  font-size: 13px;
+  line-height: 1.35;
+  font-weight: 600;
+  text-align: center;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--transition-fast);
+}
+
+.dropZoneActive .dropOverlay {
+  opacity: 1;
+}
+
+.positionHint {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  padding: 7px 9px;
+  background: rgba(0, 0, 0, 0.72);
+  color: var(--white);
+  font-size: 10px;
+  line-height: 1;
+  pointer-events: none;
+}
+
+.positionControls {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.positionControls > span {
+  margin-right: auto;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.positionControls button {
+  min-height: 34px;
+  padding: 0 11px;
+  border: 1px solid var(--line);
+  background: var(--white);
+  color: var(--black);
+  font-size: 11px;
+}
+
+.positionControls button:last-child {
+  border-color: var(--black);
+}
+
+.positionControls button:disabled {
+  opacity: .4;
+  cursor: default;
+}
+
+.dropZoneLoading {
+  opacity: 0.62;
+}
+
+.error {
+  margin: 8px 0 0;
+  color: var(--danger);
+  font-size: 12px;
+  line-height: 1.4;
+  font-weight: 400;
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.actions button {
+  min-width: 168px;
+}
+
+.fileInput {
+  display: none;
+}
+
+@media (max-width: 640px) {
+  .header {
+    margin-bottom: 18px;
+  }
+
+  .fieldHead {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .actions {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .positionControls {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .positionControls > span {
+    grid-column: 1 / -1;
+  }
+
+  .actions button {
+    width: 100%;
+    min-width: 0;
+  }
+}

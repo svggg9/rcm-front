@@ -10,6 +10,7 @@ type Props = {
   images: string[];
   onImageClick?: (index: number) => void;
   className?: string;
+  fit?: "cover" | "contain";
 };
 
 export function ProductImageCarousel({
@@ -17,6 +18,7 @@ export function ProductImageCarousel({
   images,
   onImageClick,
   className = "",
+  fit = "cover",
 }: Props) {
   const [activeIndex, setActiveIndex] = useState(0);
   const trackRef = useRef<HTMLDivElement | null>(null);
@@ -96,7 +98,9 @@ export function ProductImageCarousel({
               alt={`${title} ${index + 1}`}
               fill
               sizes="(max-width: 768px) 100vw, 240px"
-              className={styles.image}
+              className={`${styles.image} ${
+                fit === "contain" ? styles.imageContain : ""
+              }`.trim()}
               priority={index === 0}
             />
           </button>

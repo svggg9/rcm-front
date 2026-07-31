@@ -1,7 +1,9 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 
 import { API_URL, apiFetch } from "../lib/api";
 import { ensureCartId } from "../lib/auth";
@@ -17,7 +19,6 @@ import { getCart, removeItem, updateQuantity } from "./lib/cartApi";
 import { CartItemRow } from "./components/CartItemRow";
 import { CartSummary } from "./components/CartSummary";
 import { EmptyCart } from "./components/EmptyCart";
-import { toast } from "sonner";
 import { CartContentSkeleton } from "../components/ui/CommerceSkeleton";
 
 import styles from "./Cart.module.css";
@@ -42,14 +43,29 @@ type Product = {
   variants: ProductVariant[];
 };
 
+function formatCartCount(count: number): string {
+  const lastTwo = count % 100;
+  const last = count % 10;
+
+  if (lastTwo >= 11 && lastTwo <= 14) return `${count} товаров`;
+  if (last === 1) return `${count} товар`;
+  if (last >= 2 && last <= 4) return `${count} товара`;
+  return `${count} товаров`;
+}
+
 export default function CartPage() {
   const router = useRouter();
-  const { isAuthenticated: isAuth } = useCurrentUser();
+  const { isAuthenticated: isAuth, loading: authLoading } = useCurrentUser();
 
   const [items, setItems] = useState<CartItem[]>([]);
   const [recommendations, setRecommendations] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [cartId, setCartId] = useState("");
+  const [cartError, setCartError] = useState<string | null>(null);
+  const [reloadToken, setReloadToken] = useState(0);
+  const [pendingVariantIds, setPendingVariantIds] = useState<Set<number>>(
+    () => new Set()
+  );
 
   useEffect(() => {
     let active = true;
@@ -62,6 +78,7 @@ export default function CartPage() {
       } catch {
         if (!active) return;
         setCartId("");
+        setCartError("Не удалось подключиться к корзине.");
         setLoading(false);
       }
     }
@@ -71,7 +88,7 @@ export default function CartPage() {
     return () => {
       active = false;
     };
-  }, []);
+  }, [reloadToken]);
 
   useEffect(() => {
     let active = true;
@@ -84,10 +101,12 @@ export default function CartPage() {
       try {
         const data = await getCart(cartId);
         if (!active) return;
+        setCartError(null);
         setItems(Array.isArray(data) ? data : []);
       } catch {
         if (!active) return;
         setItems([]);
+        setCartError("Не удалось загрузить корзину.");
       } finally {
         if (active) setLoading(false);
       }
@@ -98,7 +117,7 @@ export default function CartPage() {
     return () => {
       active = false;
     };
-  }, [cartId]);
+  }, [cartId, reloadToken]);
 
   useEffect(() => {
     let active = true;
@@ -126,34 +145,51 @@ export default function CartPage() {
     };
   }, []);
 
+  function setVariantPending(variantId: number, pending: boolean) {
+    setPendingVariantIds((current) => {
+      const next = new Set(current);
+      if (pending) next.add(variantId);
+      else next.delete(variantId);
+      return next;
+    });
+  }
+
   async function handleQty(variantId: number, qty: number) {
-    if (!cartId) return;
+    if (!cartId || pendingVariantIds.has(variantId)) return;
+
+    setVariantPending(variantId, true);
 
     try {
       const data = await updateQuantity(cartId, variantId, qty);
 
-      setItems(data);
+      setItems(Array.isArray(data) ? data : []);
       emitCartChanged();
     } catch (error) {
       toast.error(
         error instanceof Error ? error.message : "Не удалось изменить количество"
       );
+    } finally {
+      setVariantPending(variantId, false);
     }
   }
 
   async function handleRemove(variantId: number) {
-    if (!cartId) return;
+    if (!cartId || pendingVariantIds.has(variantId)) return;
+
+    setVariantPending(variantId, true);
 
     try {
       const data = await removeItem(cartId, variantId);
 
-      setItems(data);
+      setItems(Array.isArray(data) ? data : []);
       emitCartChanged();
       toast("Товар удалён из корзины");
     } catch (error) {
       toast.error(
         error instanceof Error ? error.message : "Не удалось удалить товар"
       );
+    } finally {
+      setVariantPending(variantId, false);
     }
   }
 
@@ -161,8 +197,17 @@ export default function CartPage() {
     return items.reduce((sum, item) => sum + item.price * item.quantity, 0);
   }, [items]);
 
+  const totalQuantity = useMemo(() => {
+    return items.reduce((sum, item) => sum + item.quantity, 0);
+  }, [items]);
+
+  const visibleRecommendations = useMemo(() => {
+    const cartProductIds = new Set(items.map((item) => item.productId));
+    return recommendations.filter((product) => !cartProductIds.has(product.id));
+  }, [items, recommendations]);
+
   function goCheckout() {
-    if (!items.length || isAuth === null) return;
+    if (!items.length || authLoading || pendingVariantIds.size > 0) return;
 
     if (!isAuth) {
       router.push("/auth/login?next=/checkout");
@@ -172,15 +217,37 @@ export default function CartPage() {
     router.push("/checkout");
   }
 
+  function retryCart() {
+    setCartError(null);
+    setLoading(true);
+    setReloadToken((current) => current + 1);
+  }
+
   return (
     <div className="pageContainer">
       <div className={styles.page}>
         <div className={styles.top}>
-          <h1 className={styles.title}>КОРЗИНА</h1>
+          <h1 className={styles.title}>Корзина</h1>
+          <p className={styles.count} aria-live="polite">
+            {loading ? "Загрузка…" : formatCartCount(totalQuantity)}
+          </p>
         </div>
 
         {loading ? (
           <CartContentSkeleton />
+        ) : cartError ? (
+          <div className={styles.errorState} role="alert">
+            <h2>Не удалось загрузить корзину</h2>
+            <p>{cartError} Попробуйте ещё раз.</p>
+            <div className={styles.errorActions}>
+              <button type="button" className={styles.errorRetry} onClick={retryCart}>
+                Повторить
+              </button>
+              <Link href="/catalog" className={styles.errorCatalog}>
+                Перейти в каталог
+              </Link>
+            </div>
+          </div>
         ) : items.length === 0 ? (
           <EmptyCart />
         ) : (
@@ -190,6 +257,7 @@ export default function CartPage() {
                 <CartItemRow
                   key={item.variantId}
                   item={item}
+                  pending={pendingVariantIds.has(item.variantId)}
                   onChangeQty={handleQty}
                   onRemove={handleRemove}
                 />
@@ -198,8 +266,11 @@ export default function CartPage() {
 
             <CartSummary
               subtotal={subtotal}
+              itemCount={totalQuantity}
               onCheckout={goCheckout}
-              disabled={!items.length || isAuth === null}
+              disabled={
+                !items.length || authLoading || pendingVariantIds.size > 0
+              }
             />
           </div>
         )}
@@ -207,8 +278,11 @@ export default function CartPage() {
         {!loading ? (
           <ProductShowcase
             variant="carousel"
-            title="Вам может понравиться"
-            products={recommendations.map(mapProductToCarouselProduct)}
+            title="Возможно, вам понравится"
+            products={visibleRecommendations.map(mapProductToCarouselProduct)}
+            href="/catalog"
+            actionLabel="Смотреть всё"
+            className={styles.recommendations}
           />
         ) : null}
       </div>

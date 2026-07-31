@@ -9,6 +9,7 @@ type Props = {
   ordersCount: number;
   productsCount: number;
   storeName: string | null;
+  storeNotReady: boolean;
 };
 
 export function SellerSidebar({
@@ -16,13 +17,14 @@ export function SellerSidebar({
   ordersCount,
   productsCount,
   storeName,
+  storeNotReady,
 }: Props) {
   return (
     <CabinetSidebar
       ariaLabel="Меню продавца"
       subtitle="Кабинет продавца"
       title={storeName ?? undefined}
-      titleIcon="store"
+      titleBadge={storeNotReady ? "Магазин не готов" : undefined}
       mobileInline
       items={[
         {

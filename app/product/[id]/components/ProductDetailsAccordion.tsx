@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { Icon } from "../../../components/ui/Icon";
 import styles from "../ProductPage.module.css";
 import { ProductDescriptionText } from "./ProductDescriptionText";
 
@@ -13,14 +14,13 @@ type Props = {
   openBrand: boolean;
   onToggleDescription: () => void;
   onToggleBrand: () => void;
+  isSellerView: boolean;
 };
 
 function ChevronIcon() {
   return (
     <span className={styles.accIcon} aria-hidden="true">
-      <svg viewBox="0 0 16 16" focusable="false">
-        <path d="M4 6L8 10L12 6" />
-      </svg>
+      <Icon name="chevron-down" size={16} strokeWidth={1.35} />
     </span>
   );
 }
@@ -32,6 +32,7 @@ export function ProductDetailsAccordion({
   openBrand,
   onToggleDescription,
   onToggleBrand,
+  isSellerView,
 }: Props) {
   const composition = product.composition?.trim();
   const brandDescription = product.brandDescription?.trim();
@@ -55,12 +56,13 @@ export function ProductDetailsAccordion({
               <div className={styles.detailGroup}>
                 <ProductDescriptionText
                   text={product.description || ""}
-                  fallback="???????? ???? ?? ?????????."
+                  fallback="Описание пока не добавлено."
                 />
               </div>
 
               {composition ? (
                 <div className={styles.detailGroup}>
+                  <h3 className={styles.subTitle}>Состав</h3>
                   <p className={styles.text}>{composition}</p>
                 </div>
               ) : null}
@@ -71,7 +73,7 @@ export function ProductDetailsAccordion({
                   <strong>{selectedVariant?.sku || `RCM-${product.id}`}</strong>
                 </div>
 
-                {selectedVariant?.sellerArticle ? (
+                {isSellerView && selectedVariant?.sellerArticle ? (
                   <div>
                     <span>Артикул продавца</span>
                     <strong>{selectedVariant.sellerArticle}</strong>

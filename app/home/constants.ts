@@ -1,11 +1,12 @@
 import { HeroBlock } from "./types";
 
 export const HOME_PLACEHOLDER_IMAGE =
-  "https://storage.yandexcloud.net/rcm/products/02f2227e-1aad-4f0c-b50d-50a47aa1c8da.jpg";
+  "/kazansky.jpg";
 
 export const HOME_HERO: HeroBlock = {
-  title: "Только отечественные производители",
-  text: "Новые вещи от локальных производителей: одежда, аксессуары и предметы для повседневного гардероба.",
+  eyebrow: "Независимая мода · Россия",
+  title: "Только отечественные\nпроизводители",
+  text: "Одежда и аксессуары от локальных марок — в одной современной витрине.",
   buttonLabel: "В каталог",
   buttonHref: "/catalog",
   image: HOME_PLACEHOLDER_IMAGE,
