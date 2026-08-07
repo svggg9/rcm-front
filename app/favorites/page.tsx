@@ -174,10 +174,7 @@ export default function FavoritesPage() {
     let alive = true;
 
     async function loadCollections() {
-      const [storefront, fallback] = await Promise.all([
-        getStorefrontHome(),
-        getHomePageData("all"),
-      ]);
+      const storefront = await getStorefrontHome();
       if (!alive) return;
 
       const managed = (storefront?.collections ?? [])
@@ -204,6 +201,9 @@ export default function FavoritesPage() {
         setCollections(managed);
         return;
       }
+
+      const fallback = await getHomePageData("all");
+      if (!alive) return;
 
       const seenProductIds = new Set<number>();
       const fallbackCandidates = [
@@ -311,14 +311,7 @@ export default function FavoritesPage() {
         </div>
 
         {collections.length > 0 ? (
-          <section
-            className={styles.collections}
-            aria-labelledby="favorite-collections-title"
-          >
-            <h2 id="favorite-collections-title" className={styles.collectionsTitle}>
-              Подборки
-            </h2>
-
+          <section className={styles.collections} aria-label="Подборки">
             <div className={styles.collectionList}>
               {collections.map((collection) => (
                 <ProductShowcase

@@ -6,22 +6,26 @@ import { ProductListCard } from "../../components/ProductListCard";
 import { Button } from "../../components/ui/Button";
 import { CabinetTabs, type CabinetTabItem } from "../../components/ui/CabinetTabs";
 import { EmptyState } from "../../components/ui/EmptyState";
+import { ListLoadMore } from "../../components/ui/ListLoadMore";
 import {
   formatProductStatus,
   getProductStatusTone,
 } from "../../lib/productStatus";
 
 import styles from "./AdminProductsTab.module.css";
-import type { AdminProduct, ProductStatus } from "../types";
+import type { AdminProductListItem, ProductStatus } from "../types";
 
 type Props = {
-  products: AdminProduct[];
+  products: AdminProductListItem[];
+  totalElements: number;
   status: ProductStatus | "ALL";
   refreshing: boolean;
+  loadingMore: boolean;
   actionProductId: number | null;
   statusCounts: Record<ProductStatus | "ALL", number>;
   onStatusChange: (status: ProductStatus | "ALL") => void;
   onRefresh: () => void;
+  onLoadMore?: () => void;
   onOpenProduct: (id: number) => void;
   onPrefetchProduct?: (id: number) => void;
   onApprove: (id: number) => Promise<void>;
@@ -53,12 +57,15 @@ function formatDate(value?: string | null) {
 
 export function AdminProductsTab({
   products,
+  totalElements,
   status,
   refreshing,
+  loadingMore,
   actionProductId,
   statusCounts,
   onStatusChange,
   onRefresh,
+  onLoadMore,
   onOpenProduct,
   onPrefetchProduct,
   onApprove,
@@ -99,7 +106,7 @@ export function AdminProductsTab({
           onChange={onStatusChange}
           ariaLabel="Фильтр товаров по статусу"
           countTone="gold"
-          appearance="line"
+          appearance="segmented"
         />
 
         <Button
@@ -129,17 +136,10 @@ export function AdminProductsTab({
           />
         )
       ) : (
-        <div className={styles.list}>
-          {products.map((product) => {
-            const variants = product.variants ?? [];
-            const minPrice = variants.length
-              ? Math.min(...variants.map((variant) => Number(variant.price ?? 0)))
-              : 0;
-            const totalStock = variants.reduce(
-              (sum, variant) => sum + Number(variant.availableQuantity ?? 0),
-              0
-            );
-            const date = formatDate(product.updatedAt ?? product.createdAt);
+        <>
+          <div className={styles.list}>
+            {products.map((product) => {
+            const date = formatDate(product.updatedAt);
             const productBusy = actionProductId === product.id;
             const isPending = (action: ProductAction) =>
               pendingAction?.productId === product.id &&
@@ -150,19 +150,19 @@ export function AdminProductsTab({
                 key={product.id}
                 id={product.id}
                 title={product.title}
-                imageUrl={product.images?.[0] ?? null}
-                brandName={product.brand || "Без бренда"}
+                imageUrl={product.coverImage}
+                brandName={product.brandName || "Без бренда"}
                 categoryName={
-                  product.category ||
+                  product.categoryName ||
                   product.suggestedCategoryName ||
                   "Без категории"
                 }
                 suggestedCategory={
-                  !product.category && Boolean(product.suggestedCategoryName)
+                  !product.categoryName && Boolean(product.suggestedCategoryName)
                 }
-                minPrice={minPrice}
-                variantsCount={variants.length}
-                totalStock={totalStock}
+                minPrice={product.minPrice}
+                variantsCount={product.variantsCount}
+                totalStock={product.totalStock}
                 statusLabel={formatProductStatus(product.status)}
                 statusTone={getProductStatusTone(product.status)}
                 dateLabel={date ? `Обновлён ${date}` : null}
@@ -213,8 +213,15 @@ export function AdminProductsTab({
                 }
               />
             );
-          })}
-        </div>
+            })}
+          </div>
+          <ListLoadMore
+            loaded={products.length}
+            total={totalElements}
+            loading={loadingMore}
+            onLoadMore={onLoadMore}
+          />
+        </>
       )}
     </section>
   );

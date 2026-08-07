@@ -27,7 +27,7 @@
 
 .required::after {
   content: " *";
-  color: #8a6a2f;
+  color: var(--required-mark);
   font-weight: 500;
 }
 

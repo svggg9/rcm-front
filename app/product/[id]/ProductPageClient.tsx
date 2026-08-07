@@ -1,19 +1,19 @@
 "use client";
 
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import styles from "./ProductPage.module.css";
 import { Icon } from "../../components/ui/Icon";
-import { ensureCartId } from "../../lib/auth";
+import { resolveCartId } from "../../lib/cartAuthority";
 import { emitCartChanged } from "../../lib/cartEvents";
 import { useFavorites } from "../../lib/FavoritesContext";
 import { ProductShowcase } from "../../components/ProductShowcase/ProductShowcase";
 
 import { ProductGallery } from "./components/ProductGallery";
 import { ProductInfoPanel } from "./components/ProductInfoPanel";
-import { ProductImageViewer } from "./components/ProductImageViewer";
 
 import type { Product } from "./lib/types";
 import { useCurrentUser } from "../../lib/useCurrentUser";
@@ -21,6 +21,14 @@ import { addVariantToCart } from "./lib/productPageApi";
 import { getMinPrice } from "./lib/productPageUtils";
 import { toast } from "sonner";
 import type { CarouselProduct } from "../../components/ProductCarousel/types";
+
+const ProductImageViewer = dynamic(
+  () =>
+    import("./components/ProductImageViewer").then(
+      (module) => module.ProductImageViewer
+    ),
+  { ssr: false }
+);
 
 type Props = {
   product: Product;
@@ -63,8 +71,8 @@ export default function ProductPageClient({
     return defaultColorway?.id ?? product.variants[0]?.colorwayId ?? null;
   });
 
-  const { favoriteIds, toggle } = useFavorites();
-  const isFav = favoriteIds.includes(product.id);
+  const { isFavorite, toggle } = useFavorites();
+  const isFav = isFavorite(product.id);
 
   const selectedColorway = useMemo(() => {
     return (
@@ -185,7 +193,7 @@ export default function ProductPageClient({
       setAdding(true);
       setAddSuccess(false);
 
-      const cartId = await ensureCartId();
+      const cartId = await resolveCartId();
 
       if (!cartId) {
         toast.error("Не удалось создать корзину");
@@ -366,16 +374,18 @@ export default function ProductPageClient({
         </div>
       </div>
 
-      <ProductImageViewer
-        open={viewerOpen}
-        title={product.title}
-        images={displayImages}
-        currentIndex={viewerIndex}
-        progress={viewerProgress}
-        onClose={closeViewer}
-        onPrev={showPrevImage}
-        onNext={showNextImage}
-      />
+      {viewerOpen ? (
+        <ProductImageViewer
+          open
+          title={product.title}
+          images={displayImages}
+          currentIndex={viewerIndex}
+          progress={viewerProgress}
+          onClose={closeViewer}
+          onPrev={showPrevImage}
+          onNext={showNextImage}
+        />
+      ) : null}
     </>
   );
 }

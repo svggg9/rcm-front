@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -78,6 +78,8 @@ export function CheckoutResultContent({ orderId: routeOrderId }: { orderId?: str
   const [loading, setLoading] = useState(true);
   const [checking, setChecking] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const loadRequestIdRef = useRef(0);
+  const loadInFlightRef = useRef<Promise<void> | null>(null);
 
   const canLoad = Boolean(orderId);
 
@@ -121,19 +123,28 @@ export function CheckoutResultContent({ orderId: routeOrderId }: { orderId?: str
     [orders]
   );
 
-  const loadResult = useCallback(async () => {
+  const loadResult = useCallback((includeOrders = false): Promise<void> => {
+    if (loadInFlightRef.current) return loadInFlightRef.current;
+
+    const requestId = ++loadRequestIdRef.current;
     if (!canLoad) {
       setError("Не найден номер заказа в ссылке");
       setLoading(false);
-      return;
+      return Promise.resolve();
     }
 
     setError(null);
 
-    try {
-      const paymentResponse = await apiFetch(
-        `${API_URL}/api/payments/order/${encodeURIComponent(orderId)}/group-last`
-      );
+    const request = (async () => {
+      try {
+      const [paymentResponse, ordersResponse] = await Promise.all([
+        apiFetch(
+          `${API_URL}/api/payments/order/${encodeURIComponent(orderId)}/group-last`
+        ),
+        includeOrders
+          ? apiFetch(`${API_URL}/api/orders/${encodeURIComponent(orderId)}/group`)
+          : Promise.resolve(null),
+      ]);
 
       if (!paymentResponse.ok) {
         const text = await paymentResponse.text().catch(() => "");
@@ -153,35 +164,85 @@ export function CheckoutResultContent({ orderId: routeOrderId }: { orderId?: str
         }
       }
 
-      const ordersResponse = await apiFetch(`${API_URL}/api/orders/${encodeURIComponent(orderId)}/group`);
-
-      if (!ordersResponse.ok) {
+      if (ordersResponse && !ordersResponse.ok) {
         const text = await ordersResponse.text().catch(() => "");
         throw new Error(text || `Не удалось загрузить заказ (${ordersResponse.status})`);
       }
 
-      const ordersData = (await ordersResponse.json()) as OrderResponse[];
+      const ordersData = ordersResponse
+        ? ((await ordersResponse.json()) as OrderResponse[])
+        : null;
 
+      if (requestId !== loadRequestIdRef.current) return;
       setPayment(paymentData);
-      setOrders(Array.isArray(ordersData) ? ordersData : []);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Не удалось проверить оплату");
-    } finally {
-      setLoading(false);
-      setChecking(false);
-    }
+      if (ordersData) setOrders(Array.isArray(ordersData) ? ordersData : []);
+      } catch (e) {
+        if (requestId === loadRequestIdRef.current) {
+          setError(e instanceof Error ? e.message : "Не удалось проверить оплату");
+        }
+      } finally {
+        if (requestId === loadRequestIdRef.current) {
+          setLoading(false);
+          setChecking(false);
+        }
+      }
+    })().finally(() => {
+      if (loadInFlightRef.current === request) loadInFlightRef.current = null;
+    });
+
+    loadInFlightRef.current = request;
+    return request;
   }, [canLoad, orderId]);
 
   useEffect(() => {
-    void loadResult();
+    void loadResult(true);
 
-    const interval = setInterval(() => {
-      if (payment?.status === "PENDING") {
-        void loadResult();
+    return () => {
+      loadRequestIdRef.current += 1;
+      loadInFlightRef.current = null;
+    };
+  }, [loadResult]);
+
+  useEffect(() => {
+    if (payment?.status !== "PENDING") return;
+    const startedAt = Date.now();
+    const maxDurationMs = 2 * 60 * 1000;
+    let attempt = 0;
+    let timeoutId: number | null = null;
+    let cancelled = false;
+
+    const schedule = (delay?: number) => {
+      if (cancelled || document.hidden) return;
+      if (Date.now() - startedAt >= maxDurationMs) return;
+
+      const nextDelay =
+        delay ?? Math.min(5_000 * 2 ** Math.min(attempt, 2), 20_000);
+      timeoutId = window.setTimeout(async () => {
+        timeoutId = null;
+        if (cancelled || document.hidden) return;
+        await loadResult();
+        if (cancelled) return;
+        attempt += 1;
+        schedule();
+      }, nextDelay);
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        if (timeoutId !== null) window.clearTimeout(timeoutId);
+        timeoutId = null;
+        return;
       }
-    }, 5000);
+      if (timeoutId === null) schedule(0);
+    };
 
-    return () => clearInterval(interval);
+    schedule();
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () => {
+      cancelled = true;
+      if (timeoutId !== null) window.clearTimeout(timeoutId);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
   }, [loadResult, payment?.status]);
 
   async function retryPayment() {

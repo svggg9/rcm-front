@@ -406,19 +406,11 @@
 }
 
 .metaBadgeLoading {
-  border-color: rgba(201, 162, 79, 0.16);
-  background:
-    linear-gradient(
-      100deg,
-      rgba(201, 162, 79, 0.06) 0%,
-      rgba(201, 162, 79, 0.18) 45%,
-      rgba(201, 162, 79, 0.06) 90%
-    );
-  background-size: 220% 100%;
+  border: 0;
+  background: var(--skeleton-base);
   color: transparent;
-  animation:
-    badgeIn 0.18s ease forwards,
-    badgeShimmer 1.2s ease-in-out infinite;
+  opacity: 1;
+  animation: none;
 }
 
 @keyframes badgeIn {
@@ -428,16 +420,6 @@
 
   to {
     opacity: 1;
-  }
-}
-
-@keyframes badgeShimmer {
-  from {
-    background-position: 120% 0;
-  }
-
-  to {
-    background-position: -120% 0;
   }
 }
 

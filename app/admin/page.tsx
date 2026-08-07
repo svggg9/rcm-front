@@ -4,21 +4,25 @@ import { getServerSession } from "../lib/session";
 import { AdminPageClient } from "./AdminPageClient";
 import {
   getAdminDictionaryServer,
+  getAdminLedgerEntriesServer,
   getAdminOrderServer,
   getAdminOrdersServer,
   getAdminProductServer,
   getAdminProductStatusCountsServer,
   getAdminProductsServer,
-  getAdminLedgerEntriesServer,
+  getAdminSellerPayoutsServer,
+  getAdminSellerPayoutStatsServer,
   getAdminCdekWebhookEventsServer,
   getAdminSellerApplicationStatusCountsServer,
   getAdminSellerApplicationsServer,
+  getAdminStorefrontHomeServer,
 } from "./lib/adminServerApi";
 import type {
   AdminInitialData,
   AdminTab,
   ProductStatus,
   SellerApplicationStatus,
+  FinancialLedgerEntryType,
 } from "./types";
 
 type Props = {
@@ -28,6 +32,8 @@ type Props = {
     applicationStatus?: string;
     productId?: string;
     orderId?: string;
+    entryType?: string;
+    orderGroupId?: string;
   }>;
 };
 
@@ -67,17 +73,43 @@ function normalizeApplicationStatus(
   return "NEW";
 }
 
+function normalizeLedgerEntryType(raw?: string): FinancialLedgerEntryType | "ALL" {
+  if (
+    raw === "COMMISSION_ACCRUED" ||
+    raw === "COMMISSION_REVERSED" ||
+    raw === "BUYER_DELIVERY_FEE" ||
+    raw === "DELIVERY_COST_FORWARD" ||
+    raw === "DELIVERY_SUBSIDY" ||
+    raw === "DELIVERY_COST_RETURN" ||
+    raw === "BUYER_RETURN_DELIVERY_FEE" ||
+    raw === "REFUND_ITEM" ||
+    raw === "REFUND_DELIVERY" ||
+    raw === "SELLER_DEBIT" ||
+    raw === "SELLER_PAYOUT" ||
+    raw === "ACQUIRING_FEE"
+  ) {
+    return raw;
+  }
+  return "ALL";
+}
+
 async function getInitialData(params: Awaited<Props["searchParams"]>) {
   const tab = normalizeTab(params?.tab);
   const productStatus = normalizeProductStatus(params?.status);
   const applicationStatus = normalizeApplicationStatus(params?.applicationStatus);
+  const ledgerEntryType = normalizeLedgerEntryType(params?.entryType);
+  const ledgerOrderGroupId = params?.orderGroupId?.trim() ?? "";
   const selectedProductId = params?.productId ?? null;
   const selectedOrderId = params?.orderId ?? null;
 
   const initialData: AdminInitialData = {
     tab,
+    tabDataLoaded: false,
+    categoriesLoaded: false,
     productStatus,
     applicationStatus,
+    ledgerEntryType,
+    ledgerOrderGroupId,
     selectedProductId,
     selectedOrderId,
     products: [],
@@ -95,6 +127,7 @@ async function getInitialData(params: Awaited<Props["searchParams"]>) {
     orders: [],
     totalOrders: 0,
     selectedOrder: null,
+    storefrontHome: null,
     sellerApplications: [],
     totalSellerApplications: 0,
     sellerApplicationStatusCounts: {
@@ -105,6 +138,14 @@ async function getInitialData(params: Awaited<Props["searchParams"]>) {
     },
     ledgerEntries: [],
     totalLedgerEntries: 0,
+    ledgerLoaded: false,
+    sellerPayouts: [],
+    sellerPayoutStats: {
+      totalCount: 0,
+      readyAmount: 0,
+      sentAmount: 0,
+    },
+    sellerPayoutsLoaded: false,
     cdekWebhookEvents: [],
     totalCdekWebhookEvents: 0,
     categories: [],
@@ -113,38 +154,52 @@ async function getInitialData(params: Awaited<Props["searchParams"]>) {
   };
 
   try {
+    if (tab === "storefront") {
+      initialData.storefrontHome = await getAdminStorefrontHomeServer();
+      initialData.tabDataLoaded = initialData.storefrontHome !== null;
+    }
+
     if (tab === "products") {
-      const [productsData, categories, productStatusCounts] = await Promise.all([
+      const productId = selectedProductId ? Number(selectedProductId) : NaN;
+      const hasSelectedProduct = Number.isFinite(productId);
+      const [productsData, productStatusCounts, selectedProduct, categories] = await Promise.all([
         getAdminProductsServer(productStatus, 0, 50),
-        getAdminDictionaryServer("categories"),
         getAdminProductStatusCountsServer(),
+        hasSelectedProduct ? getAdminProductServer(productId) : Promise.resolve(null),
+        hasSelectedProduct
+          ? getAdminDictionaryServer("categories")
+          : Promise.resolve(null),
       ]);
 
       initialData.products = Array.isArray(productsData?.content)
         ? productsData.content
         : [];
       initialData.totalProducts = productsData?.totalElements ?? 0;
-      initialData.productStatusCounts = productStatusCounts;
-      initialData.categories = categories;
-
-      const id = selectedProductId ? Number(selectedProductId) : NaN;
-      if (Number.isFinite(id)) {
-        initialData.selectedProduct = await getAdminProductServer(id);
+      if (productStatusCounts) {
+        initialData.productStatusCounts = productStatusCounts;
       }
+      initialData.categories = categories ?? [];
+      initialData.categoriesLoaded = categories !== null;
+      initialData.selectedProduct = selectedProduct;
+      initialData.tabDataLoaded =
+        productsData !== null && productStatusCounts !== null;
     }
 
     if (tab === "orders") {
-      const ordersData = await getAdminOrdersServer(0, 50);
+      const orderId = selectedOrderId ? Number(selectedOrderId) : NaN;
+      const [ordersData, selectedOrder] = await Promise.all([
+        getAdminOrdersServer(0, 50),
+        Number.isFinite(orderId)
+          ? getAdminOrderServer(orderId)
+          : Promise.resolve(null),
+      ]);
 
       initialData.orders = Array.isArray(ordersData?.content)
         ? ordersData.content
         : [];
       initialData.totalOrders = ordersData?.totalElements ?? 0;
-
-      const id = selectedOrderId ? Number(selectedOrderId) : NaN;
-      if (Number.isFinite(id)) {
-        initialData.selectedOrder = await getAdminOrderServer(id);
-      }
+      initialData.selectedOrder = selectedOrder;
+      initialData.tabDataLoaded = ordersData !== null;
     }
 
     if (tab === "sellers") {
@@ -159,8 +214,12 @@ async function getInitialData(params: Awaited<Props["searchParams"]>) {
         : [];
       initialData.totalSellerApplications =
         applicationsData?.totalElements ?? 0;
-      initialData.sellerApplicationStatusCounts =
-        sellerApplicationStatusCounts;
+      if (sellerApplicationStatusCounts) {
+        initialData.sellerApplicationStatusCounts =
+          sellerApplicationStatusCounts;
+      }
+      initialData.tabDataLoaded =
+        applicationsData !== null && sellerApplicationStatusCounts !== null;
     }
 
     if (tab === "dictionaries") {
@@ -169,17 +228,44 @@ async function getInitialData(params: Awaited<Props["searchParams"]>) {
         getAdminDictionaryServer("sizes"),
       ]);
 
-      initialData.categories = categories;
-      initialData.sizes = sizes;
+      initialData.categories = categories ?? [];
+      initialData.sizes = sizes ?? [];
+      initialData.categoriesLoaded = categories !== null;
+      initialData.tabDataLoaded = categories !== null && sizes !== null;
     }
 
     if (tab === "finance") {
-      const ledgerData = await getAdminLedgerEntriesServer(0, 50);
-
-      initialData.ledgerEntries = Array.isArray(ledgerData?.content)
-        ? ledgerData.content
-        : [];
-      initialData.totalLedgerEntries = ledgerData?.totalElements ?? 0;
+      const opensLedger = ledgerEntryType !== "ALL" || Boolean(ledgerOrderGroupId);
+      if (opensLedger) {
+        const ledgerData = await getAdminLedgerEntriesServer(
+          0,
+          50,
+          ledgerEntryType,
+          ledgerOrderGroupId
+        );
+        initialData.ledgerEntries = Array.isArray(ledgerData?.content)
+          ? ledgerData.content
+          : [];
+        initialData.totalLedgerEntries = ledgerData?.totalElements ?? 0;
+        initialData.ledgerLoaded = ledgerData !== null;
+        initialData.tabDataLoaded = initialData.ledgerLoaded;
+      } else {
+        const [payoutsData, payoutStats] = await Promise.all([
+          getAdminSellerPayoutsServer(0, 50),
+          getAdminSellerPayoutStatsServer(),
+        ]);
+        initialData.sellerPayouts = Array.isArray(payoutsData?.content)
+          ? payoutsData.content
+          : [];
+        initialData.sellerPayoutStats = payoutStats ?? {
+          totalCount: payoutsData?.totalElements ?? 0,
+          readyAmount: 0,
+          sentAmount: 0,
+        };
+        initialData.sellerPayoutsLoaded =
+          payoutsData !== null && payoutStats !== null;
+        initialData.tabDataLoaded = initialData.sellerPayoutsLoaded;
+      }
     }
 
     if (tab === "delivery") {
@@ -190,6 +276,7 @@ async function getInitialData(params: Awaited<Props["searchParams"]>) {
         : [];
       initialData.totalCdekWebhookEvents =
         webhookEventsData?.totalElements ?? 0;
+      initialData.tabDataLoaded = webhookEventsData !== null;
     }
   } catch {
     initialData.error = "Не удалось загрузить данные админки";
@@ -199,7 +286,10 @@ async function getInitialData(params: Awaited<Props["searchParams"]>) {
 }
 
 export default async function AdminPage({ searchParams }: Props) {
-  const session = await getServerSession();
+  const sessionPromise = getServerSession();
+  const params = searchParams ? await searchParams : undefined;
+  const initialDataPromise = getInitialData(params);
+  const session = await sessionPromise;
 
   if (!session) {
     redirect("/auth/login?next=/admin");
@@ -209,8 +299,7 @@ export default async function AdminPage({ searchParams }: Props) {
     redirect("/");
   }
 
-  const params = searchParams ? await searchParams : undefined;
-  const initialData = await getInitialData(params);
+  const initialData = await initialDataPromise;
 
   return <AdminPageClient initialData={initialData} />;
 }

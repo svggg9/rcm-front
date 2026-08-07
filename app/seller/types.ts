@@ -198,6 +198,18 @@ export type SellerBrand = {
   foundationYear: number | null;
 };
 
+export type SellerDashboardSummary = {
+  activeProducts: number;
+  attentionProducts: number;
+  totalProducts: number;
+  readyOrders: number;
+  activeOrders: number;
+  totalOrders: number;
+  estimatedBalance: number;
+  salesAmount: number;
+  commissionAmount: number;
+};
+
 export type SellerBrandImage = {
   id: number;
   imageUrl: string;
@@ -263,26 +275,20 @@ export type SellerPayoutItem = {
 
 export type SellerPayout = {
   id: number;
-  sellerId: number;
-  sellerName: string;
   status: SellerPayoutStatus;
   scheduledDate: string;
-  currency: string;
-  grossSalesAmount: number;
-  commissionAmount: number;
-  adjustmentsAmount: number;
   payoutAmount: number;
-  inn: string;
-  bankName: string;
-  bik: string;
   checkingAccount: string;
-  correspondentAccount: string | null;
   paymentOrderNumber: string | null;
-  adminComment: string | null;
-  createdAt: string;
-  sentAt: string | null;
-  paidAt: string | null;
-  items: SellerPayoutItem[];
+  orderCount: number;
+};
+
+export type SellerStorefrontProduct = {
+  id: number;
+  title: string;
+  brand: string | null;
+  coverImage: string | null;
+  status: string | null;
 };
 
 export type SellerFinanceSummary = {

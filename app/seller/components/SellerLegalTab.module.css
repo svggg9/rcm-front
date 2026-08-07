@@ -1,68 +1,48 @@
 .page {
+  min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 0;
-}
-
-.page > * {
-  margin-bottom: 32px;
-}
-
-.page > *:last-child {
-  margin-bottom: 0;
+  gap: 24px;
+  container-type: inline-size;
 }
 
 .form {
+  min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 0;
-}
-
-.form > * {
-  margin-bottom: 0;
-}
-
-.form > *:last-child {
-  margin-bottom: 0;
+  gap: 16px;
 }
 
 .card {
-  padding: 32px 0;
-  border: 0;
-  background: transparent;
-}
-
-.unifiedForm {
+  min-width: 0;
   display: flex;
   flex-direction: column;
   gap: 20px;
-  padding-bottom: 20px;
-}
-
-.card + .card {
-  padding-top: 20px;
+  padding: 24px;
+  border: 0;
+  background: var(--soft);
 }
 
 .cardHeader {
-  margin-bottom: 22px;
+  margin-bottom: 2px;
 }
 
 .cardHeader h2 {
   margin: 0 0 5px;
   color: var(--black);
-  font-size: 22px;
+  font-size: var(--font-lg);
   line-height: 1.25;
-  font-weight: 400;
-  letter-spacing: 0;
+  font-weight: 650;
+  letter-spacing: -0.01em;
 }
 
 .cardHeader p {
   max-width: 640px;
   margin: 0;
   color: var(--muted);
-  font-size: var(--font-sm);
+  font-size: var(--font-xs);
   line-height: 1.4;
-  font-weight: 300;
+  font-weight: 400;
   letter-spacing: 0;
 }
 
@@ -110,11 +90,46 @@
   min-width: 0;
 }
 
+.contactsGrid {
+  display: grid;
+  grid-template-columns: minmax(240px, 0.8fr) minmax(360px, 1.2fr);
+  gap: 12px;
+  align-items: stretch;
+}
+
+.contactPhone {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 20px;
+  background: var(--white);
+}
+
+.contactHint {
+  margin: 0;
+  color: var(--muted);
+  font-size: var(--font-xs);
+  line-height: 1.4;
+  font-weight: 400;
+}
+
+.typeOption > [data-appearance="outline-check"],
+.checkbox > [data-appearance="outline-check"] {
+  border-radius: 0;
+}
+
 .fieldWrap {
   position: relative;
   display: flex;
   flex-direction: column;
   gap: 8px;
+}
+
+.phoneField {
+  position: relative;
+  min-width: 0;
 }
 
 .suggestField {
@@ -234,7 +249,7 @@
 
 .required::after {
   content: " *";
-  color: #8a6a2f;
+  color: var(--required-mark);
   font-weight: 500;
 }
 
@@ -250,7 +265,7 @@
 }
 
 .addressField {
-  margin-top: 20px;
+  margin-top: 0;
 }
 
 .checkbox {
@@ -297,7 +312,7 @@
 .actions {
   display: flex;
   justify-content: flex-end;
-  padding: 0;
+  padding: 4px 0 0;
 }
 
 .actions button {
@@ -368,54 +383,30 @@
   letter-spacing: 0;
 }
 
-.skeletonHeader,
-.skeletonCard {
-  position: relative;
-  overflow: hidden;
-  background: var(--white);
-}
-
-.skeletonHeader {
-  height: 88px;
-}
-
-.skeletonCard {
-  padding: 0;
-}
-
-.skeletonLine,
-.skeletonGrid {
-  position: relative;
-  z-index: 1;
-}
-
-.skeletonLine {
-  width: 260px;
-  height: 18px;
-  border: 1px solid var(--line);
-  background: var(--white);
-}
-
-.skeletonGrid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
-  margin-top: 18px;
-}
-
-.skeletonGrid div {
-  height: 52px;
-  border: 1px solid var(--line);
-  background: var(--white);
+@container (max-width: 720px) {
+  .contactsGrid,
+  .grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (max-width: 900px) {
-  .grid,
-  .skeletonGrid {
-    grid-template-columns: 1fr;
-  }
-
   .successModal :global(.modalFooter) {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .card {
+    gap: 18px;
+    padding: 16px;
+  }
+
+  .contactPhone {
+    padding: 16px;
+  }
+
+  .actions button {
+    width: 100%;
   }
 }

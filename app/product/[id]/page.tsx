@@ -6,40 +6,48 @@ import type { CarouselProduct } from "../../components/ProductCarousel/types";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { productPath } from "../../lib/productUrls";
+import { cache } from "react";
 
 export const dynamic = "force-dynamic";
 
-async function getProduct(id: string): Promise<Product | null> {
-  const response = await fetch(`${API_URL}/api/products/${id}`, {
-    cache: "no-store",
-  });
+type ProductPageData = {
+  product: Product;
+  related: CarouselProduct[];
+};
+
+const getProductPage = cache(async (id: string): Promise<ProductPageData | null> => {
+  const response = await fetch(
+    `${API_URL}/api/products/${encodeURIComponent(id)}/page?relatedLimit=12`,
+    {
+      cache: "no-store",
+    }
+  );
 
   if (!response.ok) {
     return null;
   }
 
-  return response.json();
-}
-
-async function getRelatedProductItems(id: string): Promise<CarouselProduct[]> {
-  const response = await fetch(`${API_URL}/api/products/${id}/related?limit=12`, {
-    next: { revalidate: 60 },
-  });
-
-  if (!response.ok) {
-    return [];
-  }
-
   const data: unknown = await response.json();
-
-  if (!Array.isArray(data)) {
-    return [];
+  if (!data || typeof data !== "object" || !("product" in data)) {
+    return null;
   }
 
-  return data
-    .map((product) => mapProductToCarouselProduct(product))
-    .filter((product): product is CarouselProduct => product !== null);
-}
+  const payload = data as { product?: unknown; related?: unknown };
+  if (!payload.product || typeof payload.product !== "object") {
+    return null;
+  }
+
+  const related = Array.isArray(payload.related)
+    ? payload.related
+        .map((product) => mapProductToCarouselProduct(product))
+        .filter((product): product is CarouselProduct => product !== null)
+    : [];
+
+  return {
+    product: payload.product as Product,
+    related,
+  };
+});
 
 export async function generateMetadata({
   params,
@@ -47,7 +55,8 @@ export async function generateMetadata({
   params: Promise<{ id: string }>;
 }): Promise<Metadata> {
   const { id } = await params;
-  const product = await getProduct(id);
+  const data = await getProductPage(id);
+  const product = data?.product ?? null;
 
   if (!product) {
     return {
@@ -88,14 +97,11 @@ export default async function ProductPage({
 }) {
   const { id } = await params;
 
-  const [product, related] = await Promise.all([
-    getProduct(id),
-    getRelatedProductItems(id),
-  ]);
+  const data = await getProductPage(id);
 
-  if (!product) {
+  if (!data) {
     notFound();
   }
 
-  return <ProductPageClient product={product} related={related} />;
+  return <ProductPageClient product={data.product} related={data.related} />;
 }

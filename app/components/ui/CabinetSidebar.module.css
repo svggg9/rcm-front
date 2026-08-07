@@ -76,32 +76,8 @@
 }
 
 .titleSkeleton {
-  position: relative;
-  overflow: hidden;
   width: 68%;
   height: 28px;
-  border-radius: 4px;
-  background: #eeeeec;
-}
-
-.titleSkeleton::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  transform: translateX(-100%);
-  background: linear-gradient(
-    90deg,
-    transparent,
-    rgb(255 255 255 / 72%),
-    transparent
-  );
-  animation: sidebarSkeletonShimmer 1.25s ease-in-out infinite;
-}
-
-@keyframes sidebarSkeletonShimmer {
-  to {
-    transform: translateX(100%);
-  }
 }
 
 .nav {

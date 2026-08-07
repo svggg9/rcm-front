@@ -9,6 +9,12 @@
   font-size: var(--font-sm);
 }
 
+.summary {
+  margin: 0 0 14px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
 .list {
   display: grid;
   gap: 16px;
@@ -119,6 +125,12 @@
   margin-top: 16px;
   color: var(--danger, #b42318);
   font-size: var(--font-sm);
+}
+
+.loadMore {
+  display: flex;
+  justify-content: center;
+  margin-top: 20px;
 }
 
 @media (max-width: 768px) {

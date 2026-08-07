@@ -747,14 +747,6 @@
   padding: 20px 0 38px;
 }
 
-.skeletonBreadcrumb,
-.skeletonHeading,
-.skeletonChip,
-.skeletonSort,
-.skeletonCount {
-  background: var(--soft);
-}
-
 .skeletonBreadcrumb {
   width: 116px;
   height: 12px;

@@ -90,7 +90,7 @@ function normalizeStorefrontHome(data: unknown): StorefrontHome | null {
 export async function getStorefrontHome(): Promise<StorefrontHome | null> {
   try {
     const response = await fetch(`${API_URL}/api/storefront/home`, {
-      cache: "no-store",
+      next: { revalidate: 30 },
     });
 
     if (!response.ok) return null;

@@ -1,0 +1,43 @@
+.page {
+  padding: 34px 0 80px;
+}
+
+.title {
+  width: min(260px, 52vw);
+  height: 34px;
+  margin-bottom: 28px;
+}
+
+.layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 360px);
+  gap: 32px;
+  align-items: start;
+}
+
+.main {
+  display: grid;
+  gap: 20px;
+}
+
+.sectionTall {
+  min-height: 340px;
+}
+
+.section {
+  min-height: 170px;
+}
+
+.summary {
+  min-height: 360px;
+}
+
+@media (max-width: 900px) {
+  .layout {
+    grid-template-columns: 1fr;
+  }
+
+  .summary {
+    min-height: 260px;
+  }
+}

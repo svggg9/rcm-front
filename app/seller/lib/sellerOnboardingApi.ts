@@ -11,7 +11,9 @@ export type SellerOnboardingStatus = {
   progress: number;
 };
 
-export async function getSellerOnboardingStatus(): Promise<SellerOnboardingStatus> {
+let pendingOnboardingStatus: Promise<SellerOnboardingStatus> | null = null;
+
+async function fetchSellerOnboardingStatus(): Promise<SellerOnboardingStatus> {
   const response = await apiFetch(`${API_URL}/api/seller/onboarding-status`);
 
   if (!response.ok) {
@@ -19,4 +21,17 @@ export async function getSellerOnboardingStatus(): Promise<SellerOnboardingStatu
   }
 
   return response.json();
+}
+
+export function getSellerOnboardingStatus(): Promise<SellerOnboardingStatus> {
+  if (pendingOnboardingStatus) return pendingOnboardingStatus;
+
+  const request = fetchSellerOnboardingStatus().finally(() => {
+    if (pendingOnboardingStatus === request) {
+      pendingOnboardingStatus = null;
+    }
+  });
+
+  pendingOnboardingStatus = request;
+  return request;
 }

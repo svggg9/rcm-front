@@ -4,8 +4,10 @@ import type {
   SellerBrand,
   SellerBrandImage,
   SellerBrandProfileRequest,
+  PageResponse,
   SellerStorefrontCollection,
   SellerStorefrontCollectionRequest,
+  SellerStorefrontProduct,
 } from "../types";
 
 export async function getSellerBrands(): Promise<SellerBrand[]> {
@@ -143,6 +145,25 @@ export async function getSellerStorefrontCollections(
   if (!response.ok) throw new Error("Не удалось загрузить подборки");
   const data: unknown = await response.json();
   return Array.isArray(data) ? (data as SellerStorefrontCollection[]) : [];
+}
+
+export async function getSellerStorefrontProducts(
+  brandId: number,
+  page = 0,
+  size = 24,
+  query = ""
+): Promise<PageResponse<SellerStorefrontProduct>> {
+  const params = new URLSearchParams({ page: String(page), size: String(size) });
+  if (query.trim()) params.set("q", query.trim());
+  const response = await apiFetch(
+    `${API_URL}/api/seller/brands/${brandId}/collections/available-products?${params.toString()}`
+  );
+  if (!response.ok) throw new Error("Не удалось загрузить товары для подборки");
+  const data = (await response.json()) as PageResponse<SellerStorefrontProduct>;
+  return {
+    ...data,
+    content: Array.isArray(data.content) ? data.content : [],
+  };
 }
 
 export async function createSellerStorefrontCollection(

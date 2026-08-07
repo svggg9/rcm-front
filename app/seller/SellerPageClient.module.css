@@ -20,12 +20,48 @@
 }
 
 .orderSectionTabs :global(button[role="tab"]) {
+  min-height: 44px;
+  color: #696969;
+  font-size: 18px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+.loadError {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 16px;
+  background: var(--surface-subtle, #f4f4f4);
   color: var(--black);
-  font-weight: 400;
+  font-size: 14px;
+}
+
+.loadError button {
+  flex: 0 0 auto;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
 }
 
 .orderSectionTabs :global(button[role="tab"][aria-selected="true"]) {
-  font-weight: 600;
+  color: var(--black);
+  font-weight: 700;
+}
+
+.orderSectionTabs :global(button[role="tab"]::after) {
+  height: 3px;
+}
+
+.orderSectionTabs :global(button[role="tab"][aria-selected="true"]::after) {
+  background: var(--black);
 }
 
 @media (max-width: 900px) {

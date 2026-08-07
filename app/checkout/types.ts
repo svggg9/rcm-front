@@ -12,6 +12,11 @@ export type CartItem = {
   imageUrl: string | null;
 };
 
+export type CheckoutCartBootstrap = {
+  cartId: string;
+  items: CartItem[];
+};
+
 export type PaymentMethod = "CARD" | "SBP";
 
 export type DeliveryMethod = "PICKUP" | "COURIER";
@@ -72,6 +77,7 @@ export type SellerDeliveryCost = {
 };
 
 export type SellerGroupDeliveryQuoteResponse = DeliveryQuoteResponse & {
+  checkoutToken: string;
   deliveryCostAmount: number;
   deliverySubsidyAmount: number;
   commissionAmount: number;
@@ -99,6 +105,7 @@ export type CheckoutRequest = {
   deliveryIntercom?: string;
   fittingMode?: FittingMode;
   deliveryOfferId?: string;
+  deliveryQuoteToken?: string;
   deliveryPriceAmount?: number;
   deliveryCurrency?: string;
   sellerDeliveryCosts?: {

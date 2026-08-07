@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
+import { cache } from "react";
 
 import { API_URL } from "../lib/api";
 import { CatalogClient } from "../components/Catalog/CatalogClient";
-import { getStorefrontHome } from "../home/lib/getStorefrontHome";
 import {
   expandCategorySelection,
   firstSearchParam,
@@ -124,7 +124,7 @@ function buildCatalogCanonical(params: NormalizedCatalogParams & { page: number 
 function normalizeCatalogParams(params: CatalogSearchParams): NormalizedCatalogParams {
   const selectedCategory = firstSearchParam(params.category).trim();
   const selectedAudience = normalizeAudience(firstSearchParam(params.audience) || null);
-  const searchQuery = firstSearchParam(params.q).trim();
+  const searchQuery = firstSearchParam(params.q).trim().slice(0, 120);
   const selectedBrands = normalizeSearchList(params.brands ?? params.brand);
   const selectedSizes = normalizeSearchList(params.sizes);
   let minPrice = parsePrice(params.minPrice);
@@ -158,10 +158,27 @@ function normalizeCatalogParams(params: CatalogSearchParams): NormalizedCatalogP
   };
 }
 
-async function getActiveCatalogCollections(): Promise<CatalogCollectionOption[]> {
-  const home = await getStorefrontHome();
-  return (home?.collections ?? []).map(({ id, title }) => ({ id, title }));
-}
+const getActiveCatalogCollections = cache(async (): Promise<CatalogCollectionOption[]> => {
+  try {
+    const response = await fetch(`${API_URL}/api/storefront/home/collections`, {
+      next: { revalidate: 30 },
+    });
+    if (!response.ok) return [];
+
+    const data: unknown = await response.json();
+    if (!Array.isArray(data)) return [];
+
+    return data.filter(
+      (item): item is CatalogCollectionOption =>
+        Boolean(item) &&
+        typeof item === "object" &&
+        typeof (item as CatalogCollectionOption).id === "number" &&
+        typeof (item as CatalogCollectionOption).title === "string"
+    );
+  } catch {
+    return [];
+  }
+});
 
 export async function generateMetadata({
   searchParams,
@@ -169,7 +186,10 @@ export async function generateMetadata({
   searchParams?: Promise<CatalogSearchParams>;
 }): Promise<Metadata> {
   const normalized = normalizeCatalogParams((searchParams ? await searchParams : {}) ?? {});
-  const collections = await getActiveCatalogCollections();
+  const collections =
+    normalized.selectedCollectionId === undefined
+      ? []
+      : await getActiveCatalogCollections();
   const selectedCollection = collections.find(
     (collection) => collection.id === normalized.selectedCollectionId
   );
@@ -232,9 +252,10 @@ async function getCatalogProducts(params: {
     search.set("page", String(Math.max(0, params.page - 1)));
     search.set("size", "48");
 
-    const response = await fetch(`${API_URL}/api/products/page?${search.toString()}`, {
-      next: { revalidate: 60 },
-    });
+    const response = await fetch(
+      `${API_URL}/api/products/page?${search.toString()}`,
+      params.q ? { cache: "no-store" } : { next: { revalidate: 60 } }
+    );
 
     if (!response.ok) throw new Error("Catalog response failed");
 
@@ -311,9 +332,28 @@ export default async function CatalogPage({
   searchParams?: Promise<CatalogSearchParams>;
 }) {
   const normalized = normalizeCatalogParams((searchParams ? await searchParams : {}) ?? {});
-  const [options, collections] = await Promise.all([
+  const effectiveSort: SortValue =
+    normalized.sortBy || (normalized.selectedView === "new" ? "newest" : "");
+  const canStartProductsImmediately =
+    !normalized.selectedCategory && normalized.selectedCollectionId === undefined;
+  const earlyProducts = canStartProductsImmediately
+    ? getCatalogProducts({
+        audience: normalized.selectedAudience,
+        categories: [],
+        brands: normalized.selectedBrands,
+        sizes: normalized.selectedSizes,
+        minPrice: normalized.minPrice,
+        maxPrice: normalized.maxPrice,
+        q: normalized.searchQuery,
+        sort: effectiveSort,
+        page: normalized.page,
+      })
+    : Promise.resolve(null);
+
+  const [options, collections, prefetchedProducts] = await Promise.all([
     getCatalogOptions(),
     getActiveCatalogCollections(),
+    earlyProducts,
   ]);
   const selectedCollection = collections.find(
     (collection) => collection.id === normalized.selectedCollectionId
@@ -333,20 +373,20 @@ export default async function CatalogPage({
     normalized.selectedCategory,
     categoryGroups
   );
-  const effectiveSort: SortValue =
-    normalized.sortBy || (normalized.selectedView === "new" ? "newest" : "");
-  const { products, totalPages, totalProducts, hasError } = await getCatalogProducts({
-    audience: normalized.selectedAudience,
-    categories: expandedCategories,
-    brands: normalized.selectedBrands,
-    sizes: normalized.selectedSizes,
-    minPrice: normalized.minPrice,
-    maxPrice: normalized.maxPrice,
-    q: normalized.searchQuery,
-    sort: effectiveSort,
-    page: normalized.page,
-    collectionId: selectedCollectionId,
-  });
+  const { products, totalPages, totalProducts, hasError } =
+    prefetchedProducts ??
+    (await getCatalogProducts({
+      audience: normalized.selectedAudience,
+      categories: expandedCategories,
+      brands: normalized.selectedBrands,
+      sizes: normalized.selectedSizes,
+      minPrice: normalized.minPrice,
+      maxPrice: normalized.maxPrice,
+      q: normalized.searchQuery,
+      sort: effectiveSort,
+      page: normalized.page,
+      collectionId: selectedCollectionId,
+    }));
 
   if (!hasError && totalProducts > 0 && normalized.page > totalPages) {
     redirect(buildCatalogCanonical({ ...effectiveNormalized, page: totalPages }));

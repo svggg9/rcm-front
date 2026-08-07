@@ -3,6 +3,8 @@
 import { useEffect, useSyncExternalStore } from "react";
 
 import { apiFetch, API_URL } from "./api";
+import { AUTH_EVENT } from "./authEvents";
+import { getClientSession } from "./client-session";
 
 export type FavoriteBrand = {
   id: number;
@@ -25,8 +27,9 @@ type Snapshot = {
 const EMPTY_BRANDS: FavoriteBrand[] = [];
 const SERVER_SNAPSHOT: Snapshot = { brands: EMPTY_BRANDS, loading: true };
 let snapshot: Snapshot = SERVER_SNAPSHOT;
-let loaded = false;
 let loadingPromise: Promise<void> | null = null;
+let loadedForUserId: number | null | undefined;
+let authRevision = 0;
 const listeners = new Set<() => void>();
 
 function emit(next: Snapshot) {
@@ -40,12 +43,24 @@ function subscribe(listener: () => void) {
 }
 
 async function loadFavoriteBrands() {
-  if (loaded) return;
   if (loadingPromise) return loadingPromise;
 
+  const revision = authRevision;
   loadingPromise = (async () => {
     try {
+      const session = await getClientSession();
+      if (revision !== authRevision) return;
+
+      const userId = session?.id ?? null;
+      if (loadedForUserId === userId) return;
+      if (userId === null) {
+        loadedForUserId = null;
+        emit({ brands: EMPTY_BRANDS, loading: false });
+        return;
+      }
+
       const response = await apiFetch(`${API_URL}/api/favorite-brands`);
+      if (revision !== authRevision) return;
       if (!response.ok) {
         emit({ brands: EMPTY_BRANDS, loading: false });
         return;
@@ -56,14 +71,28 @@ async function loadFavoriteBrands() {
         brands: Array.isArray(data) ? (data as FavoriteBrand[]) : EMPTY_BRANDS,
         loading: false,
       });
+      loadedForUserId = userId;
     } finally {
-      loaded = true;
-      loadingPromise = null;
-      if (snapshot.loading) emit({ ...snapshot, loading: false });
+      if (revision === authRevision) {
+        loadingPromise = null;
+        if (snapshot.loading) emit({ ...snapshot, loading: false });
+      }
     }
   })();
 
   return loadingPromise;
+}
+
+function invalidateFavoriteBrands() {
+  authRevision += 1;
+  loadedForUserId = undefined;
+  loadingPromise = null;
+  emit({ brands: EMPTY_BRANDS, loading: true });
+  if (listeners.size > 0) void loadFavoriteBrands();
+}
+
+if (typeof window !== "undefined") {
+  window.addEventListener(AUTH_EVENT, invalidateFavoriteBrands);
 }
 
 async function toggleFavoriteBrand(brand: FavoriteBrand): Promise<boolean> {

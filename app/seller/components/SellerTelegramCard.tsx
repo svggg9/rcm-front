@@ -4,8 +4,10 @@ import Image from "next/image";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
-import { apiFetch, API_URL } from "../../lib/api";
+import { Button } from "../../components/ui/Button";
+import { SkeletonBlock } from "../../components/ui/SkeletonBlock";
 import { StatusBadge } from "../../components/ui/StatusBadge";
+import { apiFetch, API_URL } from "../../lib/api";
 
 import styles from "./SellerTelegramCard.module.css";
 
@@ -111,53 +113,61 @@ export function SellerTelegramCard() {
   return (
     <section className={styles.card} aria-label="Telegram уведомления">
       <div className={styles.header}>
-        <div>
-          <div className={styles.titleRow}>
-            <Image
-              src="/icons/telegram.svg"
-              alt=""
-              width={20}
-              height={20}
-              aria-hidden="true"
-              className={styles.icon}
-            />
-            <h2 className={`${styles.title} textTitle`}>Telegram уведомления</h2>
+        <div className={styles.titleRow}>
+          <Image
+            src="/icons/telegram.svg"
+            alt=""
+            width={24}
+            height={24}
+            aria-hidden="true"
+            className={styles.icon}
+          />
+          <div>
+            <h3 className={styles.title}>Telegram</h3>
+            <p className={styles.text}>
+              Уведомления о новых заказах и важных изменениях магазина.
+            </p>
           </div>
         </div>
 
         {loading ? (
-          <span className={styles.skeleton} aria-hidden="true" />
+          <SkeletonBlock as="span" className={styles.skeleton} />
         ) : linked ? (
-          <StatusBadge tone="success">{username}</StatusBadge>
+          <StatusBadge tone="success" size="regular">
+            {username}
+          </StatusBadge>
         ) : (
-          <StatusBadge>Не подключен</StatusBadge>
+          <StatusBadge size="regular">Не подключен</StatusBadge>
         )}
       </div>
 
       <div className={styles.actions}>
         {linked ? (
-          <button
+          <Button
             type="button"
-            className="buttonSecondary textButton"
+            variant="secondary"
+            className={styles.actionButton}
             onClick={() => void unlink()}
-            disabled={unlinking}
+            loading={unlinking}
           >
-            {unlinking ? "Отключаем" : "Отключить"}
-          </button>
+            Отключить
+          </Button>
         ) : (
-          <button
+          <Button
             type="button"
-            className="buttonPrimary textButton"
+            variant="primary"
+            className={styles.actionButton}
             onClick={() => void createLink()}
-            disabled={loading || linking}
+            disabled={loading}
+            loading={linking}
           >
-            Подключить
-          </button>
+            Подключить Telegram
+          </Button>
         )}
 
         {linkUrl ? (
           <a
-            className="buttonSecondary textButton"
+            className={`buttonSecondary ${styles.actionButton}`}
             href={linkUrl}
             target="_blank"
             rel="noreferrer"
@@ -166,14 +176,15 @@ export function SellerTelegramCard() {
           </a>
         ) : null}
 
-        <button
+        <Button
           type="button"
-          className="buttonSecondary textButton"
+          variant="ghost"
+          className={styles.checkButton}
           onClick={() => void loadStatus()}
           disabled={loading}
         >
           Проверить
-        </button>
+        </Button>
       </div>
     </section>
   );

@@ -10,6 +10,7 @@
   --gold: #b08d57;
   --gold-muted: #a89066;
   --gold-deep: #7a613a;
+  --required-mark: var(--gold-deep);
 
   --bg: var(--white);
   --text: var(--black);
@@ -21,6 +22,10 @@
   --content-primary-hover-label: var(--black);
   --content-primary-hover-icon: var(--black);
   --surface-hover: var(--black-surface-hover);
+
+  --skeleton-base: #eeeeec;
+  --skeleton-highlight: rgb(255 255 255 / 72%);
+  --skeleton-duration: 1.25s;
 
   --input-border-color: #111111;
 

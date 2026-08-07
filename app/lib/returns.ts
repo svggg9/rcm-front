@@ -48,6 +48,62 @@ export type ReturnRequest = {
   updatedAt: string;
 };
 
+export type SellerReturnListItem = Pick<
+  ReturnRequest,
+  | "id"
+  | "orderId"
+  | "productId"
+  | "variantId"
+  | "productTitle"
+  | "sku"
+  | "quantity"
+  | "reason"
+  | "comment"
+  | "status"
+  | "cdekNumber"
+  | "requestedAmount"
+  | "approvedRefundAmount"
+  | "sellerComment"
+  | "resellable"
+  | "createdAt"
+  | "updatedAt"
+>;
+
+export type SellerReturnsPage = {
+  items: SellerReturnListItem[];
+  page: number;
+  totalPages: number;
+  totalItems: number;
+};
+
+export type AccountReturnListItem = Pick<
+  ReturnRequest,
+  | "id"
+  | "orderId"
+  | "productId"
+  | "variantId"
+  | "productTitle"
+  | "sku"
+  | "quantity"
+  | "reason"
+  | "comment"
+  | "status"
+  | "adminComment"
+  | "cdekNumber"
+  | "trackingUrl"
+  | "requestedAmount"
+  | "approvedRefundAmount"
+  | "createdAt"
+  | "updatedAt"
+>;
+
+export type AccountReturnsPage = {
+  items: AccountReturnListItem[];
+  page: number;
+  totalPages: number;
+  totalItems: number;
+};
+
 export const returnReasonLabels: Record<ReturnReason, string> = {
   DEFECT: "Брак или дефект",
   WRONG_ITEM: "Прислали другой товар",
@@ -75,19 +131,6 @@ export const returnStatusLabels: Record<ReturnRequestStatus, string> = {
   CLOSED: "Возврат закрыт",
 };
 
-function readList(data: unknown): ReturnRequest[] {
-  if (Array.isArray(data)) return data as ReturnRequest[];
-  if (
-    data &&
-    typeof data === "object" &&
-    "content" in data &&
-    Array.isArray(data.content)
-  ) {
-    return data.content as ReturnRequest[];
-  }
-  return [];
-}
-
 export async function getOrderReturns(orderId: number): Promise<ReturnRequest[]> {
   const response = await apiFetch(`${API_URL}/api/orders/${orderId}/returns`);
   if (response.status === 404) return [];
@@ -96,12 +139,39 @@ export async function getOrderReturns(orderId: number): Promise<ReturnRequest[]>
   return Array.isArray(data) ? (data as ReturnRequest[]) : [];
 }
 
-export async function getAccountReturns(): Promise<ReturnRequest[]> {
-  const response = await apiFetch(`${API_URL}/api/returns/my?size=100`);
-  if (response.status === 404) return [];
+export async function getAccountReturns(params: {
+  page?: number;
+  size?: number;
+  signal?: AbortSignal;
+} = {}): Promise<AccountReturnsPage> {
+  const page = Math.max(0, params.page ?? 0);
+  const size = Math.min(50, Math.max(1, params.size ?? 20));
+  const response = await apiFetch(
+    `${API_URL}/api/returns/my/list?page=${page}&size=${size}`,
+    { signal: params.signal }
+  );
+  if (response.status === 404) {
+    return { items: [], page, totalPages: 0, totalItems: 0 };
+  }
   if (!response.ok) throw new Error("Не удалось загрузить возвраты");
   const data: unknown = await response.json();
-  return readList(data);
+  if (!data || typeof data !== "object") {
+    return { items: [], page, totalPages: 0, totalItems: 0 };
+  }
+  const payload = data as {
+    content?: AccountReturnListItem[];
+    number?: number;
+    totalPages?: number;
+    totalElements?: number;
+  };
+  return {
+    items: Array.isArray(payload.content) ? payload.content : [],
+    page: typeof payload.number === "number" ? payload.number : page,
+    totalPages:
+      typeof payload.totalPages === "number" ? payload.totalPages : 0,
+    totalItems:
+      typeof payload.totalElements === "number" ? payload.totalElements : 0,
+  };
 }
 
 export async function createOrderReturn(params: {
@@ -161,11 +231,39 @@ export async function reviewAdminReturn(
   return response.json();
 }
 
-export async function getSellerReturns(): Promise<ReturnRequest[]> {
-  const response = await apiFetch(`${API_URL}/api/seller/returns?size=100`);
-  if (response.status === 404) return [];
+export async function getSellerReturns(params: {
+  page?: number;
+  size?: number;
+  signal?: AbortSignal;
+} = {}): Promise<SellerReturnsPage> {
+  const page = Math.max(0, params.page ?? 0);
+  const size = Math.min(50, Math.max(1, params.size ?? 20));
+  const response = await apiFetch(
+    `${API_URL}/api/seller/returns/list?page=${page}&size=${size}`,
+    { signal: params.signal }
+  );
+  if (response.status === 404) {
+    return { items: [], page, totalPages: 0, totalItems: 0 };
+  }
   if (!response.ok) throw new Error("Не удалось загрузить возвраты");
-  return readList(await response.json());
+  const data: unknown = await response.json();
+  if (!data || typeof data !== "object") {
+    return { items: [], page, totalPages: 0, totalItems: 0 };
+  }
+  const payload = data as {
+    content?: SellerReturnListItem[];
+    number?: number;
+    totalPages?: number;
+    totalElements?: number;
+  };
+  return {
+    items: Array.isArray(payload.content) ? payload.content : [],
+    page: typeof payload.number === "number" ? payload.number : page,
+    totalPages:
+      typeof payload.totalPages === "number" ? payload.totalPages : 0,
+    totalItems:
+      typeof payload.totalElements === "number" ? payload.totalElements : 0,
+  };
 }
 
 export async function markSellerReturnReceived(

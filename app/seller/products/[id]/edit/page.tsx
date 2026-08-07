@@ -1,12 +1,13 @@
-import { redirect } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 
+import { API_URL } from "../../../../lib/config";
 import { getServerSession } from "../../../../lib/session";
 import {
-  getSellerBrandsServer,
-  getSellerOrdersServer,
-  getSellerProductsServer,
+  getSellerAccessAndBrandsServer,
+  getSellerProductDetailsServer,
 } from "../../../lib/sellerServerApi";
 import { ProductEditPageClient } from "./ProductEditPageClient";
+import type { Option, SellerProduct } from "./types";
 
 type Props = {
   params: Promise<{
@@ -15,16 +16,6 @@ type Props = {
 };
 
 export default async function ProductEditPage({ params }: Props) {
-  const session = await getServerSession();
-
-  if (!session) {
-    redirect("/auth/login?next=/seller/products");
-  }
-
-  if (session.role !== "SELLER" && session.role !== "ADMIN") {
-    redirect("/");
-  }
-
   const { id } = await params;
   const productId = Number(id);
 
@@ -36,22 +27,69 @@ export default async function ProductEditPage({ params }: Props) {
     );
   }
 
-  const [sellerBrands, sellerProducts, sellerOrders] = await Promise.all([
-    getSellerBrandsServer(),
-    getSellerProductsServer(),
-    getSellerOrdersServer(),
+  const [accessAndBrands, productResult, categories] = await Promise.all([
+    getSellerAccessAndBrandsServer(),
+    getSellerProductDetailsServer<SellerProduct>(productId),
+    getProductEditorCategories(),
   ]);
 
+  if (accessAndBrands.status === 401 || accessAndBrands.status === 403) {
+    const session = await getServerSession();
+
+    if (!session) {
+      redirect(`/auth/login?next=/seller/products/${productId}/edit`);
+    }
+
+    redirect("/");
+  }
+
+  if (accessAndBrands.status >= 400) {
+    throw new Error("Не удалось загрузить данные магазина");
+  }
+
+  if (!productResult.product) {
+    if (productResult.status === 404) notFound();
+    throw new Error("Не удалось загрузить товар");
+  }
+
+  const sellerBrands: Option[] = accessAndBrands.brands.map((brand) => ({
+    id: brand.id,
+    name: brand.name,
+  }));
   const storeName = sellerBrands[0]?.name?.trim() || null;
-  const activeProductsCount = sellerProducts.filter((product) => product.status === "ACTIVE").length;
-  const activeOrdersCount = sellerOrders.filter((order) => order.status === "NEW").length;
 
   return (
     <ProductEditPageClient
+      key={productId}
       productId={productId}
       initialStoreName={storeName}
-      initialProductsCount={activeProductsCount}
-      initialOrdersCount={activeOrdersCount}
+      initialProduct={productResult.product}
+      initialCategories={categories}
+      initialBrands={sellerBrands}
     />
   );
+}
+
+async function getProductEditorCategories(): Promise<Option[]> {
+  try {
+    const response = await fetch(`${API_URL}/api/catalog/categories`, {
+      next: { revalidate: 300 },
+    });
+
+    if (!response.ok) return [];
+
+    const data: unknown = await response.json();
+
+    return Array.isArray(data)
+      ? data.filter(
+          (item): item is Option =>
+            typeof item === "object" &&
+            item !== null &&
+            typeof (item as Option).id === "number" &&
+            typeof (item as Option).name === "string"
+        )
+      : [];
+  } catch {
+    return [];
+  }
 }

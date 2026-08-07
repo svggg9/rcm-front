@@ -1,19 +1,9 @@
-﻿.logout {
+.logout {
   width: 100%;
-  min-height: 42px;
-  padding: 0;
-  border: 0;
-  background: transparent;
-  color: var(--content-primary);
-  display: flex;
-  align-items: center;
-  justify-content: flex-start;
-  cursor: pointer;
-  font: inherit;
-  font-size: var(--font-sm);
-  transition: color var(--transition-fast);
 }
 
-.logout:hover {
-  color: var(--black);
+.logoutContent {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
 }

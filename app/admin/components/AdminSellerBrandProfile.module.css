@@ -14,9 +14,13 @@
 .profileSection,
 .mediaSection,
 .productsSection,
-.emptySection,
-.loadingSection {
+.emptySection {
   border: 0.5px solid #e7e7e4;
+  background: var(--white);
+}
+
+.loadingSection {
+  border: 0;
   background: var(--white);
 }
 

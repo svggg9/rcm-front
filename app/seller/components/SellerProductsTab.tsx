@@ -8,6 +8,7 @@ import { CabinetTabs, type CabinetTabItem } from "../../components/ui/CabinetTab
 import { EmptyState } from "../../components/ui/EmptyState";
 import { CabinetSkeleton } from "../../components/ui/CabinetSkeleton";
 import { ProductListCard } from "../../components/ProductListCard";
+import { ListLoadMore } from "../../components/ui/ListLoadMore";
 import {
   formatProductStatus,
   getProductStatusTone,
@@ -17,7 +18,10 @@ import type { SellerProductListItem } from "../types";
 
 type Props = {
   products: SellerProductListItem[];
+  totalElements?: number;
   loading: boolean;
+  loadingMore?: boolean;
+  onLoadMore?: () => void;
   creatingProduct?: boolean;
   onCreateProduct?: () => void;
 };
@@ -32,7 +36,10 @@ type ProductFilter =
 
 export function SellerProductsTab({
   products,
+  totalElements = products.length,
   loading,
+  loadingMore = false,
+  onLoadMore,
   creatingProduct = false,
   onCreateProduct,
 }: Props) {
@@ -43,22 +50,39 @@ export function SellerProductsTab({
     setItems(products);
   }, [products]);
 
-  const commonItems = useMemo(
-    () => items.filter((product) => product.status !== "DRAFT"),
-    [items]
-  );
+  const allProductsLoaded = !onLoadMore;
   const activeCount = items.filter((product) => product.status === "ACTIVE").length;
   const draftCount = items.filter((product) => product.status === "DRAFT").length;
   const moderationCount = items.filter((product) => product.status === "MODERATION").length;
   const revisionCount = items.filter((product) => product.status === "NEEDS_REVISION").length;
   const archivedCount = items.filter((product) => product.status === "ARCHIVED").length;
   const productTabs: CabinetTabItem<ProductFilter>[] = [
-    { value: "ALL", label: "Все", count: commonItems.length },
-    { value: "ACTIVE", label: "Активные", count: activeCount || undefined },
-    { value: "MODERATION", label: "Модерация", count: moderationCount || undefined },
-    { value: "NEEDS_REVISION", label: "Доработка", count: revisionCount || undefined },
-    { value: "DRAFT", label: "Черновики", count: draftCount || undefined },
-    { value: "ARCHIVED", label: "Архив", count: archivedCount || undefined },
+    { value: "ALL", label: "Все", count: totalElements },
+    {
+      value: "ACTIVE",
+      label: "Активные",
+      count: allProductsLoaded ? activeCount || undefined : undefined,
+    },
+    {
+      value: "MODERATION",
+      label: "Модерация",
+      count: allProductsLoaded ? moderationCount || undefined : undefined,
+    },
+    {
+      value: "NEEDS_REVISION",
+      label: "Доработка",
+      count: allProductsLoaded ? revisionCount || undefined : undefined,
+    },
+    {
+      value: "DRAFT",
+      label: "Черновики",
+      count: allProductsLoaded ? draftCount || undefined : undefined,
+    },
+    {
+      value: "ARCHIVED",
+      label: "Архив",
+      count: allProductsLoaded ? archivedCount || undefined : undefined,
+    },
   ];
 
   const filteredProducts = useMemo(() => {
@@ -82,8 +106,8 @@ export function SellerProductsTab({
       return items.filter((product) => product.status === "ARCHIVED");
     }
 
-    return commonItems;
-  }, [filter, items, commonItems]);
+    return items;
+  }, [filter, items]);
 
   return (
     <div className={styles.productsPage}>
@@ -129,21 +153,32 @@ export function SellerProductsTab({
           title="Товаров пока нет"
           text="Создай первую карточку товара, добавь фото и отправь её на публикацию."
         />
-      ) : filteredProducts.length === 0 ? (
-        <EmptyState
-          icon="search"
-          title="Товаров нет"
-          text="По выбранному фильтру ничего не найдено."
-        />
       ) : (
-        <div className={styles.productsList}>
-          {filteredProducts.map((product) => (
-            <ProductRow
-              key={product.id}
-              product={product}
+        <>
+          {filteredProducts.length === 0 ? (
+            <EmptyState
+              icon="search"
+              title="Товаров нет"
+              text={
+                onLoadMore
+                  ? "В загруженной части списка товаров с таким статусом нет."
+                  : "По выбранному фильтру ничего не найдено."
+              }
             />
-          ))}
-        </div>
+          ) : (
+            <div className={styles.productsList}>
+              {filteredProducts.map((product) => (
+                <ProductRow key={product.id} product={product} />
+              ))}
+            </div>
+          )}
+          <ListLoadMore
+            loaded={items.length}
+            total={totalElements}
+            loading={loadingMore}
+            onLoadMore={onLoadMore}
+          />
+        </>
       )}
     </div>
   );
@@ -167,6 +202,7 @@ function ProductRow({
       id={product.id}
       title={product.title}
       imageUrl={product.coverImage}
+      flushMedia
       brandName={product.brandName}
       categoryName={product.categoryName}
       minPrice={product.minPrice}

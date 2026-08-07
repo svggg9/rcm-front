@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { cache } from "react";
 
 import { API_URL } from "../../lib/api";
 import { BrandFavoriteButton } from "./BrandFavoriteButton";
@@ -40,9 +41,14 @@ type BrandResponse = {
   }[];
 };
 
-async function getBrand(slug: string): Promise<BrandResponse | null> {
+type BrandPageData = {
+  brand: BrandResponse;
+  products: PaginatedProducts;
+};
+
+const getBrandPage = cache(async (slug: string): Promise<BrandPageData | null> => {
   const response = await fetch(
-    `${API_URL}/api/brands/${encodeURIComponent(slug)}`,
+    `${API_URL}/api/brands/${encodeURIComponent(slug)}/page?page=0&size=48`,
     {
       cache: "no-store",
     }
@@ -50,35 +56,36 @@ async function getBrand(slug: string): Promise<BrandResponse | null> {
 
   if (!response.ok) return null;
 
-  return response.json();
-}
-
-async function getBrandProducts(slug: string): Promise<PaginatedProducts> {
-  const response = await fetch(
-    `${API_URL}/api/products/brand/${encodeURIComponent(slug)}?page=0&size=48`,
-    {
-      cache: "no-store",
-    }
-  );
-
-  if (!response.ok) {
-    return {
-      items: [],
-      page: 0,
-      totalPages: 0,
-      totalProducts: 0,
-    };
+  const data: unknown = await response.json();
+  if (!data || typeof data !== "object" || !("brand" in data)) {
+    return null;
   }
 
-  const data = await response.json();
+  const payload = data as {
+    brand?: unknown;
+    products?: {
+      content?: unknown;
+      number?: unknown;
+      totalPages?: unknown;
+      totalElements?: unknown;
+    };
+  };
+  if (!payload.brand || typeof payload.brand !== "object") return null;
+
+  const products = payload.products;
 
   return {
-    items: normalizeProducts(data.content),
-    page: data.number ?? 0,
-    totalPages: data.totalPages ?? 0,
-    totalProducts: data.totalElements ?? 0,
+    brand: payload.brand as BrandResponse,
+    products: {
+      items: normalizeProducts(products?.content),
+      page: typeof products?.number === "number" ? products.number : 0,
+      totalPages:
+        typeof products?.totalPages === "number" ? products.totalPages : 0,
+      totalProducts:
+        typeof products?.totalElements === "number" ? products.totalElements : 0,
+    },
   };
-}
+});
 
 function getBrandDescription(brand: BrandResponse): string {
   return (
@@ -93,7 +100,8 @@ export async function generateMetadata({
   params: Promise<{ slug: string }>;
 }): Promise<Metadata> {
   const { slug } = await params;
-  const brand = await getBrand(slug);
+  const data = await getBrandPage(slug);
+  const brand = data?.brand ?? null;
 
   if (!brand) {
     return {
@@ -127,15 +135,13 @@ export default async function BrandPage({
 }) {
   const { slug } = await params;
 
-  const brand = await getBrand(slug);
+  const data = await getBrandPage(slug);
 
-  if (!brand) {
+  if (!data) {
     notFound();
   }
 
-  // The requested route may be a legacy slug or a brand name. Always load
-  // products with the canonical slug returned by the brand API.
-  const products = await getBrandProducts(brand.slug);
+  const { brand, products } = data;
 
   return (
     <div className="pageContainer">
@@ -200,7 +206,14 @@ export default async function BrandPage({
             products: normalizeProducts(collection.products),
           }))}
         />
-        <BrandCatalog products={products.items} />
+        <BrandCatalog
+          key={brand.slug}
+          products={products.items}
+          brandSlug={brand.slug}
+          initialPage={products.page}
+          totalPages={products.totalPages}
+          totalProducts={products.totalProducts}
+        />
       </div>
     </div>
   );

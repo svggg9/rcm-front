@@ -1,51 +1,35 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { usePathname } from "next/navigation";
 import { CART_EVENT } from "./cartEvents";
-import { AUTH_EVENT } from "./authEvents";
-import { ensureCartId } from "./auth";
-import { apiFetch, API_URL } from "./api";
-
-type CartItem = {
-  quantity: number;
-};
+import { loadResolvedCartCount } from "./cartAuthority";
 
 export function useCartCount() {
+  const pathname = usePathname();
+  const skipCommerceLoad =
+    pathname === "/admin" ||
+    pathname.startsWith("/admin/") ||
+    pathname === "/seller" ||
+    pathname.startsWith("/seller/");
   const [count, setCount] = useState<number>(0);
 
   useEffect(() => {
+    if (skipCommerceLoad) return;
+
     let active = true;
+    let requestId = 0;
 
     const load = async () => {
+      const currentRequestId = ++requestId;
       try {
-        const cartId = await ensureCartId();
+        const total = await loadResolvedCartCount();
 
-        if (!active) return;
-
-        if (!cartId) {
-          setCount(0);
-          return;
-        }
-
-        const res = await apiFetch(
-          `${API_URL}/api/cart?cartId=${encodeURIComponent(cartId)}`
-        );
-
-        if (!res.ok) {
-          setCount(0);
-          return;
-        }
-
-        const items: CartItem[] = await res.json();
-        const total = Array.isArray(items)
-          ? items.reduce((sum, i) => sum + i.quantity, 0)
-          : 0;
-
-        if (active) {
+        if (active && currentRequestId === requestId) {
           setCount(total);
         }
       } catch {
-        if (active) {
+        if (active && currentRequestId === requestId) {
           setCount(0);
         }
       }
@@ -54,14 +38,12 @@ export function useCartCount() {
     void load();
 
     window.addEventListener(CART_EVENT, load);
-    window.addEventListener(AUTH_EVENT, load);
 
     return () => {
       active = false;
       window.removeEventListener(CART_EVENT, load);
-      window.removeEventListener(AUTH_EVENT, load);
     };
-  }, []);
+  }, [skipCommerceLoad]);
 
-  return count;
+  return skipCommerceLoad ? 0 : count;
 }

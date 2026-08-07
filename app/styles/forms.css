@@ -14,7 +14,7 @@
 
 .required::after {
   content: " *";
-  color: var(--gold);
+  color: var(--required-mark);
 }
 
 .input,

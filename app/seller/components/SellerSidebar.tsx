@@ -6,16 +6,12 @@ import type { SellerTab } from "../types";
 
 type Props = {
   currentTab: SellerTab;
-  ordersCount: number;
-  productsCount: number;
   storeName: string | null;
   storeNotReady: boolean;
 };
 
 export function SellerSidebar({
   currentTab,
-  ordersCount,
-  productsCount,
   storeName,
   storeNotReady,
 }: Props) {
@@ -38,14 +34,12 @@ export function SellerSidebar({
           label: "Мои товары",
           icon: "package",
           active: currentTab === "products",
-          count: productsCount,
         },
         {
           href: "/seller?tab=orders",
           label: "Заказы и возвраты",
           icon: "shopping-bag",
           active: currentTab === "orders" || currentTab === "returns",
-          count: ordersCount,
         },
         {
           href: "/seller?tab=finance",

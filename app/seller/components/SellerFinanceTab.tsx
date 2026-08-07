@@ -1,9 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 
+import { CabinetTabs, type CabinetTabItem } from "../../components/ui/CabinetTabs";
 import { Icon } from "../../components/ui/Icon";
+import {
+  StatusBadge,
+  type StatusBadgeTone,
+} from "../../components/ui/StatusBadge";
 import type {
   SellerFinanceOperation,
   SellerFinanceSummary,
@@ -20,6 +25,12 @@ type Props = {
 
 type FinanceView = "overview" | "operations" | "payouts";
 
+const financeTabs: CabinetTabItem<FinanceView>[] = [
+  { value: "overview", label: "Обзор" },
+  { value: "operations", label: "Операции" },
+  { value: "payouts", label: "Выплаты" },
+];
+
 export function SellerFinanceTab({ finance, onPrefetchOrder }: Props) {
   const [view, setView] = useState<FinanceView>("overview");
 
@@ -33,17 +44,15 @@ export function SellerFinanceTab({ finance, onPrefetchOrder }: Props) {
 
   return (
     <section className={styles.page}>
-      <nav className={styles.tabs} aria-label="Разделы финансов">
-        <Tab active={view === "overview"} onClick={() => setView("overview")}>
-          Обзор
-        </Tab>
-        <Tab active={view === "operations"} onClick={() => setView("operations")}>
-          Операции
-        </Tab>
-        <Tab active={view === "payouts"} onClick={() => setView("payouts")}>
-          Выплаты
-        </Tab>
-      </nav>
+      <div className={styles.tabs}>
+        <CabinetTabs
+          items={financeTabs}
+          value={view}
+          onChange={setView}
+          ariaLabel="Разделы финансов"
+          appearance="segmented"
+        />
+      </div>
 
       {view === "overview" ? (
         <Overview finance={finance} onPrefetchOrder={onPrefetchOrder} />
@@ -74,6 +83,7 @@ function Overview({
           label="К выплате"
           value={finance.availableAmount}
           hint="Доступно для следующего реестра"
+          emphasis
         />
         <SummaryItem
           icon="clock"
@@ -96,7 +106,7 @@ function Overview({
       </div>
 
       {!finance.bankDetailsReady ? (
-        <Link href="/seller?tab=legal" className={styles.notice}>
+        <Link href="/seller?tab=legal" className={styles.notice} prefetch={false}>
           <Icon name="alert" size={18} />
           <span>
             <strong>Заполните банковские реквизиты</strong>
@@ -112,6 +122,9 @@ function Overview({
             <span>Расчетный баланс</span>
             <strong>{formatMoney(finance.estimatedBalance)}</strong>
           </div>
+          <p>
+            Продажи за вычетом комиссии, возвратов и уже проведённых выплат.
+          </p>
         </div>
         <div className={styles.formula}>
           <FormulaItem label="Продажи" value={finance.salesAmount} />
@@ -187,7 +200,7 @@ function Payouts({ payouts }: { payouts: SellerPayout[] }) {
                 </div>
                 <div>
                   <dt>Заказов</dt>
-                  <dd>{payout.items.filter((item) => item.type === "ORDER").length}</dd>
+                  <dd>{payout.orderCount}</dd>
                 </div>
                 <div>
                   <dt>Платежное поручение</dt>
@@ -204,39 +217,25 @@ function Payouts({ payouts }: { payouts: SellerPayout[] }) {
   );
 }
 
-function Tab({
-  active,
-  onClick,
-  children,
-}: {
-  active: boolean;
-  onClick: () => void;
-  children: React.ReactNode;
-}) {
-  return (
-    <button
-      type="button"
-      className={`${styles.tab} ${active ? styles.tabActive : ""}`}
-      onClick={onClick}
-    >
-      {children}
-    </button>
-  );
-}
-
 function SummaryItem({
   icon,
   label,
   value,
   hint,
+  emphasis = false,
 }: {
   icon: "wallet" | "clock" | "money" | "check";
   label: string;
   value: number;
   hint: string;
+  emphasis?: boolean;
 }) {
   return (
-    <div className={styles.summaryItem}>
+    <div
+      className={`${styles.summaryItem} ${
+        emphasis ? styles.summaryItemPrimary : ""
+      }`.trim()}
+    >
       <Icon name={icon} size={19} />
       <span>{label}</span>
       <strong>{formatMoney(value)}</strong>
@@ -286,6 +285,28 @@ function OperationRow({
   onPrefetchOrder?: (orderId: number) => void;
 }) {
   const isCredit = operation.direction === "CREDIT";
+  const prefetchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(
+    () => () => {
+      if (prefetchTimerRef.current) clearTimeout(prefetchTimerRef.current);
+    },
+    []
+  );
+
+  function schedulePrefetch() {
+    if (!operation.orderId || !onPrefetchOrder || prefetchTimerRef.current) return;
+    prefetchTimerRef.current = setTimeout(() => {
+      prefetchTimerRef.current = null;
+      onPrefetchOrder(operation.orderId!);
+    }, 180);
+  }
+
+  function cancelPrefetch() {
+    if (!prefetchTimerRef.current) return;
+    clearTimeout(prefetchTimerRef.current);
+    prefetchTimerRef.current = null;
+  }
   const content = (
     <>
       <Icon name={getOperationIcon(operation.type)} size={18} className={styles.operationIcon} />
@@ -304,7 +325,9 @@ function OperationRow({
     <Link
       href={`/seller?tab=orders&orderId=${operation.orderId}`}
       className={styles.operationRow}
-      onMouseEnter={() => onPrefetchOrder?.(operation.orderId!)}
+      prefetch={false}
+      onMouseEnter={schedulePrefetch}
+      onMouseLeave={cancelPrefetch}
       onFocus={() => onPrefetchOrder?.(operation.orderId!)}
     >
       {content}
@@ -322,7 +345,19 @@ function PayoutStatus({ status }: { status: SellerPayoutStatus }) {
     FAILED: "Ошибка",
     CANCELLED: "Отменена",
   };
-  return <span className={`${styles.status} ${styles[`status${status}`]}`}>{labels[status]}</span>;
+  const tones: Record<SellerPayoutStatus, StatusBadgeTone> = {
+    READY: "default",
+    SENT: "warning",
+    PAID: "success",
+    FAILED: "danger",
+    CANCELLED: "danger",
+  };
+
+  return (
+    <StatusBadge tone={tones[status]} size="regular">
+      {labels[status]}
+    </StatusBadge>
+  );
 }
 
 function getOperationLabel(operation: SellerFinanceOperation) {

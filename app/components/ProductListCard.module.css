@@ -34,6 +34,14 @@
   background: var(--soft);
 }
 
+.cardFlushMedia .media {
+  align-self: stretch;
+  width: 100px;
+  height: auto;
+  min-height: 132px;
+  margin: -14px 0 -14px -18px;
+}
+
 .image {
   object-fit: cover;
 }
@@ -207,6 +215,13 @@
     width: 72px;
     height: 92px;
     grid-row: 1 / span 2;
+  }
+
+  .cardFlushMedia .media {
+    width: 84px;
+    height: auto;
+    min-height: 116px;
+    margin: -12px 0 -12px -12px;
   }
 
   .identity {

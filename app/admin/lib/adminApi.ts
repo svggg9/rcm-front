@@ -1,6 +1,7 @@
 import { API_URL, apiFetch } from "../../lib/api";
 import type {
   AdminProduct,
+  AdminProductListItem,
   AdminOrder,
   AdminOrderListItem,
   AdminSeller,
@@ -15,6 +16,7 @@ import type {
   AdminCdekWebhookEvent,
   FinancialLedgerEntryType,
   AdminSellerPayout,
+  AdminSellerPayoutStats,
   AdminStorefrontHome,
   AdminStorefrontCollection,
   AdminStorefrontCollectionRequest,
@@ -31,13 +33,13 @@ export async function getAdminProducts(
   status: ProductStatus | "ALL",
   page = 0,
   size = 50
-): Promise<PageResponse<AdminProduct>> {
+): Promise<PageResponse<AdminProductListItem>> {
   const query =
     status === "ALL"
       ? `page=${page}&size=${size}`
       : `status=${status}&page=${page}&size=${size}`;
 
-  const response = await apiFetch(`${API_URL}/api/admin/products?${query}`);
+  const response = await apiFetch(`${API_URL}/api/admin/products/list?${query}`);
 
   if (!response.ok) {
     throw new Error(await readError(response, "Не удалось загрузить товары"));
@@ -323,11 +325,21 @@ export async function getAdminSellerPayouts(
   size = 50
 ): Promise<PageResponse<AdminSellerPayout>> {
   const response = await apiFetch(
-    `${API_URL}/api/admin/finance/payouts?page=${page}&size=${size}`
+    `${API_URL}/api/admin/finance/payouts/list?page=${page}&size=${size}`
   );
   if (!response.ok) {
     throw new Error(await readError(response, "Не удалось загрузить выплаты"));
   }
+  return response.json();
+}
+
+export async function getAdminSellerPayoutStats(): Promise<AdminSellerPayoutStats> {
+  const response = await apiFetch(`${API_URL}/api/admin/finance/payouts/stats`);
+
+  if (!response.ok) {
+    throw new Error(await readError(response, "Не удалось загрузить сводку выплат"));
+  }
+
   return response.json();
 }
 
@@ -376,6 +388,19 @@ export async function getAdminCdekWebhookEvents(params?: {
   }
 
   return response.json();
+}
+
+export async function getAdminCdekWebhookPayload(eventId: number): Promise<string> {
+  const response = await apiFetch(
+    `${API_URL}/api/admin/delivery/cdek/webhook-events/${eventId}`
+  );
+
+  if (!response.ok) {
+    throw new Error(await readError(response, "Не удалось загрузить payload события"));
+  }
+
+  const event = (await response.json()) as AdminCdekWebhookEvent;
+  return event.rawPayload ?? "";
 }
 
 export async function getAdminSellerApplicationStatusCounts(): Promise<
@@ -564,16 +589,35 @@ export async function updateAdminStorefrontHeroPosition(
   return normalizeStorefrontHome(await response.json());
 }
 
-export async function getAdminStorefrontProducts(): Promise<AdminStorefrontProduct[]> {
-  const response = await apiFetch(`${API_URL}/api/admin/storefront/home/available-products`);
+export async function getAdminStorefrontProducts(
+  page = 0,
+  size = 24,
+  query = ""
+): Promise<PageResponse<AdminStorefrontProduct>> {
+  const params = new URLSearchParams({ page: String(page), size: String(size) });
+  if (query.trim()) params.set("q", query.trim());
+  const response = await apiFetch(
+    `${API_URL}/api/admin/storefront/home/available-products?${params.toString()}`
+  );
   if (!response.ok) throw new Error(await readError(response, "Не удалось загрузить товары"));
   const data: unknown = await response.json();
-  return Array.isArray(data)
-    ? data.flatMap((item) => {
+  const record = data && typeof data === "object"
+    ? (data as Record<string, unknown>)
+    : {};
+  const content = Array.isArray(record.content)
+    ? record.content.flatMap((item) => {
         const product = normalizeStorefrontProduct(item);
         return product ? [product] : [];
       })
     : [];
+  return {
+    content,
+    totalElements:
+      typeof record.totalElements === "number" ? record.totalElements : content.length,
+    totalPages: typeof record.totalPages === "number" ? record.totalPages : 1,
+    size: typeof record.size === "number" ? record.size : size,
+    number: typeof record.number === "number" ? record.number : page,
+  };
 }
 
 export async function createAdminStorefrontCollection(

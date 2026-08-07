@@ -11,6 +11,9 @@ import type { OrderListItem } from "../types";
 
 type Props = {
   orders: OrderListItem[];
+  totalElements?: number;
+  loadingMore?: boolean;
+  onLoadMore?: () => void;
   buildOrderStatusLabel: (order: OrderListItem) => string;
   onOpenOrder: (orderId: number) => void;
   onLoadOrder: (orderId: number) => Promise<OrderCardDetails>;
@@ -19,6 +22,9 @@ type Props = {
 
 export function AccountOrdersTab({
   orders,
+  totalElements,
+  loadingMore,
+  onLoadMore,
   buildOrderStatusLabel,
   onOpenOrder,
   onLoadOrder,
@@ -27,6 +33,9 @@ export function AccountOrdersTab({
   return (
     <SellerOrdersTab<OrderListItem>
       orders={orders}
+      totalElements={totalElements}
+      loadingMore={loadingMore}
+      onLoadMore={onLoadMore}
       buildSellerStatusLabel={buildOrderStatusLabel}
       onOpenOrder={onOpenOrder}
       onLoadOrder={onLoadOrder}

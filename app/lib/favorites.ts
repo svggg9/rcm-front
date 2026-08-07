@@ -123,25 +123,26 @@ export async function toggleFavorite(
   return addFavorite(productId);
 }
 
-export async function syncFavoritesAfterLogin(ids: number[]): Promise<void> {
-  if (!ids.length) return;
+export async function syncFavoritesAfterLogin(ids: number[]): Promise<boolean> {
+  if (!ids.length) return true;
 
   const authenticated = await hasSession();
 
-  if (!authenticated) return;
+  if (!authenticated) return false;
 
   const uniqueIds = Array.from(new Set(ids)).filter(
     (x): x is number => typeof x === "number"
   );
 
-  if (!uniqueIds.length) return;
+  if (!uniqueIds.length) return true;
 
-  const response = await apiFetch(`${API_URL}/api/favorites/sync`, {
-    method: "POST",
-    body: JSON.stringify({ ids: uniqueIds }),
-  });
-
-  if (!response.ok) {
-    throw new Error("favorites sync failed");
+  try {
+    const response = await apiFetch(`${API_URL}/api/favorites/sync`, {
+      method: "POST",
+      body: JSON.stringify({ ids: uniqueIds }),
+    });
+    return response.ok;
+  } catch {
+    return false;
   }
 }

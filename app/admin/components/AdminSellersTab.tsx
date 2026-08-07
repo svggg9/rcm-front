@@ -6,6 +6,7 @@ import { Button } from "../../components/ui/Button";
 import { CabinetTabs, type CabinetTabItem } from "../../components/ui/CabinetTabs";
 import { EmptyState } from "../../components/ui/EmptyState";
 import { Icon } from "../../components/ui/Icon";
+import { ListLoadMore } from "../../components/ui/ListLoadMore";
 import { StatusBadge, type StatusBadgeTone } from "../../components/ui/StatusBadge";
 import { formatRussianPhone } from "../../lib/phone";
 
@@ -18,12 +19,15 @@ import type {
 
 type Props = {
   applications: AdminSellerApplication[];
+  totalElements: number;
   status: SellerApplicationStatus | "ALL";
   refreshing: boolean;
+  loadingMore: boolean;
   actionApplicationId: number | null;
   statusCounts: Record<SellerApplicationStatus | "ALL", number>;
   onStatusChange: (status: SellerApplicationStatus | "ALL") => void;
   onRefresh: () => void;
+  onLoadMore?: () => void;
   onApprove: (id: number) => Promise<void>;
   onReject: (id: number, comment?: string) => Promise<void>;
 };
@@ -82,12 +86,15 @@ function formatDate(value: string) {
 
 export function AdminSellersTab({
   applications,
+  totalElements,
   status,
   refreshing,
+  loadingMore,
   actionApplicationId,
   statusCounts,
   onStatusChange,
   onRefresh,
+  onLoadMore,
   onApprove,
   onReject,
 }: Props) {
@@ -198,7 +205,7 @@ export function AdminSellersTab({
           onChange={onStatusChange}
           ariaLabel="Фильтр заявок продавцов по статусу"
           countTone="gold"
-          appearance="line"
+          appearance="segmented"
         />
 
         <Button
@@ -231,21 +238,29 @@ export function AdminSellersTab({
           />
         )
       ) : (
-        <div className={styles.list}>
-          {applications.map((application) => (
-            <SellerApplicationCard
-              key={application.id}
-              application={application}
-              onOpen={() => {
-                setSelectedApplicationId(application.id);
-                setActionMessage(null);
-                setActionError(null);
-                setPendingAction(null);
-                setAdminComment(application.adminComment ?? "");
-              }}
-            />
-          ))}
-        </div>
+        <>
+          <div className={styles.list}>
+            {applications.map((application) => (
+              <SellerApplicationCard
+                key={application.id}
+                application={application}
+                onOpen={() => {
+                  setSelectedApplicationId(application.id);
+                  setActionMessage(null);
+                  setActionError(null);
+                  setPendingAction(null);
+                  setAdminComment(application.adminComment ?? "");
+                }}
+              />
+            ))}
+          </div>
+          <ListLoadMore
+            loaded={applications.length}
+            total={totalElements}
+            loading={loadingMore}
+            onLoadMore={onLoadMore}
+          />
+        </>
       )}
     </section>
   );

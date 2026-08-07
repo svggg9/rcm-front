@@ -35,10 +35,7 @@ export default async function HomePage({ searchParams }: HomePageProps) {
   const params = searchParams ? await searchParams : undefined;
   const audience = normalizeAudience(params?.audience);
 
-  const [data, storefrontHome] = await Promise.all([
-    getHomePageData(audience),
-    getStorefrontHome(),
-  ]);
+  const storefrontHome = await getStorefrontHome();
 
   const heroBlock = {
     ...HOME_HERO,
@@ -72,9 +69,11 @@ export default async function HomePage({ searchParams }: HomePageProps) {
         })),
     }))
     .filter((collection) => collection.products.length > 0);
-  const productBlocks = managedBlocks.length > 0
-    ? managedBlocks
-    : [data.brandShowcase, data.categoryShowcase, data.latestShowcase];
+  let productBlocks = managedBlocks;
+  if (productBlocks.length === 0) {
+    const data = await getHomePageData(audience);
+    productBlocks = [data.brandShowcase, data.categoryShowcase, data.latestShowcase];
+  }
 
   return (
     <div className={styles.page}>

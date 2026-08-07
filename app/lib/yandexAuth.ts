@@ -1,16 +1,17 @@
 import { API_URL } from "./api";
-import { ensureCartId } from "./auth";
+import { ensureGuestCartId, getGuestCartId } from "./auth";
+import { safeReturnPath } from "./safeReturnPath";
 
 export async function startYandexAuth(nextPath?: string) {
   if (typeof window === "undefined") return;
 
-  const cartId = await ensureCartId();
-  const next = nextPath ?? `${window.location.pathname}${window.location.search}`;
+  const cartId = getGuestCartId() || await ensureGuestCartId();
+  const next = safeReturnPath(
+    nextPath ?? `${window.location.pathname}${window.location.search}`
+  );
   const params = new URLSearchParams();
 
-  if (next.startsWith("/") && !next.startsWith("//")) {
-    params.set("next", next);
-  }
+  params.set("next", next);
   if (cartId) {
     params.set("cartId", cartId);
   }

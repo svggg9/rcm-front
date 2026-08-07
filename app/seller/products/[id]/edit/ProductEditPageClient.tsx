@@ -5,13 +5,16 @@ import { useEffect, useRef, useState } from "react";
 
 import { apiFetch, API_URL } from "../../../../lib/api";
 import { Button } from "../../../../components/ui/Button";
-import { CabinetSkeleton } from "../../../../components/ui/CabinetSkeleton";
 
 import { ProductGeneralCard } from "./components/ProductGeneralCard";
 import { ProductVariantsCard } from "./components/ProductVariantsCard";
 import { ProductShippingCard } from "./components/ProductShippingCard";
 import { ProductPreviewAside } from "./components/ProductPreviewAside";
 import { SellerSidebar } from "../../../components/SellerSidebar";
+import {
+  getSellerOnboardingStatus,
+  type SellerOnboardingStatus,
+} from "../../../lib/sellerOnboardingApi";
 import { toast } from "sonner";
 
 import type {
@@ -28,8 +31,9 @@ import styles from "./ProductEditPage.module.css";
 type Props = {
   productId: number;
   initialStoreName: string | null;
-  initialProductsCount: number;
-  initialOrdersCount: number;
+  initialProduct: SellerProduct;
+  initialCategories: Option[];
+  initialBrands: Option[];
 };
 
 type ValidationErrors = {
@@ -52,12 +56,6 @@ type ValidationErrors = {
       availableQuantity?: boolean;
     }
   >;
-};
-
-type SellerOnboardingStatus = {
-  progress: number;
-  legalCompleted: boolean;
-  agreementAccepted: boolean;
 };
 
 function createVariantClientKey() {
@@ -104,40 +102,69 @@ function mapProductVariants(productData: SellerProduct): ProductVariant[] {
     : [createEmptyVariant()];
 }
 
+function getInitialTitle(product: SellerProduct) {
+  const title = product.title?.trim() ?? "";
+
+  if (product.status === "DRAFT" && (title === "" || title === "Новый товар")) {
+    return "";
+  }
+
+  return product.title ?? "";
+}
+
 export function ProductEditPageClient({
   productId,
   initialStoreName,
-  initialProductsCount,
-  initialOrdersCount,
+  initialProduct,
+  initialCategories,
+  initialBrands,
 }: Props) {
-  const [initialized, setInitialized] = useState(false);
   const [dirty, setDirty] = useState(false);
   const [moderationChangesPending, setModerationChangesPending] = useState(false);
 
-  const [product, setProduct] = useState<SellerProduct | null>(null);
-  const [categories, setCategories] = useState<Option[]>([]);
-  const [brands, setBrands] = useState<Option[]>([]);
+  const [product, setProduct] = useState<SellerProduct | null>(initialProduct);
+  const [categories, setCategories] = useState<Option[]>(initialCategories);
+  const [brands] = useState<Option[]>(initialBrands);
 
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
-  const [composition, setComposition] = useState("");
-  const [categoryId, setCategoryId] = useState<number | "">("");
-  const [suggestedCategoryName, setSuggestedCategoryName] = useState("");
-  const [brandId, setBrandId] = useState<number | "">("");
-  const [audience, setAudience] = useState<Audience>("UNISEX");
+  const [title, setTitle] = useState(() => getInitialTitle(initialProduct));
+  const [description, setDescription] = useState(initialProduct.description ?? "");
+  const [composition, setComposition] = useState(initialProduct.composition ?? "");
+  const [categoryId, setCategoryId] = useState<number | "">(
+    initialProduct.categoryId ?? ""
+  );
+  const [suggestedCategoryName, setSuggestedCategoryName] = useState(
+    initialProduct.suggestedCategoryName ?? ""
+  );
+  const [brandId] = useState<number | "">(
+    initialProduct.brandId ?? initialBrands[0]?.id ?? ""
+  );
+  const [audience, setAudience] = useState<Audience>(
+    initialProduct.audience ?? "UNISEX"
+  );
 
-  const [packageWidthCm, setPackageWidthCm] = useState<number | "">("");
-  const [packageHeightCm, setPackageHeightCm] = useState<number | "">("");
-  const [packageLengthCm, setPackageLengthCm] = useState<number | "">("");
-  const [packageWeightKg, setPackageWeightKg] = useState<number | "">("");
+  const [packageWidthCm, setPackageWidthCm] = useState<number | "">(
+    initialProduct.packageWidthCm ?? ""
+  );
+  const [packageHeightCm, setPackageHeightCm] = useState<number | "">(
+    initialProduct.packageHeightCm ?? ""
+  );
+  const [packageLengthCm, setPackageLengthCm] = useState<number | "">(
+    initialProduct.packageLengthCm ?? ""
+  );
+  const [packageWeightKg, setPackageWeightKg] = useState<number | "">(
+    initialProduct.packageWeightKg ?? ""
+  );
 
-  const [variants, setVariants] = useState<ProductVariant[]>([]);
-  const [images, setImages] = useState<ProductImageItem[]>([]);
+  const [variants, setVariants] = useState<ProductVariant[]>(() =>
+    mapProductVariants(initialProduct)
+  );
+  const [images, setImages] = useState<ProductImageItem[]>(() =>
+    Array.isArray(initialProduct.imageItems) ? initialProduct.imageItems : []
+  );
 
   const [dragImageId, setDragImageId] = useState<number | null>(null);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
 
-  const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saveSucceeded, setSaveSucceeded] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -147,9 +174,12 @@ export function ProductEditPageClient({
   const [archiving, setArchiving] = useState(false);
   const [onboardingStatus, setOnboardingStatus] =
     useState<SellerOnboardingStatus | null>(null);
+  const [onboardingError, setOnboardingError] = useState(false);
+  const [onboardingRetry, setOnboardingRetry] = useState(0);
 
   const [validationErrors, setValidationErrors] = useState<ValidationErrors>({});
   const pageContentRef = useRef<HTMLDivElement | null>(null);
+  const editRevisionRef = useRef(0);
 
   const [uploadProgress, setUploadProgress] = useState({
       done: 0,
@@ -159,94 +189,41 @@ export function ProductEditPageClient({
   useEffect(() => {
     let cancelled = false;
 
-    async function loadData() {
-      setLoading(true);
-      try {
-        const [
-          productResponse,
-          categoriesResponse,
-          brandsResponse,
-          onboardingResponse,
-        ] = await Promise.all([
-          apiFetch(`${API_URL}/api/seller/products/${productId}`),
-          apiFetch(`${API_URL}/api/catalog/categories`),
-          apiFetch(`${API_URL}/api/seller/brands`),
-          apiFetch(`${API_URL}/api/seller/onboarding-status`),
-        ]);
+    setOnboardingError(false);
 
-        if (!productResponse.ok) {
-          const text = await productResponse.text().catch(() => "");
-          throw new Error(text || `Ошибка загрузки товара (${productResponse.status})`);
-        }
-
-        if (!categoriesResponse.ok) {
-          throw new Error("Не удалось загрузить категории");
-        }
-
-        if (!brandsResponse.ok) {
-          throw new Error("Не удалось загрузить бренды");
-        }
-
-        const productData: SellerProduct = await productResponse.json();
-        const categoriesData: Option[] = await categoriesResponse.json();
-        const brandsData: Option[] = await brandsResponse.json();
-        const onboardingData: SellerOnboardingStatus | null = onboardingResponse.ok
-          ? await onboardingResponse.json()
-          : null;
-
-        if (cancelled) return;
-
-        const safeCategories = Array.isArray(categoriesData) ? categoriesData : [];
-        const safeBrands = Array.isArray(brandsData) ? brandsData : [];
-        setProduct(productData);
-        setOnboardingStatus(onboardingData);
-        setCategories(safeCategories);
-        setBrands(safeBrands);
-
-        const nextBrandId =
-          productData.brandId ?? safeBrands[0]?.id ?? "";
-
-        setBrandId(nextBrandId);
-
-        setTitle(
-          productData.status === "DRAFT" && productData.title?.trim() === "Новый товар"
-            ? ""
-            : productData.title ?? ""
-        );
-        setDescription(productData.description ?? "");
-        setComposition(productData.composition ?? "");
-        setCategoryId(productData.categoryId ?? "");
-        setSuggestedCategoryName(productData.suggestedCategoryName ?? "");
-        setAudience(productData.audience ?? "UNISEX");
-
-        setPackageWidthCm(productData.packageWidthCm ?? "");
-        setPackageHeightCm(productData.packageHeightCm ?? "");
-        setPackageLengthCm(productData.packageLengthCm ?? "");
-        setPackageWeightKg(productData.packageWeightKg ?? "");
-
-        setVariants(mapProductVariants(productData));
-
-        setImages(Array.isArray(productData.imageItems) ? productData.imageItems : []);
-        setInitialized(true);
-        setDirty(false);
-        setModerationChangesPending(false);
-      } catch (e) {
-        if (!cancelled) {
-          toast.error(e instanceof Error ? e.message : "Не удалось загрузить товар");
-        }
-      } finally {
-        if (!cancelled) {
-          setLoading(false);
-        }
-      }
-    }
-
-    void loadData();
+    void getSellerOnboardingStatus()
+      .then((status) => {
+        if (!cancelled) setOnboardingStatus(status);
+      })
+      .catch(() => {
+        if (!cancelled) setOnboardingError(true);
+      });
 
     return () => {
       cancelled = true;
     };
-  }, [productId]);
+  }, [onboardingRetry]);
+
+  useEffect(() => {
+    if (initialCategories.length > 0) return;
+
+    let cancelled = false;
+
+    void apiFetch(`${API_URL}/api/catalog/categories`)
+      .then(async (response) => {
+        if (!response.ok) return [];
+        const data: unknown = await response.json();
+        return Array.isArray(data) ? (data as Option[]) : [];
+      })
+      .then((nextCategories) => {
+        if (!cancelled) setCategories(nextCategories);
+      })
+      .catch(() => undefined);
+
+    return () => {
+      cancelled = true;
+    };
+  }, [initialCategories.length]);
 
   useEffect(() => {
     if (!dirty) return;
@@ -264,7 +241,7 @@ export function ProductEditPageClient({
   }, [dirty]);
 
   function markDirty(options: { moderation?: boolean } = {}) {
-    if (!initialized) return;
+    editRevisionRef.current += 1;
     setDirty(true);
 
     if (options.moderation) {
@@ -464,9 +441,11 @@ export function ProductEditPageClient({
 
     setSaveSucceeded(false);
     setSaving(true);
+    const saveRevision = editRevisionRef.current;
 
     try {
       const variantsToSave = await resolveVariantsForSave();
+      if (editRevisionRef.current !== saveRevision) return;
 
       const response = await apiFetch(`${API_URL}/api/seller/products/${productId}`, {
         method: "PUT",
@@ -503,10 +482,12 @@ export function ProductEditPageClient({
         throw new Error(text || `Ошибка сохранения (${response.status})`);
       }
 
-      await reloadProductState();
-      setDirty(false);
-      setSaveSucceeded(true);
-      window.setTimeout(() => setSaveSucceeded(false), 1200);
+      const stateReloaded = await reloadProductState(saveRevision);
+      if (stateReloaded && editRevisionRef.current === saveRevision) {
+        setDirty(false);
+        setSaveSucceeded(true);
+        window.setTimeout(() => setSaveSucceeded(false), 1200);
+      }
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Не удалось сохранить товар");
     } finally {
@@ -547,16 +528,23 @@ export function ProductEditPageClient({
     return resolvedVariants;
   }
 
-  async function reloadProductState() {
+  async function reloadProductState(expectedRevision?: number) {
     const response = await apiFetch(`${API_URL}/api/seller/products/${productId}`);
 
-    if (!response.ok) return;
+    if (!response.ok) return false;
 
     const productData: SellerProduct = await response.json();
+    if (
+      expectedRevision !== undefined &&
+      editRevisionRef.current !== expectedRevision
+    ) {
+      return false;
+    }
 
     setProduct(productData);
     setVariants(mapProductVariants(productData));
     setImages(Array.isArray(productData.imageItems) ? productData.imageItems : []);
+    return true;
   }
 
   async function uploadImages(filesToUpload = selectedFiles, colorwayId?: number | null) {
@@ -566,30 +554,26 @@ export function ProductEditPageClient({
     setUploadProgress({ done: 0, total: filesToUpload.length });
 
     try {
-      for (let i = 0; i < filesToUpload.length; i++) {
-        const file = filesToUpload[i];
-
-        const formData = new FormData();
-        formData.append("file", file);
-        if (colorwayId) {
-          formData.append("colorwayId", String(colorwayId));
-        }
-
-        const response = await apiFetch(`${API_URL}/api/seller/products/${productId}/images`, {
-          method: "POST",
-          body: formData,
-        });
-
-        if (!response.ok) {
-          const text = await response.text().catch(() => "");
-          throw new Error(text || `Ошибка загрузки ${file.name}`);
-        }
-
-        setUploadProgress({
-          done: i + 1,
-          total: filesToUpload.length,
-        });
+      const formData = new FormData();
+      filesToUpload.forEach((file) => formData.append("files", file));
+      if (colorwayId) {
+        formData.append("colorwayId", String(colorwayId));
       }
+
+      const response = await apiFetch(
+        `${API_URL}/api/seller/products/${productId}/images/batch`,
+        { method: "POST", body: formData }
+      );
+
+      if (!response.ok) {
+        const text = await response.text().catch(() => "");
+        throw new Error(text || "Не удалось загрузить фотографии");
+      }
+
+      setUploadProgress({
+        done: filesToUpload.length,
+        total: filesToUpload.length,
+      });
 
       setSelectedFiles([]);
       toast.success("Фото загружены");
@@ -697,7 +681,13 @@ export function ProductEditPageClient({
     }
 
     if (!isSellerReadyForPublish()) {
-      toast.error("Заполните реквизиты и примите оферту продавца");
+      toast.error(
+        onboardingError
+          ? "Не удалось проверить готовность магазина"
+          : onboardingStatus === null
+            ? "Проверяем готовность магазина"
+            : "Заполните реквизиты и примите оферту продавца"
+      );
       return;
     }
 
@@ -735,8 +725,9 @@ export function ProductEditPageClient({
 
   function isSellerReadyForPublish() {
     return (
-      onboardingStatus === null ||
-      (onboardingStatus.legalCompleted && onboardingStatus.agreementAccepted)
+      onboardingStatus !== null &&
+      onboardingStatus.legalCompleted &&
+      onboardingStatus.agreementAccepted
     );
   }
 
@@ -868,9 +859,14 @@ export function ProductEditPageClient({
   const onboardingRequirementsPending =
     onboardingStatus !== null &&
     (!onboardingStatus.legalCompleted || !onboardingStatus.agreementAccepted);
+  const onboardingStatusPending = onboardingStatus === null;
 
   const publishBlockedReason =
-    onboardingRequirementsPending
+    onboardingError
+      ? "Не удалось проверить готовность магазина"
+      : onboardingStatusPending
+        ? "Проверяем готовность магазина"
+        : onboardingRequirementsPending
       ? "Заполните реквизиты и примите оферту продавца"
       : activeProductWithoutModerationChanges
         ? "Для цены, остатков и артикула продавца модерация не нужна"
@@ -886,16 +882,11 @@ export function ProductEditPageClient({
       <div className={styles.sellerLayout}>
         <SellerSidebar
           currentTab="products"
-          ordersCount={initialOrdersCount}
-          productsCount={initialProductsCount}
           storeName={storeName}
-          storeNotReady={onboardingRequirementsPending}
+          storeNotReady={!isSellerReadyForPublish()}
         />
 
         <div className={styles.editorContent}>
-          {loading ? (
-            <ProductEditSkeleton />
-          ) : (
       <div className={styles.page}>
         <div className={styles.pageContent} ref={pageContentRef}>
           <nav className={`${styles.breadcrumbs} textCaption`} aria-label="Навигация">
@@ -905,7 +896,22 @@ export function ProductEditPageClient({
             <span>/</span>
             <span>Редактирование товара</span>
           </nav>
-        {onboardingRequirementsPending ? (
+        {onboardingError ? (
+          <div className={styles.onboardingWarning}>
+            <strong>Не удалось проверить готовность магазина</strong>
+            <p>Повторите проверку перед отправкой товара на модерацию.</p>
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => {
+                setOnboardingStatus(null);
+                setOnboardingRetry((current) => current + 1);
+              }}
+            >
+              Повторить
+            </Button>
+          </div>
+        ) : onboardingRequirementsPending ? (
           <div className={styles.onboardingWarning}>
             <strong>Магазин не готов к публикации</strong>
             <p>
@@ -1076,13 +1082,8 @@ export function ProductEditPageClient({
             </div>
         </div>
       </div>
-          )}
         </div>
       </div>
     </div>
   );
-}
-
-function ProductEditSkeleton() {
-  return <CabinetSkeleton variant="form" />;
 }
