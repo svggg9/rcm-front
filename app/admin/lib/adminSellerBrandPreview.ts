@@ -43,38 +43,49 @@ export type AdminSellerBrandPreview = {
   totalProducts: number;
 };
 
+const previewCache = new Map<string, AdminSellerBrandPreview | null>();
+const pendingPreviews = new Map<
+  string,
+  Promise<AdminSellerBrandPreview | null>
+>();
+
 export async function getAdminSellerBrandPreview(params: {
   userId: number;
   brandName: string;
   allowNameFallback: boolean;
   signal?: AbortSignal;
 }): Promise<AdminSellerBrandPreview | null> {
-  const referencesResponse = await apiFetch(
-    `${API_URL}/api/admin/dictionaries/brands`,
-    { signal: params.signal }
-  );
+  const cacheKey = [
+    params.userId,
+    params.brandName.trim().toLocaleLowerCase("ru-RU"),
+    params.allowNameFallback ? "fallback" : "owner",
+  ].join(":");
 
-  if (!referencesResponse.ok) {
-    throw new Error("Не удалось загрузить связь продавца с брендом");
+  if (previewCache.has(cacheKey)) {
+    return previewCache.get(cacheKey) ?? null;
   }
 
-  const references = normalizeBrandReferences(await referencesResponse.json());
-  const normalizedName = params.brandName.trim().toLocaleLowerCase("ru-RU");
-  const ownerReferences = references.filter(
-    (reference) => reference.ownerUserId === params.userId
-  );
-  const reference =
-    ownerReferences.find(
-      (item) => item.name.trim().toLocaleLowerCase("ru-RU") === normalizedName
-    ) ??
-    (ownerReferences.length === 1 ? ownerReferences[0] : null) ??
-    (params.allowNameFallback
-      ? references.find(
-          (item) =>
-            item.name.trim().toLocaleLowerCase("ru-RU") === normalizedName
-        )
-      : null) ??
-    null;
+  const pending = pendingPreviews.get(cacheKey);
+  if (pending) return pending;
+
+  const request = loadAdminSellerBrandPreview(params)
+    .then((preview) => {
+      previewCache.set(cacheKey, preview);
+      return preview;
+    })
+    .finally(() => pendingPreviews.delete(cacheKey));
+
+  pendingPreviews.set(cacheKey, request);
+  return request;
+}
+
+async function loadAdminSellerBrandPreview(params: {
+  userId: number;
+  brandName: string;
+  allowNameFallback: boolean;
+  signal?: AbortSignal;
+}): Promise<AdminSellerBrandPreview | null> {
+  const reference = await resolveBrandReference(params);
 
   if (!reference) return null;
 
@@ -85,7 +96,7 @@ export async function getAdminSellerBrandPreview(params: {
     apiFetch(
       `${API_URL}/api/products/brand/${encodeURIComponent(
         reference.slug
-      )}?page=0&size=24`,
+      )}?page=0&size=12`,
       { signal: params.signal }
     ),
   ]);
@@ -110,6 +121,30 @@ export async function getAdminSellerBrandPreview(params: {
         ? productsRecord.totalElements
         : 0,
   };
+}
+
+async function resolveBrandReference(params: {
+  userId: number;
+  brandName: string;
+  allowNameFallback: boolean;
+  signal?: AbortSignal;
+}) {
+  const query = new URLSearchParams({
+    userId: String(params.userId),
+    brandName: params.brandName.trim(),
+    allowNameFallback: String(params.allowNameFallback),
+  });
+  const response = await apiFetch(
+    `${API_URL}/api/admin/dictionaries/brands/resolve?${query.toString()}`,
+    { signal: params.signal }
+  );
+
+  if (response.status === 404) return null;
+  if (!response.ok) {
+    throw new Error("Не удалось загрузить связь продавца с брендом");
+  }
+
+  return normalizeBrandReferences([await response.json()])[0] ?? null;
 }
 
 function normalizeBrandReferences(value: unknown): AdminBrandReference[] {

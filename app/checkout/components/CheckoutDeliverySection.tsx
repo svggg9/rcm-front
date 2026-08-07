@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 
 import type { DeliveryCityOption, DeliveryOption } from "../types";
+import { SkeletonBlock } from "../../components/ui/SkeletonBlock";
 
 import { PickupPointModal } from "./PickupPointModal";
 import styles from "./CheckoutDeliverySection.module.css";
@@ -129,14 +130,17 @@ export function CheckoutDeliverySection({
             disabled={!enabled}
           />
 
-          {selectedCity && (deliveryDateText || quoteLoading) ? (
+          {selectedCity && deliveryDateText ? (
             <span
-              className={`${styles.metaBadge} ${styles.cityEtaBadge} ${
-                !deliveryDateText ? styles.metaBadgeLoading : ""
-              }`}
+              className={`${styles.metaBadge} ${styles.cityEtaBadge}`}
             >
-              {deliveryDateText || ""}
+              {deliveryDateText}
             </span>
+          ) : selectedCity && quoteLoading ? (
+            <SkeletonBlock
+              as="span"
+              className={`${styles.metaBadge} ${styles.cityEtaBadge} ${styles.metaBadgeLoading}`}
+            />
           ) : null}
 
           {cityOptions.length > 0 ? (

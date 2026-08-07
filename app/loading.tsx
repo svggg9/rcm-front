@@ -1,20 +1,18 @@
 import styles from "./loading.module.css";
+import { ProductTileSkeleton } from "./components/ui/CommerceSkeleton";
+import { SkeletonBlock } from "./components/ui/SkeletonBlock";
 
 function RailSkeleton() {
   return (
     <section className={styles.rail}>
       <div className={styles.railHeader}>
-        <div className={styles.titleLine} />
-        <div className={styles.actionLine} />
+        <SkeletonBlock className={styles.titleLine} />
+        <SkeletonBlock className={styles.actionLine} />
       </div>
 
       <ul className={styles.gridList}>
         {Array.from({ length: 4 }).map((_, index) => (
-          <li key={index} className={styles.card}>
-            <div className={styles.media} />
-            <div className={styles.line} />
-            <div className={styles.lineShort} />
-          </li>
+          <ProductTileSkeleton key={index} />
         ))}
       </ul>
     </section>
@@ -23,16 +21,22 @@ function RailSkeleton() {
 
 export default function Loading() {
   return (
-    <div className={styles.page} aria-busy="true">
+    <div
+      className={styles.page}
+      role="status"
+      aria-label="Загрузка страницы"
+      aria-busy="true"
+    >
       <div className="pageContainer">
         <section className={styles.hero}>
+          <SkeletonBlock className={styles.heroBackdrop} />
           <div className={styles.heroContent}>
-            <div className={styles.heroEyebrow} />
-            <div className={styles.heroTitle} />
-            <div className={styles.heroTitleShort} />
-            <div className={styles.heroText} />
-            <div className={styles.heroTextShort} />
-            <div className={styles.heroButton} />
+            <SkeletonBlock className={styles.heroEyebrow} />
+            <SkeletonBlock className={styles.heroTitle} />
+            <SkeletonBlock className={styles.heroTitleShort} />
+            <SkeletonBlock className={styles.heroText} />
+            <SkeletonBlock className={styles.heroTextShort} />
+            <SkeletonBlock className={styles.heroButton} />
           </div>
         </section>
 

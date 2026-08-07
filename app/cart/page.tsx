@@ -6,41 +6,35 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
 import { API_URL, apiFetch } from "../lib/api";
-import { ensureCartId } from "../lib/auth";
+import { loadResolvedCart } from "../lib/cartAuthority";
 import { emitCartChanged } from "../lib/cartEvents";
+import { AUTH_EVENT } from "../lib/authEvents";
 import { useCurrentUser } from "../lib/useCurrentUser";
 import { mapProductToCarouselProduct } from "../lib/productMappers";
 
 import { ProductShowcase } from "../components/ProductShowcase/ProductShowcase";
 
 import type { CartItem } from "./lib/types";
-import { getCart, removeItem, updateQuantity } from "./lib/cartApi";
+import { removeItem, updateQuantity } from "./lib/cartApi";
 
 import { CartItemRow } from "./components/CartItemRow";
 import { CartSummary } from "./components/CartSummary";
 import { EmptyCart } from "./components/EmptyCart";
 import { CartContentSkeleton } from "../components/ui/CommerceSkeleton";
+import { SkeletonBlock } from "../components/ui/SkeletonBlock";
 
 import styles from "./Cart.module.css";
 
-type ProductVariant = {
-  id: number;
-  size: string;
-  color: string;
-  price: number;
-  availableQuantity: number;
-  sku: string;
-};
-
 type Product = {
   id: number;
+  publicId?: string | null;
   title: string;
-  description: string;
   brand: string | null;
-  category: string;
+  category: string | null;
   audience?: "MEN" | "WOMEN" | "UNISEX";
-  images: string[];
-  variants: ProductVariant[];
+  coverImage?: string | null;
+  hoverImage?: string | null;
+  minPrice?: number | null;
 };
 
 function formatCartCount(count: number): string {
@@ -68,45 +62,27 @@ export default function CartPage() {
   );
 
   useEffect(() => {
-    let active = true;
-
-    async function initCart() {
-      try {
-        const resolvedCartId = await ensureCartId();
-        if (!active) return;
-        setCartId(resolvedCartId);
-      } catch {
-        if (!active) return;
-        setCartId("");
-        setCartError("Не удалось подключиться к корзине.");
-        setLoading(false);
-      }
-    }
-
-    void initCart();
-
-    return () => {
-      active = false;
-    };
-  }, [reloadToken]);
+    const reload = () => setReloadToken((current) => current + 1);
+    window.addEventListener(AUTH_EVENT, reload);
+    return () => window.removeEventListener(AUTH_EVENT, reload);
+  }, []);
 
   useEffect(() => {
     let active = true;
 
     async function loadCart() {
-      if (!cartId) {
-        return;
-      }
-
       try {
-        const data = await getCart(cartId);
+        setLoading(true);
+        const resolvedCart = await loadResolvedCart();
         if (!active) return;
+        setCartId(resolvedCart.cartId);
+        setItems(resolvedCart.items);
         setCartError(null);
-        setItems(Array.isArray(data) ? data : []);
       } catch {
         if (!active) return;
+        setCartId("");
         setItems([]);
-        setCartError("Не удалось загрузить корзину.");
+        setCartError("Не удалось подключиться к корзине.");
       } finally {
         if (active) setLoading(false);
       }
@@ -117,21 +93,22 @@ export default function CartPage() {
     return () => {
       active = false;
     };
-  }, [cartId, reloadToken]);
+  }, [reloadToken]);
 
   useEffect(() => {
     let active = true;
 
     async function loadRecommendations() {
       try {
-        const res = await apiFetch(`${API_URL}/api/products/list`);
+        const res = await apiFetch(
+          `${API_URL}/api/products/page?page=0&size=12&sort=newest`
+        );
         if (!res.ok) throw new Error("Failed to load recommendations");
 
-        const data: Product[] = await res.json();
+        const data: { content?: Product[] } = await res.json();
         if (!active) return;
 
-        const safeList = Array.isArray(data) ? data : [];
-        setRecommendations(safeList.slice(0, 12));
+        setRecommendations(Array.isArray(data.content) ? data.content : []);
       } catch {
         if (!active) return;
         setRecommendations([]);
@@ -229,7 +206,11 @@ export default function CartPage() {
         <div className={styles.top}>
           <h1 className={styles.title}>Корзина</h1>
           <p className={styles.count} aria-live="polite">
-            {loading ? "Загрузка…" : formatCartCount(totalQuantity)}
+            {loading ? (
+              <SkeletonBlock as="span" className={styles.countSkeleton} />
+            ) : (
+              formatCartCount(totalQuantity)
+            )}
           </p>
         </div>
 

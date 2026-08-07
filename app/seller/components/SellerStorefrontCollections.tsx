@@ -1,55 +1,116 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { Icon } from "../../components/ui/Icon";
 import {
   createSellerStorefrontCollection,
   deleteSellerStorefrontCollection,
   getSellerStorefrontCollections,
+  getSellerStorefrontProducts,
 } from "../lib/sellerBrandApi";
 import type {
-  SellerProductListItem,
   SellerStorefrontCollection,
+  SellerStorefrontProduct,
 } from "../types";
 
 import styles from "./SellerStorefrontCollections.module.css";
 
 type Props = {
   brandId: number;
-  products: SellerProductListItem[];
 };
 
-export function SellerStorefrontCollections({ brandId, products }: Props) {
+export function SellerStorefrontCollections({ brandId }: Props) {
   const [collections, setCollections] = useState<SellerStorefrontCollection[]>([]);
+  const [collectionsLoading, setCollectionsLoading] = useState(true);
   const [editing, setEditing] = useState(false);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
   const [saving, setSaving] = useState(false);
+  const [products, setProducts] = useState<SellerStorefrontProduct[]>([]);
+  const [productsLoading, setProductsLoading] = useState(false);
+  const [productQuery, setProductQuery] = useState("");
+  const [appliedProductQuery, setAppliedProductQuery] = useState("");
+  const [productsPage, setProductsPage] = useState(-1);
+  const [productsTotal, setProductsTotal] = useState(0);
+  const [productsHasMore, setProductsHasMore] = useState(false);
+  const productsRequestIdRef = useRef(0);
+  const selectedIdsRef = useRef(selectedIds);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    setCollectionsLoading(true);
     void getSellerStorefrontCollections(brandId)
       .then(setCollections)
       .catch((reason: unknown) =>
         setError(reason instanceof Error ? reason.message : "Не удалось загрузить подборки")
-      );
+      )
+      .finally(() => setCollectionsLoading(false));
   }, [brandId]);
+  useEffect(() => {
+    selectedIdsRef.current = selectedIds;
+  }, [selectedIds]);
 
-  const availableProducts = products.filter((product) => product.status === "ACTIVE");
+  async function loadProducts(page: number, query: string, reset: boolean) {
+    const requestId = ++productsRequestIdRef.current;
+    if (reset) {
+      setAppliedProductQuery(query.trim());
+      setProductsHasMore(false);
+    }
+    setProductsLoading(true);
+    try {
+      const result = await getSellerStorefrontProducts(brandId, page, 24, query);
+      if (productsRequestIdRef.current !== requestId) return;
+      const selected = new Set(selectedIdsRef.current);
+      setProducts((current) => {
+        const base = reset
+          ? current.filter((product) => selected.has(product.id))
+          : current;
+        return mergeProducts(base, result.content);
+      });
+      setProductsPage(result.number);
+      setProductsTotal(result.totalElements);
+      setProductsHasMore(result.number + 1 < result.totalPages);
+    } catch (reason) {
+      if (productsRequestIdRef.current !== requestId) return;
+      setError(reason instanceof Error ? reason.message : "Не удалось загрузить товары");
+    } finally {
+      if (productsRequestIdRef.current === requestId) setProductsLoading(false);
+    }
+  }
+
+  async function toggleEditor() {
+    if (editing) {
+      setEditing(false);
+      return;
+    }
+
+    setEditing(true);
+    if (!productsLoading && (productsPage < 0 || appliedProductQuery)) {
+      setProductQuery("");
+      void loadProducts(0, "", true);
+    }
+  }
 
   function toggleProduct(productId: number) {
-    setSelectedIds((current) =>
-      current.includes(productId)
-        ? current.filter((id) => id !== productId)
-        : [...current, productId]
-    );
+    setSelectedIds((current) => {
+      if (current.includes(productId)) {
+        return current.filter((id) => id !== productId);
+      }
+      if (current.length >= 12) return current;
+      return [...current, productId];
+    });
   }
 
   async function createCollection() {
-    if (!title.trim() || selectedIds.length === 0 || saving) return;
+    if (
+      !title.trim() ||
+      selectedIds.length === 0 ||
+      saving ||
+      collections.length >= 12
+    ) return;
     setSaving(true);
     setError(null);
     try {
@@ -90,13 +151,17 @@ export function SellerStorefrontCollections({ brandId, products }: Props) {
           <h2>Подборки на витрине</h2>
           <p>Объединяйте товары в тематические коллекции на публичной странице.</p>
         </div>
-        <button type="button" onClick={() => setEditing((current) => !current)}>
+        <button
+          type="button"
+          disabled={!editing && collections.length >= 12}
+          onClick={() => void toggleEditor()}
+        >
           <Icon name={editing ? "x" : "plus"} size={16} />
           <span>{editing ? "Закрыть" : "Новая подборка"}</span>
         </button>
       </div>
 
-      {error ? <p className={styles.error}>{error}</p> : null}
+      {error ? <p className={styles.error} role="alert">{error}</p> : null}
 
       {editing ? (
         <div className={styles.editor}>
@@ -124,11 +189,28 @@ export function SellerStorefrontCollections({ brandId, products }: Props) {
           <div className={styles.productPicker}>
             <div className={styles.pickerHeading}>
               <strong>Выберите товары</strong>
-              <span>{selectedIds.length} выбрано</span>
+              <span>{selectedIds.length} из 12 · найдено {productsTotal}</span>
             </div>
-            {availableProducts.length > 0 ? (
+            <form
+              className={styles.productSearch}
+              onSubmit={(event) => {
+                event.preventDefault();
+                void loadProducts(0, productQuery, true);
+              }}
+            >
+              <input
+                value={productQuery}
+                onChange={(event) => setProductQuery(event.target.value)}
+                placeholder="Найти товар"
+                aria-label="Поиск товаров"
+              />
+              <button type="submit" disabled={productsLoading}>Найти</button>
+            </form>
+            {productsLoading && products.length === 0 ? (
+              <p className={styles.empty}>Загружаем товары…</p>
+            ) : products.length > 0 ? (
               <div className={styles.productGrid}>
-                {availableProducts.map((product) => {
+                {products.map((product) => {
                   const selected = selectedIds.includes(product.id);
                   return (
                     <button
@@ -160,6 +242,18 @@ export function SellerStorefrontCollections({ brandId, products }: Props) {
             ) : (
               <p className={styles.empty}>Сначала опубликуйте хотя бы один товар.</p>
             )}
+            {productsHasMore ? (
+              <button
+                type="button"
+                className={styles.loadMore}
+                disabled={productsLoading}
+                onClick={() =>
+                  void loadProducts(productsPage + 1, appliedProductQuery, false)
+                }
+              >
+                {productsLoading ? "Загрузка…" : "Показать ещё"}
+              </button>
+            ) : null}
           </div>
 
           <div className={styles.editorActions}>
@@ -175,7 +269,9 @@ export function SellerStorefrontCollections({ brandId, products }: Props) {
         </div>
       ) : null}
 
-      {collections.length > 0 ? (
+      {collectionsLoading ? (
+        <p className={styles.empty}>Загружаем подборки…</p>
+      ) : collections.length > 0 ? (
         <div className={styles.collectionList}>
           {collections.map((collection) => (
             <article key={collection.id} className={styles.collectionCard}>
@@ -215,4 +311,13 @@ export function SellerStorefrontCollections({ brandId, products }: Props) {
       ) : null}
     </section>
   );
+}
+
+function mergeProducts(
+  first: SellerStorefrontProduct[],
+  second: SellerStorefrontProduct[]
+) {
+  const products = new Map<number, SellerStorefrontProduct>();
+  [...first, ...second].forEach((product) => products.set(product.id, product));
+  return [...products.values()];
 }

@@ -11,8 +11,7 @@ const GUEST_FAVORITES_KEY = "guest_favorite_ids";
 export function setAuth(userCartId: string) {
   if (typeof window === "undefined") return;
 
-  localStorage.setItem(USER_CART_KEY, userCartId);
-  localStorage.removeItem(GUEST_CART_KEY);
+  rememberUserCartId(userCartId);
 
   emitAuthChanged();
   emitCartChanged();
@@ -44,50 +43,39 @@ export async function logout() {
 
 // ---------------- CART ----------------
 
-export function getCartId(): string {
+export function getGuestCartId(): string {
   if (typeof window === "undefined") return "";
-
-  return (
-    localStorage.getItem(USER_CART_KEY) ??
-    localStorage.getItem(GUEST_CART_KEY) ??
-    ""
-  );
+  return localStorage.getItem(GUEST_CART_KEY) ?? "";
 }
 
-export async function ensureCartId(): Promise<string> {
+export function rememberUserCartId(userCartId: string): void {
+  if (typeof window === "undefined" || !userCartId) return;
+  localStorage.setItem(USER_CART_KEY, userCartId);
+  localStorage.removeItem(GUEST_CART_KEY);
+}
+
+export function clearStoredUserCartId(): void {
+  if (typeof window === "undefined") return;
+  localStorage.removeItem(USER_CART_KEY);
+}
+
+export async function ensureGuestCartId(): Promise<string> {
   if (typeof window === "undefined") return "";
 
-  const existingUserCartId = localStorage.getItem(USER_CART_KEY);
-
-  if (existingUserCartId) {
-    return existingUserCartId;
-  }
-
-  const existingGuestCartId = localStorage.getItem(GUEST_CART_KEY);
-
-  if (existingGuestCartId) {
-    return existingGuestCartId;
-  }
+  const existingGuestCartId = getGuestCartId();
+  if (existingGuestCartId) return existingGuestCartId;
 
   const response = await fetch(`${API_URL}/api/cart/new-id`, {
     credentials: "include",
   });
-
-  if (!response.ok) {
-    throw new Error("Не удалось получить guest cart id");
-  }
+  if (!response.ok) throw new Error("Не удалось получить guest cart id");
 
   const data = await response.json();
-
   const newCartId =
     typeof data?.cartId === "string" ? data.cartId.trim() : "";
-
-  if (!newCartId) {
-    throw new Error("Backend вернул пустой cart id");
-  }
+  if (!newCartId) throw new Error("Backend вернул пустой cart id");
 
   localStorage.setItem(GUEST_CART_KEY, newCartId);
   emitCartChanged();
-
   return newCartId;
 }

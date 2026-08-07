@@ -131,6 +131,7 @@ export function ProductGallery({ title, images, onOpenImage }: Props) {
           title={title}
           images={images}
           fit="contain"
+          sizes="(max-width: 1100px) 100vw, 56vw"
           onImageClick={onOpenImage}
         />
       </div>

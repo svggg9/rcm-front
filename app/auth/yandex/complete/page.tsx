@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 
 import { setAuth } from "../../../lib/auth";
+import { safeReturnPath } from "../../../lib/safeReturnPath";
 import {
   clearGuestFavoriteIds,
   getGuestFavoriteIds,
@@ -20,9 +21,8 @@ function YandexAuthCompleteContent() {
 
     async function complete() {
       const error = searchParams.get("error");
-      const next = searchParams.get("next") || "/";
       const cartId = searchParams.get("cartId");
-      const safeNext = next.startsWith("/") && !next.startsWith("//") ? next : "/";
+      const safeNext = safeReturnPath(searchParams.get("next"));
 
       if (error) {
         toast.error("Не удалось войти через Яндекс");
@@ -35,11 +35,10 @@ function YandexAuthCompleteContent() {
         setAuth(cartId);
 
         if (guestFavoriteIds.length > 0) {
-          await syncFavoritesAfterLogin(guestFavoriteIds);
-          clearGuestFavoriteIds();
+          const synced = await syncFavoritesAfterLogin(guestFavoriteIds);
+          if (synced) clearGuestFavoriteIds();
         }
 
-        window.dispatchEvent(new Event("auth-changed"));
       }
 
       if (!cancelled) {

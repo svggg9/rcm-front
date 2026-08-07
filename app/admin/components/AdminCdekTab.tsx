@@ -1,6 +1,16 @@
+"use client";
+
+import { useState } from "react";
+
 import { EmptyState } from "../../components/ui/EmptyState";
+import { ListLoadMore } from "../../components/ui/ListLoadMore";
+import {
+  StatusBadge,
+  type StatusBadgeTone,
+} from "../../components/ui/StatusBadge";
 
 import styles from "../Admin.module.css";
+import { getAdminCdekWebhookPayload } from "../lib/adminApi";
 import type {
   AdminCdekWebhookEvent,
   CdekWebhookProcessingStatus,
@@ -10,7 +20,9 @@ type Props = {
   events: AdminCdekWebhookEvent[];
   totalElements: number;
   refreshing: boolean;
+  loadingMore: boolean;
   onRefresh: () => void;
+  onLoadMore?: () => void;
 };
 
 function formatDate(value: string | null) {
@@ -40,18 +52,20 @@ function formatProcessingStatus(value: CdekWebhookProcessingStatus) {
   }
 }
 
-function processingStatusClass(value: CdekWebhookProcessingStatus) {
+function getProcessingStatusTone(
+  value: CdekWebhookProcessingStatus
+): StatusBadgeTone {
   switch (value) {
     case "PROCESSED":
-      return styles.statusProcessed;
+      return "success";
     case "FAILED":
-      return styles.statusFailed;
+      return "danger";
     case "IGNORED":
-      return styles.statusIgnored;
+      return "default";
     case "RECEIVED":
-      return styles.statusReceived;
+      return "warning";
     default:
-      return "";
+      return "default";
   }
 }
 
@@ -69,11 +83,50 @@ function prettyPayload(value: string) {
   }
 }
 
+function RawPayloadDetails({ eventId }: { eventId: number }) {
+  const [formattedPayload, setFormattedPayload] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function loadPayload() {
+    if (formattedPayload !== null || loading) return;
+    setLoading(true);
+    setError(null);
+    try {
+      setFormattedPayload(prettyPayload(await getAdminCdekWebhookPayload(eventId)));
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "Не удалось загрузить JSON");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <details
+      className={styles.rawDetails}
+      onToggle={(event) => {
+        if (event.currentTarget.open) {
+          void loadPayload();
+        }
+      }}
+    >
+      <summary>Показать JSON</summary>
+      {loading ? <span>Загрузка…</span> : null}
+      {error ? <span className={styles.cdekError}>{error}</span> : null}
+      {formattedPayload !== null ? (
+        <pre className={styles.rawPayload}>{formattedPayload}</pre>
+      ) : null}
+    </details>
+  );
+}
+
 export function AdminCdekTab({
   events,
   totalElements,
   refreshing,
+  loadingMore,
   onRefresh,
+  onLoadMore,
 }: Props) {
   return (
     <>
@@ -103,16 +156,17 @@ export function AdminCdekTab({
           text="Когда СДЭК пришлет webhook, он появится здесь вместе со статусом обработки."
         />
       ) : (
-        <div className={styles.financeTableWrap}>
-          <table className={styles.financeTable}>
+        <>
+          <div className={styles.financeTableWrap}>
+            <table className={styles.financeTable}>
             <thead>
               <tr>
-                <th>Дата</th>
-                <th>Событие</th>
-                <th>Статус СДЭК</th>
-                <th>Заказ СДЭК</th>
-                <th>Обработка</th>
-                <th>Payload</th>
+                <th scope="col">Дата</th>
+                <th scope="col">Событие</th>
+                <th scope="col">Статус СДЭК</th>
+                <th scope="col">Заказ СДЭК</th>
+                <th scope="col">Обработка</th>
+                <th scope="col">Payload</th>
               </tr>
             </thead>
             <tbody>
@@ -139,9 +193,12 @@ export function AdminCdekTab({
                     <span>{event.cdekOrderUuid || "—"}</span>
                   </td>
                   <td>
-                    <div className={processingStatusClass(event.processingStatus)}>
+                    <StatusBadge
+                      tone={getProcessingStatusTone(event.processingStatus)}
+                      size="regular"
+                    >
                       {formatProcessingStatus(event.processingStatus)}
-                    </div>
+                    </StatusBadge>
                     <span>{formatDate(event.processedAt)}</span>
                     {event.processingError ? (
                       <span className={styles.cdekError}>
@@ -150,18 +207,20 @@ export function AdminCdekTab({
                     ) : null}
                   </td>
                   <td>
-                    <details className={styles.rawDetails}>
-                      <summary>Показать JSON</summary>
-                      <pre className={styles.rawPayload}>
-                        {prettyPayload(event.rawPayload)}
-                      </pre>
-                    </details>
+                    <RawPayloadDetails eventId={event.id} />
                   </td>
                 </tr>
               ))}
             </tbody>
-          </table>
-        </div>
+            </table>
+          </div>
+          <ListLoadMore
+            loaded={events.length}
+            total={totalElements}
+            loading={loadingMore}
+            onLoadMore={onLoadMore}
+          />
+        </>
       )}
     </>
   );

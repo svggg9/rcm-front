@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useState } from "react";
+import { memo, useEffect, useRef, useState } from "react";
 
 import { Icon } from "../../components/ui/Icon";
 import {
@@ -21,6 +21,8 @@ import styles from "./AdminStorefrontCollections.module.css";
 type Props = {
   initialCollections: AdminStorefrontCollection[];
   loading: boolean;
+  onCollectionsChange?: (collections: AdminStorefrontCollection[]) => void;
+  onMutationComplete?: () => void;
 };
 
 type Draft = {
@@ -39,22 +41,68 @@ const EMPTY_DRAFT: Draft = {
   productIds: [],
 };
 
-export function AdminStorefrontCollections({ initialCollections, loading }: Props) {
+export const AdminStorefrontCollections = memo(function AdminStorefrontCollections({
+  initialCollections,
+  loading,
+  onCollectionsChange,
+  onMutationComplete,
+}: Props) {
   const [collections, setCollections] = useState(initialCollections);
   const [products, setProducts] = useState<AdminStorefrontProduct[]>([]);
   const [draft, setDraft] = useState<Draft | null>(null);
   const [saving, setSaving] = useState(false);
+  const [productsLoading, setProductsLoading] = useState(false);
+  const [productQuery, setProductQuery] = useState("");
+  const [appliedProductQuery, setAppliedProductQuery] = useState("");
+  const [productsPage, setProductsPage] = useState(-1);
+  const [productsTotal, setProductsTotal] = useState(0);
+  const [productsHasMore, setProductsHasMore] = useState(false);
+  const productsRequestIdRef = useRef(0);
+  const draftRef = useRef<Draft | null>(draft);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => setCollections(initialCollections), [initialCollections]);
-
   useEffect(() => {
-    void getAdminStorefrontProducts()
-      .then(setProducts)
-      .catch((reason: unknown) =>
-        setError(reason instanceof Error ? reason.message : "Не удалось загрузить товары")
-      );
-  }, []);
+    onCollectionsChange?.(collections);
+  }, [collections, onCollectionsChange]);
+  useEffect(() => {
+    draftRef.current = draft;
+  }, [draft]);
+
+  async function loadProducts(page: number, query: string, reset: boolean) {
+    const requestId = ++productsRequestIdRef.current;
+    if (reset) {
+      setAppliedProductQuery(query.trim());
+      setProductsHasMore(false);
+    }
+    setProductsLoading(true);
+    try {
+      const result = await getAdminStorefrontProducts(page, 24, query);
+      if (productsRequestIdRef.current !== requestId) return;
+      const selectedIds = new Set(draftRef.current?.productIds ?? []);
+      setProducts((current) => {
+        const base = reset
+          ? current.filter((product) => selectedIds.has(product.id))
+          : current;
+        return mergeProducts(base, result.content);
+      });
+      setProductsPage(result.number);
+      setProductsTotal(result.totalElements);
+      setProductsHasMore(result.number + 1 < result.totalPages);
+    } catch (reason) {
+      if (productsRequestIdRef.current !== requestId) return;
+      setError(reason instanceof Error ? reason.message : "Не удалось загрузить товары");
+    } finally {
+      if (productsRequestIdRef.current === requestId) setProductsLoading(false);
+    }
+  }
+
+  function ensureProducts() {
+    if (productsLoading) return;
+    if (productsPage >= 0 && !appliedProductQuery) return;
+    setProductQuery("");
+    void loadProducts(0, "", true);
+  }
 
   function edit(collection: AdminStorefrontCollection) {
     setDraft({
@@ -64,7 +112,9 @@ export function AdminStorefrontCollections({ initialCollections, loading }: Prop
       active: collection.active,
       productIds: collection.products.map((product) => product.id),
     });
+    setProducts((current) => mergeProducts(collection.products, current));
     setError(null);
+    ensureProducts();
   }
 
   function toggleProduct(id: number) {
@@ -100,6 +150,7 @@ export function AdminStorefrontCollections({ initialCollections, loading }: Prop
           ? current.map((item) => (item.id === saved.id ? saved : item))
           : [...current, saved]
       );
+      onMutationComplete?.();
       setDraft(null);
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "Не удалось сохранить подборку");
@@ -119,6 +170,7 @@ export function AdminStorefrontCollections({ initialCollections, loading }: Prop
       setCollections((current) =>
         current.map((item) => (item.id === updated.id ? updated : item))
       );
+      onMutationComplete?.();
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "Не удалось изменить статус");
     }
@@ -128,6 +180,7 @@ export function AdminStorefrontCollections({ initialCollections, loading }: Prop
     try {
       await deleteAdminStorefrontCollection(id);
       setCollections((current) => current.filter((item) => item.id !== id));
+      onMutationComplete?.();
       if (draft?.id === id) setDraft(null);
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "Не удалось удалить подборку");
@@ -143,6 +196,7 @@ export function AdminStorefrontCollections({ initialCollections, loading }: Prop
     setCollections(next);
     try {
       setCollections(await reorderAdminStorefrontCollections(next.map((item) => item.id)));
+      onMutationComplete?.();
     } catch (reason) {
       setCollections(collections);
       setError(reason instanceof Error ? reason.message : "Не удалось изменить порядок");
@@ -157,7 +211,13 @@ export function AdminStorefrontCollections({ initialCollections, loading }: Prop
           <h2>Глобальные подборки</h2>
           <p>Активные подборки заменяют автоматические товарные блоки на главной.</p>
         </div>
-        <button type="button" onClick={() => setDraft({ ...EMPTY_DRAFT })}>
+        <button
+          type="button"
+          onClick={() => {
+            setDraft({ ...EMPTY_DRAFT });
+            ensureProducts();
+          }}
+        >
           <Icon name="plus" size={16} />
           Новая подборка
         </button>
@@ -206,10 +266,27 @@ export function AdminStorefrontCollections({ initialCollections, loading }: Prop
           </label>
           <div className={styles.pickerHead}>
             <strong>Товары</strong>
-            <span>{draft.productIds.length} из 16</span>
+            <span>{draft.productIds.length} из 16 · найдено {productsTotal}</span>
           </div>
-          <div className={styles.productGrid}>
-            {products.map((product) => {
+          <form
+            className={styles.productSearch}
+            onSubmit={(event) => {
+              event.preventDefault();
+              void loadProducts(0, productQuery, true);
+            }}
+          >
+            <input
+              value={productQuery}
+              onChange={(event) => setProductQuery(event.target.value)}
+              placeholder="Найти по названию, бренду или категории"
+              aria-label="Поиск товаров"
+            />
+            <button type="submit" disabled={productsLoading}>Найти</button>
+          </form>
+          <div className={styles.productGrid} aria-busy={productsLoading}>
+            {productsLoading && products.length === 0 ? (
+              <p>Загружаем товары…</p>
+            ) : products.map((product) => {
               const selected = draft.productIds.includes(product.id);
               return (
                 <button
@@ -232,6 +309,18 @@ export function AdminStorefrontCollections({ initialCollections, loading }: Prop
               );
             })}
           </div>
+          {productsHasMore ? (
+            <button
+              type="button"
+              className={styles.loadMore}
+              disabled={productsLoading}
+              onClick={() =>
+                void loadProducts(productsPage + 1, appliedProductQuery, false)
+              }
+            >
+              {productsLoading ? "Загрузка…" : "Показать ещё"}
+            </button>
+          ) : null}
           <div className={styles.editorActions}>
             <button type="button" onClick={() => setDraft(null)}>Отмена</button>
             <button
@@ -287,4 +376,13 @@ export function AdminStorefrontCollections({ initialCollections, loading }: Prop
       </div>
     </section>
   );
+});
+
+function mergeProducts(
+  first: AdminStorefrontProduct[],
+  second: AdminStorefrontProduct[]
+) {
+  const products = new Map<number, AdminStorefrontProduct>();
+  [...first, ...second].forEach((product) => products.set(product.id, product));
+  return [...products.values()];
 }

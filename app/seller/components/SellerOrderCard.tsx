@@ -83,7 +83,29 @@ export function SellerOrderCard({
   const [detailsLoading, setDetailsLoading] = useState(false);
   const [detailsError, setDetailsError] = useState(false);
   const autoExpandHandled = useRef(false);
+  const prefetchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const orderVisual = getOrderVisual(order, statusLabel);
+
+  useEffect(
+    () => () => {
+      if (prefetchTimerRef.current) clearTimeout(prefetchTimerRef.current);
+    },
+    []
+  );
+
+  function schedulePrefetch() {
+    if (!onPrefetch || prefetchTimerRef.current) return;
+    prefetchTimerRef.current = setTimeout(() => {
+      prefetchTimerRef.current = null;
+      onPrefetch(order.id);
+    }, 180);
+  }
+
+  function cancelPrefetch() {
+    if (!prefetchTimerRef.current) return;
+    clearTimeout(prefetchTimerRef.current);
+    prefetchTimerRef.current = null;
+  }
 
   const loadDetails = useCallback(async () => {
     if (!onLoadDetails || detailsLoading) return;
@@ -127,7 +149,8 @@ export function SellerOrderCard({
   return (
     <article
       className={`${styles.orderRow} ${expanded ? styles.orderRowExpanded : ""}`}
-      onMouseEnter={() => onPrefetch?.(order.id)}
+      onMouseEnter={schedulePrefetch}
+      onMouseLeave={cancelPrefetch}
     >
       <button
         type="button"

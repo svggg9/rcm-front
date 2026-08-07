@@ -155,7 +155,7 @@
 }
 
 .requiredMark {
-  color: var(--warning);
+  color: var(--required-mark);
   font-weight: 500;
 }
 

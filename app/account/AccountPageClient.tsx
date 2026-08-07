@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import dynamic from "next/dynamic";
 import { toast } from "sonner";
 
 import { apiFetch, API_URL } from "../lib/api";
@@ -15,11 +16,6 @@ import {
   type AccountProfileUpdate,
 } from "./components/AccountProfileTab";
 import { AccountOrdersTab } from "./components/AccountOrdersTab";
-import { AccountOrderDetails } from "./components/AccountOrderDetails";
-import { AccountFavoritesTab } from "./components/AccountFavoritesTab";
-import { AccountBrandsTab } from "./components/AccountBrandsTab";
-import { AccountInfoTab } from "./components/AccountInfoTab";
-import { AccountReturnsTab } from "./components/AccountReturnsTab";
 import { CabinetSkeleton } from "../components/ui/CabinetSkeleton";
 import { CabinetTabs } from "../components/ui/CabinetTabs";
 
@@ -32,7 +28,32 @@ import type {
   PaymentStatus,
   DeliveryStatus,
   OrderListItem,
+  PageResponse,
 } from "./types";
+
+const AccountOrderDetails = dynamic(() =>
+  import("./components/AccountOrderDetails").then(
+    (module) => module.AccountOrderDetails
+  )
+);
+const AccountFavoritesTab = dynamic(() =>
+  import("./components/AccountFavoritesTab").then(
+    (module) => module.AccountFavoritesTab
+  )
+);
+const AccountBrandsTab = dynamic(() =>
+  import("./components/AccountBrandsTab").then(
+    (module) => module.AccountBrandsTab
+  )
+);
+const AccountInfoTab = dynamic(() =>
+  import("./components/AccountInfoTab").then((module) => module.AccountInfoTab)
+);
+const AccountReturnsTab = dynamic(() =>
+  import("./components/AccountReturnsTab").then(
+    (module) => module.AccountReturnsTab
+  )
+);
 
 type AccountTab =
   "home" | "orders" | "returns" | "favorites" | "brands" | "info";
@@ -130,7 +151,8 @@ function buildOrderStatusLabel(order: Order | OrderListItem): string {
 
 type Props = {
   initialMe: Me;
-  initialOrders: OrderListItem[];
+  initialOrders: PageResponse<OrderListItem>;
+  initialOrdersLoaded: boolean;
   initialSelectedOrder: Order | null;
 };
 
@@ -148,13 +170,20 @@ async function fetchAccountOrder(orderId: number): Promise<Order> {
 function AccountPageContent({
   initialMe,
   initialOrders,
+  initialOrdersLoaded,
   initialSelectedOrder,
 }: Props) {
   const router = useRouter();
   const searchParams = useSearchParams();
 
   const [me, setMe] = useState<Me | null>(initialMe);
-  const [orders, setOrders] = useState<OrderListItem[]>(initialOrders);
+  const [orders, setOrders] = useState<OrderListItem[]>(initialOrders.content);
+  const [ordersTotal, setOrdersTotal] = useState(initialOrders.totalElements);
+  const [ordersNextPage, setOrdersNextPage] = useState(initialOrders.number + 1);
+  const [ordersLoaded, setOrdersLoaded] = useState(initialOrdersLoaded);
+  const [ordersLoadingMore, setOrdersLoadingMore] = useState(false);
+  const ordersLoadingMoreRef = useRef(false);
+  const ordersRequestIdRef = useRef(0);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(
     initialSelectedOrder,
   );
@@ -253,8 +282,100 @@ function AccountPageContent({
   }, [initialMe]);
 
   useEffect(() => {
-    setOrders(initialOrders);
-  }, [initialOrders]);
+    ordersRequestIdRef.current += 1;
+    ordersLoadingMoreRef.current = false;
+    setOrders(initialOrders.content);
+    setOrdersTotal(initialOrders.totalElements);
+    setOrdersNextPage(initialOrders.number + 1);
+    setOrdersLoaded(initialOrdersLoaded);
+    setOrdersLoadingMore(false);
+  }, [initialOrders, initialOrdersLoaded]);
+
+  useEffect(() => {
+    if (ordersLoaded || (currentTab !== "home" && currentTab !== "orders")) {
+      return;
+    }
+
+    const requestId = ++ordersRequestIdRef.current;
+    let cancelled = false;
+    ordersLoadingMoreRef.current = true;
+    setOrdersLoadingMore(true);
+
+    async function loadInitialOrders() {
+      try {
+        const response = await apiFetch(
+          `${API_URL}/api/orders/my/list?page=0&size=20`
+        );
+        if (!response.ok) throw new Error("Не удалось загрузить заказы");
+        const page = (await response.json()) as PageResponse<OrderListItem>;
+        if (cancelled || requestId !== ordersRequestIdRef.current) return;
+
+        setOrders(Array.isArray(page.content) ? page.content : []);
+        setOrdersTotal(page.totalElements ?? 0);
+        setOrdersNextPage((page.number ?? 0) + 1);
+        setOrdersLoaded(true);
+      } catch (loadError) {
+        if (!cancelled && requestId === ordersRequestIdRef.current) {
+          toast.error(
+            loadError instanceof Error
+              ? loadError.message
+              : "Не удалось загрузить заказы"
+          );
+        }
+      } finally {
+        if (!cancelled && requestId === ordersRequestIdRef.current) {
+          ordersLoadingMoreRef.current = false;
+          setOrdersLoadingMore(false);
+        }
+      }
+    }
+
+    void loadInitialOrders();
+    return () => {
+      cancelled = true;
+    };
+  }, [currentTab, ordersLoaded]);
+
+  async function loadMoreOrders() {
+    if (ordersLoadingMoreRef.current || orders.length >= ordersTotal) return;
+    ordersLoadingMoreRef.current = true;
+    setOrdersLoadingMore(true);
+    const requestId = ++ordersRequestIdRef.current;
+
+    try {
+      const response = await apiFetch(
+        `${API_URL}/api/orders/my/list?page=${ordersNextPage}&size=20`
+      );
+      if (!response.ok) throw new Error("Не удалось загрузить заказы");
+      const page = (await response.json()) as PageResponse<OrderListItem>;
+      if (requestId !== ordersRequestIdRef.current) return;
+
+      setOrders((current) => {
+        const ids = new Set(current.map((order) => order.id));
+        return [
+          ...current,
+          ...(Array.isArray(page.content)
+            ? page.content.filter((order) => !ids.has(order.id))
+            : []),
+        ];
+      });
+      setOrdersTotal(page.totalElements ?? ordersTotal);
+      setOrdersNextPage((page.number ?? ordersNextPage) + 1);
+    } catch (loadError) {
+      if (requestId === ordersRequestIdRef.current) {
+        toast.error(
+          loadError instanceof Error
+            ? loadError.message
+            : "Не удалось загрузить заказы"
+        );
+      }
+    } finally {
+      if (requestId === ordersRequestIdRef.current) {
+        ordersLoadingMoreRef.current = false;
+        setOrdersLoadingMore(false);
+      }
+    }
+  }
 
   async function saveProfile(
     values: AccountProfileUpdate,
@@ -290,7 +411,6 @@ function AccountPageContent({
       const updated: Me = await response.json();
 
       setMe(updated);
-      router.refresh();
       return true;
     } catch (e) {
       toast.error(
@@ -470,6 +590,11 @@ function AccountPageContent({
                 ) : (
                   <AccountOrdersTab
                     orders={orders}
+                    totalElements={ordersTotal}
+                    loadingMore={ordersLoadingMore}
+                    onLoadMore={
+                      orders.length < ordersTotal ? loadMoreOrders : undefined
+                    }
                     buildOrderStatusLabel={buildOrderStatusLabel}
                     onOpenOrder={openOrder}
                     onLoadOrder={getOrderDetails}

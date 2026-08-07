@@ -1,0 +1,24 @@
+.root {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding-top: 20px;
+}
+
+.counter {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.35;
+  font-weight: 300;
+}
+
+.button {
+  min-width: 180px;
+}
+
+@media (max-width: 520px) {
+  .button {
+    width: 100%;
+  }
+}

@@ -89,6 +89,20 @@ export type AdminProduct = {
   updatedAt?: string | null;
 };
 
+export type AdminProductListItem = {
+  id: number;
+  title: string;
+  status: ProductStatus;
+  brandName: string | null;
+  categoryName: string | null;
+  suggestedCategoryName: string | null;
+  coverImage: string | null;
+  minPrice: number | null;
+  totalStock: number | null;
+  variantsCount: number | null;
+  updatedAt: string | null;
+};
+
 export type AdminSeller = {
   id: number;
   username: string;
@@ -198,7 +212,14 @@ export type AdminSellerPayout = {
   createdAt: string;
   sentAt: string | null;
   paidAt: string | null;
-  items: AdminSellerPayoutItem[];
+  orderCount?: number;
+  items?: AdminSellerPayoutItem[];
+};
+
+export type AdminSellerPayoutStats = {
+  totalCount: number;
+  readyAmount: number;
+  sentAmount: number;
 };
 
 export type PayoutGenerationResult = {
@@ -321,7 +342,7 @@ export type AdminCdekWebhookEvent = {
   isClientReturn: boolean | null;
   processingStatus: CdekWebhookProcessingStatus;
   processingError: string | null;
-  rawPayload: string;
+  rawPayload?: string | null;
   receivedAt: string;
   processedAt: string | null;
 };
@@ -348,22 +369,31 @@ export type AdminSellerApplication = {
 
 export type AdminInitialData = {
   tab: AdminTab;
+  tabDataLoaded: boolean;
+  categoriesLoaded: boolean;
   productStatus: ProductStatus | "ALL";
   applicationStatus: SellerApplicationStatus | "ALL";
+  ledgerEntryType: FinancialLedgerEntryType | "ALL";
+  ledgerOrderGroupId: string;
   selectedProductId: string | null;
   selectedOrderId: string | null;
-  products: AdminProduct[];
+  products: AdminProductListItem[];
   totalProducts: number;
   productStatusCounts: Record<ProductStatus | "ALL", number>;
   selectedProduct: AdminProduct | null;
   orders: AdminOrderListItem[];
   totalOrders: number;
   selectedOrder: AdminOrder | null;
+  storefrontHome: AdminStorefrontHome | null;
   sellerApplications: AdminSellerApplication[];
   totalSellerApplications: number;
   sellerApplicationStatusCounts: Record<SellerApplicationStatus | "ALL", number>;
   ledgerEntries: AdminFinancialLedgerEntry[];
   totalLedgerEntries: number;
+  ledgerLoaded: boolean;
+  sellerPayouts: AdminSellerPayout[];
+  sellerPayoutStats: AdminSellerPayoutStats;
+  sellerPayoutsLoaded: boolean;
   cdekWebhookEvents: AdminCdekWebhookEvent[];
   totalCdekWebhookEvents: number;
   categories: DictionaryItem[];

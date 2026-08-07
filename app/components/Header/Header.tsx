@@ -3,14 +3,13 @@
 import Image from "next/image";
 import Link from "next/link";
 import { Suspense, useEffect, useRef, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
 import styles from "./Header.module.css";
 import { apiFetch, API_URL } from "../../lib/api";
 import { useCartCount } from "../../lib/useCartCount";
 import { useCurrentUser } from "../../lib/useCurrentUser";
 import { useFavorites } from "../../lib/FavoritesContext";
-import { useUserRole } from "../../lib/useUserRole";
 import { useAuthModal } from "../AuthModal/useAuthModal";
 import { Icon } from "../ui/Icon";
 
@@ -42,22 +41,25 @@ function isAdminRole(role: string | null) {
 
 function HeaderContent() {
   const router = useRouter();
+  const pathname = usePathname();
   const searchParams = useSearchParams();
   const headerRef = useRef<HTMLElement | null>(null);
+  const loadedSellerBrandUserIdRef = useRef<number | null>(null);
 
   const activeCategory = searchParams.get("category");
   const activeAudience = searchParams.get("audience") || "all";
   const activeSearch = searchParams.get("q") || "";
+  const isSellerPath = pathname.startsWith("/seller");
 
   const [categories, setCategories] = useState<Category[]>([]);
-  const [loadingCategories, setLoadingCategories] = useState(true);
+  const [loadingCategories, setLoadingCategories] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [menuAudience, setMenuAudience] = useState(activeAudience);
   const [sellerBrandName, setSellerBrandName] = useState<string | null>(null);
 
   const { user, isAuthenticated: isAuth } = useCurrentUser();
   const cartCount = useCartCount();
-  const role = useUserRole();
+  const role = user?.role ?? null;
   const { count: favoritesCount } = useFavorites();
   const { openAuth } = useAuthModal();
 
@@ -66,10 +68,22 @@ function HeaderContent() {
     let cancelled = false;
 
     async function loadSellerBrandName() {
-      if (isAuth !== true || !isSellerRole(role)) {
+      if (
+        isSellerPath ||
+        isAuth !== true ||
+        !isSellerRole(role)
+      ) {
+        loadedSellerBrandUserIdRef.current = null;
         setSellerBrandName(null);
         return;
       }
+
+      const userId = user?.id ?? null;
+      if (userId !== null && loadedSellerBrandUserIdRef.current === userId) {
+        return;
+      }
+
+      loadedSellerBrandUserIdRef.current = userId;
 
       try {
         const response = await apiFetch(`${API_URL}/api/seller/brands`);
@@ -88,6 +102,7 @@ function HeaderContent() {
         }
       } catch {
         if (!cancelled) {
+          loadedSellerBrandUserIdRef.current = null;
           setSellerBrandName(null);
         }
       }
@@ -98,7 +113,7 @@ function HeaderContent() {
     return () => {
       cancelled = true;
     };
-  }, [isAuth, role]);
+  }, [isAuth, isSellerPath, role, user?.id]);
 
   useEffect(() => {
     if (!menuOpen) {
@@ -107,6 +122,8 @@ function HeaderContent() {
   }, [activeAudience, menuOpen]);
 
   useEffect(() => {
+    if (!menuOpen || categories.length > 0) return;
+
     let cancelled = false;
 
     async function loadCategories() {
@@ -149,7 +166,7 @@ function HeaderContent() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [categories.length, menuOpen]);
 
   useEffect(() => {
     const node = headerRef.current;

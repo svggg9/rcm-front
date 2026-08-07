@@ -5,36 +5,26 @@ import Link from "next/link";
 import { Icon, type IconName } from "../../components/ui/Icon";
 import type {
   SellerBrand,
-  SellerFinanceSummary,
-  SellerOrderListItem,
-  SellerProductListItem,
+  SellerDashboardSummary,
 } from "../types";
 
 import styles from "./SellerHomeTab.module.css";
 
 type Props = {
-  products: SellerProductListItem[];
-  orders: SellerOrderListItem[];
   brand: SellerBrand | null;
-  finance: SellerFinanceSummary | null;
+  summary: SellerDashboardSummary | null;
 };
 
 export function SellerHomeTab({
-  products,
-  orders,
   brand,
-  finance,
+  summary,
 }: Props) {
-  const activeProducts = products.filter((product) => product.status === "ACTIVE").length;
-  const attentionProducts = products.filter((product) =>
-    ["DRAFT", "MODERATION", "NEEDS_REVISION", "BLOCKED"].includes(product.status ?? "DRAFT")
-  ).length;
-  const readyOrders = orders.filter(isReadyOrder).length;
-  const activeOrders = orders.filter((order) =>
-    !["COMPLETED", "CANCELED"].includes(order.status)
-  ).length;
+  const activeProducts = summary?.activeProducts ?? 0;
+  const attentionProducts = summary?.attentionProducts ?? 0;
+  const readyOrders = summary?.readyOrders ?? 0;
+  const activeOrders = summary?.activeOrders ?? 0;
   const brandFields = brand
-    ? [brand.name, brand.description, brand.logoUrl, brand.country, brand.foundationYear]
+    ? [brand.name, brand.description, brand.wordmarkUrl]
     : [];
   const brandCompleteness = brand
     ? Math.round((brandFields.filter(Boolean).length / brandFields.length) * 100)
@@ -54,7 +44,7 @@ export function SellerHomeTab({
           </p>
         </div>
 
-        <Link href="/seller?tab=products" className={styles.heroAction}>
+        <Link href="/seller?tab=products" className={styles.heroAction} prefetch={false}>
           <Icon name="plus" size={17} />
           <span>Добавить товар</span>
         </Link>
@@ -78,7 +68,10 @@ export function SellerHomeTab({
             </p>
           </div>
         </div>
-        <Link href={readyOrders > 0 ? "/seller?tab=orders" : "/seller?tab=products"}>
+        <Link
+          href={readyOrders > 0 ? "/seller?tab=orders" : "/seller?tab=products"}
+          prefetch={false}
+        >
           Перейти к задачам
           <Icon name="chevron-right" size={16} />
         </Link>
@@ -93,7 +86,7 @@ export function SellerHomeTab({
           meta={
             attentionProducts > 0
               ? `${attentionProducts} требуют внимания`
-              : `${products.length} всего`
+              : `${summary?.totalProducts ?? 0} всего`
           }
           tone="blue"
         />
@@ -103,7 +96,7 @@ export function SellerHomeTab({
           icon="shopping-bag"
           title="Заказы"
           value={readyOrders > 0 ? `${readyOrders} к отправке` : `${activeOrders} в работе`}
-          meta={`${orders.length} всего`}
+          meta={`${summary?.totalOrders ?? 0} всего`}
           tone="coral"
         />
 
@@ -126,7 +119,11 @@ export function SellerHomeTab({
         />
       </div>
 
-      <Link href="/seller?tab=finance" className={styles.financeWidget}>
+      <Link
+        href="/seller?tab=finance"
+        className={styles.financeWidget}
+        prefetch={false}
+      >
         <div className={styles.financeHead}>
           <span className={styles.financeIcon}>
             <Icon name="wallet" size={20} />
@@ -139,12 +136,17 @@ export function SellerHomeTab({
           <div>
             <span>Расчетный остаток</span>
             <strong>
-              {finance ? formatMoney(finance.estimatedBalance) : "Нет данных"}
+              {summary ? formatMoney(summary.estimatedBalance) : "Нет данных"}
             </strong>
           </div>
           <div className={styles.financeMeta}>
-            <span>Продажи {finance ? formatMoney(finance.salesAmount) : "—"}</span>
-            <span>Комиссия {finance ? formatMoney(finance.commissionAmount) : "—"}</span>
+            <span>
+              Продажи {summary ? formatMoney(summary.salesAmount) : "—"}
+            </span>
+            <span>
+              Комиссия{" "}
+              {summary ? formatMoney(summary.commissionAmount) : "—"}
+            </span>
           </div>
         </div>
       </Link>
@@ -168,7 +170,7 @@ function DashboardWidget({
   tone: "blue" | "coral" | "lilac" | "sand";
 }) {
   return (
-    <Link href={href} className={`${styles.widget} ${styles[tone]}`}>
+    <Link href={href} className={`${styles.widget} ${styles[tone]}`} prefetch={false}>
       <div className={styles.widgetHead}>
         <div className={styles.widgetHeading}>
           <span className={styles.widgetIcon}>
@@ -183,14 +185,6 @@ function DashboardWidget({
         <p>{meta}</p>
       </div>
     </Link>
-  );
-}
-
-function isReadyOrder(order: SellerOrderListItem) {
-  return (
-    order.paymentStatus === "PAID" &&
-    (order.deliveryStatus === "READY_FOR_SHIPMENT" ||
-      order.status === "PROCESSING")
   );
 }
 

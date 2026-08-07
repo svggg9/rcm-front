@@ -1,6 +1,8 @@
 ﻿"use client";
 
 import { CabinetSidebar } from "../../components/ui/CabinetSidebar";
+import { Button } from "../../components/ui/Button";
+import { Icon } from "../../components/ui/Icon";
 import styles from "./AccountSidebar.module.css";
 
 type AccountTab =
@@ -30,9 +32,17 @@ export function AccountSidebar({
       mobileInline
       onNavigate={onNavigate}
       footer={
-        <button type="button" className={styles.logout} onClick={onLogout}>
-          Выйти
-        </button>
+        <Button
+          type="button"
+          variant="secondary"
+          className={styles.logout}
+          onClick={onLogout}
+        >
+          <span className={styles.logoutContent}>
+            <Icon name="log-out" size={18} strokeWidth={1.5} />
+            Выйти
+          </span>
+        </Button>
       }
       items={[
         {

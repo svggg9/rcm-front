@@ -58,6 +58,7 @@ export type IconName =
   | "list"
   | "list-ordered"
   | "log-in"
+  | "log-out"
   | "money"
   | "minus"
   | "package"
@@ -86,6 +87,7 @@ type Props = {
 type CustomIconName =
   | "cancel-circle"
   | "delivery-truck"
+  | "log-out"
   | "pickup-point"
   | "return-circle"
   | "shipment-handoff";
@@ -172,6 +174,26 @@ export function Icon({
         <path d="M16.85 10v4h3.9M13.75 16.25h1.5M8.75 16.25h6.5" />
         <circle cx="6.75" cy="16.25" r="2" />
         <circle cx="17.25" cy="16.25" r="2" />
+      </svg>
+    );
+  }
+
+  if (name === "log-out") {
+    return (
+      <svg
+        className={className}
+        width={size}
+        height={size}
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth={strokeWidth}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        aria-hidden={ariaHidden}
+      >
+        <path d="M10.25 4.25h-4.5a1.5 1.5 0 0 0-1.5 1.5v12.5a1.5 1.5 0 0 0 1.5 1.5h4.5" />
+        <path d="m14.25 7.75 4.25 4.25-4.25 4.25M18.25 12h-9.5" />
       </svg>
     );
   }

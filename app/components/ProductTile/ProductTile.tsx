@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
@@ -33,24 +33,53 @@ export function ProductTile({
   const hoverImage = product.images?.[1];
   const hasHoverImage = hoverImage && hoverImage !== mainImage;
 
-  const { favoriteIds, toggle } = useFavorites();
-  const fav = favoriteIds.includes(product.id);
+  const { isFavorite, toggle } = useFavorites();
+  const fav = isFavorite(product.id);
   const [favoritePending, setFavoritePending] = useState(false);
+  const [hoverImageRequested, setHoverImageRequested] = useState(false);
   const favoritePendingRef = useRef(false);
 
   const prefetchedRef = useRef(false);
+  const prefetchTimerRef = useRef<number | null>(null);
 
   const imageSizes =
     "(max-width: 599px) 50vw, (max-width: 899px) 50vw, (max-width: 1199px) 33vw, 25vw";
   const productHref = productPath(product);
 
-  function prefetchProduct() {
-    if (prefetchedRef.current) return;
-    prefetchedRef.current = true;
-    if (window.innerWidth > 768) {
+  function scheduleProductPrefetch() {
+    if (prefetchedRef.current || prefetchTimerRef.current !== null) return;
+    if (!window.matchMedia("(hover: hover) and (pointer: fine)").matches) return;
+
+    prefetchTimerRef.current = window.setTimeout(() => {
+      prefetchTimerRef.current = null;
+      prefetchedRef.current = true;
       router.prefetch(productHref);
-    }
+    }, 140);
   }
+
+  function cancelProductPrefetch() {
+    if (prefetchTimerRef.current === null) return;
+    window.clearTimeout(prefetchTimerRef.current);
+    prefetchTimerRef.current = null;
+  }
+
+  function handlePointerIntent() {
+    if (
+      hasHoverImage &&
+      window.matchMedia("(hover: hover) and (pointer: fine)").matches
+    ) {
+      setHoverImageRequested(true);
+    }
+    scheduleProductPrefetch();
+  }
+
+  useEffect(() => {
+    return () => {
+      if (prefetchTimerRef.current !== null) {
+        window.clearTimeout(prefetchTimerRef.current);
+      }
+    };
+  }, []);
 
   async function onLike(e: React.MouseEvent<HTMLButtonElement>) {
     e.stopPropagation();
@@ -80,9 +109,12 @@ export function ProductTile({
         <div className={styles.mediaWrap}>
           <Link
             href={productHref}
+            prefetch={false}
             className={styles.mediaLink}
-            onMouseEnter={prefetchProduct}
-            onFocus={prefetchProduct}
+            onMouseEnter={handlePointerIntent}
+            onMouseLeave={cancelProductPrefetch}
+            onFocus={handlePointerIntent}
+            onBlur={cancelProductPrefetch}
           >
             {mainImage ? (
               <Image
@@ -96,7 +128,7 @@ export function ProductTile({
               <div className={styles.noImage}>Нет изображения</div>
             )}
 
-            {hasHoverImage ? (
+            {hasHoverImage && hoverImageRequested ? (
               <Image
                 src={hoverImage}
                 alt=""

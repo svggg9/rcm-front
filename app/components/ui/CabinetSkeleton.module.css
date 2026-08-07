@@ -30,24 +30,7 @@
 }
 
 .block {
-  position: relative;
-  overflow: hidden;
-  border-radius: 4px;
-  background: #eeeeec;
-}
-
-.block::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  transform: translateX(-105%);
-  background: linear-gradient(
-    90deg,
-    transparent 0%,
-    rgba(255, 255, 255, 0.7) 48%,
-    transparent 100%
-  );
-  animation: cabinetSkeletonShimmer 1.25s ease-in-out infinite;
+  min-width: 0;
 }
 
 .pageTitle { width: 150px; height: 32px; }
@@ -101,7 +84,6 @@
 .widget {
   min-height: 150px;
   padding: 20px;
-  border: 1px solid var(--line);
 }
 
 .widgetIcon { width: 20px; height: 20px; margin-bottom: 24px; }
@@ -113,7 +95,6 @@
   min-height: 132px;
   margin-top: 12px;
   padding: 22px;
-  border: 1px solid var(--line);
 }
 
 .bandLabel { width: 88px; height: 11px; }
@@ -235,14 +216,6 @@
   clip: rect(0, 0, 0, 0);
   white-space: nowrap;
   border: 0;
-}
-
-@keyframes cabinetSkeletonShimmer {
-  100% { transform: translateX(105%); }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .block::after { animation: none; }
 }
 
 @media (max-width: 900px) {

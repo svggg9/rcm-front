@@ -10,20 +10,6 @@
   background: var(--soft);
 }
 
-.imageLoader {
-  position: absolute;
-  inset: 0;
-  background: var(--soft);
-  animation: pulse 1.2s ease-in-out infinite;
-  z-index: 0;
-}
-
-@keyframes pulse {
-  0% { opacity: 0.55; }
-  50% { opacity: 1; }
-  100% { opacity: 0.55; }
-}
-
 .imageMain,
 .imageHover {
   position: absolute;

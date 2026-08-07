@@ -2,6 +2,7 @@
 
 import type { DeliveryOption } from "../types";
 import { Price } from "../../components/ui/Price";
+import { SkeletonBlock } from "../../components/ui/SkeletonBlock";
 import { PickupPointMap } from "./PickupPointMap";
 import styles from "./PickupPointModal.module.css";
 
@@ -63,8 +64,8 @@ export function PickupPointModal({
               >
                 {Array.from({ length: 6 }, (_, index) => (
                   <div className={styles.skeletonItem} key={index}>
-                    <span className={`skeleton ${styles.skeletonLine}`} />
-                    <span className={`skeleton ${styles.skeletonLineShort}`} />
+                    <SkeletonBlock as="span" className={styles.skeletonLine} />
+                    <SkeletonBlock as="span" className={styles.skeletonLineShort} />
                   </div>
                 ))}
               </div>

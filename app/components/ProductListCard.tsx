@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import type { KeyboardEvent, ReactNode } from "react";
+import { useEffect, useRef, type KeyboardEvent, type ReactNode } from "react";
 
 import { Icon } from "./ui/Icon";
 import { Price } from "./ui/Price";
@@ -25,6 +25,7 @@ type Props = {
   statusTone?: StatusBadgeTone;
   dateLabel?: string | null;
   suggestedCategory?: boolean;
+  flushMedia?: boolean;
   actions?: ReactNode;
   onOpen: () => void;
   onPrefetch?: () => void;
@@ -43,11 +44,34 @@ export function ProductListCard({
   statusTone = "default",
   dateLabel,
   suggestedCategory = false,
+  flushMedia = false,
   actions,
   onOpen,
   onPrefetch,
 }: Props) {
   const displayTitle = title.trim() || "Без названия";
+  const prefetchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(
+    () => () => {
+      if (prefetchTimerRef.current) clearTimeout(prefetchTimerRef.current);
+    },
+    []
+  );
+
+  function schedulePrefetch() {
+    if (!onPrefetch || prefetchTimerRef.current) return;
+    prefetchTimerRef.current = setTimeout(() => {
+      prefetchTimerRef.current = null;
+      onPrefetch();
+    }, 180);
+  }
+
+  function cancelPrefetch() {
+    if (!prefetchTimerRef.current) return;
+    clearTimeout(prefetchTimerRef.current);
+    prefetchTimerRef.current = null;
+  }
 
   function handleKeyDown(event: KeyboardEvent<HTMLElement>) {
     const target = event.target as HTMLElement;
@@ -62,8 +86,9 @@ export function ProductListCard({
 
   return (
     <article
-      className={styles.card}
-      onMouseEnter={onPrefetch}
+      className={`${styles.card} ${flushMedia ? styles.cardFlushMedia : ""}`.trim()}
+      onMouseEnter={schedulePrefetch}
+      onMouseLeave={cancelPrefetch}
     >
       <div
         className={styles.main}
@@ -71,7 +96,10 @@ export function ProductListCard({
         tabIndex={0}
         aria-label={`Открыть товар «${displayTitle}»`}
         onClick={onOpen}
-        onFocus={onPrefetch}
+        onFocus={() => {
+          cancelPrefetch();
+          onPrefetch?.();
+        }}
         onKeyDown={handleKeyDown}
       >
         <div className={styles.media}>
@@ -80,7 +108,7 @@ export function ProductListCard({
               src={imageUrl}
               alt={displayTitle}
               fill
-              sizes="(max-width: 640px) 72px, 82px"
+              sizes={flushMedia ? "(max-width: 640px) 84px, 100px" : "(max-width: 640px) 72px, 82px"}
               className={styles.image}
             />
           ) : (
@@ -110,7 +138,9 @@ export function ProductListCard({
             {formatVariantsCount(variantsCount ?? 0)}
           </ProductFact>
           <ProductFact label="Остаток">
-            {Number(totalStock ?? 0).toLocaleString("ru-RU")}
+            {totalStock === null
+              ? "Без лимита"
+              : Number(totalStock ?? 0).toLocaleString("ru-RU")}
           </ProductFact>
         </div>
 

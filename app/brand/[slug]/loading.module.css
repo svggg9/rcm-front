@@ -1,0 +1,68 @@
+.header {
+  padding: 24px 0 34px;
+}
+
+.breadcrumb {
+  width: 170px;
+  height: 11px;
+}
+
+.title {
+  width: min(440px, 62vw);
+  height: 38px;
+  margin: 38px auto 0;
+}
+
+.description {
+  width: min(620px, 76vw);
+  height: 12px;
+  margin: 26px auto 0;
+}
+
+.descriptionShort {
+  width: min(390px, 54vw);
+  height: 12px;
+  margin: 10px auto 0;
+}
+
+.visuals {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.visuals > * {
+  aspect-ratio: 4 / 5;
+}
+
+.catalog {
+  padding: 54px 0 40px;
+}
+
+.catalogTitle {
+  width: 120px;
+  height: 22px;
+  margin-bottom: 24px;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 38px 8px;
+  padding: 0;
+  margin: 0;
+}
+
+@media (max-width: 900px) {
+  .visuals {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .visuals > :last-child {
+    display: none;
+  }
+
+  .grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}

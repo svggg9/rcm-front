@@ -1,6 +1,6 @@
 ﻿"use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 
 import { Icon } from "../../../components/ui/Icon";
@@ -164,62 +164,68 @@ export function ProductDeliveryPreview({ productId }: Props) {
   const [query, setQuery] = useState("");
   const [options, setOptions] = useState<CityOption[]>([]);
   const [cityLoading, setCityLoading] = useState(false);
-  const hydratedRef = useRef(false);
+  const [cityReady, setCityReady] = useState(false);
 
   const cityLabel = useMemo(() => formatCityName(city.fullName), [city.fullName]);
   const pickupText = loading ? null : formatOption(preview?.pickup ?? null);
 
   useEffect(() => {
-    let alive = true;
+    const controller = new AbortController();
     const savedCity = loadCity();
 
-    hydratedRef.current = true;
     setCity(savedCity);
     setQuery(formatCityName(savedCity.fullName));
 
-    async function loadProfileCity() {
-      try {
-        const response = await apiFetch(`${API_URL}/api/profile`);
-        if (!response.ok) return;
+    async function initializeCity() {
+      let selectedCity = savedCity;
 
-        const profile: ProfileDeliveryResponse = await response.json();
-        const profileCity = cityFromProfile(profile);
-        if (!alive || !profileCity) return;
-
-        setCity(profileCity);
-        setQuery(formatCityName(profileCity.fullName));
-        saveCity(profileCity);
-      } catch {
-        // Guest users keep the locally selected city.
+      if (hasAuthMarker()) {
+        try {
+          const response = await apiFetch(`${API_URL}/api/profile`, {
+            signal: controller.signal,
+          });
+          if (response.ok) {
+            const profile: ProfileDeliveryResponse = await response.json();
+            selectedCity = cityFromProfile(profile) ?? selectedCity;
+          }
+        } catch (error) {
+          if (error instanceof DOMException && error.name === "AbortError") return;
+          // Keep the locally selected city if the profile is unavailable.
+        }
       }
+
+      if (controller.signal.aborted) return;
+      setCity(selectedCity);
+      setQuery(formatCityName(selectedCity.fullName));
+      saveCity(selectedCity);
+      setCityReady(true);
     }
 
-    if (hasAuthMarker()) {
-      void loadProfileCity();
-    }
+    void initializeCity();
 
-    return () => {
-      alive = false;
-    };
+    return () => controller.abort();
   }, []);
 
   useEffect(() => {
-    if (!hydratedRef.current) return;
+    if (!cityReady) return;
 
     const cached = loadCachedPreview(productId, city.code);
     if (cached) {
       setPreview(cached);
+      setLoading(false);
       return;
     }
 
-    let alive = true;
+    const controller = new AbortController();
 
     async function loadPreview() {
       try {
         setLoading(true);
+        setPreview(null);
 
         const response = await apiFetch(`${API_URL}/api/delivery/product-preview`, {
           method: "POST",
+          signal: controller.signal,
           body: JSON.stringify({
             productId,
             cityCode: city.code,
@@ -230,24 +236,22 @@ export function ProductDeliveryPreview({ productId }: Props) {
         if (!response.ok) throw new Error("delivery preview failed");
 
         const data: PreviewResponse = await response.json();
-        if (!alive) return;
+        if (controller.signal.aborted) return;
 
         setPreview(data);
         saveCachedPreview(productId, city.code, data);
       } catch {
-        if (!alive) return;
+        if (controller.signal.aborted) return;
         setPreview(null);
       } finally {
-        if (alive) setLoading(false);
+        if (!controller.signal.aborted) setLoading(false);
       }
     }
 
     void loadPreview();
 
-    return () => {
-      alive = false;
-    };
-  }, [city, productId]);
+    return () => controller.abort();
+  }, [city, cityReady, productId]);
 
   useEffect(() => {
     if (!editing) return;
@@ -258,28 +262,35 @@ export function ProductDeliveryPreview({ productId }: Props) {
       return;
     }
 
+    const controller = new AbortController();
     const timeoutId = window.setTimeout(() => {
-      void searchCities(value);
+      void searchCities(value, controller.signal);
     }, 350);
 
-    return () => window.clearTimeout(timeoutId);
+    return () => {
+      window.clearTimeout(timeoutId);
+      controller.abort();
+    };
   }, [editing, query]);
 
-  async function searchCities(value: string) {
+  async function searchCities(value: string, signal: AbortSignal) {
     try {
       setCityLoading(true);
       const response = await apiFetch(
-        `${API_URL}/api/delivery/cities/search?query=${encodeURIComponent(value)}&countryCode=RU`
+        `${API_URL}/api/delivery/cities/search?query=${encodeURIComponent(value)}&countryCode=RU`,
+        { signal }
       );
 
       if (!response.ok) throw new Error("city search failed");
 
       const data: CityOption[] = await response.json();
+      if (signal.aborted) return;
       setOptions(Array.isArray(data) ? data : []);
     } catch {
+      if (signal.aborted) return;
       setOptions([]);
     } finally {
-      setCityLoading(false);
+      if (!signal.aborted) setCityLoading(false);
     }
   }
 
@@ -343,7 +354,7 @@ export function ProductDeliveryPreview({ productId }: Props) {
               <Icon name="pickup-point" size={18} strokeWidth={1.35} />
             </span>
             <span>
-              Доставка {preview?.pickupPointCount ? `в один из ${preview.pickupPointCount} пунктов выдачи` : "в пункт выдачи"}
+              Доставка в пункт выдачи
             </span>
             <strong>{pickupText}</strong>
           </div>

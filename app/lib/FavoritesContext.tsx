@@ -5,8 +5,10 @@ import {
   useContext,
   useCallback,
   useEffect,
+  useMemo,
   useState,
 } from "react";
+import { usePathname } from "next/navigation";
 
 import { apiFetch, API_URL } from "./api";
 import { getClientSession } from "./client-session";
@@ -16,18 +18,17 @@ import {
   removeGuestFavorite,
 } from "./favorites";
 
-type FavoriteProduct = {
-  id?: unknown;
-};
-
 type FavoritesContextType = {
   favoriteIds: number[];
+  isFavorite: (id: number) => boolean;
   count: number;
   toggle: (id: number) => Promise<void>;
   refresh: () => Promise<void>;
 };
 
 const FavoritesContext = createContext<FavoritesContextType | null>(null);
+const EMPTY_FAVORITES: number[] = [];
+const NEVER_FAVORITE = () => false;
 
 async function hasSession() {
   return (await getClientSession()) !== null;
@@ -38,9 +39,22 @@ export function FavoritesProvider({
 }: {
   children: React.ReactNode;
 }) {
+  const pathname = usePathname();
+  const skipCommerceLoad =
+    pathname === "/admin" ||
+    pathname.startsWith("/admin/") ||
+    pathname === "/seller" ||
+    pathname.startsWith("/seller/");
   const [favoriteIds, setFavoriteIds] = useState<number[]>([]);
+  const favoriteIdSet = useMemo(() => new Set(favoriteIds), [favoriteIds]);
+  const isFavorite = useCallback(
+    (id: number) => favoriteIdSet.has(id),
+    [favoriteIdSet]
+  );
 
   const refresh = useCallback(async () => {
+    if (skipCommerceLoad) return;
+
     const authenticated = await hasSession();
 
     if (!authenticated) {
@@ -49,7 +63,7 @@ export function FavoritesProvider({
     }
 
     try {
-      const response = await apiFetch(`${API_URL}/api/favorites`);
+      const response = await apiFetch(`${API_URL}/api/favorites/ids`);
 
       if (!response.ok) {
         setFavoriteIds([]);
@@ -63,32 +77,34 @@ export function FavoritesProvider({
         return;
       }
 
-      const ids = data
-        .map((product: FavoriteProduct) => product.id)
-        .filter((id): id is number => typeof id === "number");
+      const ids = data.filter(
+        (id): id is number => typeof id === "number" && Number.isFinite(id)
+      );
 
       setFavoriteIds(ids);
     } catch {
       setFavoriteIds([]);
     }
-  }, []);
+  }, [skipCommerceLoad]);
 
   useEffect(() => {
     void Promise.resolve().then(refresh);
   }, [refresh]);
 
   useEffect(() => {
+    if (skipCommerceLoad) return;
+
     const handler = () => {
       void refresh();
     };
 
     window.addEventListener("auth-changed", handler);
     return () => window.removeEventListener("auth-changed", handler);
-  }, [refresh]);
+  }, [refresh, skipCommerceLoad]);
 
   const toggle = useCallback(
     async (id: number) => {
-      const isFav = favoriteIds.includes(id);
+      const isFav = favoriteIdSet.has(id);
       const authenticated = await hasSession();
 
       if (!authenticated) {
@@ -114,17 +130,23 @@ export function FavoritesProvider({
         isFav ? prev.filter((value) => value !== id) : [...prev, id]
       );
     },
-    [favoriteIds]
+    [favoriteIdSet]
+  );
+
+  const contextValue = useMemo<FavoritesContextType>(
+    () => ({
+      favoriteIds: skipCommerceLoad ? EMPTY_FAVORITES : favoriteIds,
+      isFavorite: skipCommerceLoad ? NEVER_FAVORITE : isFavorite,
+      count: skipCommerceLoad ? 0 : favoriteIds.length,
+      toggle,
+      refresh,
+    }),
+    [favoriteIds, isFavorite, refresh, skipCommerceLoad, toggle]
   );
 
   return (
     <FavoritesContext.Provider
-      value={{
-        favoriteIds,
-        count: favoriteIds.length,
-        toggle,
-        refresh,
-      }}
+      value={contextValue}
     >
       {children}
     </FavoritesContext.Provider>

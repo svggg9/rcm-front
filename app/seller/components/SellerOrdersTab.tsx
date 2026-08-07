@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 
 import { CabinetTabs, type CabinetTabItem } from "../../components/ui/CabinetTabs";
 import { EmptyState } from "../../components/ui/EmptyState";
+import { ListLoadMore } from "../../components/ui/ListLoadMore";
 
 import {
   SellerOrderCard,
@@ -17,6 +18,9 @@ import type { SellerOrderListItem } from "../types";
 
 type Props<TOrder extends SellerOrderCardListItem = SellerOrderListItem> = {
   orders: TOrder[];
+  totalElements?: number;
+  loadingMore?: boolean;
+  onLoadMore?: () => void;
   buildSellerStatusLabel: (order: TOrder) => string;
   expandedOrderId?: number | null;
   onOpenOrder?: (orderId: number) => void;
@@ -40,6 +44,9 @@ export function SellerOrdersTab<
   TOrder extends SellerOrderCardListItem = SellerOrderListItem,
 >({
   orders,
+  totalElements = orders.length,
+  loadingMore = false,
+  onLoadMore,
   buildSellerStatusLabel,
   expandedOrderId,
   onOpenOrder,
@@ -51,33 +58,44 @@ export function SellerOrdersTab<
   openButtonLabel,
 }: Props<TOrder>) {
   const [filter, setFilter] = useState<OrderFilter>("ALL");
+  const allOrdersLoaded = !onLoadMore;
 
   const orderTabs: CabinetTabItem<OrderFilter>[] = [
-    { value: "ALL", label: "Все", count: orders.length },
+    { value: "ALL", label: "Все", count: totalElements },
     {
       value: "READY",
       label: audience === "seller" ? "К отправке" : "В обработке",
-      count: orders.filter(isReadyOrder).length || undefined,
+      count: allOrdersLoaded
+        ? orders.filter(isReadyOrder).length || undefined
+        : undefined,
     },
     {
       value: "PENDING_PAYMENT",
       label: "Не оплачены",
-      count: orders.filter(isPendingPaymentOrder).length || undefined,
+      count: allOrdersLoaded
+        ? orders.filter(isPendingPaymentOrder).length || undefined
+        : undefined,
     },
     {
       value: "IN_TRANSIT",
       label: "В пути",
-      count: orders.filter(isInTransitOrder).length || undefined,
+      count: allOrdersLoaded
+        ? orders.filter(isInTransitOrder).length || undefined
+        : undefined,
     },
     {
       value: "COMPLETED",
       label: "Завершены",
-      count: orders.filter(isCompletedOrder).length || undefined,
+      count: allOrdersLoaded
+        ? orders.filter(isCompletedOrder).length || undefined
+        : undefined,
     },
     {
       value: "CANCELED",
       label: "Отменены",
-      count: orders.filter(isCanceledOrder).length || undefined,
+      count: allOrdersLoaded
+        ? orders.filter(isCanceledOrder).length || undefined
+        : undefined,
     },
   ];
 
@@ -94,8 +112,7 @@ export function SellerOrdersTab<
           value={filter}
           onChange={setFilter}
           ariaLabel="Фильтр заказов"
-          countTone="gold"
-          appearance="line"
+          appearance="segmented"
         />
       </div>
 
@@ -110,30 +127,44 @@ export function SellerOrdersTab<
               : "Когда вы оформите заказ, он появится здесь."
           }
         />
-      ) : filteredOrders.length === 0 ? (
-        <EmptyState
-          icon="search"
-          title="Заказов нет"
-          text="По выбранному статусу ничего не найдено."
-        />
       ) : (
-        <div className={styles.list}>
-          {filteredOrders.map((order) => (
-            <SellerOrderCard
-              key={order.id}
-              order={order}
-              statusLabel={buildSellerStatusLabel(order)}
-              autoExpand={order.id === expandedOrderId}
-              onOpenOrder={onOpenOrder}
-              onLoadDetails={onLoadOrder}
-              onPrefetch={onPrefetchOrder}
-              showStageElapsed={showStageElapsed}
-              audience={audience}
-              showDeliveryLabel={showDeliveryLabel}
-              openButtonLabel={openButtonLabel}
+        <>
+          {filteredOrders.length === 0 ? (
+            <EmptyState
+              icon="search"
+              title="Заказов нет"
+              text={
+                onLoadMore
+                  ? "В загруженной части списка заказов с таким статусом нет."
+                  : "По выбранному статусу ничего не найдено."
+              }
             />
-          ))}
-        </div>
+          ) : (
+            <div className={styles.list}>
+              {filteredOrders.map((order) => (
+                <SellerOrderCard
+                  key={order.id}
+                  order={order}
+                  statusLabel={buildSellerStatusLabel(order)}
+                  autoExpand={order.id === expandedOrderId}
+                  onOpenOrder={onOpenOrder}
+                  onLoadDetails={onLoadOrder}
+                  onPrefetch={onPrefetchOrder}
+                  showStageElapsed={showStageElapsed}
+                  audience={audience}
+                  showDeliveryLabel={showDeliveryLabel}
+                  openButtonLabel={openButtonLabel}
+                />
+              ))}
+            </div>
+          )}
+          <ListLoadMore
+            loaded={orders.length}
+            total={totalElements}
+            loading={loadingMore}
+            onLoadMore={onLoadMore}
+          />
+        </>
       )}
     </section>
   );

@@ -5,6 +5,7 @@ import type { ReactNode } from "react";
 import { useState } from "react";
 
 import { Icon, type IconName } from "./Icon";
+import { SkeletonBlock } from "./SkeletonBlock";
 import styles from "./CabinetSidebar.module.css";
 
 type SidebarItem = {
@@ -67,7 +68,7 @@ export function CabinetSidebar({
         <div className={styles.head}>
           {subtitle ? <div className={`${styles.subtitle} textMicro`}>{subtitle}</div> : null}
           {titleLoading ? (
-            <div className={styles.titleSkeleton} aria-hidden="true" />
+            <SkeletonBlock className={styles.titleSkeleton} />
           ) : title ? (
             <div className={styles.identity}>
               {titleIcon ? (

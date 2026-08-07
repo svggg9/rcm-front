@@ -184,7 +184,7 @@ function buildLatestShowcase(
   audience: CatalogAudience
 ): ProductShowcaseData {
   return {
-    title: "Актуальные новинки",
+    title: "Новинки",
     href: buildCatalogHref({ audience }),
     products: latestProducts(products, 4),
   };
@@ -194,7 +194,16 @@ export async function getHomePageData(
   audience: CatalogAudience = "all"
 ): Promise<HomePageData> {
   try {
-    const response = await fetch(`${API_URL}/api/products/list`, {
+    const search = new URLSearchParams({
+      page: "0",
+      size: "24",
+      sort: "newest",
+    });
+    if (audience !== "all") {
+      search.set("audience", audience);
+    }
+
+    const response = await fetch(`${API_URL}/api/products/page?${search.toString()}`, {
       next: { revalidate: 120 },
     });
 
@@ -203,7 +212,11 @@ export async function getHomePageData(
     }
 
     const json: unknown = await response.json();
-    const products = filterByAudience(normalizeProducts(json), audience);
+    const content =
+      json && typeof json === "object" && "content" in json
+        ? (json as { content?: unknown }).content
+        : [];
+    const products = filterByAudience(normalizeProducts(content), audience);
 
     return {
       brandShowcase: buildBrandShowcase(products, audience),
@@ -223,7 +236,7 @@ export async function getHomePageData(
         products: [],
       },
       latestShowcase: {
-        title: "Актуальные новинки",
+        title: "Новинки",
         href: buildCatalogHref({ audience }),
         products: [],
       },

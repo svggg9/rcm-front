@@ -1,4 +1,5 @@
 import styles from "./CommerceSkeleton.module.css";
+import { SkeletonBlock } from "./SkeletonBlock";
 
 export function ProductTileSkeleton() {
   return (
@@ -18,7 +19,6 @@ export function CartContentSkeleton() {
     <div
       className={styles.cartGrid}
       role="status"
-      aria-label="Загрузка корзины"
       aria-busy="true"
     >
       <span className={styles.srOnly}>Загрузка корзины</span>
@@ -72,5 +72,5 @@ function SummaryRow({ total = false }: { total?: boolean }) {
 }
 
 function Block({ className = "" }: { className?: string }) {
-  return <div className={`${styles.block} ${className}`.trim()} />;
+  return <SkeletonBlock className={`${styles.block} ${className}`.trim()} />;
 }

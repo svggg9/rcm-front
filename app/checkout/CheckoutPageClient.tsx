@@ -4,9 +4,9 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { apiFetch, API_URL } from "../lib/api";
-import { ensureCartId } from "../lib/auth";
+import { rememberUserCartId } from "../lib/auth";
+import { loadResolvedCart } from "../lib/cartAuthority";
 import { emitCartChanged } from "../lib/cartEvents";
-import { getClientSession } from "../lib/client-session";
 
 import { CheckoutContactSection } from "./components/CheckoutContactSection";
 import { CheckoutDeliverySection } from "./components/CheckoutDeliverySection";
@@ -18,6 +18,7 @@ import { EmptyState } from "../components/ui/EmptyState";
 
 import type {
   CartItem,
+  CheckoutCartBootstrap,
   CheckoutRequest,
   CountryCode,
   DeliveryMethod,
@@ -50,38 +51,6 @@ import {
 
 import styles from "./Checkout.module.css";
 
-type YandexSuggestItem = {
-  value: string;
-  displayName: string;
-};
-
-type YandexGeoObject = {
-  geometry: {
-    getCoordinates: () => [number, number];
-  };
-  getAddressLine: () => string;
-};
-
-type YandexGeocodeResult = {
-  geoObjects: {
-    get: (index: number) => YandexGeoObject | null;
-  };
-};
-
-type YandexSuggestResponse =
-  | YandexSuggestItem[]
-  | {
-      results?: YandexSuggestItem[];
-    };
-
-type YandexMapsSearchApi = {
-  suggest: (
-    request: string,
-    options?: { results?: number }
-  ) => Promise<YandexSuggestResponse>;
-  geocode: (request: string) => Promise<YandexGeocodeResult>;
-};
-
 type ApiErrorResponse = {
   message?: string;
 };
@@ -109,24 +78,18 @@ async function readCheckoutError(
   }
 }
 
-function getYmapsSearchApi(): YandexMapsSearchApi | null {
-  if (typeof window === "undefined") return null;
+const PENDING_PAYMENT_ORDER_KEY = "checkout_pending_payment_order_v1";
+const DELIVERY_QUOTE_SAFETY_MARGIN_MS = 30_000;
 
-  const maybeWindow = window as Window & {
-    ymaps?: Partial<YandexMapsSearchApi>;
-  };
-
-  if (
-    typeof maybeWindow.ymaps?.suggest !== "function" ||
-    typeof maybeWindow.ymaps?.geocode !== "function"
-  ) {
-    return null;
-  }
-
-  return maybeWindow.ymaps as YandexMapsSearchApi;
+function shouldRefreshDeliveryQuote(expiresAt: string): boolean {
+  const expiresAtMs = Date.parse(expiresAt);
+  return !Number.isFinite(expiresAtMs) ||
+    expiresAtMs <= Date.now() + DELIVERY_QUOTE_SAFETY_MARGIN_MS;
 }
 
-const PENDING_PAYMENT_ORDER_KEY = "checkout_pending_payment_order_v1";
+function isRetryableDeliveryQuoteConflict(status: number, message: string): boolean {
+  return status === 409 && /delivery_quote_(expired|stale|invalid)/i.test(message);
+}
 
 function getPendingPaymentOrderKey(cartId: string): string {
   return `${PENDING_PAYMENT_ORDER_KEY}:${cartId}`;
@@ -165,11 +128,20 @@ function formatCityDisplayName(fullName: string): string {
     .join(", ");
 }
 
-function CheckoutPageContent() {
+async function loadCheckoutCartFallback(): Promise<CheckoutCartBootstrap> {
+  return loadResolvedCart();
+}
+
+type CheckoutPageProps = {
+  initialMe: Me | null;
+  initialCart: CheckoutCartBootstrap | null;
+};
+
+function CheckoutPageContent({ initialMe, initialCart }: CheckoutPageProps) {
   const router = useRouter();
 
-  const [cartId, setCartId] = useState("");
-  const [items, setItems] = useState<CartItem[]>([]);
+  const [cartId, setCartId] = useState(initialCart?.cartId ?? "");
+  const [items, setItems] = useState<CartItem[]>(initialCart?.items ?? []);
 
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -179,6 +151,21 @@ function CheckoutPageContent() {
   const submitLockRef = useRef(false);
   const defaultCitySelectedRef = useRef(false);
   const quoteRequestKeyRef = useRef("");
+  const citySearchRequestRef = useRef(0);
+  const pickupSearchRequestRef = useRef(0);
+  const quoteControllerRef = useRef<AbortController | null>(null);
+  const searchCitiesRef = useRef<(query: string) => Promise<void>>(async () => {});
+  const createDeliveryQuoteRef = useRef<
+    (options?: { silent?: boolean }) => Promise<SellerGroupDeliveryQuoteResponse | null>
+  >(async () => null);
+
+  useEffect(() => {
+    return () => {
+      citySearchRequestRef.current += 1;
+      pickupSearchRequestRef.current += 1;
+      quoteControllerRef.current?.abort();
+    };
+  }, []);
 
   const [draftHydrated, setDraftHydrated] = useState(false);
 
@@ -227,6 +214,8 @@ function CheckoutPageContent() {
   const [quoteLoading, setQuoteLoading] = useState(false);
   const [quotePending, setQuotePending] = useState(false);
   const [deliveryQuoteToken, setDeliveryQuoteToken] = useState("");
+  const [checkoutToken, setCheckoutToken] = useState("");
+  const [checkoutTokenExpiresAt, setCheckoutTokenExpiresAt] = useState("");
   const [deliveryOfferId, setDeliveryOfferId] = useState("");
   const [deliveryPrice, setDeliveryPrice] = useState(0);
   const [deliveryCurrency, setDeliveryCurrency] = useState("RUB");
@@ -238,14 +227,6 @@ function CheckoutPageContent() {
 
   const [, setDeliveryPeriodMaxDays] =
     useState<number | null>(null);
-
-  const [addressOptions, setAddressOptions] = useState<
-    { value: string; displayName: string }[]
-  >([]);
-  const [, setAddressLoading] = useState(false);
-  const [addressSearchEnabled, setAddressSearchEnabled] = useState(false);
-  const [addressLat, setAddressLat] = useState<number | null>(null);
-  const [addressLon, setAddressLon] = useState<number | null>(null);
 
   const [deliveryAddress, setDeliveryAddress] =
     useState("");
@@ -375,36 +356,33 @@ function CheckoutPageContent() {
         setLoading(true);
         setError(null);
 
-        const resolvedCartId = await ensureCartId();
-
-        if (!active) return;
-
-        setCartId(resolvedCartId);
-
-        const [session, cartResponse] = await Promise.all([
-          getClientSession(),
-          apiFetch(
-            `${API_URL}/api/cart?cartId=${encodeURIComponent(resolvedCartId)}`
-          ),
+        const profilePromise = initialMe
+          ? Promise.resolve(initialMe)
+          : apiFetch(`${API_URL}/api/profile`)
+              .then(async (response) =>
+                response.ok ? ((await response.json()) as Me) : null
+              )
+              .catch(() => null);
+        const cartPromise = initialCart
+          ? Promise.resolve(initialCart)
+          : loadCheckoutCartFallback();
+        const [resolvedMe, resolvedCart] = await Promise.all([
+          profilePromise,
+          cartPromise,
         ]);
 
         if (!active) return;
 
-        let me: Me | null = null;
-
-        if (session) {
-          const profileResponse = await apiFetch(`${API_URL}/api/profile`);
-          if (!active) return;
-
-          if (profileResponse.ok) {
-            me = (await profileResponse.json()) as Me;
-          }
+        setCartId(resolvedCart.cartId);
+        setItems(resolvedCart.items);
+        if (resolvedCart.cartId.startsWith("user_")) {
+          rememberUserCartId(resolvedCart.cartId);
         }
 
         const existing = checkoutSnapshotRef.current;
 
         const prefill = buildCheckoutPrefill({
-          me,
+          me: resolvedMe,
           existing: {
             email: existing.email,
             fullName: existing.fullName,
@@ -475,18 +453,14 @@ function CheckoutPageContent() {
           setDeliveryMethod(prefill.deliveryMethod);
         }
 
-        if (!cartResponse.ok) {
-          const text = await cartResponse.text().catch(() => "");
+        if (!resolvedCart.cartId) {
+          const text = "";
 
           throw new Error(
             text || "Не удалось загрузить корзину"
           );
         }
 
-        const cartData: CartItem[] =
-          await cartResponse.json();
-
-        setItems(Array.isArray(cartData) ? cartData : []);
       } catch (e) {
         const message =
           e instanceof Error
@@ -508,33 +482,29 @@ function CheckoutPageContent() {
     return () => {
       active = false;
     };
-  }, []);
+  }, [initialCart, initialMe]);
 
   useEffect(() => {
   if (!cityTouched) return;
 
   if (cityQuery.trim().length < 2) {
+    citySearchRequestRef.current += 1;
+    setCityLoading(false);
     setCityOptions([]);
     return;
   }
 
   const timeoutId = window.setTimeout(() => {
-    void searchCities(cityQuery);
+    void searchCitiesRef.current(cityQuery);
   }, 350);
 
   return () => window.clearTimeout(timeoutId);
 }, [cityQuery, cityTouched]);
 
   useEffect(() => {
-  if (deliveryMethod !== "COURIER") return;
-  if (!addressSearchEnabled) return;
-
-  const timeoutId = window.setTimeout(() => {
-    void searchAddressSuggestions(deliveryAddress);
-  }, 350);
-
-  return () => window.clearTimeout(timeoutId);
-}, [addressSearchEnabled, deliveryAddress, deliveryMethod, selectedCity]);
+    pickupSearchRequestRef.current += 1;
+    setPickupLoading(false);
+  }, [selectedCity?.code]);
 
   const subtotal = useMemo(() => {
     return items.reduce(
@@ -543,7 +513,18 @@ function CheckoutPageContent() {
     );
   }, [items]);
 
-  const deliveryCalculated = Boolean(deliveryQuoteToken && deliveryOfferId);
+  const cartFingerprint = useMemo(
+    () =>
+      items
+        .map((item) => `${item.variantId}:${item.quantity}`)
+        .sort()
+        .join("|"),
+    [items]
+  );
+
+  const deliveryCalculated = Boolean(
+    deliveryQuoteToken && deliveryOfferId && checkoutToken
+  );
   const deliveryCalculating = quoteLoading || quotePending;
   const submitDisabled =
     submitting ||
@@ -575,11 +556,17 @@ function CheckoutPageContent() {
   }
 
   function resetDeliveryQuote() {
+    quoteControllerRef.current?.abort();
+    quoteControllerRef.current = null;
     quoteRequestKeyRef.current = "";
+    setQuoteLoading(false);
+    setQuotePending(false);
     setDeliveryPrice(0);
     setDeliveryCurrency("RUB");
     setSellerDeliveryCosts([]);
     setDeliveryQuoteToken("");
+    setCheckoutToken("");
+    setCheckoutTokenExpiresAt("");
     setDeliveryOfferId("");
     setDeliveryPeriodMinDays(null);
     setDeliveryPeriodMaxDays(null);
@@ -591,6 +578,7 @@ function CheckoutPageContent() {
     return;
   }
 
+  const requestId = ++pickupSearchRequestRef.current;
   try {
     setPickupLoading(true);
     setError(null);
@@ -610,6 +598,7 @@ function CheckoutPageContent() {
     }
 
       const data = (await response.json()) as PickupPointSearchResponse;
+      if (requestId !== pickupSearchRequestRef.current) return;
 
       const options: DeliveryOption[] = Array.isArray(data.points)
         ? data.points.map((point) => ({
@@ -632,16 +621,18 @@ function CheckoutPageContent() {
       toast.message("ПВЗ не найдены");
     }
   } catch (e) {
+    if (requestId !== pickupSearchRequestRef.current) return;
     const message =
       e instanceof Error ? e.message : "Не удалось загрузить пункты выдачи";
 
     showError(message);
   } finally {
-    setPickupLoading(false);
+    if (requestId === pickupSearchRequestRef.current) setPickupLoading(false);
   }
   }
 
   async function searchCities(query: string) {
+  const requestId = ++citySearchRequestRef.current;
   if (!query.trim()) {
     setCityOptions([]);
     return;
@@ -662,15 +653,17 @@ function CheckoutPageContent() {
     }
 
     const data = (await response.json()) as DeliveryCityOption[];
+    if (requestId !== citySearchRequestRef.current) return;
 
     setCityOptions(Array.isArray(data) ? data : []);
   } catch (e) {
+    if (requestId !== citySearchRequestRef.current) return;
     const message =
       e instanceof Error ? e.message : "Не удалось найти город";
 
     showError(message);
   } finally {
-    setCityLoading(false);
+    if (requestId === citySearchRequestRef.current) setCityLoading(false);
   }
   }
 
@@ -735,6 +728,10 @@ function CheckoutPageContent() {
       return null;
     }
 
+    const controller = new AbortController();
+    quoteControllerRef.current?.abort();
+    quoteControllerRef.current = controller;
+
     try {
       setQuoteLoading(true);
       setError(null);
@@ -756,6 +753,7 @@ function CheckoutPageContent() {
 
       const response = await apiFetch(`${API_URL}/api/delivery/seller-group-quotes`, {
         method: "POST",
+        signal: controller.signal,
         body: JSON.stringify({
           cartId,
           quote: quotePayload,
@@ -769,8 +767,14 @@ function CheckoutPageContent() {
       }
 
       const quote = (await response.json()) as SellerGroupDeliveryQuoteResponse;
+      if (quoteControllerRef.current !== controller) return null;
+      if (!quote.checkoutToken) {
+        throw new Error("Сервис доставки не вернул токен оформления");
+      }
 
       setDeliveryQuoteToken(quote.quoteToken);
+      setCheckoutToken(quote.checkoutToken);
+      setCheckoutTokenExpiresAt(quote.expiresAt);
       setDeliveryOfferId(quote.externalOfferId || quote.quoteToken);
       setDeliveryPrice(Number(quote.priceAmount || 0));
       setDeliveryCurrency(quote.currency || "RUB");
@@ -784,6 +788,9 @@ function CheckoutPageContent() {
 
       return quote;
     } catch (e) {
+      if (controller.signal.aborted || quoteControllerRef.current !== controller) {
+        return null;
+      }
       const message =
         e instanceof Error ? e.message : "Не удалось рассчитать доставку";
       resetDeliveryQuote();
@@ -793,9 +800,15 @@ function CheckoutPageContent() {
       }
       return null;
     } finally {
-      setQuoteLoading(false);
+      if (quoteControllerRef.current === controller) {
+        quoteControllerRef.current = null;
+        setQuoteLoading(false);
+      }
     }
   }
+
+  searchCitiesRef.current = searchCities;
+  createDeliveryQuoteRef.current = createDeliveryQuote;
 
   useEffect(() => {
     if (cartId && loadPendingPaymentOrderId(cartId)) {
@@ -803,14 +816,15 @@ function CheckoutPageContent() {
       return;
     }
 
-    if (!selectedCity || !selectedPickupPoint || items.length === 0) {
-      setQuotePending(false);
-      setSellerDeliveryCosts([]);
+    if (!selectedCity || !selectedPickupPoint || !cartFingerprint) {
+      resetDeliveryQuote();
       return;
     }
 
     const requestKey = JSON.stringify({
-      method: "PICKUP",
+      cartId,
+      cart: cartFingerprint,
+      method: deliveryMethod,
       cityCode: selectedCity.code,
       pickupPointId: selectedAddressId,
       fittingMode: "WITHOUT_FITTING",
@@ -818,12 +832,15 @@ function CheckoutPageContent() {
 
     if (quoteRequestKeyRef.current === requestKey) return;
 
+    resetDeliveryQuote();
     quoteRequestKeyRef.current = requestKey;
     setQuotePending(true);
 
     const timeoutId = window.setTimeout(() => {
-      void createDeliveryQuote({ silent: true }).finally(() => {
-        setQuotePending(false);
+      void createDeliveryQuoteRef.current({ silent: true }).finally(() => {
+        if (quoteRequestKeyRef.current === requestKey) {
+          setQuotePending(false);
+        }
       });
     }, 500);
 
@@ -833,74 +850,12 @@ function CheckoutPageContent() {
   }, [
     cartId,
     selectedCity,
-    items.length,
+    cartFingerprint,
+    deliveryMethod,
     selectedAddressId,
     selectedPickupPoint,
     deliveryOptions,
   ]);
-
-  async function selectAddressSuggestion(value: string) {
-    const ymaps = getYmapsSearchApi();
-
-    setDeliveryAddress(value);
-    setAddressSearchEnabled(false);
-    setAddressOptions([]);
-    setAddressLat(null);
-    setAddressLon(null);
-    if (!ymaps) return;
-
-    const result = await ymaps.geocode(value);
-    const geoObject = result.geoObjects.get(0);
-
-    if (!geoObject) return;
-
-    const [lat, lon] = geoObject.geometry.getCoordinates();
-    const fullAddress = geoObject.getAddressLine();
-
-    setDeliveryAddress(fullAddress || value);
-    setAddressLat(lat);
-    setAddressLon(lon);
-  }
-
-  async function searchAddressSuggestions(query: string) {
-    if (!selectedCity || query.trim().length < 3) {
-      setAddressOptions([]);
-      return;
-    }
-
-    try {
-      setAddressLoading(true);
-
-      const response = await apiFetch(
-        `${API_URL}/api/delivery/address/search?query=${encodeURIComponent(
-          `${selectedCity.fullName}, ${query.trim()}`
-        )}`
-      );
-
-      if (!response.ok) {
-        setAddressOptions([]);
-        return;
-      }
-
-      const data = (await response.json()) as {
-        value: string;
-        displayName: string;
-        lat: number | null;
-        lon: number | null;
-      }[];
-
-      setAddressOptions(
-        Array.isArray(data)
-          ? data.map((item) => ({
-              value: item.value,
-              displayName: item.displayName || item.value,
-            }))
-          : []
-      );
-    } finally {
-      setAddressLoading(false);
-    }
-  }
 
   async function redirectToPayment(orderId: number) {
     const payResponse = await apiFetch(
@@ -993,11 +948,17 @@ function CheckoutPageContent() {
     }
 
     let activeDeliveryOfferId = deliveryOfferId || deliveryQuoteToken;
+    let activeCheckoutToken = checkoutToken;
+    let activeCheckoutTokenExpiresAt = checkoutTokenExpiresAt;
     let activeDeliveryPrice = deliveryPrice;
     let activeDeliveryCurrency = deliveryCurrency;
     let activeSellerDeliveryCosts = sellerDeliveryCosts;
 
-    if (!activeDeliveryOfferId) {
+    if (
+      !activeDeliveryOfferId ||
+      !activeCheckoutToken ||
+      shouldRefreshDeliveryQuote(activeCheckoutTokenExpiresAt)
+    ) {
       const quote = await createDeliveryQuote();
 
       if (!quote) {
@@ -1006,6 +967,8 @@ function CheckoutPageContent() {
       }
 
       activeDeliveryOfferId = quote.externalOfferId || quote.quoteToken;
+      activeCheckoutToken = quote.checkoutToken;
+      activeCheckoutTokenExpiresAt = quote.expiresAt;
       activeDeliveryPrice = Number(quote.priceAmount || 0);
       activeDeliveryCurrency = quote.currency || "RUB";
       activeSellerDeliveryCosts = Array.isArray(quote.sellerDeliveryCosts)
@@ -1034,6 +997,7 @@ function CheckoutPageContent() {
         deliveryCityName: selectedCity?.fullName,
         fittingMode: "WITHOUT_FITTING",
         deliveryOfferId: activeDeliveryOfferId || undefined,
+        deliveryQuoteToken: activeCheckoutToken || undefined,
         deliveryPriceAmount: activeDeliveryPrice,
         deliveryCurrency: activeDeliveryCurrency,
         sellerDeliveryCosts: activeSellerDeliveryCosts
@@ -1047,13 +1011,45 @@ function CheckoutPageContent() {
         comment: comment.trim() || undefined,
       };
 
-      const checkoutResponse = await apiFetch(
+      const submitCheckout = () => apiFetch(
         `${API_URL}/api/orders/checkout?cartId=${encodeURIComponent(cartId)}`,
         {
           method: "POST",
           body: JSON.stringify(payload),
         }
       );
+      let checkoutResponse = await submitCheckout();
+
+      if (!checkoutResponse.ok) {
+        const firstError = await readCheckoutError(
+          checkoutResponse,
+          `Ошибка оформления заказа (${checkoutResponse.status})`
+        );
+
+        if (isRetryableDeliveryQuoteConflict(checkoutResponse.status, firstError)) {
+          resetDeliveryQuote();
+          const refreshedQuote = await createDeliveryQuote();
+          if (!refreshedQuote) throw new Error(firstError);
+
+          payload.deliveryOfferId =
+            refreshedQuote.externalOfferId || refreshedQuote.quoteToken;
+          payload.deliveryQuoteToken = refreshedQuote.checkoutToken;
+          payload.deliveryPriceAmount = Number(refreshedQuote.priceAmount || 0);
+          payload.deliveryCurrency = refreshedQuote.currency || "RUB";
+          payload.sellerDeliveryCosts = Array.isArray(refreshedQuote.sellerDeliveryCosts)
+            ? refreshedQuote.sellerDeliveryCosts
+                .filter((item) => item.sellerId && item.deliveryCostAmount != null)
+                .map((item) => ({
+                  sellerId: item.sellerId,
+                  deliveryCostAmount: Number(item.deliveryCostAmount),
+                  currency: item.currency || refreshedQuote.currency || "RUB",
+                }))
+            : [];
+          checkoutResponse = await submitCheckout();
+        } else {
+          throw new Error(firstError);
+        }
+      }
 
       if (!checkoutResponse.ok) {
         throw new Error(
@@ -1158,8 +1154,6 @@ function CheckoutPageContent() {
                   setApartment("");
                   setFloor("");
                   setIntercom("");
-                  setAddressSearchEnabled(false);
-                  setAddressOptions([]);
                   resetDeliveryQuote();
                 }}
                 onCityQueryChange={(value) => {
@@ -1177,8 +1171,6 @@ function CheckoutPageContent() {
                     setApartment("");
                     setFloor("");
                     setIntercom("");
-                    setAddressSearchEnabled(false);
-                    setAddressOptions([]);
                     resetDeliveryQuote();
                   }
                 }}
@@ -1196,8 +1188,6 @@ function CheckoutPageContent() {
                   setApartment("");
                   setFloor("");
                   setIntercom("");
-                  setAddressSearchEnabled(false);
-                  setAddressOptions([]);
                   resetDeliveryQuote();
                 }}
                 comment={comment}
@@ -1243,6 +1233,6 @@ function CheckoutPageContent() {
   );
 }
 
-export function CheckoutPageClient() {
-  return <CheckoutPageContent />;
+export function CheckoutPageClient(props: CheckoutPageProps) {
+  return <CheckoutPageContent {...props} />;
 }

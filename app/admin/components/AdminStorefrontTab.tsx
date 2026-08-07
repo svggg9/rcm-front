@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import {
+  useCallback,
   useEffect,
   useRef,
   useState,
@@ -22,11 +23,23 @@ import { AdminStorefrontCollections } from "./AdminStorefrontCollections";
 
 const FALLBACK_HERO_IMAGE = "/kazansky.jpg";
 const MAX_FILE_SIZE = 8 * 1024 * 1024;
-const ALLOWED_FILE_TYPES = new Set(["image/jpeg", "image/webp"]);
+const ALLOWED_FILE_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
 
-export function AdminStorefrontTab() {
+type Props = {
+  initialHome?: AdminStorefrontHome | null;
+  onHomeChange?: (home: AdminStorefrontHome) => void;
+  onInvalidate?: () => void;
+};
+
+export function AdminStorefrontTab({
+  initialHome = null,
+  onHomeChange,
+  onInvalidate,
+}: Props) {
   const inputRef = useRef<HTMLInputElement | null>(null);
   const successTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const positionFrameRef = useRef<number | null>(null);
+  const pendingPositionRef = useRef<{ x: number; y: number } | null>(null);
   const positionDragRef = useRef<{
     pointerId: number;
     startX: number;
@@ -34,21 +47,48 @@ export function AdminStorefrontTab() {
     positionX: number;
     positionY: number;
   } | null>(null);
-  const [storefront, setStorefront] = useState<AdminStorefrontHome | null>(null);
+  const [storefront, setStorefront] = useState<AdminStorefrontHome | null>(initialHome);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!initialHome);
   const [saving, setSaving] = useState(false);
   const [success, setSuccess] = useState(false);
   const [dragActive, setDragActive] = useState(false);
   const [failedImageUrl, setFailedImageUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [position, setPosition] = useState({ x: 50, y: 50 });
-  const [savedPosition, setSavedPosition] = useState({ x: 50, y: 50 });
+  const initialPosition = {
+    x: initialHome?.heroPositionX ?? 50,
+    y: initialHome?.heroPositionY ?? 50,
+  };
+  const [position, setPosition] = useState(initialPosition);
+  const [savedPosition, setSavedPosition] = useState(initialPosition);
   const [positionSaving, setPositionSaving] = useState(false);
   const [positionDragging, setPositionDragging] = useState(false);
+  const handleCollectionsChange = useCallback(
+    (collections: AdminStorefrontHome["collections"]) => {
+      setStorefront((current) =>
+        current ? { ...current, collections } : current
+      );
+    },
+    []
+  );
+  const invalidateParentStorefront = useCallback(() => {
+    onInvalidate?.();
+  }, [onInvalidate]);
 
   useEffect(() => {
+    if (initialHome) {
+      setStorefront(initialHome);
+      const nextPosition = {
+        x: initialHome.heroPositionX,
+        y: initialHome.heroPositionY,
+      };
+      setPosition(nextPosition);
+      setSavedPosition(nextPosition);
+      setLoading(false);
+      return;
+    }
+
     let active = true;
 
     void getAdminStorefrontHome()
@@ -78,7 +118,11 @@ export function AdminStorefrontTab() {
     return () => {
       active = false;
     };
-  }, []);
+  }, [initialHome]);
+
+  useEffect(() => {
+    if (storefront) onHomeChange?.(storefront);
+  }, [onHomeChange, storefront]);
 
   useEffect(() => {
     return () => {
@@ -89,8 +133,11 @@ export function AdminStorefrontTab() {
   useEffect(() => {
     return () => {
       if (successTimerRef.current) clearTimeout(successTimerRef.current);
+      if (positionFrameRef.current !== null) {
+        window.cancelAnimationFrame(positionFrameRef.current);
+      }
     };
-  }, []);
+  }, [initialHome]);
 
   function selectFile(file: File | null) {
     setSuccess(false);
@@ -101,7 +148,7 @@ export function AdminStorefrontTab() {
     if (!ALLOWED_FILE_TYPES.has(file.type)) {
       setSelectedFile(null);
       setPreviewUrl(null);
-      setError("Выберите изображение в формате JPEG или WebP");
+      setError("Выберите изображение в формате JPEG, PNG или WebP");
       return;
     }
 
@@ -130,6 +177,7 @@ export function AdminStorefrontTab() {
         ...updated,
         collections: current?.collections ?? updated.collections,
       }));
+      onHomeChange?.(updated);
       setPosition({ x: updated.heroPositionX, y: updated.heroPositionY });
       setSavedPosition({ x: updated.heroPositionX, y: updated.heroPositionY });
       setSelectedFile(null);
@@ -177,15 +225,31 @@ export function AdminStorefrontTab() {
     const rect = event.currentTarget.getBoundingClientRect();
     const deltaX = ((event.clientX - drag.startX) / rect.width) * 100;
     const deltaY = ((event.clientY - drag.startY) / rect.height) * 100;
-    setPosition({
+    pendingPositionRef.current = {
       x: clampPosition(drag.positionX - deltaX),
       y: clampPosition(drag.positionY - deltaY),
+    };
+    if (positionFrameRef.current !== null) return;
+    positionFrameRef.current = window.requestAnimationFrame(() => {
+      positionFrameRef.current = null;
+      if (pendingPositionRef.current) {
+        setPosition(pendingPositionRef.current);
+        pendingPositionRef.current = null;
+      }
     });
   }
 
   function finishPositionDrag(event: PointerEvent<HTMLDivElement>) {
     if (positionDragRef.current?.pointerId !== event.pointerId) return;
     positionDragRef.current = null;
+    if (positionFrameRef.current !== null) {
+      window.cancelAnimationFrame(positionFrameRef.current);
+      positionFrameRef.current = null;
+    }
+    if (pendingPositionRef.current) {
+      setPosition(pendingPositionRef.current);
+      pendingPositionRef.current = null;
+    }
     setPositionDragging(false);
   }
 
@@ -199,6 +263,7 @@ export function AdminStorefrontTab() {
         ...updated,
         collections: current?.collections ?? updated.collections,
       }));
+      onHomeChange?.(updated);
       const nextPosition = {
         x: updated.heroPositionX,
         y: updated.heroPositionY,
@@ -232,7 +297,7 @@ export function AdminStorefrontTab() {
       <div className={styles.form}>
         <div className={styles.fieldHead}>
           <span className={styles.label}>Главное изображение</span>
-          <span className={styles.requirements}>JPEG или WebP, до 8 МБ</span>
+          <span className={styles.requirements}>JPEG, PNG или WebP, до 8 МБ</span>
         </div>
 
         <div
@@ -340,7 +405,7 @@ export function AdminStorefrontTab() {
         <input
           ref={inputRef}
           type="file"
-          accept=".jpg,.jpeg,.webp,image/jpeg,image/webp"
+          accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp"
           className={styles.fileInput}
           onChange={(event) => {
             selectFile(event.target.files?.[0] ?? null);
@@ -352,6 +417,8 @@ export function AdminStorefrontTab() {
       <AdminStorefrontCollections
         initialCollections={storefront?.collections ?? []}
         loading={loading}
+        onCollectionsChange={handleCollectionsChange}
+        onMutationComplete={invalidateParentStorefront}
       />
     </section>
   );

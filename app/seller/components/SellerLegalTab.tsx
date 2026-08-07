@@ -10,14 +10,12 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 import { Button } from "../../components/ui/Button";
+import { CabinetSkeleton } from "../../components/ui/CabinetSkeleton";
 import { ChoiceMark } from "../../components/ui/ChoiceMark";
 import { Icon } from "../../components/ui/Icon";
+import { PhoneInput } from "../../components/ui/PhoneInput";
 import { API_URL, apiFetch } from "../../lib/api";
-import {
-  formatRussianPhone,
-  getRussianPhoneDigits,
-  normalizeRussianPhone,
-} from "../../lib/phone";
+import { getRussianPhoneDigits } from "../../lib/phone";
 import { isNonEmpty } from "../../lib/validation";
 import { emitSellerOnboardingChanged } from "../lib/sellerOnboardingEvents";
 
@@ -33,8 +31,8 @@ import {
   type SellerType,
 } from "../lib/sellerLegalApi";
 
+import { SellerTelegramCard } from "./SellerTelegramCard";
 import styles from "./SellerLegalTab.module.css";
-import { CabinetSkeleton } from "../../components/ui/CabinetSkeleton";
 
 type FormErrors = Partial<Record<keyof SellerLegalInfoForm, string>>;
 
@@ -149,7 +147,6 @@ export function SellerLegalTab() {
   const [pointQuery, setPointQuery] = useState("");
 
   const [error, setError] = useState<string | null>(null);
-  const [savedMessage, setSavedMessage] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -213,7 +210,11 @@ export function SellerLegalTab() {
     const cityCode = Number(form.shippingCityCode);
     const query = pointQuery.trim();
 
-    if (!Number.isFinite(cityCode) || cityCode <= 0) {
+    if (
+      !Number.isFinite(cityCode) ||
+      cityCode <= 0 ||
+      Boolean(form.cdekShipmentPoint)
+    ) {
       setPointOptions([]);
       return;
     }
@@ -262,7 +263,6 @@ export function SellerLegalTab() {
       return nextErrors;
     });
 
-    setSavedMessage(null);
   }
 
   function selectShippingCity(city: DeliveryCityOption) {
@@ -285,7 +285,6 @@ export function SellerLegalTab() {
       delete next.cdekShipmentPoint;
       return next;
     });
-    setSavedMessage(null);
   }
 
   function updateShippingCityInput(value: string) {
@@ -306,7 +305,6 @@ export function SellerLegalTab() {
       delete next.cdekShipmentPoint;
       return next;
     });
-    setSavedMessage(null);
   }
 
   function selectReceptionPoint(point: CdekReceptionPoint) {
@@ -322,7 +320,6 @@ export function SellerLegalTab() {
       delete next.cdekShipmentPoint;
       return next;
     });
-    setSavedMessage(null);
   }
 
   function updateReceptionPointInput(value: string) {
@@ -338,7 +335,6 @@ export function SellerLegalTab() {
       delete next.cdekShipmentPoint;
       return next;
     });
-    setSavedMessage(null);
   }
 
   const formChanged = JSON.stringify(form) !== JSON.stringify(savedForm);
@@ -425,7 +421,6 @@ export function SellerLegalTab() {
 
     setErrors(nextErrors);
     setError(null);
-    setSavedMessage(null);
 
     if (Object.keys(nextErrors).length > 0) {
       window.requestAnimationFrame(() => {
@@ -449,7 +444,6 @@ export function SellerLegalTab() {
     try {
       await saveSellerLegalInfo(form);
       setSavedForm(form);
-      setSavedMessage("Реквизиты сохранены");
       setSuccessOpen(true);
       emitSellerOnboardingChanged();
     } catch (e) {
@@ -493,7 +487,12 @@ export function SellerLegalTab() {
       <form className={styles.form} onSubmit={submit}>
         {error ? <div className={styles.error}>{error}</div> : null}
 
-        <section className={`${styles.card} ${styles.unifiedForm}`}>
+        <section className={styles.card}>
+          <div className={styles.cardHeader}>
+            <h2>Юридическая информация</h2>
+            <p>Данные владельца магазина и сведения для оформления документов.</p>
+          </div>
+
           <div className={styles.typeGrid}>
             {(["IP", "OOO", "SELF_EMPLOYED"] as SellerType[]).map((type) => (
               <label
@@ -583,20 +582,6 @@ export function SellerLegalTab() {
               onChange={(event) => updateField("legalName", event.target.value)}
             />
 
-            <LegalTextField
-              label="Телефон"
-              type="tel"
-              inputMode="tel"
-              autoComplete="tel"
-              required
-              valid={isValidPhone(form.phone)}
-              suppressRequiredHighlight={hasValidationErrors}
-              value={formatRussianPhone(form.phone)}
-              error={errors.phone}
-              onChange={(event) =>
-                updateField("phone", normalizeRussianPhone(event.target.value))
-              }
-            />
           </div>
 
           <div className={styles.addressField}>
@@ -606,6 +591,44 @@ export function SellerLegalTab() {
               value={form.legalAddress}
               onChange={(event) => updateField("legalAddress", event.target.value)}
             />
+          </div>
+        </section>
+
+        <section className={styles.card}>
+          <div className={styles.cardHeader}>
+            <h2>Контакты продавца</h2>
+            <p>Телефон для связи и канал оперативных уведомлений магазина.</p>
+          </div>
+
+          <div className={styles.contactsGrid}>
+            <div className={styles.contactPhone}>
+              <div className={styles.phoneField}>
+                <PhoneInput
+                  label="Телефон"
+                  fieldVariant="boxed"
+                  required
+                  value={form.phone}
+                  error={errors.phone}
+                  className={isValidPhone(form.phone) ? styles.inputValid : ""}
+                  onChange={(event) => updateField("phone", event.target.value)}
+                />
+                {isValidPhone(form.phone) && !errors.phone ? (
+                  <FieldValidIcon />
+                ) : null}
+              </div>
+              <p className={styles.contactHint}>
+                Используем для связи по заказам и рабочим вопросам.
+              </p>
+            </div>
+
+            <SellerTelegramCard />
+          </div>
+        </section>
+
+        <section className={styles.card}>
+          <div className={styles.cardHeader}>
+            <h2>Отправка заказов</h2>
+            <p>Город и пункт, из которого товары передаются в доставку.</p>
           </div>
 
           <div className={styles.grid}>
@@ -674,6 +697,13 @@ export function SellerLegalTab() {
                 </div>
               ) : null}
             </div>
+          </div>
+        </section>
+
+        <section className={styles.card}>
+          <div className={styles.cardHeader}>
+            <h2>Банковские реквизиты</h2>
+            <p>Счёт, на который будут перечисляться выплаты магазина.</p>
           </div>
 
           <div className={styles.grid}>
@@ -755,18 +785,18 @@ export function SellerLegalTab() {
               </span>
             </label>
           </div>
-
-          <div className={styles.actions}>
-            <Button
-              type="submit"
-              variant="primary"
-              disabled={saving || !formChanged}
-              loading={saving}
-            >
-              Сохранить
-            </Button>
-          </div>
         </section>
+
+        <div className={styles.actions}>
+          <Button
+            type="submit"
+            variant="primary"
+            disabled={saving || !formChanged}
+            loading={saving}
+          >
+            Сохранить
+          </Button>
+        </div>
       </form>
 
       {successOpen ? (

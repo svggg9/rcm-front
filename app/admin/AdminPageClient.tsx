@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import dynamic from "next/dynamic";
 import { useSearchParams } from "next/navigation";
 import { useSessionResourceCache } from "../lib/useSessionResourceCache";
 import {
@@ -12,15 +13,6 @@ import {
 import styles from "./Admin.module.css";
 
 import { AdminSidebar } from "./components/AdminSidebar";
-import { AdminOrdersTab } from "./components/AdminOrdersTab";
-import { AdminOrderDetails } from "./components/AdminOrderDetails";
-import { AdminProductsTab } from "./components/AdminProductsTab";
-import { AdminProductDetails } from "./components/AdminProductDetails";
-import { AdminSellersTab } from "./components/AdminSellersTab";
-import { AdminDictionariesTab } from "./components/AdminDictionariesTab";
-import { AdminFinanceTab } from "./components/AdminFinanceTab";
-import { AdminCdekTab } from "./components/AdminCdekTab";
-import { AdminStorefrontTab } from "./components/AdminStorefrontTab";
 
 import {
   approveProduct,
@@ -43,12 +35,15 @@ import {
   approveSellerApplication,
   getAdminSellerApplications,
   getAdminLedgerEntries,
+  getAdminSellerPayouts,
+  getAdminSellerPayoutStats,
   getAdminCdekWebhookEvents,
   rejectSellerApplication,
 } from "./lib/adminApi";
 
 import type {
   AdminProduct,
+  AdminProductListItem,
   AdminOrder,
   AdminOrderListItem,
   AdminInitialData,
@@ -59,9 +54,60 @@ import type {
   AdminSellerApplication,
   SellerApplicationStatus,
   AdminFinancialLedgerEntry,
+  AdminSellerPayout,
+  AdminSellerPayoutStats,
   AdminCdekWebhookEvent,
   FinancialLedgerEntryType,
 } from "./types";
+
+const AdminProductsTab = dynamic(
+  () => import("./components/AdminProductsTab").then((module) => module.AdminProductsTab),
+  { loading: () => <CabinetSkeleton variant="list" compact /> }
+);
+const AdminProductDetails = dynamic(
+  () =>
+    import("./components/AdminProductDetails").then(
+      (module) => module.AdminProductDetails
+    ),
+  { loading: () => <CabinetSkeleton variant="detail" /> }
+);
+const AdminOrdersTab = dynamic(
+  () => import("./components/AdminOrdersTab").then((module) => module.AdminOrdersTab),
+  { loading: () => <CabinetSkeleton variant="list" compact /> }
+);
+const AdminOrderDetails = dynamic(
+  () =>
+    import("./components/AdminOrderDetails").then(
+      (module) => module.AdminOrderDetails
+    ),
+  { loading: () => <CabinetSkeleton variant="detail" /> }
+);
+const AdminSellersTab = dynamic(
+  () => import("./components/AdminSellersTab").then((module) => module.AdminSellersTab),
+  { loading: () => <CabinetSkeleton variant="form" /> }
+);
+const AdminDictionariesTab = dynamic(
+  () =>
+    import("./components/AdminDictionariesTab").then(
+      (module) => module.AdminDictionariesTab
+    ),
+  { loading: () => <CabinetSkeleton variant="form" /> }
+);
+const AdminFinanceTab = dynamic(
+  () => import("./components/AdminFinanceTab").then((module) => module.AdminFinanceTab),
+  { loading: () => <CabinetSkeleton variant="dashboard" /> }
+);
+const AdminCdekTab = dynamic(
+  () => import("./components/AdminCdekTab").then((module) => module.AdminCdekTab),
+  { loading: () => <CabinetSkeleton variant="list" compact /> }
+);
+const AdminStorefrontTab = dynamic(
+  () =>
+    import("./components/AdminStorefrontTab").then(
+      (module) => module.AdminStorefrontTab
+    ),
+  { loading: () => <CabinetSkeleton variant="form" /> }
+);
 
 function normalizeTab(raw: string | null): AdminTab {
   if (raw === "storefront") return "storefront";
@@ -213,8 +259,8 @@ function getInitialAdminListKey(initialData: AdminInitialData) {
     initialData.tab,
     initialData.productStatus,
     initialData.applicationStatus,
-    "ALL",
-    ""
+    initialData.ledgerEntryType,
+    initialData.ledgerOrderGroupId
   );
 }
 
@@ -233,16 +279,40 @@ function AdminPageContent({ initialData }: Props) {
     searchParams.get("entryType")
   );
   const currentLedgerOrderGroupId = searchParams.get("orderGroupId") ?? "";
+  const currentListKey = getAdminListKey(
+    currentTab,
+    currentStatus,
+    currentApplicationStatus,
+    currentLedgerEntryType,
+    currentLedgerOrderGroupId
+  );
+  const currentListKeyRef = useRef(currentListKey);
+  const currentTabRef = useRef(currentTab);
+  const selectedProductIdRef = useRef(selectedProductId);
+  const selectedOrderIdRef = useRef(selectedOrderId);
+  currentListKeyRef.current = currentListKey;
+  currentTabRef.current = currentTab;
+  selectedProductIdRef.current = selectedProductId;
+  selectedOrderIdRef.current = selectedOrderId;
   const loadedListKeyByTabRef = useRef<Map<AdminTab, string>>(
     new Map(
-      initialData
+      initialData?.tabDataLoaded
         ? [[initialData.tab, getInitialAdminListKey(initialData)]]
         : []
     )
   );
 
-  const [products, setProducts] = useState<AdminProduct[]>(
+  const [products, setProducts] = useState<AdminProductListItem[]>(
     initialData?.products ?? []
+  );
+  const invalidatedListTabsRef = useRef<Set<AdminTab>>(new Set());
+  const [totalProducts, setTotalProducts] = useState(
+    initialData?.totalProducts ?? 0
+  );
+  const [productsNextPage, setProductsNextPage] = useState<number | null>(() =>
+    hasAnotherPage(initialData?.products.length ?? 0, initialData?.totalProducts ?? 0)
+      ? 1
+      : null
   );
   const [selectedProduct, setSelectedProduct] = useState<AdminProduct | null>(
     initialData?.selectedProduct ?? null
@@ -250,6 +320,18 @@ function AdminPageContent({ initialData }: Props) {
   const [orders, setOrders] = useState<AdminOrderListItem[]>(
     initialData?.orders ?? []
   );
+  const [totalOrders, setTotalOrders] = useState(initialData?.totalOrders ?? 0);
+  const [ordersNextPage, setOrdersNextPage] = useState<number | null>(() =>
+    hasAnotherPage(initialData?.orders.length ?? 0, initialData?.totalOrders ?? 0)
+      ? 1
+      : null
+  );
+  const [storefrontHome, setStorefrontHome] = useState(
+    initialData?.storefrontHome ?? null
+  );
+  const invalidateStorefrontHome = useCallback(() => {
+    setStorefrontHome(null);
+  }, []);
   const [selectedOrder, setSelectedOrder] = useState<AdminOrder | null>(
     initialData?.selectedOrder ?? null
   );
@@ -258,6 +340,7 @@ function AdminPageContent({ initialData }: Props) {
     peek: peekCachedProduct,
     seed: seedProduct,
     prefetch: prefetchProduct,
+    invalidate: invalidateProduct,
   } = useSessionResourceCache<number, AdminProduct>(getAdminProduct);
   const {
     get: getCachedOrder,
@@ -265,12 +348,6 @@ function AdminPageContent({ initialData }: Props) {
     seed: seedOrder,
     prefetch: prefetchOrder,
   } = useSessionResourceCache<number, AdminOrder>(getAdminOrder);
-  const [totalProducts, setTotalProducts] = useState(
-    initialData?.totalProducts ?? 0
-  );
-  const [totalOrders, setTotalOrders] = useState(
-    initialData?.totalOrders ?? 0
-  );
   const [productStatusCounts, setProductStatusCounts] = useState(
     initialData?.productStatusCounts ?? {
       MODERATION: 0,
@@ -282,10 +359,26 @@ function AdminPageContent({ initialData }: Props) {
       ALL: 0,
     }
   );
+  const productCountsLoadedRef = useRef(
+    initialData?.tab === "products" && initialData.tabDataLoaded
+  );
 
   const [sellerApplications, setSellerApplications] = useState<
     AdminSellerApplication[]
   >(initialData?.sellerApplications ?? []);
+  const [totalSellerApplications, setTotalSellerApplications] = useState(
+    initialData?.totalSellerApplications ?? 0
+  );
+  const [sellerApplicationsNextPage, setSellerApplicationsNextPage] = useState<
+    number | null
+  >(() =>
+    hasAnotherPage(
+      initialData?.sellerApplications.length ?? 0,
+      initialData?.totalSellerApplications ?? 0
+    )
+      ? 1
+      : null
+  );
   const [
     sellerApplicationStatusCounts,
     setSellerApplicationStatusCounts,
@@ -297,17 +390,71 @@ function AdminPageContent({ initialData }: Props) {
       ALL: 0,
     }
   );
+  const sellerCountsLoadedRef = useRef(
+    initialData?.tab === "sellers" && initialData.tabDataLoaded
+  );
   const [ledgerEntries, setLedgerEntries] = useState<
     AdminFinancialLedgerEntry[]
   >(initialData?.ledgerEntries ?? []);
   const [totalLedgerEntries, setTotalLedgerEntries] = useState(
     initialData?.totalLedgerEntries ?? 0
   );
+  const [ledgerNextPage, setLedgerNextPage] = useState<number | null>(() =>
+    hasAnotherPage(
+      initialData?.ledgerEntries.length ?? 0,
+      initialData?.totalLedgerEntries ?? 0
+    )
+      ? 1
+      : null
+  );
+  const productsLoadIdRef = useRef(0);
+  const ordersLoadIdRef = useRef(0);
+  const sellersLoadIdRef = useRef(0);
+  const ledgerLoadIdRef = useRef(0);
+  const dictionariesLoadIdRef = useRef(0);
+  const cdekLoadIdRef = useRef(0);
+  const productDetailsLoadIdRef = useRef(0);
+  const orderDetailsLoadIdRef = useRef(0);
+  const [sellerPayouts, setSellerPayouts] = useState<AdminSellerPayout[]>(
+    initialData?.sellerPayouts ?? []
+  );
+  const [sellerPayoutStats, setSellerPayoutStats] =
+    useState<AdminSellerPayoutStats>(
+      initialData?.sellerPayoutStats ?? {
+        totalCount: 0,
+        readyAmount: 0,
+        sentAmount: 0,
+      }
+    );
+  const [payoutsLoading, setPayoutsLoading] = useState(false);
+  const [payoutsLoadingMore, setPayoutsLoadingMore] = useState(false);
+  const [payoutsNextPage, setPayoutsNextPage] = useState<number | null>(() =>
+    hasAnotherPage(
+      initialData?.sellerPayouts.length ?? 0,
+      initialData?.sellerPayoutStats.totalCount ?? 0
+    )
+      ? 1
+      : null
+  );
+  const payoutsLoadedRef = useRef(initialData?.sellerPayoutsLoaded ?? false);
+  const payoutsRequestRef = useRef<Promise<void> | null>(null);
+  const [ledgerLoaded, setLedgerLoaded] = useState(
+    initialData?.ledgerLoaded ?? false
+  );
+  const ledgerLoadedRef = useRef(initialData?.ledgerLoaded ?? false);
   const [cdekWebhookEvents, setCdekWebhookEvents] = useState<
     AdminCdekWebhookEvent[]
   >(initialData?.cdekWebhookEvents ?? []);
   const [totalCdekWebhookEvents, setTotalCdekWebhookEvents] = useState(
     initialData?.totalCdekWebhookEvents ?? 0
+  );
+  const [cdekNextPage, setCdekNextPage] = useState<number | null>(() =>
+    hasAnotherPage(
+      initialData?.cdekWebhookEvents.length ?? 0,
+      initialData?.totalCdekWebhookEvents ?? 0
+    )
+      ? 1
+      : null
   );
 
   const [categories, setCategories] = useState<DictionaryItem[]>(
@@ -316,13 +463,17 @@ function AdminPageContent({ initialData }: Props) {
   const [sizes, setSizes] = useState<DictionaryItem[]>(
     initialData?.sizes ?? []
   );
+  const categoriesLoadedRef = useRef(initialData?.categoriesLoaded ?? false);
+  const categoriesRequestRef = useRef<Promise<DictionaryItem[]> | null>(null);
   const [dictionaryActionKey, setDictionaryActionKey] = useState<string | null>(
     null
   );
 
-  const [loading, setLoading] = useState(!initialData);
+  const [loading, setLoading] = useState(!initialData?.tabDataLoaded);
   const [detailsLoading, setDetailsLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [loadingMoreList, setLoadingMoreList] = useState<AdminTab | null>(null);
+  const [listInvalidationVersion, setListInvalidationVersion] = useState(0);
 
   const [actionProductId, setActionProductId] = useState<number | null>(null);
   const [actionOrderId, setActionOrderId] = useState<number | null>(null);
@@ -334,6 +485,10 @@ function AdminPageContent({ initialData }: Props) {
   const [error, setError] = useState<string | null>(initialData?.error ?? null);
 
   useEffect(() => {
+    setError(null);
+  }, [currentListKey]);
+
+  useEffect(() => {
     if (initialData?.selectedProduct) {
       seedProduct(initialData.selectedProduct.id, initialData.selectedProduct);
     }
@@ -342,85 +497,262 @@ function AdminPageContent({ initialData }: Props) {
     }
   }, [initialData, seedOrder, seedProduct]);
 
-  const loadProducts = useCallback(
-    async (options?: { silent?: boolean }) => {
-      const silent = options?.silent ?? false;
+  const ensureCategories = useCallback(async () => {
+    if (categoriesLoadedRef.current) return;
 
-      if (silent) setRefreshing(true);
-      else setLoading(true);
-
-      setError(null);
-
-      try {
-        const [data, categoriesData, counts] = await Promise.all([
-          getAdminProducts(currentStatus, 0, 50),
-          getAdminDictionary("categories"),
-          getAdminProductStatusCounts(),
-        ]);
-
-        setProducts(Array.isArray(data.content) ? data.content : []);
-        setTotalProducts(data.totalElements ?? 0);
-        setCategories(categoriesData);
-        setProductStatusCounts(counts);
-      } catch (e) {
-        setError(e instanceof Error ? e.message : "Не удалось загрузить товары");
-      } finally {
-        setLoading(false);
-        setRefreshing(false);
-      }
-    },
-    [currentStatus]
-  );
-
-  const loadOrders = useCallback(async (options?: { silent?: boolean }) => {
-    const silent = options?.silent ?? false;
-
-    if (silent) setRefreshing(true);
-    else setLoading(true);
-
-    setError(null);
+    if (!categoriesRequestRef.current) {
+      categoriesRequestRef.current = getAdminDictionary("categories");
+    }
 
     try {
-      const data = await getAdminOrders(0, 50);
-
-      setOrders(Array.isArray(data.content) ? data.content : []);
-      setTotalOrders(data.totalElements ?? 0);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Не удалось загрузить заказы");
+      const nextCategories = await categoriesRequestRef.current;
+      setCategories(nextCategories);
+      categoriesLoadedRef.current = true;
     } finally {
-      setLoading(false);
-      setRefreshing(false);
+      categoriesRequestRef.current = null;
     }
   }, []);
 
-  const loadSellerApplications = useCallback(
-    async (options?: { silent?: boolean }) => {
-      const silent = options?.silent ?? false;
+  const ensureProductCategories = useCallback(() => {
+    void ensureCategories().catch((reason: unknown) => {
+      if (currentTabRef.current !== "products") return;
+      setError(
+        reason instanceof Error
+          ? reason.message
+          : "Не удалось загрузить категории"
+      );
+    });
+  }, [ensureCategories]);
 
-      if (silent) setRefreshing(true);
+  const loadProducts = useCallback(
+    async (options?: {
+      silent?: boolean;
+      refreshCounts?: boolean;
+      page?: number;
+      append?: boolean;
+    }) => {
+      const expectedKey = getAdminListKey(
+        "products",
+        currentStatus,
+        "ALL",
+        "ALL",
+        ""
+      );
+      if (currentListKeyRef.current !== expectedKey) return;
+      const silent = options?.silent ?? false;
+      const page = options?.page ?? 0;
+      const append = options?.append ?? false;
+      const loadId = ++productsLoadIdRef.current;
+      const shouldLoadCounts =
+        options?.refreshCounts ?? !productCountsLoadedRef.current;
+
+      if (append) setLoadingMoreList("products");
+      else if (silent) setRefreshing(true);
       else setLoading(true);
 
       setError(null);
 
       try {
         const [data, counts] = await Promise.all([
-          getAdminSellerApplications(currentApplicationStatus, 0, 50),
-          getAdminSellerApplicationStatusCounts(),
+          getAdminProducts(currentStatus, page, 50),
+          shouldLoadCounts
+            ? getAdminProductStatusCounts()
+            : Promise.resolve(null),
         ]);
 
-        setSellerApplications(Array.isArray(data.content) ? data.content : []);
-        setSellerApplicationStatusCounts(counts);
+        if (
+          loadId === productsLoadIdRef.current &&
+          currentListKeyRef.current === expectedKey
+        ) {
+          const nextProducts = Array.isArray(data.content) ? data.content : [];
+          setProducts((current) =>
+            append ? appendUniqueById(current, nextProducts) : nextProducts
+          );
+          setTotalProducts(data.totalElements ?? nextProducts.length);
+          setProductsNextPage(getNextPage(data));
+          loadedListKeyByTabRef.current.set("products", expectedKey);
+          if (counts) {
+            setProductStatusCounts(counts);
+            productCountsLoadedRef.current = true;
+          }
+        }
       } catch (e) {
-        setError(e instanceof Error ? e.message : "Не удалось загрузить заявки");
+        if (
+          loadId === productsLoadIdRef.current &&
+          currentListKeyRef.current === expectedKey
+        ) {
+          if (!append) {
+            setProducts([]);
+            setTotalProducts(0);
+            setProductsNextPage(null);
+            loadedListKeyByTabRef.current.delete("products");
+          }
+          setError(e instanceof Error ? e.message : "Не удалось загрузить товары");
+        }
       } finally {
-        setLoading(false);
-        setRefreshing(false);
+        if (loadId === productsLoadIdRef.current) {
+          if (currentListKeyRef.current === expectedKey) {
+            setLoading(false);
+            setRefreshing(false);
+          }
+          setLoadingMoreList((current) =>
+            current === "products" ? null : current
+          );
+        }
+      }
+    },
+    [currentStatus]
+  );
+
+  const loadOrders = useCallback(async (options?: {
+    silent?: boolean;
+    page?: number;
+    append?: boolean;
+  }) => {
+    const expectedKey = "orders";
+    if (currentListKeyRef.current !== expectedKey) return;
+    const silent = options?.silent ?? false;
+    const page = options?.page ?? 0;
+    const append = options?.append ?? false;
+    const loadId = ++ordersLoadIdRef.current;
+
+    if (append) setLoadingMoreList("orders");
+    else if (silent) setRefreshing(true);
+    else setLoading(true);
+
+    setError(null);
+
+    try {
+      const data = await getAdminOrders(page, 50);
+
+      if (
+        loadId === ordersLoadIdRef.current &&
+        currentListKeyRef.current === expectedKey
+      ) {
+        const nextOrders = Array.isArray(data.content) ? data.content : [];
+        setOrders((current) =>
+          append ? appendUniqueById(current, nextOrders) : nextOrders
+        );
+        setTotalOrders(data.totalElements ?? nextOrders.length);
+        setOrdersNextPage(getNextPage(data));
+        loadedListKeyByTabRef.current.set("orders", expectedKey);
+      }
+    } catch (e) {
+      if (
+        loadId === ordersLoadIdRef.current &&
+        currentListKeyRef.current === expectedKey
+      ) {
+        if (!append) {
+          setOrders([]);
+          setTotalOrders(0);
+          setOrdersNextPage(null);
+          loadedListKeyByTabRef.current.delete("orders");
+        }
+        setError(e instanceof Error ? e.message : "Не удалось загрузить заказы");
+      }
+    } finally {
+      if (loadId === ordersLoadIdRef.current) {
+        if (currentListKeyRef.current === expectedKey) {
+          setLoading(false);
+          setRefreshing(false);
+        }
+        setLoadingMoreList((current) =>
+          current === "orders" ? null : current
+        );
+      }
+    }
+  }, []);
+
+  const loadSellerApplications = useCallback(
+    async (options?: {
+      silent?: boolean;
+      refreshCounts?: boolean;
+      page?: number;
+      append?: boolean;
+    }) => {
+      const expectedKey = getAdminListKey(
+        "sellers",
+        "ALL",
+        currentApplicationStatus,
+        "ALL",
+        ""
+      );
+      if (currentListKeyRef.current !== expectedKey) return;
+      const silent = options?.silent ?? false;
+      const page = options?.page ?? 0;
+      const append = options?.append ?? false;
+      const loadId = ++sellersLoadIdRef.current;
+      const shouldLoadCounts =
+        options?.refreshCounts ?? !sellerCountsLoadedRef.current;
+
+      if (append) setLoadingMoreList("sellers");
+      else if (silent) setRefreshing(true);
+      else setLoading(true);
+
+      setError(null);
+
+      try {
+        const [data, counts] = await Promise.all([
+          getAdminSellerApplications(currentApplicationStatus, page, 50),
+          shouldLoadCounts
+            ? getAdminSellerApplicationStatusCounts()
+            : Promise.resolve(null),
+        ]);
+
+        if (
+          loadId === sellersLoadIdRef.current &&
+          currentListKeyRef.current === expectedKey
+        ) {
+          const nextApplications = Array.isArray(data.content)
+            ? data.content
+            : [];
+          setSellerApplications((current) =>
+            append
+              ? appendUniqueById(current, nextApplications)
+              : nextApplications
+          );
+          setTotalSellerApplications(
+            data.totalElements ?? nextApplications.length
+          );
+          setSellerApplicationsNextPage(getNextPage(data));
+          loadedListKeyByTabRef.current.set("sellers", expectedKey);
+          if (counts) {
+            setSellerApplicationStatusCounts(counts);
+            sellerCountsLoadedRef.current = true;
+          }
+        }
+      } catch (e) {
+        if (
+          loadId === sellersLoadIdRef.current &&
+          currentListKeyRef.current === expectedKey
+        ) {
+          if (!append) {
+            setSellerApplications([]);
+            setTotalSellerApplications(0);
+            setSellerApplicationsNextPage(null);
+            loadedListKeyByTabRef.current.delete("sellers");
+          }
+          setError(e instanceof Error ? e.message : "Не удалось загрузить заявки");
+        }
+      } finally {
+        if (loadId === sellersLoadIdRef.current) {
+          if (currentListKeyRef.current === expectedKey) {
+            setLoading(false);
+            setRefreshing(false);
+          }
+          setLoadingMoreList((current) =>
+            current === "sellers" ? null : current
+          );
+        }
       }
     },
     [currentApplicationStatus]
   );
 
   const loadDictionaries = useCallback(async (options?: { silent?: boolean }) => {
+    const expectedKey = "dictionaries";
+    if (currentListKeyRef.current !== expectedKey) return;
+    const loadId = ++dictionariesLoadIdRef.current;
     const silent = options?.silent ?? false;
 
     if (silent) setRefreshing(true);
@@ -434,21 +766,55 @@ function AdminPageContent({ initialData }: Props) {
         getAdminDictionary("sizes"),
       ]);
 
-      setCategories(categoriesData);
-      setSizes(sizesData);
+      if (
+        loadId === dictionariesLoadIdRef.current &&
+        currentListKeyRef.current === expectedKey
+      ) {
+        setCategories(categoriesData);
+        categoriesLoadedRef.current = true;
+        setSizes(sizesData);
+        loadedListKeyByTabRef.current.set("dictionaries", expectedKey);
+      }
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Не удалось загрузить справочники");
+      if (
+        loadId === dictionariesLoadIdRef.current &&
+        currentListKeyRef.current === expectedKey
+      ) {
+        loadedListKeyByTabRef.current.delete("dictionaries");
+        setError(e instanceof Error ? e.message : "Не удалось загрузить справочники");
+      }
     } finally {
-      setLoading(false);
-      setRefreshing(false);
+      if (
+        loadId === dictionariesLoadIdRef.current &&
+        currentListKeyRef.current === expectedKey
+      ) {
+        setLoading(false);
+        setRefreshing(false);
+      }
     }
   }, []);
 
   const loadLedger = useCallback(
-    async (options?: { silent?: boolean }) => {
+    async (options?: {
+      silent?: boolean;
+      page?: number;
+      append?: boolean;
+    }) => {
+      const expectedKey = getAdminListKey(
+        "finance",
+        "ALL",
+        "ALL",
+        currentLedgerEntryType,
+        currentLedgerOrderGroupId
+      );
+      if (currentListKeyRef.current !== expectedKey) return;
       const silent = options?.silent ?? false;
+      const page = options?.page ?? 0;
+      const append = options?.append ?? false;
+      const loadId = ++ledgerLoadIdRef.current;
 
-      if (silent) setRefreshing(true);
+      if (append) setLoadingMoreList("finance");
+      else if (silent) setRefreshing(true);
       else setLoading(true);
 
       setError(null);
@@ -457,76 +823,282 @@ function AdminPageContent({ initialData }: Props) {
         const data = await getAdminLedgerEntries({
           entryType: currentLedgerEntryType,
           orderGroupId: currentLedgerOrderGroupId,
-          page: 0,
+          page,
           size: 50,
         });
 
-        setLedgerEntries(Array.isArray(data.content) ? data.content : []);
-        setTotalLedgerEntries(data.totalElements ?? 0);
+        if (
+          loadId === ledgerLoadIdRef.current &&
+          currentListKeyRef.current === expectedKey
+        ) {
+          const nextEntries = Array.isArray(data.content) ? data.content : [];
+          setLedgerEntries((current) =>
+            append ? appendUniqueById(current, nextEntries) : nextEntries
+          );
+          setTotalLedgerEntries(data.totalElements ?? 0);
+          setLedgerNextPage(getNextPage(data));
+          setLedgerLoaded(true);
+          ledgerLoadedRef.current = true;
+          loadedListKeyByTabRef.current.set("finance", expectedKey);
+        }
       } catch (e) {
-        setError(e instanceof Error ? e.message : "Не удалось загрузить финансы");
+        if (
+          loadId === ledgerLoadIdRef.current &&
+          currentListKeyRef.current === expectedKey
+        ) {
+          if (!append) {
+            setLedgerEntries([]);
+            setTotalLedgerEntries(0);
+            setLedgerNextPage(null);
+            setLedgerLoaded(false);
+            ledgerLoadedRef.current = false;
+            loadedListKeyByTabRef.current.delete("finance");
+          }
+          setError(e instanceof Error ? e.message : "Не удалось загрузить финансы");
+        }
       } finally {
-        setLoading(false);
-        setRefreshing(false);
+        if (loadId === ledgerLoadIdRef.current) {
+          if (currentListKeyRef.current === expectedKey) {
+            setLoading(false);
+            setRefreshing(false);
+          }
+          setLoadingMoreList((current) =>
+            current === "finance" ? null : current
+          );
+        }
       }
     },
     [currentLedgerEntryType, currentLedgerOrderGroupId]
   );
 
-  const loadCdekWebhookEvents = useCallback(
-    async (options?: { silent?: boolean }) => {
-      const silent = options?.silent ?? false;
+  const loadPayouts = useCallback(async (
+    force = false,
+    options?: { page?: number; append?: boolean }
+  ) => {
+    const page = options?.page ?? 0;
+    const append = options?.append ?? false;
+    if (!force && !append && payoutsLoadedRef.current) return;
+    if (payoutsRequestRef.current) {
+      if (!force) return payoutsRequestRef.current;
+      await payoutsRequestRef.current;
+      if (payoutsRequestRef.current) return payoutsRequestRef.current;
+    }
 
-      if (silent) setRefreshing(true);
+    if (append) setPayoutsLoadingMore(true);
+    else setPayoutsLoading(true);
+    const request = Promise.all([
+      getAdminSellerPayouts(page, 50),
+      append ? Promise.resolve(null) : getAdminSellerPayoutStats(),
+    ])
+      .then(([data, stats]) => {
+        const nextPayouts = Array.isArray(data.content) ? data.content : [];
+        setSellerPayouts((current) =>
+          append ? appendUniqueById(current, nextPayouts) : nextPayouts
+        );
+        if (stats) {
+          setSellerPayoutStats(stats);
+        } else {
+          setSellerPayoutStats((current) => ({
+            ...current,
+            totalCount: data.totalElements ?? current.totalCount,
+          }));
+        }
+        setPayoutsNextPage(getNextPage(data));
+        payoutsLoadedRef.current = true;
+        if (currentListKeyRef.current === "finance:ALL:") {
+          loadedListKeyByTabRef.current.set("finance", "finance:ALL:");
+        }
+      })
+      .catch((e: unknown) => {
+        const hadLoadedPayouts = payoutsLoadedRef.current;
+        payoutsLoadedRef.current = false;
+        if (!hadLoadedPayouts && !append) {
+          setSellerPayouts([]);
+          setSellerPayoutStats({
+            totalCount: 0,
+            readyAmount: 0,
+            sentAmount: 0,
+          });
+        }
+        if (currentTabRef.current === "finance") {
+          loadedListKeyByTabRef.current.delete("finance");
+          setError(e instanceof Error ? e.message : "Не удалось загрузить выплаты");
+        }
+      })
+      .finally(() => {
+        if (payoutsRequestRef.current === request) {
+          payoutsRequestRef.current = null;
+          setPayoutsLoading(false);
+          setPayoutsLoadingMore(false);
+        }
+      });
+
+    payoutsRequestRef.current = request;
+    return request;
+  }, []);
+
+  const refreshDictionary = useCallback(async (kind: DictionaryKind) => {
+    const items = await getAdminDictionary(kind);
+    if (kind === "categories") {
+      setCategories(items);
+      categoriesLoadedRef.current = true;
+    } else if (kind === "sizes") {
+      setSizes(items);
+    }
+  }, []);
+
+  const loadCdekWebhookEvents = useCallback(
+    async (options?: {
+      silent?: boolean;
+      page?: number;
+      append?: boolean;
+    }) => {
+      const expectedKey = "delivery";
+      if (currentListKeyRef.current !== expectedKey) return;
+      const loadId = ++cdekLoadIdRef.current;
+      const silent = options?.silent ?? false;
+      const page = options?.page ?? 0;
+      const append = options?.append ?? false;
+
+      if (append) setLoadingMoreList("delivery");
+      else if (silent) setRefreshing(true);
       else setLoading(true);
 
       setError(null);
 
       try {
         const data = await getAdminCdekWebhookEvents({
-          page: 0,
+          page,
           size: 50,
         });
 
-        setCdekWebhookEvents(Array.isArray(data.content) ? data.content : []);
-        setTotalCdekWebhookEvents(data.totalElements ?? 0);
+        if (
+          loadId === cdekLoadIdRef.current &&
+          currentListKeyRef.current === expectedKey
+        ) {
+          const nextEvents = Array.isArray(data.content) ? data.content : [];
+          setCdekWebhookEvents((current) =>
+            append ? appendUniqueById(current, nextEvents) : nextEvents
+          );
+          setTotalCdekWebhookEvents(data.totalElements ?? 0);
+          setCdekNextPage(getNextPage(data));
+          loadedListKeyByTabRef.current.set("delivery", expectedKey);
+        }
       } catch (e) {
-        setError(e instanceof Error ? e.message : "Не удалось загрузить события СДЭК");
+        if (
+          loadId === cdekLoadIdRef.current &&
+          currentListKeyRef.current === expectedKey
+        ) {
+          if (!append) {
+            setCdekWebhookEvents([]);
+            setTotalCdekWebhookEvents(0);
+            setCdekNextPage(null);
+            loadedListKeyByTabRef.current.delete("delivery");
+          }
+          setError(e instanceof Error ? e.message : "Не удалось загрузить события СДЭК");
+        }
       } finally {
-        setLoading(false);
-        setRefreshing(false);
+        if (loadId === cdekLoadIdRef.current) {
+          if (currentListKeyRef.current === expectedKey) {
+            setLoading(false);
+            setRefreshing(false);
+          }
+          setLoadingMoreList((current) =>
+            current === "delivery" ? null : current
+          );
+        }
       }
     },
     []
   );
 
-  const loadSelectedProduct = useCallback(async (id: number, force = false) => {
-    setDetailsLoading(true);
-    setError(null);
+  const loadSelectedProduct = useCallback(
+    async (id: number, force = false) => {
+      if (
+        currentTabRef.current !== "products" ||
+        Number(selectedProductIdRef.current) !== id
+      ) {
+        return;
+      }
+      const loadId = ++productDetailsLoadIdRef.current;
+      setDetailsLoading(true);
+      setError(null);
 
-    try {
-      const data = await getCachedProduct(id, { force });
-      setSelectedProduct(data);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Не удалось загрузить товар");
-    } finally {
-      setDetailsLoading(false);
-    }
-  }, [getCachedProduct]);
+      try {
+        ensureProductCategories();
+        const data = await getCachedProduct(id, { force });
+        if (
+          loadId === productDetailsLoadIdRef.current &&
+          currentTabRef.current === "products" &&
+          Number(selectedProductIdRef.current) === id
+        ) {
+          setSelectedProduct(data);
+        }
+      } catch (e) {
+        if (
+          loadId === productDetailsLoadIdRef.current &&
+          currentTabRef.current === "products" &&
+          Number(selectedProductIdRef.current) === id
+        ) {
+          setError(e instanceof Error ? e.message : "Не удалось загрузить товар");
+        }
+      } finally {
+        if (
+          loadId === productDetailsLoadIdRef.current &&
+          currentTabRef.current === "products" &&
+          Number(selectedProductIdRef.current) === id
+        ) {
+          setDetailsLoading(false);
+        }
+      }
+    },
+    [ensureProductCategories, getCachedProduct]
+  );
 
   const loadSelectedOrder = useCallback(async (id: number, force = false) => {
+    if (
+      currentTabRef.current !== "orders" ||
+      Number(selectedOrderIdRef.current) !== id
+    ) {
+      return;
+    }
+    const loadId = ++orderDetailsLoadIdRef.current;
     setDetailsLoading(true);
     setError(null);
 
     try {
       const data = await getCachedOrder(id, { force });
-      setSelectedOrder(data);
+      if (
+        loadId === orderDetailsLoadIdRef.current &&
+        currentTabRef.current === "orders" &&
+        Number(selectedOrderIdRef.current) === id
+      ) {
+        setSelectedOrder(data);
+      }
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Не удалось загрузить заказ");
+      if (
+        loadId === orderDetailsLoadIdRef.current &&
+        currentTabRef.current === "orders" &&
+        Number(selectedOrderIdRef.current) === id
+      ) {
+        setError(e instanceof Error ? e.message : "Не удалось загрузить заказ");
+      }
     } finally {
-      setDetailsLoading(false);
+      if (
+        loadId === orderDetailsLoadIdRef.current &&
+        currentTabRef.current === "orders" &&
+        Number(selectedOrderIdRef.current) === id
+      ) {
+        setDetailsLoading(false);
+      }
     }
   }, [getCachedOrder]);
+
+  useEffect(() => {
+    productDetailsLoadIdRef.current += 1;
+    orderDetailsLoadIdRef.current += 1;
+    setDetailsLoading(false);
+  }, [currentTab]);
 
   useEffect(() => {
     const listKey = getAdminListKey(
@@ -536,35 +1108,53 @@ function AdminPageContent({ initialData }: Props) {
       currentLedgerEntryType,
       currentLedgerOrderGroupId
     );
+    const invalidated = invalidatedListTabsRef.current.delete(currentTab);
 
-    if (loadedListKeyByTabRef.current.get(currentTab) === listKey) {
+    if (
+      !invalidated &&
+      loadedListKeyByTabRef.current.get(currentTab) === listKey
+    ) {
+      setLoading(false);
+      setRefreshing(false);
       return;
     }
 
-    loadedListKeyByTabRef.current.set(currentTab, listKey);
-
     if (currentTab === "storefront") {
+      loadedListKeyByTabRef.current.set("storefront", listKey);
       setLoading(false);
       return;
     }
 
     if (currentTab === "products") {
-      void loadProducts();
+      void loadProducts(
+        invalidated ? { silent: true, refreshCounts: true } : undefined
+      );
       return;
     }
 
     if (currentTab === "orders") {
-      void loadOrders();
+      void loadOrders(invalidated ? { silent: true } : undefined);
       return;
     }
 
     if (currentTab === "sellers") {
-      void loadSellerApplications();
+      void loadSellerApplications(
+        invalidated ? { silent: true, refreshCounts: true } : undefined
+      );
       return;
     }
 
     if (currentTab === "finance") {
-      void loadLedger();
+      if (
+        ledgerLoadedRef.current ||
+        currentLedgerEntryType !== "ALL" ||
+        currentLedgerOrderGroupId.trim()
+      ) {
+        void loadLedger({ silent: true });
+      } else {
+        setLoading(false);
+        void loadPayouts();
+      }
       return;
     }
 
@@ -580,17 +1170,23 @@ function AdminPageContent({ initialData }: Props) {
     currentApplicationStatus,
     currentLedgerEntryType,
     currentLedgerOrderGroupId,
+    listInvalidationVersion,
     initialData,
     loadProducts,
     loadOrders,
     loadSellerApplications,
     loadLedger,
+    loadPayouts,
     loadCdekWebhookEvents,
     loadDictionaries,
   ]);
 
   useEffect(() => {
     if (currentTab !== "products" || !selectedProductId) {
+      if (currentTab === "products") {
+        productDetailsLoadIdRef.current += 1;
+        setDetailsLoading(false);
+      }
       setSelectedProduct(null);
       return;
     }
@@ -598,6 +1194,8 @@ function AdminPageContent({ initialData }: Props) {
     const id = Number(selectedProductId);
 
     if (!Number.isFinite(id)) {
+      productDetailsLoadIdRef.current += 1;
+      setDetailsLoading(false);
       setSelectedProduct(null);
       return;
     }
@@ -606,15 +1204,26 @@ function AdminPageContent({ initialData }: Props) {
     if (cached) {
       setSelectedProduct(cached);
       setDetailsLoading(false);
+      ensureProductCategories();
       return;
     }
 
     setSelectedProduct(null);
     void loadSelectedProduct(id);
-  }, [currentTab, loadSelectedProduct, peekCachedProduct, selectedProductId]);
+  }, [
+    currentTab,
+    ensureProductCategories,
+    loadSelectedProduct,
+    peekCachedProduct,
+    selectedProductId,
+  ]);
 
   useEffect(() => {
     if (currentTab !== "orders" || !selectedOrderId) {
+      if (currentTab === "orders") {
+        orderDetailsLoadIdRef.current += 1;
+        setDetailsLoading(false);
+      }
       setSelectedOrder(null);
       return;
     }
@@ -622,6 +1231,8 @@ function AdminPageContent({ initialData }: Props) {
     const id = Number(selectedOrderId);
 
     if (!Number.isFinite(id)) {
+      orderDetailsLoadIdRef.current += 1;
+      setDetailsLoading(false);
       setSelectedOrder(null);
       return;
     }
@@ -669,6 +1280,7 @@ function AdminPageContent({ initialData }: Props) {
 
   function openProduct(productId: number) {
     prefetchProduct(productId);
+    ensureProductCategories();
     navigateAdmin(
       `/admin?tab=products&status=${currentStatus}&productId=${productId}`
     );
@@ -698,11 +1310,23 @@ function AdminPageContent({ initialData }: Props) {
 
     try {
       await refundAdminOrder(selectedOrder.id);
-      await loadOrders({ silent: true });
-      await loadSelectedOrder(selectedOrder.id, true);
+      loadedListKeyByTabRef.current.delete("orders");
+      invalidatedListTabsRef.current.add("orders");
+      setListInvalidationVersion((current) => current + 1);
+      if (
+        currentTabRef.current === "orders" &&
+        Number(selectedOrderIdRef.current) === selectedOrder.id
+      ) {
+        await loadSelectedOrder(selectedOrder.id, true);
+      }
     } catch (e) {
       const message = e instanceof Error ? e.message : "Не удалось вернуть оплату";
-      setError(message);
+      if (
+        currentTabRef.current === "orders" &&
+        Number(selectedOrderIdRef.current) === selectedOrder.id
+      ) {
+        setError(message);
+      }
       throw new Error(message);
     } finally {
       setActionOrderId(null);
@@ -717,11 +1341,23 @@ function AdminPageContent({ initialData }: Props) {
 
     try {
       await cancelAdminOrderDelivery(selectedOrder.id);
-      await loadOrders({ silent: true });
-      await loadSelectedOrder(selectedOrder.id, true);
+      loadedListKeyByTabRef.current.delete("orders");
+      invalidatedListTabsRef.current.add("orders");
+      setListInvalidationVersion((current) => current + 1);
+      if (
+        currentTabRef.current === "orders" &&
+        Number(selectedOrderIdRef.current) === selectedOrder.id
+      ) {
+        await loadSelectedOrder(selectedOrder.id, true);
+      }
     } catch (e) {
       const message = e instanceof Error ? e.message : "Не удалось отменить доставку";
-      setError(message);
+      if (
+        currentTabRef.current === "orders" &&
+        Number(selectedOrderIdRef.current) === selectedOrder.id
+      ) {
+        setError(message);
+      }
       throw new Error(message);
     } finally {
       setDeliveryActionOrderId(null);
@@ -737,7 +1373,7 @@ function AdminPageContent({ initialData }: Props) {
 
     try {
       await createAdminDictionaryItem(kind, item);
-      await loadDictionaries({ silent: true });
+      await refreshDictionary(kind);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Не удалось создать значение");
       throw e;
@@ -756,7 +1392,7 @@ function AdminPageContent({ initialData }: Props) {
 
     try {
       await updateAdminDictionaryItem(kind, id, item);
-      await loadDictionaries({ silent: true });
+      await refreshDictionary(kind);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Не удалось обновить значение");
       throw e;
@@ -771,7 +1407,7 @@ function AdminPageContent({ initialData }: Props) {
 
     try {
       await deleteAdminDictionaryItem(kind, id);
-      await loadDictionaries({ silent: true });
+      await refreshDictionary(kind);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Не удалось выключить значение");
       throw e;
@@ -784,18 +1420,30 @@ function AdminPageContent({ initialData }: Props) {
     productId: number,
     action: (id: number) => Promise<void>
   ) {
+    const expectedSelectedProductId = selectedProductIdRef.current;
     setActionProductId(productId);
     setError(null);
 
     try {
       await action(productId);
-      await loadProducts({ silent: true });
-
-      if (selectedProduct?.id === productId) {
+      invalidateProduct(productId);
+      loadedListKeyByTabRef.current.delete("products");
+      invalidatedListTabsRef.current.add("products");
+      productCountsLoadedRef.current = false;
+      setListInvalidationVersion((current) => current + 1);
+      if (
+        currentTabRef.current === "products" &&
+        Number(selectedProductIdRef.current) === productId
+      ) {
         await loadSelectedProduct(productId, true);
       }
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Не удалось выполнить действие");
+      if (
+        currentTabRef.current === "products" &&
+        selectedProductIdRef.current === expectedSelectedProductId
+      ) {
+        setError(e instanceof Error ? e.message : "Не удалось выполнить действие");
+      }
     } finally {
       setActionProductId(null);
     }
@@ -822,7 +1470,8 @@ function AdminPageContent({ initialData }: Props) {
         });
 
         categoryId = created.id;
-        await loadDictionaries({ silent: true });
+        setCategories((current) => [...current, created]);
+        categoriesLoadedRef.current = true;
       }
 
       if (!categoryId) {
@@ -830,10 +1479,24 @@ function AdminPageContent({ initialData }: Props) {
       }
 
       await assignProductCategory(selectedProduct.id, categoryId);
-      await loadProducts({ silent: true });
-      await loadSelectedProduct(selectedProduct.id, true);
+      invalidateProduct(selectedProduct.id);
+      loadedListKeyByTabRef.current.delete("products");
+      invalidatedListTabsRef.current.add("products");
+      productCountsLoadedRef.current = false;
+      setListInvalidationVersion((current) => current + 1);
+      if (
+        currentTabRef.current === "products" &&
+        Number(selectedProductIdRef.current) === selectedProduct.id
+      ) {
+        await loadSelectedProduct(selectedProduct.id, true);
+      }
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Не удалось назначить категорию");
+      if (
+        currentTabRef.current === "products" &&
+        Number(selectedProductIdRef.current) === selectedProduct.id
+      ) {
+        setError(e instanceof Error ? e.message : "Не удалось назначить категорию");
+      }
     } finally {
       setActionProductId(null);
     }
@@ -847,12 +1510,26 @@ function AdminPageContent({ initialData }: Props) {
 
     try {
       await returnProductToRevision(selectedProduct.id, comment);
-      await loadProducts({ silent: true });
-      await loadSelectedProduct(selectedProduct.id, true);
+      invalidateProduct(selectedProduct.id);
+      loadedListKeyByTabRef.current.delete("products");
+      invalidatedListTabsRef.current.add("products");
+      productCountsLoadedRef.current = false;
+      setListInvalidationVersion((current) => current + 1);
+      if (
+        currentTabRef.current === "products" &&
+        Number(selectedProductIdRef.current) === selectedProduct.id
+      ) {
+        await loadSelectedProduct(selectedProduct.id, true);
+      }
     } catch (e) {
-      setError(
-        e instanceof Error ? e.message : "Не удалось вернуть товар на доработку"
-      );
+      if (
+        currentTabRef.current === "products" &&
+        Number(selectedProductIdRef.current) === selectedProduct.id
+      ) {
+        setError(
+          e instanceof Error ? e.message : "Не удалось вернуть товар на доработку"
+        );
+      }
     } finally {
       setActionProductId(null);
     }
@@ -867,9 +1544,14 @@ function AdminPageContent({ initialData }: Props) {
 
     try {
       await action(applicationId);
-      await loadSellerApplications({ silent: true });
+      loadedListKeyByTabRef.current.delete("sellers");
+      invalidatedListTabsRef.current.add("sellers");
+      sellerCountsLoadedRef.current = false;
+      setListInvalidationVersion((current) => current + 1);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Не удалось выполнить действие");
+      if (currentTabRef.current === "sellers") {
+        setError(e instanceof Error ? e.message : "Не удалось выполнить действие");
+      }
       throw e;
     } finally {
       setActionApplicationId(null);
@@ -886,9 +1568,6 @@ function AdminPageContent({ initialData }: Props) {
         <div className={styles.layout}>
           <AdminSidebar
             currentTab={currentTab}
-            productsCount={totalProducts}
-            ordersCount={totalOrders}
-            sellersCount={sellerApplicationStatusCounts.ALL}
             onNavigate={navigateAdmin}
           />
 
@@ -898,7 +1577,11 @@ function AdminPageContent({ initialData }: Props) {
             {loading ? (
               <CabinetSkeleton variant={getAdminSkeletonVariant(currentTab)} />
             ) : currentTab === "storefront" ? (
-              <AdminStorefrontTab />
+              <AdminStorefrontTab
+                initialHome={storefrontHome}
+                onHomeChange={setStorefrontHome}
+                onInvalidate={invalidateStorefrontHome}
+              />
             ) : currentTab === "dictionaries" ? (
               <AdminDictionariesTab
                 categories={categories}
@@ -915,10 +1598,36 @@ function AdminPageContent({ initialData }: Props) {
                 entries={ledgerEntries}
                 totalElements={totalLedgerEntries}
                 refreshing={refreshing}
+                ledgerLoaded={ledgerLoaded}
+                payouts={sellerPayouts}
+                payoutStats={sellerPayoutStats}
+                payoutsLoading={payoutsLoading}
+                payoutsLoadingMore={payoutsLoadingMore}
+                ledgerLoadingMore={loadingMoreList === "finance"}
                 entryType={currentLedgerEntryType}
                 orderGroupId={currentLedgerOrderGroupId}
                 onEntryTypeChange={changeLedgerEntryType}
                 onOrderGroupIdChange={changeLedgerOrderGroupId}
+                onLoadPayouts={loadPayouts}
+                onPayoutsChange={setSellerPayouts}
+                onLoadMorePayouts={
+                  payoutsNextPage === null
+                    ? undefined
+                    : () =>
+                        void loadPayouts(false, {
+                          page: payoutsNextPage,
+                          append: true,
+                        })
+                }
+                onLoadMoreLedger={
+                  ledgerNextPage === null
+                    ? undefined
+                    : () =>
+                        void loadLedger({
+                          page: ledgerNextPage,
+                          append: true,
+                        })
+                }
                 onRefresh={() => void loadLedger({ silent: true })}
               />
             ) : currentTab === "delivery" ? (
@@ -926,7 +1635,17 @@ function AdminPageContent({ initialData }: Props) {
                 events={cdekWebhookEvents}
                 totalElements={totalCdekWebhookEvents}
                 refreshing={refreshing}
+                loadingMore={loadingMoreList === "delivery"}
                 onRefresh={() => void loadCdekWebhookEvents({ silent: true })}
+                onLoadMore={
+                  cdekNextPage === null
+                    ? undefined
+                    : () =>
+                        void loadCdekWebhookEvents({
+                          page: cdekNextPage,
+                          append: true,
+                        })
+                }
               />
             ) : currentTab === "orders" ? (
               selectedOrder ? (
@@ -946,6 +1665,17 @@ function AdminPageContent({ initialData }: Props) {
               ) : (
                 <AdminOrdersTab
                   orders={orders}
+                  totalElements={totalOrders}
+                  loadingMore={loadingMoreList === "orders"}
+                  onLoadMore={
+                    ordersNextPage === null
+                      ? undefined
+                      : () =>
+                          void loadOrders({
+                            page: ordersNextPage,
+                            append: true,
+                          })
+                  }
                   buildStatusLabel={buildAdminOrderStatusLabel}
                   onOpenOrder={openOrder}
                   onLoadOrder={getCachedOrder}
@@ -955,12 +1685,25 @@ function AdminPageContent({ initialData }: Props) {
             ) : currentTab === "sellers" ? (
               <AdminSellersTab
                 applications={sellerApplications}
+                totalElements={totalSellerApplications}
                 status={currentApplicationStatus}
                 refreshing={refreshing}
+                loadingMore={loadingMoreList === "sellers"}
                 actionApplicationId={actionApplicationId}
                 statusCounts={sellerApplicationStatusCounts}
                 onStatusChange={changeApplicationStatus}
-                onRefresh={() => void loadSellerApplications({ silent: true })}
+                onRefresh={() =>
+                  void loadSellerApplications({ silent: true, refreshCounts: true })
+                }
+                onLoadMore={
+                  sellerApplicationsNextPage === null
+                    ? undefined
+                    : () =>
+                        void loadSellerApplications({
+                          page: sellerApplicationsNextPage,
+                          append: true,
+                        })
+                }
                 onApprove={(id) =>
                   runSellerApplicationAction(id, approveSellerApplication)
                 }
@@ -998,14 +1741,30 @@ function AdminPageContent({ initialData }: Props) {
             ) : (
               <AdminProductsTab
                 products={products}
+                totalElements={totalProducts}
                 status={currentStatus}
                 refreshing={refreshing}
+                loadingMore={loadingMoreList === "products"}
                 actionProductId={actionProductId}
                 statusCounts={productStatusCounts}
                 onStatusChange={changeProductStatus}
-                onRefresh={() => void loadProducts({ silent: true })}
+                onRefresh={() =>
+                  void loadProducts({ silent: true, refreshCounts: true })
+                }
+                onLoadMore={
+                  productsNextPage === null
+                    ? undefined
+                    : () =>
+                        void loadProducts({
+                          page: productsNextPage,
+                          append: true,
+                        })
+                }
                 onOpenProduct={openProduct}
-                onPrefetchProduct={prefetchProduct}
+                onPrefetchProduct={(productId) => {
+                  prefetchProduct(productId);
+                  ensureProductCategories();
+                }}
                 onApprove={(id) => runProductAction(id, approveProduct)}
                 onBlock={(id) => runProductAction(id, blockProduct)}
                 onUnblock={(id) => runProductAction(id, unblockProduct)}
@@ -1027,4 +1786,20 @@ function getAdminSkeletonVariant(tab: AdminTab): CabinetSkeletonVariant {
     return "form";
   }
   return "list";
+}
+
+function getNextPage(page: { number: number; totalPages: number }) {
+  return page.number + 1 < page.totalPages ? page.number + 1 : null;
+}
+
+function hasAnotherPage(loaded: number, total: number) {
+  return total > loaded;
+}
+
+function appendUniqueById<T extends { id: number }>(current: T[], next: T[]) {
+  if (next.length === 0) return current;
+
+  const byId = new Map(current.map((item) => [item.id, item]));
+  next.forEach((item) => byId.set(item.id, item));
+  return Array.from(byId.values());
 }

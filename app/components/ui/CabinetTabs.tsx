@@ -17,7 +17,7 @@ type Props<T extends string> = {
   pinFirst?: boolean;
   countTone?: "black" | "gold";
   tone?: "muted" | "gold";
-  appearance?: "filled" | "line";
+  appearance?: "filled" | "line" | "segmented";
 };
 
 export function CabinetTabs<T extends string>({
@@ -67,6 +67,8 @@ export function CabinetTabs<T extends string>({
         fullBleedMobile ? styles.fullBleedMobile : ""
       } ${tone === "gold" ? styles.gold : ""} ${
         appearance === "line" ? styles.line : ""
+      } ${
+        appearance === "segmented" ? styles.segmented : ""
       }`.trim()}
     >
       <div

@@ -1,136 +1,103 @@
 "use client";
 
-import Image from "next/image";
-import { useMemo, useRef, useState } from "react";
+import { useRef, useState } from "react";
+import { toast } from "sonner";
 
-import { ProductTile } from "../../components/ProductTile/ProductTile";
 import type { CatalogProduct } from "../../components/Catalog/catalogTypes";
+import { normalizeProducts } from "../../components/Catalog/catalogUtils";
+import { ProductTile } from "../../components/ProductTile/ProductTile";
+import { ListLoadMore } from "../../components/ui/ListLoadMore";
+import { API_URL } from "../../lib/api";
 
 import styles from "./BrandPage.module.css";
 
-type BrandCategory = {
-  name: string;
-  image: string | null;
+type Props = {
+  products: CatalogProduct[];
+  brandSlug: string;
+  initialPage: number;
+  totalPages: number;
+  totalProducts: number;
 };
 
-export function BrandCatalog({ products }: { products: CatalogProduct[] }) {
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-  const catalogRef = useRef<HTMLElement>(null);
+export function BrandCatalog({
+  products: initialProducts,
+  brandSlug,
+  initialPage,
+  totalPages,
+  totalProducts,
+}: Props) {
+  const [products, setProducts] = useState(initialProducts);
+  const [page, setPage] = useState(initialPage);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const loadingMoreRef = useRef(false);
 
-  const categories = useMemo(() => {
-    const result = new Map<string, BrandCategory>();
+  async function loadMore() {
+    const nextPage = page + 1;
+    if (loadingMoreRef.current || nextPage >= totalPages) return;
 
-    products.forEach((product) => {
-      const name = product.category.trim();
-      if (!name) return;
+    try {
+      loadingMoreRef.current = true;
+      setLoadingMore(true);
+      const response = await fetch(
+        `${API_URL}/api/products/brand/${encodeURIComponent(brandSlug)}?page=${nextPage}&size=48`,
+        { cache: "no-store", credentials: "include" }
+      );
+      if (!response.ok) throw new Error("brand products request failed");
 
-      const current = result.get(name);
-      const image = product.images[0] ?? null;
-      if (!current || (!current.image && image)) {
-        result.set(name, { name, image });
+      const data: unknown = await response.json();
+      if (!data || typeof data !== "object" || !("content" in data)) {
+        throw new Error("invalid brand products response");
       }
-    });
 
-    return Array.from(result.values());
-  }, [products]);
+      const payload = data as { content?: unknown; number?: unknown };
+      const nextProducts = normalizeProducts(payload.content);
 
-  const visibleProducts = selectedCategory
-    ? products.filter((product) => product.category === selectedCategory)
-    : products;
-
-  function selectCategory(category: string) {
-    setSelectedCategory((current) => (current === category ? null : category));
-    window.requestAnimationFrame(() => {
-      catalogRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-    });
+      setProducts((current) => {
+        const knownIds = new Set(current.map((product) => product.id));
+        return [
+          ...current,
+          ...nextProducts.filter((product) => !knownIds.has(product.id)),
+        ];
+      });
+      setPage(typeof payload.number === "number" ? payload.number : nextPage);
+    } catch {
+      toast.error("Не удалось загрузить ещё товары");
+    } finally {
+      loadingMoreRef.current = false;
+      setLoadingMore(false);
+    }
   }
 
   return (
-    <>
-      {categories.length ? (
-        <section className={styles.categoryShowcase} aria-label="Категории бренда">
-          <div className={styles.categoryShowcaseHeader}>
-            <h2>Категории</h2>
-          </div>
+    <section className={styles.results}>
+      <div className={styles.catalogHeader}>
+        <h2>Товары</h2>
+        <span className={styles.count}>{totalProducts.toLocaleString("ru-RU")}</span>
+      </div>
 
-          <div className={styles.categoryGallery}>
-            {categories.map((category) => (
-              <button
-                type="button"
-                key={category.name}
-                className={styles.categoryCard}
-                onClick={() => selectCategory(category.name)}
-              >
-                <span className={styles.categoryImage}>
-                  {category.image ? (
-                    <Image
-                      src={category.image}
-                      alt=""
-                      fill
-                      sizes="(max-width: 700px) 44vw, 260px"
-                    />
-                  ) : null}
-                </span>
-                <span>{category.name}</span>
-              </button>
-            ))}
-          </div>
-        </section>
-      ) : null}
+      <ul className={styles.grid} aria-live="polite">
+        {products.map((product) => (
+          <ProductTile
+            key={product.id}
+            product={{
+              id: product.id,
+              publicId: product.publicId,
+              title: product.title,
+              brand: product.brand,
+              brandSlug: product.brandSlug,
+              images: product.images,
+              minPrice: product.minPrice,
+            }}
+          />
+        ))}
+      </ul>
 
-      <section className={styles.results} ref={catalogRef}>
-        <div className={styles.catalogHeader}>
-          <h2>Товары</h2>
-          <span className={styles.count}>
-            {visibleProducts.length.toLocaleString("ru-RU")}
-          </span>
-        </div>
-
-        {categories.length ? (
-          <div className={styles.categoryChips} aria-label="Фильтр по категории">
-            <button
-              type="button"
-              className={`${styles.categoryChip} ${
-                selectedCategory === null ? styles.categoryChipActive : ""
-              }`}
-              onClick={() => setSelectedCategory(null)}
-            >
-              Все
-            </button>
-            {categories.map((category) => (
-              <button
-                type="button"
-                key={category.name}
-                className={`${styles.categoryChip} ${
-                  selectedCategory === category.name
-                    ? styles.categoryChipActive
-                    : ""
-                }`}
-                onClick={() => selectCategory(category.name)}
-              >
-                {category.name}
-              </button>
-            ))}
-          </div>
-        ) : null}
-
-        <ul className={styles.grid} aria-live="polite">
-          {visibleProducts.map((product) => (
-            <ProductTile
-              key={product.id}
-              product={{
-                id: product.id,
-                publicId: product.publicId,
-                title: product.title,
-                brand: product.brand,
-                brandSlug: product.brandSlug,
-                images: product.images,
-                minPrice: product.minPrice,
-              }}
-            />
-          ))}
-        </ul>
-      </section>
-    </>
+      <ListLoadMore
+        loaded={products.length}
+        total={totalProducts}
+        loading={loadingMore}
+        onLoadMore={page + 1 < totalPages ? loadMore : undefined}
+      />
+    </section>
   );
 }

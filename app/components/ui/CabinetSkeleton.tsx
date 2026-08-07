@@ -1,4 +1,5 @@
 import styles from "./CabinetSkeleton.module.css";
+import { SkeletonBlock } from "./SkeletonBlock";
 
 export type CabinetSkeletonVariant =
   | "dashboard"
@@ -27,7 +28,6 @@ export function CabinetSkeleton({
     <div
       className={`${styles.content} ${compact ? styles.compact : ""}`}
       role="status"
-      aria-label="Загрузка"
       aria-busy="true"
     >
       <span className={styles.srOnly}>Загрузка</span>
@@ -233,5 +233,5 @@ function SkeletonHeader() {
 }
 
 function Block({ className }: { className: string }) {
-  return <div className={`${styles.block} ${className}`} />;
+  return <SkeletonBlock className={`${styles.block} ${className}`} />;
 }

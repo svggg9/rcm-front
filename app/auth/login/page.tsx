@@ -4,7 +4,11 @@ import { Suspense, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 
-import { setAuth, ensureCartId } from "../../lib/auth";
+import {
+  ensureGuestCartId,
+  getGuestCartId,
+  setAuth,
+} from "../../lib/auth";
 import { apiFetch, API_URL } from "../../lib/api";
 import { startYandexAuth } from "../../lib/yandexAuth";
 import {
@@ -15,6 +19,7 @@ import {
 import { Button } from "../../components/ui/Button";
 import { TextInput } from "../../components/ui/TextInput";
 import { useAutoFocusFirstField } from "../../lib/useAutoFocusFirstField";
+import { safeReturnPath } from "../../lib/safeReturnPath";
 
 import styles from "./Login.module.css";
 
@@ -23,7 +28,7 @@ function LoginPageContent() {
   const searchParams = useSearchParams();
   const formRef = useRef<HTMLFormElement>(null);
 
-  const next = searchParams.get("next") || "/";
+  const next = safeReturnPath(searchParams.get("next"));
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -37,11 +42,10 @@ function LoginPageContent() {
     setAuth(cartId);
 
     if (guestFavoriteIds.length > 0) {
-      await syncFavoritesAfterLogin(guestFavoriteIds);
-      clearGuestFavoriteIds();
+      const synced = await syncFavoritesAfterLogin(guestFavoriteIds);
+      if (synced) clearGuestFavoriteIds();
     }
 
-    window.dispatchEvent(new Event("auth-changed"));
     router.replace(next);
   }
 
@@ -61,7 +65,7 @@ function LoginPageContent() {
     event.preventDefault();
 
     try {
-      const cartId = await ensureCartId();
+      const cartId = getGuestCartId() || await ensureGuestCartId();
 
       const response = await apiFetch(`${API_URL}/api/auth/login`, {
         method: "POST",

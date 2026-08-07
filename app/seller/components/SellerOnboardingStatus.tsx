@@ -9,9 +9,7 @@ import styles from "./SellerOnboardingStatus.module.css";
 
 type StepKey = keyof Pick<
   SellerOnboardingStatusType,
-  | "applicationCompleted"
-  | "legalCompleted"
-  | "agreementAccepted"
+  "legalCompleted" | "agreementAccepted"
 >;
 
 type Step = {
@@ -27,12 +25,6 @@ type Props = {
 };
 
 const STEPS: Step[] = [
-  {
-    key: "applicationCompleted",
-    title: "Одобрение продавца",
-    description: "Заявка рассматривается",
-    icon: "clock",
-  },
   {
     key: "legalCompleted",
     title: "Заполнить данные магазина",
@@ -111,7 +103,7 @@ function PendingStep({ step }: { step: Step }) {
   }
 
   return (
-    <Link href={step.href} className={styles.task}>
+    <Link href={step.href} className={styles.task} prefetch={false}>
       {content}
     </Link>
   );

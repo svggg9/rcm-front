@@ -5,12 +5,17 @@ import type {
   AdminOrder,
   AdminOrderListItem,
   AdminProduct,
+  AdminProductListItem,
   AdminSellerApplication,
   AdminFinancialLedgerEntry,
+  AdminSellerPayout,
+  AdminSellerPayoutStats,
+  AdminStorefrontHome,
   AdminCdekWebhookEvent,
   DictionaryItem,
   DictionaryKind,
   PageResponse,
+  FinancialLedgerEntryType,
   ProductStatus,
   SellerApplicationStatus,
 } from "../types";
@@ -34,33 +39,23 @@ export async function getAdminProductsServer(
   status: ProductStatus | "ALL",
   page = 0,
   size = 50
-): Promise<PageResponse<AdminProduct> | null> {
+): Promise<PageResponse<AdminProductListItem> | null> {
   const query =
     status === "ALL"
       ? `page=${page}&size=${size}`
       : `status=${status}&page=${page}&size=${size}`;
 
-  return serverFetch<PageResponse<AdminProduct>>(
-    `/api/admin/products?${query}`
+  return serverFetch<PageResponse<AdminProductListItem>>(
+    `/api/admin/products/list?${query}`
   );
 }
 
 export async function getAdminProductStatusCountsServer(): Promise<
-  Record<ProductStatus | "ALL", number>
+  Record<ProductStatus | "ALL", number> | null
 > {
-  const data = await serverFetch<Record<ProductStatus | "ALL", number>>(
+  return serverFetch<Record<ProductStatus | "ALL", number>>(
     "/api/admin/products/status-counts"
   );
-
-  return data ?? {
-    MODERATION: 0,
-    NEEDS_REVISION: 0,
-    ACTIVE: 0,
-    BLOCKED: 0,
-    DRAFT: 0,
-    ARCHIVED: 0,
-    ALL: 0,
-  };
 }
 
 export async function getAdminProductServer(
@@ -84,14 +79,18 @@ export async function getAdminOrderServer(
   return serverFetch<AdminOrder>(`/api/admin/orders/${id}`);
 }
 
+export async function getAdminStorefrontHomeServer(): Promise<AdminStorefrontHome | null> {
+  return serverFetch<AdminStorefrontHome>("/api/admin/storefront/home");
+}
+
 export async function getAdminDictionaryServer(
   kind: DictionaryKind
-): Promise<DictionaryItem[]> {
+): Promise<DictionaryItem[] | null> {
   const data = await serverFetch<DictionaryItem[]>(
     `/api/admin/dictionaries/${kind}`
   );
 
-  return Array.isArray(data) ? data : [];
+  return data === null ? null : Array.isArray(data) ? data : [];
 }
 
 export async function getAdminSellerApplicationsServer(
@@ -110,26 +109,44 @@ export async function getAdminSellerApplicationsServer(
 }
 
 export async function getAdminSellerApplicationStatusCountsServer(): Promise<
-  Record<SellerApplicationStatus | "ALL", number>
+  Record<SellerApplicationStatus | "ALL", number> | null
 > {
-  const data = await serverFetch<
+  return serverFetch<
     Record<SellerApplicationStatus | "ALL", number>
   >("/api/admin/seller-applications/status-counts");
-
-  return data ?? {
-    NEW: 0,
-    APPROVED: 0,
-    REJECTED: 0,
-    ALL: 0,
-  };
 }
 
 export async function getAdminLedgerEntriesServer(
   page = 0,
-  size = 50
+  size = 50,
+  entryType: FinancialLedgerEntryType | "ALL" = "ALL",
+  orderGroupId = ""
 ): Promise<PageResponse<AdminFinancialLedgerEntry> | null> {
+  const query = new URLSearchParams({
+    page: String(page),
+    size: String(size),
+  });
+
+  if (entryType !== "ALL") query.set("entryType", entryType);
+  if (orderGroupId.trim()) query.set("orderGroupId", orderGroupId.trim());
+
   return serverFetch<PageResponse<AdminFinancialLedgerEntry>>(
-    `/api/admin/finance/ledger?page=${page}&size=${size}`
+    `/api/admin/finance/ledger?${query.toString()}`
+  );
+}
+
+export async function getAdminSellerPayoutsServer(
+  page = 0,
+  size = 50
+): Promise<PageResponse<AdminSellerPayout> | null> {
+  return serverFetch<PageResponse<AdminSellerPayout>>(
+    `/api/admin/finance/payouts/list?page=${page}&size=${size}`
+  );
+}
+
+export async function getAdminSellerPayoutStatsServer(): Promise<AdminSellerPayoutStats | null> {
+  return serverFetch<AdminSellerPayoutStats>(
+    "/api/admin/finance/payouts/stats"
   );
 }
 

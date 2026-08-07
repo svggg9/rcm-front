@@ -16,27 +16,34 @@ type Props = {
 };
 
 export default async function AccountPage({ searchParams: rawSearchParams }: Props) {
-  const session = await getServerSession();
-
-  if (!session) {
-    redirect("/auth/login?next=/account");
-  }
-
   const searchParams = await rawSearchParams;
   const initialOrderId = searchParams?.orderId ?? null;
   const parsedOrderId = initialOrderId ? Number(initialOrderId) : NaN;
+  const shouldLoadOrders =
+    !searchParams?.tab ||
+    searchParams.tab === "home" ||
+    searchParams.tab === "orders";
   const shouldLoadOrder =
     searchParams?.tab === "orders" && Number.isFinite(parsedOrderId);
 
-  const [initialMe, initialOrders, initialSelectedOrder] = await Promise.all([
+  const [session, initialMe, initialOrders, initialSelectedOrder] = await Promise.all([
+    getServerSession(),
     getAccountMeServer(),
-    getAccountOrdersServer(),
+    shouldLoadOrders
+      ? getAccountOrdersServer()
+      : Promise.resolve({
+          content: [],
+          totalPages: 0,
+          totalElements: 0,
+          size: 20,
+          number: 0,
+        }),
     shouldLoadOrder
       ? getAccountOrderServer(parsedOrderId)
       : Promise.resolve(null),
   ]);
 
-  if (!initialMe) {
+  if (!session || !initialMe) {
     redirect("/auth/login?next=/account");
   }
 
@@ -44,6 +51,7 @@ export default async function AccountPage({ searchParams: rawSearchParams }: Pro
     <AccountPageClient
       initialMe={initialMe}
       initialOrders={initialOrders}
+      initialOrdersLoaded={shouldLoadOrders}
       initialSelectedOrder={initialSelectedOrder}
     />
   );

@@ -6,17 +6,11 @@ import type { AdminTab } from "../types";
 
 type Props = {
   currentTab: AdminTab;
-  productsCount: number;
-  ordersCount: number;
-  sellersCount: number;
   onNavigate?: (href: string) => void;
 };
 
 export function AdminSidebar({
   currentTab,
-  productsCount,
-  ordersCount,
-  sellersCount,
   onNavigate,
 }: Props) {
   return (
@@ -40,7 +34,6 @@ export function AdminSidebar({
           mobileLabel: "Товары",
           icon: "package",
           active: currentTab === "products",
-          count: productsCount,
         },
         {
           href: "/admin?tab=orders",
@@ -48,7 +41,6 @@ export function AdminSidebar({
           mobileLabel: "Заказы",
           icon: "shopping-bag",
           active: currentTab === "orders",
-          count: ordersCount,
         },
         {
           href: "/admin?tab=sellers",
@@ -56,7 +48,6 @@ export function AdminSidebar({
           mobileLabel: "Заявки",
           icon: "store",
           active: currentTab === "sellers",
-          count: sellersCount,
         },
         {
           href: "/admin?tab=dictionaries",
