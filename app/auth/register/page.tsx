@@ -29,6 +29,7 @@ function RegisterPageContent() {
 
   const next = safeReturnPath(searchParams.get("next"));
 
+  const [firstName, setFirstName] = useState("");
   const [email, setEmail] = useState("");
   const [code, setCode] = useState("");
   const [password, setPassword] = useState("");
@@ -56,6 +57,10 @@ function RegisterPageContent() {
 
     try {
       if (step === "email") {
+        if (!firstName.trim()) {
+          throw new Error("Введите имя");
+        }
+
         if (!password.trim()) {
           throw new Error("Введите пароль");
         }
@@ -66,7 +71,11 @@ function RegisterPageContent() {
 
         const response = await apiFetch(`${API_URL}/api/auth/email/register/start`, {
           method: "POST",
-          body: JSON.stringify({ email, password }),
+          body: JSON.stringify({
+            email,
+            password,
+            firstName: firstName.trim(),
+          }),
         });
 
         if (!response.ok) {
@@ -108,6 +117,17 @@ function RegisterPageContent() {
           <form ref={formRef} onSubmit={handleSubmit} className={styles.form}>
             {step === "email" ? (
               <>
+                <TextInput
+                  label="Имя"
+                  fieldVariant="boxed"
+                  type="text"
+                  value={firstName}
+                  onChange={(event) => setFirstName(event.target.value)}
+                  required
+                  maxLength={120}
+                  autoComplete="given-name"
+                />
+
                 <TextInput
                   label="Электронная почта"
                   fieldVariant="boxed"
@@ -172,4 +192,3 @@ export default function RegisterPage() {
     </Suspense>
   );
 }
-

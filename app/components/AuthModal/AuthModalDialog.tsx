@@ -288,7 +288,6 @@ export default function AuthModalDialog({
           email,
           code,
           cartId,
-          firstName: firstName.trim(),
         }),
       });
 
@@ -512,6 +511,7 @@ export default function AuthModalDialog({
                         value={firstName}
                         onChange={(event) => setFirstName(event.target.value)}
                         required
+                        maxLength={120}
                         autoComplete="given-name"
                       />
 
@@ -669,4 +669,3 @@ function CodeInputs({
     </div>
   );
 }
-

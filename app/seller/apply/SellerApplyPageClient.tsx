@@ -35,6 +35,15 @@ type TelegramStatus = {
   telegramUsername: string | null;
 };
 
+type ProfilePrefill = {
+  email: string | null;
+  displayName: string | null;
+  firstName: string | null;
+  lastName: string | null;
+  middleName: string | null;
+  phone: string | null;
+};
+
 const INITIAL_FORM: SellerApplicationForm = {
   brandName: "",
   brandDescription: "",
@@ -171,6 +180,46 @@ export function SellerApplyPageClient() {
       current.email ? current : { ...current, email: username }
     );
   }, [user?.username]);
+
+  useEffect(() => {
+    if (!isAuthenticated) return;
+
+    let cancelled = false;
+
+    async function loadProfilePrefill() {
+      try {
+        const response = await apiFetch(`${API_URL}/api/profile`);
+        if (!response.ok) return;
+
+        const profile = (await response.json()) as ProfilePrefill;
+        if (cancelled) return;
+
+        const contactName =
+          profile.displayName?.trim() ||
+          [profile.lastName, profile.firstName, profile.middleName]
+            .map((value) => value?.trim())
+            .filter(Boolean)
+            .join(" ");
+        const email = profile.email?.trim() ?? "";
+        const phone = profile.phone?.trim() ?? "";
+
+        setForm((current) => ({
+          ...current,
+          contactName: current.contactName || contactName,
+          email: current.email || email,
+          phone: current.phone || phone,
+        }));
+      } catch {
+        // The application remains editable when profile prefill is unavailable.
+      }
+    }
+
+    void loadProfilePrefill();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isAuthenticated]);
 
   const applicationDate = useMemo(
     () => (application ? formatApplicationDate(application.createdAt) : null),
