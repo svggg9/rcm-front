@@ -65,7 +65,7 @@ function formatApplicationDate(value: string): string | null {
     day: "numeric",
     month: "long",
     year: "numeric",
-  }).format(date);
+  }).format(date).replace(/\.+$/, "");
 }
 
 export function SellerApplyPageClient() {
