@@ -12,7 +12,6 @@ import { CabinetSkeleton } from "../components/ui/CabinetSkeleton";
 
 import { SellerSidebar } from "./components/SellerSidebar";
 import { SellerHomeTab } from "./components/SellerHomeTab";
-import { SellerOnboardingStatus } from "./components/SellerOnboardingStatus";
 import type { SellerOrderCardListItem } from "./components/SellerOrderCard";
 import {
   getSellerOnboardingStatus,
@@ -616,6 +615,8 @@ function SellerPageContent({
             currentTab={currentTab}
             storeName={storeName}
             storeNotReady={storeNotReady}
+            productCount={dashboard?.totalProducts}
+            orderCount={dashboard?.activeOrders}
           />
 
           <div className={styles.content}>
@@ -648,13 +649,15 @@ function SellerPageContent({
 
             {currentTab === "home" ? (
               <div>
-                <SellerOnboardingStatus status={onboardingStatus} />
                 {!dashboardLoaded || dashboardLoading ? (
                   <CabinetSkeleton variant="dashboard" />
                 ) : !loadError ? (
                   <SellerHomeTab
                     brand={initialBrands[0] ?? null}
                     summary={dashboard}
+                    onboardingStatus={onboardingStatus}
+                    creatingProduct={creatingProduct}
+                    onCreateProduct={() => void createDraftProduct()}
                   />
                 ) : null}
               </div>
