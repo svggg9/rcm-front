@@ -2,7 +2,14 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 
 import { useAuthModal } from "../../components/AuthModal/useAuthModal";
 import { Button } from "../../components/ui/Button";
@@ -171,6 +178,20 @@ export function SellerApplyPageClient() {
 
     void loadTelegramStatus();
   }, [isAuthenticated]);
+
+  useEffect(() => {
+    if (!isAuthenticated || telegramStatus?.linked) return;
+
+    function refreshTelegramStatus() {
+      void loadTelegramStatus();
+    }
+
+    window.addEventListener("focus", refreshTelegramStatus);
+
+    return () => {
+      window.removeEventListener("focus", refreshTelegramStatus);
+    };
+  }, [isAuthenticated, telegramStatus?.linked]);
 
   useEffect(() => {
     const username = user?.username?.trim();
@@ -407,7 +428,16 @@ export function SellerApplyPageClient() {
                     ? "Открыть кабинет"
                     : "Перейти в аккаунт"
                 }
-              />
+              >
+                {application.status === "NEW" ? (
+                  <TelegramConnect
+                    linked={Boolean(telegramStatus?.linked)}
+                    username={telegramStatus?.telegramUsername ?? null}
+                    linking={telegramLinking}
+                    onConnect={() => void connectTelegram()}
+                  />
+                ) : null}
+              </StatusBlock>
             ) : (
               <form className={styles.applyForm} onSubmit={submitApplication} noValidate>
                 <FormError message={formError} />
@@ -513,15 +543,6 @@ export function SellerApplyPageClient() {
                   </div>
                 </section>
 
-                {isAuthenticated ? (
-                  <TelegramConnect
-                    linked={Boolean(telegramStatus?.linked)}
-                    username={telegramStatus?.telegramUsername ?? null}
-                    linking={telegramLinking}
-                    onConnect={() => void connectTelegram()}
-                  />
-                ) : null}
-
                 <div className={styles.submitArea}>
                   <Button
                     type="submit"
@@ -570,6 +591,7 @@ function StatusBlock({
   actionHref,
   actionLabel,
   onAction,
+  children,
 }: {
   label: string;
   title: string;
@@ -577,12 +599,14 @@ function StatusBlock({
   actionHref?: string;
   actionLabel: string;
   onAction?: () => void;
+  children?: ReactNode;
 }) {
   return (
     <div className={styles.statusBlock}>
       <span className={styles.statusLabel}>{label}</span>
       <h3>{title}</h3>
       <p>{text}</p>
+      {children}
       {onAction ? (
         <button type="button" className={styles.statusAction} onClick={onAction}>
           {actionLabel}
@@ -618,13 +642,13 @@ function TelegramConnect({
         className={styles.telegramIcon}
       />
       <span className={styles.telegramCopy}>
-        <strong>Уведомления в Telegram</strong>
+        <strong>Получить решение в Telegram</strong>
         <span>
           {linked
             ? username
               ? `Подключён @${username}`
               : "Telegram подключён"
-            : "Получите сообщение, когда статус заявки изменится"}
+            : "Подключите бота — напишем, когда рассмотрим заявку"}
         </span>
       </span>
       <span className={styles.telegramAction}>
