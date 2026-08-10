@@ -28,7 +28,7 @@ import { AccountReturnRequest } from "./AccountReturnRequest";
 type Props = {
   order: Order;
   onBack: () => void;
-  onOrderUpdated: (order: Order) => void;
+  onOrderUpdated: (order: Order, updatedOrderGroupId?: string) => void;
   formatOrderStatus: (status: Order["status"]) => string;
   formatPaymentStatus: (status: Order["paymentStatus"]) => string;
   formatDeliveryStatus: (status: Order["deliveryStatus"]) => string;
@@ -52,10 +52,11 @@ export function AccountOrderDetails({
     isCancellationWindowOpen(order.cancellationAvailableUntil)
   );
 
-  const canPay = order.status === "NEW" && order.paymentStatus === "PENDING";
+  const awaitingPayment = order.status === "NEW" && order.paymentStatus === "PENDING";
+  const canPay = awaitingPayment;
   const canCancel =
     order.cancellationAllowed &&
-    cancellationWindowOpen &&
+    (awaitingPayment || cancellationWindowOpen) &&
     !order.cancellationRequestedAt;
   const cancellationPending =
     Boolean(order.cancellationRequestedAt) &&
@@ -142,7 +143,10 @@ export function AccountOrderDetails({
       }
 
       const updatedOrder = (await response.json()) as Order;
-      onOrderUpdated(updatedOrder);
+      onOrderUpdated(
+        updatedOrder,
+        awaitingPayment ? updatedOrder.orderGroupId : undefined
+      );
       setConfirmCancellation(false);
     } catch (error) {
       setCancellationError(
@@ -242,7 +246,13 @@ export function AccountOrderDetails({
             <OrderDetailPanelFields>
               <OrderDetailField
                 label="Статус оплаты"
-                value={formatPaymentStatus(order.paymentStatus)}
+                value={
+                  order.status === "CANCELED" &&
+                  order.paymentStatus === "FAILED" &&
+                  order.cancellationRequestedAt
+                    ? "Оплата отменена"
+                    : formatPaymentStatus(order.paymentStatus)
+                }
               />
               <OrderDetailField
                 label="Статус доставки"
@@ -286,8 +296,14 @@ export function AccountOrderDetails({
 
                 {canCancel && confirmCancellation ? (
                   <div className={orderDetailStyles.cancellationConfirm}>
-                    <strong>Отменить заказ?</strong>
-                    <span>Деньги вернутся тем же способом оплаты</span>
+                    <strong>
+                      {awaitingPayment ? "Отменить неоплаченную покупку?" : "Отменить заказ?"}
+                    </strong>
+                    <span>
+                      {awaitingPayment
+                        ? "Все заказы этой покупки будут отменены, товары вернутся в продажу"
+                        : "Деньги вернутся тем же способом оплаты"}
+                    </span>
                     <div className={orderDetailStyles.confirmActions}>
                       <Button
                         variant="danger"

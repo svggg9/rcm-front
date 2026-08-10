@@ -444,12 +444,19 @@ function AccountPageContent({
     navigateAccount("/account?tab=orders");
   }
 
-  function updateOrder(updatedOrder: Order) {
+  function updateOrder(updatedOrder: Order, updatedOrderGroupId?: string) {
     seedOrderDetails(updatedOrder.id, updatedOrder);
     setSelectedOrder(updatedOrder);
     setOrders((current) =>
       current.map((order) =>
-        order.id === updatedOrder.id
+        updatedOrderGroupId && order.orderGroupId === updatedOrderGroupId
+          ? {
+              ...order,
+              status: updatedOrder.status,
+              paymentStatus: updatedOrder.paymentStatus,
+              deliveryStatus: updatedOrder.deliveryStatus,
+            }
+          : order.id === updatedOrder.id
           ? {
               ...order,
               status: updatedOrder.status,
