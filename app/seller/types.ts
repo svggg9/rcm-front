@@ -208,6 +208,23 @@ export type SellerDashboardSummary = {
   estimatedBalance: number;
   salesAmount: number;
   commissionAmount: number;
+  availablePayout: number;
+  failedPayouts: number;
+  telegramLinked: boolean;
+  supportTelegramUrl: string | null;
+  recentEvents: SellerDashboardEvent[];
+};
+
+export type SellerDashboardEvent = {
+  type:
+    | "ORDER_CREATED"
+    | "PRODUCT_PUBLISHED"
+    | "PAYOUT_SENT"
+    | "PAYOUT_PAID";
+  title: string;
+  description: string;
+  occurredAt: string;
+  href: string;
 };
 
 export type SellerBrandImage = {

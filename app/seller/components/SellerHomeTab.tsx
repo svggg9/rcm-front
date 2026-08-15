@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 
 import { Button } from "../../components/ui/Button";
@@ -250,12 +251,34 @@ function WorkingDashboard({
     tasks.push({
       title: `${attentionProducts} ${pluralizeProduct(
         attentionProducts
-      )} требуют внимания`,
-      description: "Проверьте остатки, статус публикации и данные карточек.",
+      )} нужно исправить`,
+      description: "Откройте замечания модерации и обновите карточки.",
       href: "/seller?tab=products",
       action: "Открыть товары",
       icon: "alert",
       tone: "danger",
+    });
+  }
+
+  if ((summary?.failedPayouts ?? 0) > 0) {
+    tasks.push({
+      title: "Не удалось провести выплату",
+      description: "Проверьте статус выплаты и банковские реквизиты.",
+      href: "/seller?tab=finance",
+      action: "Открыть выплаты",
+      icon: "wallet",
+      tone: "danger",
+    });
+  }
+
+  if (summary && !summary.telegramLinked) {
+    tasks.push({
+      title: "Подключите уведомления в Telegram",
+      description: "Получайте сообщения о новых заказах и важных изменениях.",
+      href: "/seller?tab=legal",
+      action: "Подключить",
+      icon: "bell",
+      tone: "neutral",
     });
   }
 
@@ -299,8 +322,7 @@ function WorkingDashboard({
       <div className={styles.mainGrid}>
         <section className={styles.panel}>
           <PanelHeading
-            eyebrow="Задачи"
-            title={tasks.length > 0 ? "Требуют внимания" : "Новых задач нет"}
+            title="Задачи"
             icon={tasks.length > 0 ? "bell" : "check-circle"}
           />
           {tasks.length > 0 ? (
@@ -334,22 +356,73 @@ function WorkingDashboard({
             <Icon name="wallet" size={20} />
           </span>
           <div>
-            <span>Финансы</span>
+            <span>Доступно к выплате</span>
             <strong>
-              {summary ? formatMoney(summary.estimatedBalance) : "Нет данных"}
+              {summary ? formatMoney(summary.availablePayout) : "Нет данных"}
             </strong>
           </div>
         </div>
-        <div className={styles.financeMeta}>
-          <span>
-            Продажи {summary ? formatMoney(summary.salesAmount) : "—"}
-          </span>
-          <span>
-            Комиссия {summary ? formatMoney(summary.commissionAmount) : "—"}
-          </span>
-        </div>
+        <span className={styles.financeAction}>Посмотреть выплаты</span>
         <Icon name="arrow-up-right" size={19} />
       </Link>
+
+      <div className={styles.activityGrid}>
+        <section className={styles.eventsPanel}>
+          <PanelHeading title="Последние события" icon="clock" />
+          {summary?.recentEvents?.length ? (
+            <div className={styles.eventList}>
+              {summary.recentEvents.map((event) => (
+                <Link
+                  key={`${event.type}-${event.occurredAt}-${event.href}`}
+                  href={event.href}
+                  className={styles.event}
+                  prefetch={false}
+                >
+                  <span className={styles.eventIcon}>
+                    <Icon name={eventIcon(event.type)} size={17} />
+                  </span>
+                  <span className={styles.eventCopy}>
+                    <strong>{event.title}</strong>
+                    <span>{event.description}</span>
+                  </span>
+                  <time dateTime={event.occurredAt}>
+                    {formatEventDate(event.occurredAt)}
+                  </time>
+                </Link>
+              ))}
+            </div>
+          ) : (
+            <p className={styles.emptyEvents}>
+              Новые заказы, публикации и выплаты появятся здесь.
+            </p>
+          )}
+        </section>
+
+        <section className={styles.supportCard}>
+          <span className={`${styles.iconCircle} ${styles.goldIcon}`}>
+            <Image
+              src="/icons/telegram.svg"
+              alt=""
+              width={20}
+              height={20}
+              className={styles.telegramIcon}
+            />
+          </span>
+          <div>
+            <span className={styles.eyebrow}>Помощь</span>
+            <h2>Поддержка в Telegram</h2>
+            <p>Напишите вопрос — передадим его команде и поможем разобраться.</p>
+          </div>
+          <a
+            href={summary?.supportTelegramUrl || "/contacts"}
+            className={`buttonSecondary ${styles.supportAction}`}
+            target={summary?.supportTelegramUrl ? "_blank" : undefined}
+            rel={summary?.supportTelegramUrl ? "noreferrer" : undefined}
+          >
+            Написать в поддержку
+          </a>
+        </section>
+      </div>
     </div>
   );
 }
@@ -359,19 +432,37 @@ function PanelHeading({
   title,
   icon,
 }: {
-  eyebrow: string;
+  eyebrow?: string;
   title: string;
   icon: IconName;
 }) {
   return (
     <div className={styles.panelHeading}>
       <div>
-        <span className={styles.eyebrow}>{eyebrow}</span>
-        <h2>{title}</h2>
+        {eyebrow ? <span className={styles.eyebrow}>{eyebrow}</span> : null}
+        <h2 className={!eyebrow ? styles.panelTitleOnly : undefined}>{title}</h2>
       </div>
       <Icon name={icon} size={19} />
     </div>
   );
+}
+
+function eventIcon(type: string): IconName {
+  if (type === "ORDER_CREATED") return "shopping-bag";
+  if (type === "PRODUCT_PUBLISHED") return "check-circle";
+  return "wallet";
+}
+
+function formatEventDate(value: string) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+
+  return new Intl.DateTimeFormat("ru-RU", {
+    day: "numeric",
+    month: "short",
+  })
+    .format(date)
+    .replace(/\.$/, "");
 }
 
 function TaskRow({ task }: { task: StoreTask }) {

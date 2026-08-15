@@ -147,6 +147,10 @@
   letter-spacing: -0.02em;
 }
 
+.panelHeading h2.panelTitleOnly {
+  margin-top: 0;
+}
+
 .taskList {
   display: flex;
   flex-direction: column;
@@ -477,6 +481,13 @@
   white-space: nowrap;
 }
 
+.financeAction {
+  margin-left: auto;
+  color: var(--muted);
+  font-size: var(--seller-font-caption, var(--font-xs));
+  white-space: nowrap;
+}
+
 .financeMeta {
   display: flex;
   align-items: center;
@@ -489,6 +500,131 @@
 
 .financeCard > svg {
   color: var(--gold-deep);
+}
+
+.activityGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.45fr) minmax(260px, 0.55fr);
+  gap: 18px;
+  align-items: stretch;
+}
+
+.eventsPanel,
+.supportCard {
+  min-width: 0;
+  padding: 22px;
+  background: var(--white);
+}
+
+.eventsPanel .panelHeading {
+  margin-bottom: 12px;
+}
+
+.eventList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.event {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 11px 12px;
+  background: var(--soft);
+  color: var(--black);
+  text-decoration: none;
+  transition: background var(--transition-fast);
+}
+
+.event:hover {
+  background: #eeeae3;
+}
+
+.eventIcon {
+  width: 34px;
+  height: 34px;
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: var(--white);
+}
+
+.eventCopy {
+  min-width: 0;
+  flex: 1;
+}
+
+.eventCopy strong,
+.eventCopy span {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.eventCopy strong {
+  font-size: var(--seller-font-body, var(--font-sm));
+  font-weight: 600;
+}
+
+.eventCopy span,
+.event time,
+.emptyEvents {
+  color: var(--muted);
+  font-size: var(--seller-font-caption, var(--font-xs));
+}
+
+.eventCopy span {
+  margin-top: 3px;
+}
+
+.event time {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
+.emptyEvents {
+  margin: 0;
+  padding: 18px;
+  background: var(--soft);
+}
+
+.supportCard {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 16px;
+  background: #f8f5ef;
+}
+
+.supportCard h2 {
+  margin: 6px 0 0;
+  font-size: var(--seller-font-section, var(--font-xl));
+  line-height: 1.15;
+  font-weight: 550;
+}
+
+.supportCard p {
+  margin: 8px 0 0;
+  color: var(--muted);
+  font-size: var(--seller-font-caption, var(--font-xs));
+  line-height: 1.45;
+}
+
+.supportAction {
+  width: 100%;
+  min-height: 40px;
+  margin-top: auto;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.telegramIcon {
+  display: block;
 }
 
 @media (max-width: 1120px) {
@@ -524,6 +660,10 @@
     grid-template-columns: 1fr;
   }
 
+  .activityGrid {
+    grid-template-columns: 1fr;
+  }
+
   .metrics {
     grid-template-columns: 1fr;
     gap: 8px;
@@ -547,6 +687,11 @@
   .financeCard {
     align-items: flex-start;
     flex-wrap: wrap;
+  }
+
+  .financeAction {
+    width: 100%;
+    margin-left: 55px;
   }
 
   .financeMeta {
@@ -609,5 +754,13 @@
     margin-left: 0;
     flex-wrap: wrap;
     gap: 8px 18px;
+  }
+
+  .financeAction {
+    margin-left: 0;
+  }
+
+  .event {
+    align-items: flex-start;
   }
 }

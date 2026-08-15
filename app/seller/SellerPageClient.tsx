@@ -645,8 +645,8 @@ function SellerPageContent({
         <div className={styles.layout} onClickCapture={handleSellerNavigation}>
           <SellerSidebar
             currentTab={currentTab}
-            productCount={dashboard?.totalProducts}
-            orderCount={dashboard?.activeOrders}
+            productCount={dashboard?.attentionProducts}
+            orderCount={dashboard?.readyOrders}
           />
 
           <div className={styles.content}>

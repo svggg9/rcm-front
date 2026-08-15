@@ -192,11 +192,12 @@ function matchesOrderFilter(
 }
 
 function isPendingPaymentOrder(order: SellerOrderCardListItem) {
-  return order.paymentStatus === "PENDING";
+  return !isCanceledOrder(order) && order.paymentStatus === "PENDING";
 }
 
 function isReadyOrder(order: SellerOrderCardListItem) {
   return (
+    !isCanceledOrder(order) &&
     order.paymentStatus === "PAID" &&
     (order.deliveryStatus === "READY_FOR_SHIPMENT" ||
       order.status === "PROCESSING")
@@ -204,11 +205,17 @@ function isReadyOrder(order: SellerOrderCardListItem) {
 }
 
 function isInTransitOrder(order: SellerOrderCardListItem) {
-  return order.deliveryStatus === "IN_TRANSIT" || order.status === "SHIPPED";
+  return (
+    !isCanceledOrder(order) &&
+    (order.deliveryStatus === "IN_TRANSIT" || order.status === "SHIPPED")
+  );
 }
 
 function isCompletedOrder(order: SellerOrderCardListItem) {
-  return order.status === "COMPLETED" || order.deliveryStatus === "DELIVERED";
+  return (
+    !isCanceledOrder(order) &&
+    (order.status === "COMPLETED" || order.deliveryStatus === "DELIVERED")
+  );
 }
 
 function isCanceledOrder(order: SellerOrderCardListItem) {
