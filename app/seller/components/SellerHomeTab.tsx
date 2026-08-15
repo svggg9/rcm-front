@@ -13,6 +13,9 @@ type Props = {
   brand: SellerBrand | null;
   summary: SellerDashboardSummary | null;
   onboardingStatus: SellerOnboardingStatus | null;
+  onboardingLoading?: boolean;
+  onboardingError?: boolean;
+  onRetryOnboarding?: () => void;
   creatingProduct: boolean;
   onCreateProduct: () => void;
 };
@@ -24,20 +27,29 @@ type StoreTask = {
   action?: string;
   icon: IconName;
   tone: "success" | "warning" | "danger" | "neutral";
+  completed?: boolean;
 };
 
 export function SellerHomeTab({
   brand,
   summary,
   onboardingStatus,
+  onboardingLoading = false,
+  onboardingError = false,
+  onRetryOnboarding,
   creatingProduct,
   onCreateProduct,
 }: Props) {
-  const setupRequired = Boolean(
-    onboardingStatus &&
-      (!onboardingStatus.legalCompleted ||
-        !onboardingStatus.agreementAccepted)
+  const applicationReady = Boolean(
+    onboardingStatus?.applicationCompleted || brand
   );
+  const setupRequired =
+    onboardingStatus === null ||
+    Boolean(
+      (!applicationReady ||
+        !onboardingStatus.legalCompleted ||
+        !onboardingStatus.agreementAccepted)
+    );
 
   return (
     <section className={styles.page}>
@@ -63,16 +75,39 @@ export function SellerHomeTab({
           type="button"
           variant="secondary"
           className={styles.addButton}
-        loading={creatingProduct}
-        onClick={onCreateProduct}
-      >
+          loading={creatingProduct}
+          onClick={onCreateProduct}
+        >
           Добавить товар
         </Button>
       </header>
 
-      {setupRequired && onboardingStatus ? (
+      {onboardingStatus === null ? (
+        onboardingLoading ? (
+          <div className={styles.statusLoading} role="status" aria-busy="true">
+            Проверяем готовность магазина…
+          </div>
+        ) : (
+          <div className={styles.statusError} role="alert">
+            <div>
+              <strong>Не удалось проверить готовность магазина</strong>
+              <span>
+                {onboardingError
+                  ? "Кабинет доступен, повторите проверку статуса."
+                  : "Статус магазина пока недоступен."}
+              </span>
+            </div>
+            {onRetryOnboarding ? (
+              <Button type="button" variant="secondary" onClick={onRetryOnboarding}>
+                Повторить
+              </Button>
+            ) : null}
+          </div>
+        )
+      ) : setupRequired ? (
         <SetupDashboard
           status={onboardingStatus}
+          applicationReady={applicationReady}
           creatingProduct={creatingProduct}
           onCreateProduct={onCreateProduct}
         />
@@ -85,14 +120,15 @@ export function SellerHomeTab({
 
 function SetupDashboard({
   status,
+  applicationReady,
   creatingProduct,
   onCreateProduct,
 }: {
   status: SellerOnboardingStatus;
+  applicationReady: boolean;
   creatingProduct: boolean;
   onCreateProduct: () => void;
 }) {
-  const applicationReady = status.applicationCompleted && status.brandCompleted;
   const steps = [
     applicationReady,
     status.legalCompleted,
@@ -105,9 +141,10 @@ function SetupDashboard({
       title: "Заявка продавца одобрена",
       description: applicationReady
         ? "Магазин создан, доступ к кабинету открыт."
-        : "Завершите заявку и добавьте основные данные бренда.",
+        : "Дождитесь решения по заявке продавца.",
       icon: applicationReady ? "check-circle" : "clock",
       tone: applicationReady ? "success" : "warning",
+      completed: applicationReady,
     },
     {
       title: "Заполнить данные магазина",
@@ -116,6 +153,7 @@ function SetupDashboard({
       action: status.legalCompleted ? undefined : "Заполнить",
       icon: status.legalCompleted ? "check-circle" : "file",
       tone: status.legalCompleted ? "success" : "neutral",
+      completed: status.legalCompleted,
     },
     {
       title: "Принять условия работы",
@@ -124,6 +162,7 @@ function SetupDashboard({
       action: status.agreementAccepted ? undefined : "Перейти к оферте",
       icon: status.agreementAccepted ? "check-circle" : "info",
       tone: status.agreementAccepted ? "success" : "neutral",
+      completed: status.agreementAccepted,
     },
   ];
 
@@ -353,12 +392,12 @@ function TaskRow({ task }: { task: StoreTask }) {
         >
           {task.action}
         </Link>
-      ) : (
+      ) : task.completed ? (
         <span className={styles.taskComplete}>
           <Icon name="check" size={15} />
           Готово
         </span>
-      )}
+      ) : null}
     </article>
   );
 }

@@ -470,6 +470,11 @@ function AccountPageContent({
   }
 
   function navigateAccount(href: string) {
+    if (!href.startsWith("/account")) {
+      router.push(href);
+      return;
+    }
+
     window.history.pushState(null, "", href);
   }
 
@@ -508,6 +513,7 @@ function AccountPageContent({
           <AccountSidebar
             currentTab={currentTab}
             ordersCount={activeOrdersCount}
+            showSellerCabinet={Boolean(me?.sellerApproved)}
             userName={accountName}
             onNavigate={navigateAccount}
             onLogout={() => void logout()}

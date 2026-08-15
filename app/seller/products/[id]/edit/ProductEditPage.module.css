@@ -50,6 +50,80 @@
   text-decoration: underline;
   text-underline-offset: 3px;
 }
+
+.productStatusBar {
+  min-height: 78px;
+  margin-bottom: 22px;
+  padding: 16px 18px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  background: var(--soft);
+}
+
+.productStatusCopy {
+  min-width: 0;
+}
+
+.productStatusLabel {
+  display: block;
+  margin-bottom: 7px;
+  color: var(--muted);
+  font-size: var(--font-xs);
+  line-height: 1.2;
+}
+
+.productStatusTitle {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.productStatusTitle > span:last-child {
+  color: var(--muted);
+  font-size: var(--font-sm);
+  line-height: 1.4;
+}
+
+.productStatusActions {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 8px;
+}
+
+.publishSuccessModal {
+  max-width: 560px;
+}
+
+.publishSuccessKicker {
+  margin-bottom: 6px;
+  color: var(--success);
+  font-size: var(--font-xs);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.publishSuccessText {
+  margin: 0 0 16px;
+  color: var(--muted);
+  line-height: 1.55;
+}
+
+.publishPreviewLink {
+  color: var(--black);
+  font-size: var(--font-sm);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.publishPreviewLink[aria-disabled="true"] {
+  color: var(--muted);
+  cursor: not-allowed;
+  pointer-events: none;
+}
 /* layout */
 
 .layout {
@@ -69,6 +143,13 @@
   gap: 0;
 }
 
+.lockedFieldset {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
 .formActions {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -80,6 +161,19 @@
 .formActions .archiveBtn,
 .formActions .deleteProductBtn {
   width: 100%;
+}
+
+.publishRequirementHint {
+  grid-column: 1 / -1;
+  color: var(--muted);
+  font-size: var(--font-xs);
+  line-height: 1.45;
+}
+
+.publishRequirementHint a {
+  color: var(--black);
+  text-decoration: underline;
+  text-underline-offset: 3px;
 }
 
 .aside {
@@ -737,6 +831,55 @@
   border-color: var(--black);
 }
 
+.filePickerLoading {
+  cursor: wait;
+  opacity: 0.78;
+}
+
+.controlDisabled {
+  cursor: not-allowed;
+  opacity: 0.58;
+}
+
+.controlDisabled .imageDeleteBtn {
+  pointer-events: none;
+}
+
+.uploadButtonContent {
+  display: inline-flex !important;
+  align-items: center;
+  gap: 8px;
+}
+
+.uploadButtonContent :global(.buttonLoader) {
+  display: inline-block;
+  flex: 0 0 auto;
+}
+
+.uploadProgress {
+  height: 3px;
+  overflow: hidden;
+  background: var(--line);
+}
+
+.uploadProgress span {
+  display: block;
+  width: 38%;
+  height: 100%;
+  background: var(--black);
+  animation: productUploadProgress 1s ease-in-out infinite;
+}
+
+@keyframes productUploadProgress {
+  from {
+    transform: translateX(-110%);
+  }
+
+  to {
+    transform: translateX(290%);
+  }
+}
+
 .filePicker input,
 .fileInput {
   display: none;
@@ -1317,6 +1460,27 @@
 }
 
 @media (max-width: 768px) {
+  .productStatusBar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .productStatusTitle {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .productStatusActions {
+    width: 100%;
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .productStatusActions > button {
+    width: 100%;
+  }
+
   .aside {
     display: block;
     order: -1;

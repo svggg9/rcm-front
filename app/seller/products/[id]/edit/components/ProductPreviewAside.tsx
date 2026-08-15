@@ -3,8 +3,6 @@
 import type { Option, ProductImageItem, SellerProduct } from "../types";
 import styles from "../ProductEditPage.module.css";
 import { ProductImageCarousel } from "../../../../../components/ProductImageCarousel/ProductImageCarousel";
-import { StatusBadge } from "../../../../../components/ui/StatusBadge";
-import { formatProductStatus, getProductStatusTone } from "../utils";
 
 type Props = {
   title: string;
@@ -36,11 +34,6 @@ export function ProductPreviewAside({
 
         <div className={styles.previewTitleRow}>
           <h2 className="textTitle">{title || "Название товара"}</h2>
-          {product ? (
-            <StatusBadge tone={getProductStatusTone(product.status)}>
-              {formatProductStatus(product.status)}
-            </StatusBadge>
-          ) : null}
         </div>
         {brandName ? <p className="textCaption">{brandName}</p> : null}
 

@@ -18,6 +18,7 @@ import { PhoneInput } from "../../components/ui/PhoneInput";
 import { Textarea } from "../../components/ui/Textarea";
 import { TextInput } from "../../components/ui/TextInput";
 import { API_URL, apiFetch } from "../../lib/api";
+import { scrollToFirstValidationError } from "../../lib/formValidation";
 import { useCurrentUser } from "../../lib/useCurrentUser";
 import {
   cleanText,
@@ -79,6 +80,7 @@ export function SellerApplyPageClient() {
   const { user, loading: userLoading, isAuthenticated } = useCurrentUser();
   const { openAuth } = useAuthModal();
   const pendingSubmitRef = useRef(false);
+  const formRef = useRef<HTMLFormElement | null>(null);
 
   const [form, setForm] = useState<SellerApplicationForm>(INITIAL_FORM);
   const [errors, setErrors] = useState<FormErrors>({});
@@ -321,7 +323,10 @@ export function SellerApplyPageClient() {
     setErrors(nextErrors);
     setFormError(null);
 
-    if (Object.keys(nextErrors).length > 0) return;
+    if (Object.keys(nextErrors).length > 0) {
+      scrollToFirstValidationError({ root: formRef.current });
+      return;
+    }
 
     if (!isAuthenticated) {
       pendingSubmitRef.current = true;
@@ -439,7 +444,12 @@ export function SellerApplyPageClient() {
                 ) : null}
               </StatusBlock>
             ) : (
-              <form className={styles.applyForm} onSubmit={submitApplication} noValidate>
+              <form
+                ref={formRef}
+                className={styles.applyForm}
+                onSubmit={submitApplication}
+                noValidate
+              >
                 <FormError message={formError} />
 
                 <section className={styles.formSection}>

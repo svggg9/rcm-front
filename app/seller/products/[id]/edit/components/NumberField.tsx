@@ -52,6 +52,7 @@ export function NumberField({
 
       <input
         type="text"
+        aria-invalid={invalid ? "true" : undefined}
         inputMode={decimal ? "decimal" : "numeric"}
         pattern={decimal ? "[0-9]*[.,]?[0-9]*" : "[0-9]*"}
         value={displayValue}

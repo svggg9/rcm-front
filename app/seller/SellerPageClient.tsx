@@ -203,6 +203,14 @@ function SellerPageContent({
   const loadError = loadErrors[currentTab] ?? null;
   const [onboardingStatus, setOnboardingStatus] =
     useState<SellerOnboardingStatusType | null>(initialOnboardingStatus);
+  const [onboardingLoading, setOnboardingLoading] = useState(
+    initialOnboardingStatus === null
+  );
+  const [onboardingError, setOnboardingError] = useState(false);
+  const [onboardingRequestVersion, setOnboardingRequestVersion] = useState(0);
+  const onboardingStatusRef = useRef<SellerOnboardingStatusType | null>(
+    initialOnboardingStatus
+  );
   const productsRequestRef = useRef<
     Promise<PageResponse<SellerProductListItem>> | null
   >(null);
@@ -438,13 +446,28 @@ function SellerPageContent({
     let active = true;
 
     async function refreshOnboardingStatus() {
+      const blocksDashboard = onboardingStatusRef.current === null;
+      if (active) {
+        setOnboardingError(false);
+        if (blocksDashboard) {
+          setOnboardingLoading(true);
+        }
+      }
+
       try {
         const nextStatus = await getSellerOnboardingStatus();
         if (active) {
+          onboardingStatusRef.current = nextStatus;
           setOnboardingStatus(nextStatus);
         }
       } catch {
-        // Readiness is supplementary and must not block the seller cabinet.
+        if (active && onboardingStatusRef.current === null) {
+          setOnboardingError(true);
+        }
+      } finally {
+        if (active) {
+          setOnboardingLoading(false);
+        }
       }
     }
 
@@ -452,7 +475,7 @@ function SellerPageContent({
       void refreshOnboardingStatus();
     };
 
-    if (!initialOnboardingStatus) {
+    if (onboardingStatusRef.current === null || onboardingRequestVersion > 0) {
       void refreshOnboardingStatus();
     }
 
@@ -462,7 +485,7 @@ function SellerPageContent({
       active = false;
       window.removeEventListener(SELLER_ONBOARDING_EVENT, handleOnboardingChange);
     };
-  }, [initialOnboardingStatus]);
+  }, [onboardingRequestVersion]);
 
   useEffect(() => {
     const syncFromHistory = () => {
@@ -663,6 +686,11 @@ function SellerPageContent({
                     brand={initialBrands[0] ?? null}
                     summary={dashboard}
                     onboardingStatus={onboardingStatus}
+                    onboardingLoading={onboardingLoading}
+                    onboardingError={onboardingError}
+                    onRetryOnboarding={() => {
+                      setOnboardingRequestVersion((current) => current + 1);
+                    }}
                     creatingProduct={creatingProduct}
                     onCreateProduct={() => void createDraftProduct()}
                   />

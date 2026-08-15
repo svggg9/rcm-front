@@ -1,11 +1,15 @@
 "use client";
 
+import { useId } from "react";
+
 import { PhoneInput } from "../../components/ui/PhoneInput";
 import styles from "./CheckoutContactSection.module.css";
 
 type Props = {
   fullName: string;
   phone: string;
+  fullNameError?: string | null;
+  phoneError?: string | null;
   onFullNameChange: (value: string) => void;
   onPhoneChange: (value: string) => void;
 };
@@ -13,9 +17,13 @@ type Props = {
 export function CheckoutContactSection({
   fullName,
   phone,
+  fullNameError,
+  phoneError,
   onFullNameChange,
   onPhoneChange,
 }: Props) {
+  const fullNameErrorId = useId();
+
   return (
     <section className={styles.section}>
       <div className={styles.header}>
@@ -30,6 +38,7 @@ export function CheckoutContactSection({
             label="Телефон"
             fieldVariant="boxed"
             value={phone}
+            error={phoneError}
             onChange={(event) => onPhoneChange(event.target.value)}
             required
           />
@@ -39,9 +48,16 @@ export function CheckoutContactSection({
             <input
               className={styles.textField}
               value={fullName}
+              aria-invalid={fullNameError ? "true" : undefined}
+              aria-describedby={fullNameError ? fullNameErrorId : undefined}
               onChange={(event) => onFullNameChange(event.target.value)}
               autoComplete="name"
             />
+            {fullNameError ? (
+              <div id={fullNameErrorId} className="fieldError">
+                {fullNameError}
+              </div>
+            ) : null}
           </div>
         </div>
       </div>

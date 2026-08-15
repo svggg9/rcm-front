@@ -1,11 +1,12 @@
 export function getRussianPhoneDigits(value: string | null | undefined): string {
-  let digits = (value ?? "").replace(/\D/g, "");
+  const rawValue = value ?? "";
+  let digits = rawValue.replace(/\D/g, "");
 
-  if (digits.startsWith("8")) {
-    digits = `7${digits.slice(1)}`;
-  }
+  const hasExplicitCountryCode = /^\s*\+7/.test(rawValue);
+  const hasElevenDigitCountryCode =
+    digits.length === 11 && (digits.startsWith("7") || digits.startsWith("8"));
 
-  if (digits.startsWith("7")) {
+  if (hasExplicitCountryCode || hasElevenDigitCountryCode) {
     digits = digits.slice(1);
   }
 

@@ -195,6 +195,50 @@
   color: var(--success);
 }
 
+.task.success .taskCopy strong {
+  color: var(--success);
+}
+
+.statusLoading {
+  min-height: 132px;
+  display: flex;
+  align-items: center;
+  padding: 25px 26px;
+  background: var(--soft);
+  color: var(--muted);
+  font-size: var(--seller-font-body, var(--font-sm));
+}
+
+.statusError {
+  min-height: 112px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 22px 24px;
+  background: #fbf0f0;
+}
+
+.statusError div {
+  min-width: 0;
+}
+
+.statusError strong,
+.statusError span {
+  display: block;
+}
+
+.statusError strong {
+  color: var(--danger);
+  font-size: var(--seller-font-body, var(--font-sm));
+}
+
+.statusError span {
+  margin-top: 5px;
+  color: var(--muted);
+  font-size: var(--seller-font-caption, var(--font-xs));
+}
+
 .task.warning .taskIcon {
   color: var(--warning);
 }

@@ -131,6 +131,7 @@ export function FormCombobox({
       >
         <input
           ref={inputRef}
+          aria-invalid={invalid ? "true" : undefined}
           value={inputValue}
           className={`${styles.comboboxInput} ${shouldShowModerationBadge ? styles.comboboxInputWithBadge : ""} ${hasValue ? "" : styles.placeholder}`}
           placeholder={open ? placeholder : undefined}

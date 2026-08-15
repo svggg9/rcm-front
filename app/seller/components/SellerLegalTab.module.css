@@ -410,3 +410,12 @@
     width: 100%;
   }
 }
+.actions .saveButton[data-incomplete="true"]:not([data-loading="true"]) {
+  border-color: var(--line);
+  background: var(--line);
+  color: var(--muted);
+}
+
+.actions .saveButton[data-incomplete="true"]:not(:disabled) {
+  cursor: pointer;
+}

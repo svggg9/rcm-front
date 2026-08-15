@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  useId,
   useRef,
   useState,
   type FormEvent,
@@ -14,7 +15,8 @@ import { FormSelect } from "../../components/ui/FormSelect";
 import { Icon } from "../../components/ui/Icon";
 import { PhoneInput } from "../../components/ui/PhoneInput";
 import { apiFetch, API_URL } from "../../lib/api";
-import { formatRussianPhone } from "../../lib/phone";
+import { scrollToFirstValidationError } from "../../lib/formValidation";
+import { formatRussianPhone, getRussianPhoneDigits } from "../../lib/phone";
 
 import styles from "./AccountProfileTab.module.css";
 
@@ -42,7 +44,12 @@ type Props = {
 type ProfileFieldProps = {
   label: string;
   inputRef?: Ref<HTMLInputElement>;
+  error?: string | null;
 };
+
+type ProfileErrors = Partial<
+  Record<"firstName" | "lastName" | "phone", string>
+>;
 
 type BirthParts = {
   day: string;
@@ -91,10 +98,17 @@ const GENDER_OPTIONS = [
 function ProfileTextField({
   label,
   inputRef,
+  error,
   className = "",
   required = false,
+  "aria-describedby": ariaDescribedBy,
   ...props
 }: ProfileFieldProps & InputHTMLAttributes<HTMLInputElement>) {
+  const errorId = useId();
+  const describedBy = [ariaDescribedBy, error ? errorId : null]
+    .filter(Boolean)
+    .join(" ") || undefined;
+
   return (
     <label className={styles.fieldWrap}>
       <span className={styles.fieldLabel}>
@@ -105,8 +119,15 @@ function ProfileTextField({
         ref={inputRef}
         className={[styles.input, className].filter(Boolean).join(" ")}
         required={required}
+        aria-describedby={describedBy}
+        aria-invalid={error ? "true" : undefined}
         {...props}
       />
+      {error ? (
+        <span id={errorId} className={styles.fieldError}>
+          {error}
+        </span>
+      ) : null}
     </label>
   );
 }
@@ -199,6 +220,27 @@ function buildBirthDate(parts: BirthParts): {
   };
 }
 
+function validateProfileDraft(draft: ProfileDraft): ProfileErrors {
+  const errors: ProfileErrors = {};
+
+  if (!draft.firstName.trim()) {
+    errors.firstName = "Укажите имя";
+  }
+
+  if (!draft.lastName.trim()) {
+    errors.lastName = "Укажите фамилию";
+  }
+
+  if (
+    draft.phone.trim() &&
+    getRussianPhoneDigits(draft.phone).length !== 10
+  ) {
+    errors.phone = "Укажите номер телефона полностью";
+  }
+
+  return errors;
+}
+
 export function AccountProfileTab({
   email,
   firstName,
@@ -215,10 +257,13 @@ export function AccountProfileTab({
   const [draft, setDraft] = useState<ProfileDraft>(() =>
     createDraft({ firstName, lastName, phone, birthDate, gender }),
   );
+  const [profileErrors, setProfileErrors] = useState<ProfileErrors>({});
   const [dateError, setDateError] = useState<string | null>(null);
   const [passwordResetSending, setPasswordResetSending] = useState(false);
   const [passwordResetSent, setPasswordResetSent] = useState(false);
+  const formRef = useRef<HTMLFormElement | null>(null);
   const firstNameRef = useRef<HTMLInputElement | null>(null);
+  const dateErrorId = useId();
 
   const savedDraft = createDraft({
     firstName,
@@ -232,6 +277,7 @@ export function AccountProfileTab({
 
   function beginEditing() {
     setDraft(savedDraft);
+    setProfileErrors({});
     setDateError(null);
     setEditing(true);
     onEditingChange?.(true);
@@ -242,6 +288,7 @@ export function AccountProfileTab({
     if (saving) return;
 
     setDraft(savedDraft);
+    setProfileErrors({});
     setDateError(null);
     setEditing(false);
     onEditingChange?.(false);
@@ -251,16 +298,16 @@ export function AccountProfileTab({
     event.preventDefault();
     if (saving) return;
 
-    if (!draft.firstName.trim() || !draft.lastName.trim()) {
-      toast.error("Заполните имя и фамилию");
-      firstNameRef.current?.focus();
-      return;
-    }
-
+    const nextProfileErrors = validateProfileDraft(draft);
     const nextBirthDate = buildBirthDate(draft);
+
+    setProfileErrors(nextProfileErrors);
     setDateError(nextBirthDate.error);
 
-    if (nextBirthDate.error) return;
+    if (Object.keys(nextProfileErrors).length > 0 || nextBirthDate.error) {
+      scrollToFirstValidationError({ root: formRef.current });
+      return;
+    }
 
     const saved = await onSave({
       firstName: draft.firstName.trim(),
@@ -271,6 +318,8 @@ export function AccountProfileTab({
     });
 
     if (saved) {
+      setProfileErrors({});
+      setDateError(null);
       setEditing(false);
       onEditingChange?.(false);
     }
@@ -327,17 +376,29 @@ export function AccountProfileTab({
           </p>
         </header>
 
-        <form className={styles.editorForm} onSubmit={handleProfileSubmit}>
+        <form
+          ref={formRef}
+          className={styles.editorForm}
+          noValidate
+          onSubmit={handleProfileSubmit}
+        >
           <ProfileTextField
             label="Имя"
             inputRef={firstNameRef}
             value={draft.firstName}
-            onChange={(event) =>
+            error={profileErrors.firstName}
+            onChange={(event) => {
+              setProfileErrors((current) => {
+                if (!current.firstName) return current;
+                const next = { ...current };
+                delete next.firstName;
+                return next;
+              });
               setDraft((current) => ({
                 ...current,
                 firstName: event.target.value,
-              }))
-            }
+              }));
+            }}
             autoComplete="given-name"
             required
           />
@@ -345,12 +406,19 @@ export function AccountProfileTab({
           <ProfileTextField
             label="Фамилия"
             value={draft.lastName}
-            onChange={(event) =>
+            error={profileErrors.lastName}
+            onChange={(event) => {
+              setProfileErrors((current) => {
+                if (!current.lastName) return current;
+                const next = { ...current };
+                delete next.lastName;
+                return next;
+              });
               setDraft((current) => ({
                 ...current,
                 lastName: event.target.value,
-              }))
-            }
+              }));
+            }}
             autoComplete="family-name"
             required
           />
@@ -378,12 +446,19 @@ export function AccountProfileTab({
               label="Телефон"
               fieldVariant="boxed"
               value={draft.phone}
-              onChange={(event) =>
+              error={profileErrors.phone}
+              onChange={(event) => {
+                setProfileErrors((current) => {
+                  if (!current.phone) return current;
+                  const next = { ...current };
+                  delete next.phone;
+                  return next;
+                });
                 setDraft((current) => ({
                   ...current,
                   phone: event.target.value,
-                }))
-              }
+                }));
+              }}
             />
             <p className={styles.fieldHint}>
               Номер нужен только для связи по вашему заказу
@@ -399,6 +474,7 @@ export function AccountProfileTab({
                 options={DAY_OPTIONS}
                 placeholder="День"
                 invalid={Boolean(dateError)}
+                errorId={dateError ? dateErrorId : undefined}
                 onChange={(value) => {
                   setDateError(null);
                   setDraft((current) => ({ ...current, day: value }));
@@ -410,6 +486,7 @@ export function AccountProfileTab({
                 options={MONTH_OPTIONS}
                 placeholder="Месяц"
                 invalid={Boolean(dateError)}
+                errorId={dateError ? dateErrorId : undefined}
                 onChange={(value) => {
                   setDateError(null);
                   setDraft((current) => ({ ...current, month: value }));
@@ -421,6 +498,7 @@ export function AccountProfileTab({
                 options={YEAR_OPTIONS}
                 placeholder="Год"
                 invalid={Boolean(dateError)}
+                errorId={dateError ? dateErrorId : undefined}
                 onChange={(value) => {
                   setDateError(null);
                   setDraft((current) => ({ ...current, year: value }));
@@ -428,7 +506,9 @@ export function AccountProfileTab({
               />
             </div>
             {dateError ? (
-              <p className={styles.fieldError}>{dateError}</p>
+              <p id={dateErrorId} className={styles.fieldError}>
+                {dateError}
+              </p>
             ) : null}
             <p className={styles.fieldHint}>
               Добавьте дату и получите подарок ко дню рождения по программе

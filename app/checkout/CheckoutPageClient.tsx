@@ -7,6 +7,7 @@ import { apiFetch, API_URL } from "../lib/api";
 import { rememberUserCartId } from "../lib/auth";
 import { loadResolvedCart } from "../lib/cartAuthority";
 import { emitCartChanged } from "../lib/cartEvents";
+import { scrollToFirstValidationError } from "../lib/formValidation";
 
 import { CheckoutContactSection } from "./components/CheckoutContactSection";
 import { CheckoutDeliverySection } from "./components/CheckoutDeliverySection";
@@ -33,10 +34,7 @@ import type {
   DeliveryCityOption,
 } from "./types";
 
-import {
-  validateContactDetails,
-  validateDeliveryDetails,
-} from "./lib/checkoutValidation";
+import { isValidPhone } from "../lib/validation";
 
 import {
   clearCheckoutDraft,
@@ -147,8 +145,17 @@ function CheckoutPageContent({ initialMe, initialCart }: CheckoutPageProps) {
   const [submitting, setSubmitting] = useState(false);
 
   const [error, setError] = useState<string | null>(null);
+  const [contactErrors, setContactErrors] = useState<{
+    fullName?: string;
+    phone?: string;
+  }>({});
+  const [deliveryErrors, setDeliveryErrors] = useState<{
+    city?: string;
+    pickupPoint?: string;
+  }>({});
 
   const submitLockRef = useRef(false);
+  const checkoutMainRef = useRef<HTMLDivElement | null>(null);
   const defaultCitySelectedRef = useRef(false);
   const quoteRequestKeyRef = useRef("");
   const citySearchRequestRef = useRef(0);
@@ -529,9 +536,6 @@ function CheckoutPageContent({ initialMe, initialCart }: CheckoutPageProps) {
   const submitDisabled =
     submitting ||
     deliveryCalculating ||
-    !deliveryCalculated ||
-    !selectedCity ||
-    !selectedPickupPoint ||
     items.length === 0;
   const total = subtotal + (deliveryCalculated ? deliveryPrice : 0);
 
@@ -916,36 +920,37 @@ function CheckoutPageContent({ initialMe, initialCart }: CheckoutPageProps) {
 
     if (items.length === 0) return;
 
+    const nextContactErrors = {
+      ...(!fullName.trim() ? { fullName: "Введите ФИО" } : {}),
+      ...(!isValidPhone(phone)
+        ? { phone: "Укажите корректный российский номер телефона" }
+        : {}),
+    };
     const contactValidationError =
-      validateContactDetails({
-        fullName,
-        phone,
-      });
+      nextContactErrors.fullName || nextContactErrors.phone;
+    const nextDeliveryErrors = !selectedCity
+      ? { city: "Выберите город из списка" }
+      : !selectedPickupPoint
+        ? { pickupPoint: "Выберите пункт выдачи" }
+        : {};
+    const firstValidationError =
+      nextDeliveryErrors.city ||
+      nextDeliveryErrors.pickupPoint ||
+      contactValidationError;
 
-    if (contactValidationError) {
-      showError(contactValidationError);
-      return;
-    }
+    setContactErrors(nextContactErrors);
+    setDeliveryErrors(nextDeliveryErrors);
 
-    if (!selectedCity) {
-      showError("Выберите город из списка");
+    if (firstValidationError) {
+      showError(firstValidationError);
+      scrollToFirstValidationError({ root: checkoutMainRef.current });
       return;
     }
 
     const actualRecipientName = fullName.trim();
     const actualRecipientPhone = phone.trim();
 
-    const deliveryValidationError =
-      validateDeliveryDetails({
-        deliveryMethod,
-        selectedAddressId,
-        deliveryAddress,
-      });
-
-    if (deliveryValidationError) {
-      showError(deliveryValidationError);
-      return;
-    }
+    setError(null);
 
     let activeDeliveryOfferId = deliveryOfferId || deliveryQuoteToken;
     let activeCheckoutToken = checkoutToken;
@@ -1130,8 +1135,8 @@ function CheckoutPageContent({ initialMe, initialCart }: CheckoutPageProps) {
           />
         ) : (
           <div className={styles.layout}>
-            <div className={styles.main}>
-                            <CheckoutDeliverySection
+            <div className={styles.main} ref={checkoutMainRef}>
+              <CheckoutDeliverySection
                 options={deliveryOptions}
                 deliveryPrice={deliveryPrice}
                 pickupLoading={pickupLoading}
@@ -1143,7 +1148,11 @@ function CheckoutPageContent({ initialMe, initialCart }: CheckoutPageProps) {
                 cityOptions={cityOptions}
                 deliveryDateText={deliveryDateText}
                 selectedCity={selectedCity}
+                cityError={deliveryErrors.city}
+                pickupPointError={deliveryErrors.pickupPoint}
                 onCountryChange={(value) => {
+                  const currentValidationError =
+                    deliveryErrors.city || deliveryErrors.pickupPoint;
                   setCountryCode(value);
                   setSelectedCity(null);
                   setCityQuery("");
@@ -1154,11 +1163,25 @@ function CheckoutPageContent({ initialMe, initialCart }: CheckoutPageProps) {
                   setApartment("");
                   setFloor("");
                   setIntercom("");
+                  setDeliveryErrors({});
+                  if (currentValidationError) {
+                    setError((current) =>
+                      current === currentValidationError ? null : current
+                    );
+                  }
                   resetDeliveryQuote();
                 }}
                 onCityQueryChange={(value) => {
+                  const currentValidationError =
+                    deliveryErrors.city || deliveryErrors.pickupPoint;
                   setCityTouched(true);
                   setCityQuery(value);
+                  setDeliveryErrors({});
+                  if (currentValidationError) {
+                    setError((current) =>
+                      current === currentValidationError ? null : current
+                    );
+                  }
 
                   if (
                       selectedCity &&
@@ -1178,6 +1201,8 @@ function CheckoutPageContent({ initialMe, initialCart }: CheckoutPageProps) {
                   setCityOptions([]);
                 }}
                 onCitySelect={(city) => {
+                  const currentValidationError =
+                    deliveryErrors.city || deliveryErrors.pickupPoint;
                   setSelectedCity(city);
                   setCityQuery(formatCityDisplayName(city.fullName));
                   setCityOptions([]);
@@ -1188,13 +1213,29 @@ function CheckoutPageContent({ initialMe, initialCart }: CheckoutPageProps) {
                   setApartment("");
                   setFloor("");
                   setIntercom("");
+                  setDeliveryErrors({});
+                  if (currentValidationError) {
+                    setError((current) =>
+                      current === currentValidationError ? null : current
+                    );
+                  }
                   resetDeliveryQuote();
                 }}
                 comment={comment}
                 enabled={true}
                 onAddressChange={(value) => {
+                  const currentValidationError = deliveryErrors.pickupPoint;
                   resetDeliveryQuote();
                   setSelectedAddressId(value);
+                  setDeliveryErrors((current) => ({
+                    ...current,
+                    pickupPoint: undefined,
+                  }));
+                  if (currentValidationError) {
+                    setError((current) =>
+                      current === currentValidationError ? null : current
+                    );
+                  }
                 }}
                 onCommentChange={setComment}
               />
@@ -1202,11 +1243,33 @@ function CheckoutPageContent({ initialMe, initialCart }: CheckoutPageProps) {
               <CheckoutContactSection
                 fullName={fullName}
                 phone={phone}
+                fullNameError={contactErrors.fullName}
+                phoneError={contactErrors.phone}
                 onFullNameChange={(value) => {
+                  const currentValidationError = contactErrors.fullName;
                   setFullName(value);
+                  setContactErrors((current) => ({
+                    ...current,
+                    fullName: undefined,
+                  }));
+                  if (currentValidationError) {
+                    setError((current) =>
+                      current === currentValidationError ? null : current
+                    );
+                  }
                 }}
                 onPhoneChange={(value) => {
+                  const currentValidationError = contactErrors.phone;
                   setPhone(value);
+                  setContactErrors((current) => ({
+                    ...current,
+                    phone: undefined,
+                  }));
+                  if (currentValidationError) {
+                    setError((current) =>
+                      current === currentValidationError ? null : current
+                    );
+                  }
                 }}
               />
               {error ? (

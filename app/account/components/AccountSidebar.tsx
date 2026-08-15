@@ -11,6 +11,7 @@ type AccountTab =
 type Props = {
   currentTab: AccountTab;
   ordersCount: number;
+  showSellerCabinet?: boolean;
   userName?: string;
   onNavigate?: (href: string) => void;
   onLogout: () => void;
@@ -19,6 +20,7 @@ type Props = {
 export function AccountSidebar({
   currentTab,
   ordersCount,
+  showSellerCabinet = false,
   userName,
   onNavigate,
   onLogout,
@@ -51,6 +53,16 @@ export function AccountSidebar({
           icon: "user",
           active: currentTab === "home",
         },
+        ...(showSellerCabinet
+          ? [
+              {
+                href: "/seller",
+                label: "Кабинет продавца",
+                icon: "store" as const,
+                active: false,
+              },
+            ]
+          : []),
         {
           href: "/account?tab=orders",
           label: "Заказы и возвраты",

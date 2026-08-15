@@ -24,8 +24,6 @@ type Props = {
   categoryId: number | "";
   suggestedCategoryName: string;
   audience: Audience;
-  status: string | null;
-  statusChanging: boolean;
 
   categories: Option[];
 
@@ -36,7 +34,6 @@ type Props = {
   onCategoryIdChange: (value: number | "") => void;
   onSuggestedCategoryNameChange: (value: string) => void;
   onAudienceChange: (value: Audience) => void;
-  onStatusChange: (value: "DRAFT" | "ARCHIVED") => void;
 };
 
 export function ProductGeneralCard({
@@ -47,8 +44,6 @@ export function ProductGeneralCard({
   categoryId,
   suggestedCategoryName,
   audience,
-  status,
-  statusChanging,
   categories,
   onTitleChange,
   onDescriptionChange,
@@ -56,7 +51,6 @@ export function ProductGeneralCard({
   onCategoryIdChange,
   onSuggestedCategoryNameChange,
   onAudienceChange,
-  onStatusChange,
 }: Props) {
   const descriptionRef = useRef<HTMLTextAreaElement | null>(null);
   const compositionRef = useRef<HTMLTextAreaElement | null>(null);
@@ -115,6 +109,7 @@ export function ProductGeneralCard({
 
             <input
               value={title}
+              aria-invalid={validationErrors.title ? "true" : undefined}
               onChange={(event) => onTitleChange(event.target.value)}
               className={`${styles.input} ${
                 validationErrors.title ? styles.fieldInvalid : ""
@@ -160,38 +155,6 @@ export function ProductGeneralCard({
             }}
           />
 
-          {status ? (
-            <FormSelect<string>
-              label="Статус"
-              value={status}
-              disabled={statusChanging}
-              options={[
-                {
-                  value: status,
-                  label:
-                    status === "ACTIVE"
-                      ? "Опубликован"
-                      : status === "MODERATION"
-                        ? "На модерации"
-                        : status === "NEEDS_REVISION"
-                          ? "Требует изменений"
-                          : status === "BLOCKED"
-                            ? "Заблокирован"
-                            : status === "ARCHIVED"
-                              ? "В архиве"
-                              : "Черновик",
-                },
-                status !== "ARCHIVED"
-                  ? { value: "ARCHIVED", label: "В архив" }
-                  : { value: "DRAFT", label: "Вернуть в черновик" },
-              ]}
-              onChange={(value) => {
-                if (value === "DRAFT" || value === "ARCHIVED") {
-                  onStatusChange(value);
-                }
-              }}
-            />
-          ) : null}
         </div>
       </section>
 
@@ -235,6 +198,7 @@ export function ProductGeneralCard({
               <textarea
                 ref={descriptionRef}
                 value={description}
+                aria-invalid={validationErrors.description ? "true" : undefined}
                 onChange={(event) => onDescriptionChange(event.target.value)}
                 className={`${styles.textarea} ${
                 validationErrors.description ? styles.fieldInvalid : ""

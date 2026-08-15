@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type {
   FormEvent,
   InputHTMLAttributes,
@@ -16,6 +16,7 @@ import { Icon } from "../../components/ui/Icon";
 import { PhoneInput } from "../../components/ui/PhoneInput";
 import { API_URL, apiFetch } from "../../lib/api";
 import { getRussianPhoneDigits } from "../../lib/phone";
+import { scrollToFirstValidationError } from "../../lib/formValidation";
 import { isNonEmpty } from "../../lib/validation";
 import { emitSellerOnboardingChanged } from "../lib/sellerOnboardingEvents";
 
@@ -133,6 +134,7 @@ function formatSellerType(type: SellerType) {
 
 export function SellerLegalTab() {
   const router = useRouter();
+  const formRef = useRef<HTMLFormElement | null>(null);
   const [form, setForm] = useState<SellerLegalInfoForm>(INITIAL_FORM);
   const [savedForm, setSavedForm] = useState<SellerLegalInfoForm>(INITIAL_FORM);
   const [errors, setErrors] = useState<FormErrors>({});
@@ -339,6 +341,7 @@ export function SellerLegalTab() {
 
   const formChanged = JSON.stringify(form) !== JSON.stringify(savedForm);
   const hasValidationErrors = Object.keys(errors).length > 0;
+  const formValid = Object.keys(validateForm(form)).length === 0;
 
   function validateForm(values: SellerLegalInfoForm): FormErrors {
     const nextErrors: FormErrors = {};
@@ -423,18 +426,7 @@ export function SellerLegalTab() {
     setError(null);
 
     if (Object.keys(nextErrors).length > 0) {
-      window.requestAnimationFrame(() => {
-        const firstInvalidField = document.querySelector<HTMLElement>(
-          '[aria-invalid="true"]'
-        );
-
-        firstInvalidField?.scrollIntoView({
-          behavior: "smooth",
-          block: "center",
-        });
-
-        firstInvalidField?.focus({ preventScroll: true });
-      });
+      scrollToFirstValidationError({ root: formRef.current });
 
       return;
     }
@@ -484,7 +476,7 @@ export function SellerLegalTab() {
 
   return (
     <section className={styles.page}>
-      <form className={styles.form} onSubmit={submit}>
+      <form ref={formRef} className={styles.form} noValidate onSubmit={submit}>
         {error ? <div className={styles.error}>{error}</div> : null}
 
         <section className={styles.card}>
@@ -791,6 +783,8 @@ export function SellerLegalTab() {
           <Button
             type="submit"
             variant="primary"
+            className={styles.saveButton}
+            data-incomplete={!formValid || undefined}
             disabled={saving || !formChanged}
             loading={saving}
           >

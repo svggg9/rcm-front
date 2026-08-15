@@ -1,8 +1,9 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 
 import { Button } from "../../components/ui/Button";
+import { scrollToFirstValidationError } from "../../lib/formValidation";
 import {
   createOrderReturn,
   returnReasonLabels,
@@ -31,6 +32,7 @@ export function AccountReturnRequest({
   const [photos, setPhotos] = useState<File[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const formRef = useRef<HTMLDivElement | null>(null);
 
   const availableItems = useMemo(
     () =>
@@ -54,6 +56,7 @@ export function AccountReturnRequest({
     if (!selectedItem || submitting) return;
     if (photos.length === 0) {
       setError("Добавьте хотя бы одну фотографию товара");
+      scrollToFirstValidationError({ root: formRef.current });
       return;
     }
 
@@ -111,7 +114,7 @@ export function AccountReturnRequest({
       ) : null}
 
       {open ? (
-        <div className={styles.form}>
+        <div className={styles.form} ref={formRef}>
       <div className={styles.heading}>
         <strong>Заявка на возврат</strong>
         <span>В одной заявке можно вернуть одну позицию.</span>
@@ -158,15 +161,20 @@ export function AccountReturnRequest({
         />
       </label>
 
-      <label className={styles.field}>
+      <label
+        className={styles.field}
+        data-validation-error={error && photos.length === 0 ? "true" : undefined}
+      >
         <span>Фотографии — до 5 файлов</span>
         <input
           type="file"
+          aria-invalid={error && photos.length === 0 ? "true" : undefined}
           accept="image/jpeg,image/png,image/webp"
           multiple
-          onChange={(event) =>
-            setPhotos(Array.from(event.target.files ?? []).slice(0, 5))
-          }
+          onChange={(event) => {
+            setPhotos(Array.from(event.target.files ?? []).slice(0, 5));
+            setError(null);
+          }}
         />
       </label>
 

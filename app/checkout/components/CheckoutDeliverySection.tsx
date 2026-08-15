@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 
 import type { DeliveryCityOption, DeliveryOption } from "../types";
 import { SkeletonBlock } from "../../components/ui/SkeletonBlock";
@@ -34,6 +34,8 @@ type Props = {
   cityQuery: string;
   cityOptions: DeliveryCityOption[];
   selectedCity: DeliveryCityOption | null;
+  cityError?: string | null;
+  pickupPointError?: string | null;
   deliveryPrice: number;
   deliveryDateText: string;
   onCountryChange: (value: CountryCode) => void;
@@ -56,6 +58,8 @@ export function CheckoutDeliverySection({
   cityQuery,
   cityOptions,
   selectedCity,
+  cityError,
+  pickupPointError,
   deliveryPrice,
   deliveryDateText,
   onCountryChange,
@@ -68,6 +72,8 @@ export function CheckoutDeliverySection({
 }: Props) {
   const [pickupModalOpen, setPickupModalOpen] = useState(false);
   const citySuggestRef = useRef<HTMLDivElement | null>(null);
+  const cityErrorId = useId();
+  const pickupPointErrorId = useId();
 
   const selectedPickupPoint =
     options.find((option) => option.id === selectedAddressId) ?? null;
@@ -119,16 +125,28 @@ export function CheckoutDeliverySection({
           </select>
         </div>
 
-        <div className={styles.suggestWrap} ref={citySuggestRef}>
+        <div
+          className={styles.suggestWrap}
+          data-validation-error={cityError ? "true" : undefined}
+          ref={citySuggestRef}
+        >
           <span className={styles.fieldLabel}>Населённый пункт</span>
           <input
-            className={`${styles.textField} ${
+            className={`${styles.textField} ${cityError ? styles.fieldInvalid : ""} ${
               deliveryDateText && selectedCity ? styles.cityFieldWithEta : ""
             }`}
             value={cityQuery}
+            aria-invalid={cityError ? "true" : undefined}
+            aria-describedby={cityError ? cityErrorId : undefined}
             onChange={(event) => onCityQueryChange(event.target.value)}
             disabled={!enabled}
           />
+
+          {cityError ? (
+            <div className={styles.fieldError} id={cityErrorId} role="alert">
+              {cityError}
+            </div>
+          ) : null}
 
           {selectedCity && deliveryDateText ? (
             <span
@@ -165,10 +183,18 @@ export function CheckoutDeliverySection({
           ) : null}
         </div>
 
-        <div className={styles.pickupBlock}>
+        <div
+          className={styles.pickupBlock}
+          data-validation-error={pickupPointError ? "true" : undefined}
+        >
           <button
             type="button"
-            className={styles.pickupSelected}
+            className={`${styles.pickupSelected} ${
+              pickupPointError ? styles.fieldInvalid : ""
+            }`}
+            aria-describedby={
+              pickupPointError ? pickupPointErrorId : undefined
+            }
             onClick={() => {
               if (!selectedCity) return;
 
@@ -185,6 +211,16 @@ export function CheckoutDeliverySection({
                 : "Выберите пункт выдачи"}
             </span>
           </button>
+
+          {pickupPointError ? (
+            <div
+              className={styles.fieldError}
+              id={pickupPointErrorId}
+              role="alert"
+            >
+              {pickupPointError}
+            </div>
+          ) : null}
 
           {!selectedCity ? (
             <div className={styles.inlineHint}>

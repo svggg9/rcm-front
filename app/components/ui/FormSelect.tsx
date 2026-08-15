@@ -19,6 +19,7 @@ type Props<TValue extends SelectValue> = {
   options: Option[];
   placeholder?: string;
   invalid?: boolean;
+  errorId?: string;
   required?: boolean;
   disabled?: boolean;
   full?: boolean;
@@ -31,6 +32,7 @@ export function FormSelect<TValue extends SelectValue>({
   options,
   placeholder,
   invalid = false,
+  errorId,
   required = false,
   disabled = false,
   full = false,
@@ -38,6 +40,8 @@ export function FormSelect<TValue extends SelectValue>({
 }: Props<TValue>) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement | null>(null);
+  const labelId = useId();
+  const valueId = useId();
   const listboxId = useId();
   const selectedOption = options.find((option) => option.value === value) ?? null;
   const hasValue = value !== "";
@@ -71,8 +75,14 @@ export function FormSelect<TValue extends SelectValue>({
   }
 
   return (
-    <div className={full ? styles.fieldFull : styles.field} ref={rootRef}>
-      <span className={required ? styles.required : undefined}>{label}</span>
+    <div
+      className={full ? styles.fieldFull : styles.field}
+      data-validation-error={invalid ? "true" : undefined}
+      ref={rootRef}
+    >
+      <span id={labelId} className={required ? styles.required : undefined}>
+        {label}
+      </span>
 
       <div
         className={`${styles.select} ${open ? styles.selectOpen : ""} ${
@@ -83,13 +93,23 @@ export function FormSelect<TValue extends SelectValue>({
       >
         <button
           type="button"
+          role="combobox"
           className={`${styles.selectButton} ${hasValue ? "" : styles.placeholder}`}
           disabled={disabled}
+          aria-describedby={invalid && errorId ? errorId : undefined}
           aria-expanded={open}
+          aria-haspopup="listbox"
+          aria-invalid={invalid || undefined}
           aria-controls={listboxId}
+          aria-labelledby={`${labelId} ${valueId}`}
           onClick={() => setOpen((current) => !current)}
         >
-          <span className={hasValue ? styles.selectValue : styles.selectPlaceholderValue}>{displayValue}</span>
+          <span
+            id={valueId}
+            className={hasValue ? styles.selectValue : styles.selectPlaceholderValue}
+          >
+            {displayValue}
+          </span>
           <span className={styles.chevron} aria-hidden="true">
             <Icon name="chevron-down" size={18} strokeWidth={1.8} />
           </span>
