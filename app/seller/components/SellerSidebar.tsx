@@ -9,8 +9,6 @@ import styles from "./SellerSidebar.module.css";
 
 type Props = {
   currentTab: SellerTab;
-  storeName: string | null;
-  storeNotReady: boolean;
   productCount?: number;
   orderCount?: number;
 };
@@ -26,8 +24,6 @@ type NavigationItem = {
 
 export function SellerSidebar({
   currentTab,
-  storeName,
-  storeNotReady,
   productCount,
   orderCount,
 }: Props) {
@@ -84,22 +80,6 @@ export function SellerSidebar({
 
   return (
     <aside className={styles.sidebar}>
-      <div className={styles.storeIdentity}>
-        <span className={styles.storeEyebrow}>Магазин</span>
-        <strong>{storeName || "Новый магазин"}</strong>
-        <span
-          className={`${styles.readiness} ${
-            storeNotReady ? styles.readinessPending : styles.readinessReady
-          }`}
-        >
-          <Icon
-            name={storeNotReady ? "clock" : "check-circle"}
-            size={15}
-          />
-          {storeNotReady ? "Подготовка" : "Работает"}
-        </span>
-      </div>
-
       <nav className={styles.navigation} aria-label="Меню продавца">
         <div className={styles.primaryNavigation}>
           {primaryItems.map((item) => (

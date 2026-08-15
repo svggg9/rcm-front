@@ -112,6 +112,7 @@ export function SellerOrdersTab<
           value={filter}
           onChange={setFilter}
           ariaLabel="Фильтр заказов"
+          countTone="gold"
           appearance="segmented"
         />
       </div>

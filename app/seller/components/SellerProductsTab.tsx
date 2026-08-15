@@ -202,7 +202,7 @@ function ProductRow({
       id={product.id}
       title={product.title}
       imageUrl={product.coverImage}
-      flushMedia
+      appearance="order-list"
       brandName={product.brandName}
       categoryName={product.categoryName}
       minPrice={product.minPrice}

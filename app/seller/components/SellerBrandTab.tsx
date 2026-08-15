@@ -171,12 +171,59 @@ export function SellerBrandTab({ initialBrands }: Props) {
           void save();
         }}
       >
-        <div className={styles.brandColumns}>
-          <div className={styles.profileColumn}>
-            <section className={styles.brandHero}>
-              <div className={styles.brandSummary}>
-                <span className={styles.summaryLabel}>Публичный профиль</span>
-                <h2 className={styles.brandProfileTitle}>
+        <header className={styles.pageHeader}>
+          <div>
+            <span className={styles.pageKicker}>Витрина магазина</span>
+            <h1>{form.name}</h1>
+            <p>Настройте публичную страницу бренда.</p>
+          </div>
+
+          <div className={styles.headerActions}>
+            {selectedBrand.slug ? (
+              <a
+                href={`/brand/${selectedBrand.slug}`}
+                className={styles.openLink}
+                target="_blank"
+                rel="noreferrer"
+              >
+                Открыть витрину
+              </a>
+            ) : null}
+            <Button
+              type="submit"
+              variant="primary"
+              disabled={saving || !dirty}
+            >
+              Сохранить
+            </Button>
+          </div>
+        </header>
+
+        <div className={styles.saveState} aria-live="polite">
+          {saved ? (
+            <>
+              <Icon name="check-circle" size={16} />
+              <span>Изменения сохранены</span>
+            </>
+          ) : dirty ? (
+            <span>Есть несохранённые изменения</span>
+          ) : null}
+        </div>
+
+        <section className={styles.profileSection}>
+          <div className={styles.sectionHeading}>
+            <span className={styles.sectionNumber}>01</span>
+            <div>
+              <h2>Профиль бренда</h2>
+              <p>Название, описание и контакты для покупателей.</p>
+            </div>
+          </div>
+
+          <div className={styles.profileGrid}>
+            <div className={styles.wordmarkCard}>
+              <div className={styles.wordmarkStage}>
+                <span className={styles.summaryLabel}>Вордмарк</span>
+                <div className={styles.brandProfileTitle}>
                   {form.wordmarkUrl ? (
                     <span className={styles.wordmarkPreview}>
                       <Image
@@ -189,49 +236,33 @@ export function SellerBrandTab({ initialBrands }: Props) {
                   ) : (
                     form.name.trim() || "Название бренда"
                   )}
-                </h2>
-                <Button
-                  type="button"
-                  variant="primaryShimmer"
-                  className={styles.wordmarkButton}
-                  onClick={() => wordmarkInputRef.current?.click()}
-                  disabled={uploadingWordmark}
-                >
-                  {uploadingWordmark ? "Загрузка" : "Загрузить вордмарк"}
-                </Button>
-                <div className={styles.wordmarkHint}>
-                  <span>
-                    Фирменное написание названия бренда для публичной страницы.
-                    SVG или WebP до 2 МБ.
-                  </span>
-                  <span className={styles.wordmarkExample}>
-                    <span>Пример</span>
-                    <Image
-                      src="/examples/versace-wordmark.svg"
-                      alt=""
-                      width={159}
-                      height={27}
-                      aria-hidden="true"
-                    />
-                  </span>
                 </div>
-                <input
-                  ref={wordmarkInputRef}
-                  type="file"
-                  accept=".svg,.webp,image/svg+xml,image/webp"
-                  className={styles.logoInput}
-                  onChange={(event) =>
-                    void uploadWordmark(event.target.files?.[0] ?? null)
-                  }
-                />
-              </div>
-            </section>
-
-            <section className={styles.formSection}>
-              <div className={styles.sectionHeader}>
-                <h2>О бренде</h2>
               </div>
 
+              <Button
+                type="button"
+                variant="secondary"
+                className={styles.wordmarkButton}
+                onClick={() => wordmarkInputRef.current?.click()}
+                disabled={uploadingWordmark}
+              >
+                {uploadingWordmark ? "Загрузка" : "Загрузить вордмарк"}
+              </Button>
+              <p className={styles.wordmarkHint}>
+                SVG или WebP до 2 МБ. Используется в шапке публичной страницы.
+              </p>
+              <input
+                ref={wordmarkInputRef}
+                type="file"
+                accept=".svg,.webp,image/svg+xml,image/webp"
+                className={styles.logoInput}
+                onChange={(event) =>
+                  void uploadWordmark(event.target.files?.[0] ?? null)
+                }
+              />
+            </div>
+
+            <div className={styles.formSection}>
               <BrandField label="Название">
                 <input
                   className={`${styles.input} ${styles.inputReadonly}`}
@@ -247,53 +278,64 @@ export function SellerBrandTab({ initialBrands }: Props) {
                   onChange={(event) =>
                     updateField("description", event.target.value)
                   }
-                  rows={4}
+                  rows={5}
                   maxLength={1000}
+                  placeholder="Расскажите о стиле, истории и идее бренда"
                 />
               </BrandField>
-            </section>
 
-            <div className={styles.actionsBar}>
-              <div className={styles.saveState} aria-live="polite">
-                {saved ? (
-                  <>
-                    <Icon name="check" size={15} />
-                    <span>Изменения сохранены</span>
-                  </>
-                ) : dirty ? (
-                  <span>Есть несохраненные изменения</span>
-                ) : null}
+              <div className={styles.detailsGrid}>
+                <BrandField label="Страна">
+                  <input
+                    className={styles.input}
+                    value={form.country}
+                    onChange={(event) => updateField("country", event.target.value)}
+                    placeholder="Россия"
+                  />
+                </BrandField>
+                <BrandField label="Год основания">
+                  <input
+                    className={styles.input}
+                    value={form.foundationYear}
+                    onChange={(event) =>
+                      updateField("foundationYear", event.target.value.replace(/\D/g, ""))
+                    }
+                    inputMode="numeric"
+                    maxLength={4}
+                    placeholder="2024"
+                  />
+                </BrandField>
+                <BrandField label="Сайт">
+                  <input
+                    className={styles.input}
+                    value={form.website}
+                    onChange={(event) => updateField("website", event.target.value)}
+                    placeholder="https://example.ru"
+                  />
+                </BrandField>
+                <BrandField label="Telegram">
+                  <input
+                    className={styles.input}
+                    value={form.telegram}
+                    onChange={(event) => updateField("telegram", event.target.value)}
+                    placeholder="@brand"
+                  />
+                </BrandField>
+                <BrandField label="ВКонтакте">
+                  <input
+                    className={styles.input}
+                    value={form.vk}
+                    onChange={(event) => updateField("vk", event.target.value)}
+                    placeholder="vk.com/brand"
+                  />
+                </BrandField>
               </div>
-
-              {selectedBrand.slug ? (
-                <a
-                  href={`/brand/${selectedBrand.slug}`}
-                  className={styles.openLink}
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  <span>Открыть страницу</span>
-                  <Icon name="arrow-up-right" size={16} />
-                </a>
-              ) : null}
-
-              <Button
-                type="submit"
-                variant="primaryShimmer"
-                disabled={saving || !dirty}
-              >
-                Сохранить
-              </Button>
             </div>
           </div>
+        </section>
 
-          <div className={styles.storefrontColumn}>
-            <SellerBrandImages brandId={selectedBrand.id} />
-            <SellerStorefrontCollections
-              brandId={selectedBrand.id}
-            />
-          </div>
-        </div>
+        <SellerBrandImages brandId={selectedBrand.id} />
+        <SellerStorefrontCollections brandId={selectedBrand.id} />
       </form>
     </section>
   );

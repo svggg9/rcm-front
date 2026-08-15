@@ -2,12 +2,16 @@
   width: 100%;
   margin: 28px 0 56px;
   color: var(--black);
+  --seller-font-caption: var(--font-xs);
+  --seller-font-body: var(--font-sm);
+  --seller-font-value: var(--font-md);
+  --seller-font-section: var(--font-xl);
 }
 
 .layout {
   width: 100%;
   display: grid;
-  grid-template-columns: 224px minmax(0, 1fr);
+  grid-template-columns: 248px minmax(0, 1fr);
   gap: 32px;
   align-items: start;
 }
@@ -61,7 +65,7 @@
 }
 
 .orderSectionTabs :global(button[role="tab"][aria-selected="true"]::after) {
-  background: var(--black);
+  background: var(--gold);
 }
 
 @media (max-width: 900px) {

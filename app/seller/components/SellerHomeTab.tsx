@@ -43,24 +43,30 @@ export function SellerHomeTab({
     <section className={styles.page}>
       <header className={styles.pageHeader}>
         <div>
-          <span className={styles.eyebrow}>Обзор</span>
-          <h1>Обзор магазина</h1>
-          <p>
-            {brand?.name
-              ? `Магазин «${brand.name}»`
-              : "Управление магазином и ассортиментом"}
-          </p>
+          <div className={styles.titleRow}>
+            <h1>{brand?.name || "Магазин"}</h1>
+            <span
+              className={`${styles.headerStatus} ${
+                setupRequired ? styles.headerStatusPending : styles.headerStatusReady
+              }`}
+            >
+              <Icon
+                name={setupRequired ? "clock" : "check-circle"}
+                size={15}
+              />
+              {setupRequired ? "Подготовка" : "Работает"}
+            </span>
+          </div>
         </div>
 
         <Button
           type="button"
           variant="secondary"
           className={styles.addButton}
-          loading={creatingProduct}
-          onClick={onCreateProduct}
-        >
-          <Icon name="plus" size={17} />
-          <span>Добавить товар</span>
+        loading={creatingProduct}
+        onClick={onCreateProduct}
+      >
+          Добавить товар
         </Button>
       </header>
 
@@ -94,8 +100,6 @@ function SetupDashboard({
   ];
   const completedSteps = steps.filter(Boolean).length;
   const remainingSteps = steps.length - completedSteps;
-  const progress = Math.round((completedSteps / steps.length) * 100);
-
   const tasks: StoreTask[] = [
     {
       title: "Заявка продавца одобрена",
@@ -152,12 +156,6 @@ function SetupDashboard({
             ))}
           </div>
         </section>
-
-        <StoreStatusCard
-          setup
-          progress={progress}
-          remainingTasks={remainingSteps}
-        />
       </div>
 
       <section className={styles.assortmentCard}>
@@ -179,8 +177,7 @@ function SetupDashboard({
           loading={creatingProduct}
           onClick={onCreateProduct}
         >
-          <Icon name="plus" size={17} />
-          <span>Добавить товар</span>
+          Добавить товар
         </Button>
       </section>
     </div>
@@ -263,7 +260,7 @@ function WorkingDashboard({
       <div className={styles.mainGrid}>
         <section className={styles.panel}>
           <PanelHeading
-            eyebrow="Рабочий день"
+            eyebrow="Задачи"
             title={tasks.length > 0 ? "Требуют внимания" : "Новых задач нет"}
             icon={tasks.length > 0 ? "bell" : "check-circle"}
           />
@@ -286,7 +283,6 @@ function WorkingDashboard({
           )}
         </section>
 
-        <StoreStatusCard setup={false} progress={100} remainingTasks={0} />
       </div>
 
       <Link
@@ -356,7 +352,6 @@ function TaskRow({ task }: { task: StoreTask }) {
           prefetch={false}
         >
           {task.action}
-          <Icon name="chevron-right" size={15} />
         </Link>
       ) : (
         <span className={styles.taskComplete}>
@@ -365,56 +360,6 @@ function TaskRow({ task }: { task: StoreTask }) {
         </span>
       )}
     </article>
-  );
-}
-
-function StoreStatusCard({
-  setup,
-  progress,
-  remainingTasks,
-}: {
-  setup: boolean;
-  progress: number;
-  remainingTasks: number;
-}) {
-  return (
-    <aside className={styles.storeStatus}>
-      <span className={styles.eyebrow}>Статус магазина</span>
-      <div className={styles.storeStatusTitle}>
-        <span
-          className={`${styles.iconCircle} ${
-            setup ? styles.warningIcon : styles.successIcon
-          }`}
-        >
-          <Icon name={setup ? "clock" : "check-circle"} size={20} />
-        </span>
-        <div>
-          <strong>{setup ? "Подготовка" : "Магазин работает"}</strong>
-          <p>
-            {setup
-              ? `${remainingTasks} ${pluralizeTask(
-                  remainingTasks
-                )} до готовности`
-              : "Можно принимать заказы"}
-          </p>
-        </div>
-      </div>
-      <div className={styles.progressTrack} aria-hidden="true">
-        <span style={{ width: `${progress}%` }} />
-      </div>
-      <div className={styles.progressMeta}>
-        <span>Готовность</span>
-        <strong>{progress}%</strong>
-      </div>
-      <Link
-        href={setup ? "/seller?tab=legal" : "/seller?tab=brand"}
-        className={styles.statusLink}
-        prefetch={false}
-      >
-        {setup ? "Продолжить настройку" : "Открыть витрину"}
-        <Icon name="arrow-up-right" size={16} />
-      </Link>
-    </aside>
   );
 }
 
@@ -453,10 +398,6 @@ function formatMoney(value: number) {
 
 function pluralizeStep(value: number) {
   return pluralize(value, "шаг", "шага", "шагов");
-}
-
-function pluralizeTask(value: number) {
-  return pluralize(value, "задача", "задачи", "задач");
 }
 
 function pluralizeOrder(value: number) {

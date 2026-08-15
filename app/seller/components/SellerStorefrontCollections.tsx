@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 
+import { Button } from "../../components/ui/Button";
 import { Icon } from "../../components/ui/Icon";
 import {
   createSellerStorefrontCollection,
@@ -146,19 +147,22 @@ export function SellerStorefrontCollections({ brandId }: Props) {
   return (
     <section className={styles.section}>
       <div className={styles.header}>
-        <div>
-          <span className={styles.kicker}>Товарные блоки</span>
-          <h2>Подборки на витрине</h2>
-          <p>Объединяйте товары в тематические коллекции на публичной странице.</p>
+        <div className={styles.heading}>
+          <span className={styles.sectionNumber}>03</span>
+          <div>
+            <h2>Подборки товаров</h2>
+            <p>Соберите тематические блоки для публичной страницы.</p>
+          </div>
         </div>
-        <button
+        <Button
           type="button"
+          variant="secondary"
+          className={styles.collectionAction}
           disabled={!editing && collections.length >= 12}
           onClick={() => void toggleEditor()}
         >
-          <Icon name={editing ? "x" : "plus"} size={16} />
-          <span>{editing ? "Закрыть" : "Новая подборка"}</span>
-        </button>
+          {editing ? "Закрыть" : "Новая подборка"}
+        </Button>
       </div>
 
       {error ? <p className={styles.error} role="alert">{error}</p> : null}
@@ -257,14 +261,15 @@ export function SellerStorefrontCollections({ brandId }: Props) {
           </div>
 
           <div className={styles.editorActions}>
-            <button
+            <Button
               type="button"
+              variant="primary"
               className={styles.saveButton}
               disabled={!title.trim() || selectedIds.length === 0 || saving}
               onClick={() => void createCollection()}
             >
               {saving ? "Сохранение…" : "Создать подборку"}
-            </button>
+            </Button>
           </div>
         </div>
       ) : null}

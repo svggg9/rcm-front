@@ -1,79 +1,83 @@
 .section {
+  min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 18px;
-  padding-top: 28px;
-  border-top: 1px solid var(--line);
+  gap: 22px;
 }
 
 .header {
   display: flex;
-  align-items: flex-start;
+  align-items: flex-end;
   justify-content: space-between;
-  gap: 24px;
+  gap: 20px;
 }
 
-.kicker {
-  display: block;
-  margin-bottom: 6px;
-  color: var(--gold);
+.heading {
+  min-width: 0;
+  display: flex;
+  align-items: flex-start;
+  gap: 13px;
+}
+
+.sectionNumber {
+  min-width: 28px;
+  padding-top: 3px;
+  color: var(--gold-deep);
   font-size: 10px;
+  line-height: 1;
+  font-weight: 700;
   letter-spacing: 0.08em;
-  text-transform: uppercase;
 }
 
 .header h2 {
   margin: 0;
-  font-size: var(--font-lg);
-  line-height: 1.25;
+  font-size: 22px;
+  line-height: 1.1;
   font-weight: 500;
+  letter-spacing: -0.025em;
 }
 
 .header p {
-  margin: 5px 0 0;
+  margin: 7px 0 0;
   color: var(--muted);
-  font-size: var(--font-xs);
-  font-weight: 300;
+  font-size: 12px;
+  line-height: 1.4;
 }
 
-.header > button,
-.saveButton {
-  min-height: 40px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 7px;
-  padding: 0 15px;
-  border: 1px solid var(--black);
-  background: var(--black);
-  color: var(--white);
-  font: inherit;
-  font-size: 13px;
-  cursor: pointer;
+.collectionAction {
+  width: auto;
+  min-width: 146px;
+  min-height: 42px;
+  flex: 0 0 auto;
+  padding-inline: 15px;
+  font-size: 12px;
 }
 
 .editor {
-  padding: 20px;
+  padding: 22px;
   background: var(--soft);
 }
 
 .fields {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
+  gap: 14px;
 }
 
 .fields label {
+  min-width: 0;
   display: flex;
   flex-direction: column;
   gap: 7px;
+  color: var(--black);
   font-size: 12px;
 }
 
 .fields input {
-  height: 42px;
+  width: 100%;
+  height: 44px;
   padding: 0 13px;
-  border: 1px solid var(--line);
+  border: 1px solid var(--black);
   border-radius: 0;
   background: var(--white);
   color: var(--black);
@@ -81,17 +85,19 @@
   outline: none;
 }
 
-.fields input:focus {
-  border-color: var(--black);
+.fields input:focus,
+.productSearch input:focus {
+  background: #fafafa;
 }
 
 .productPicker {
-  margin-top: 20px;
+  margin-top: 24px;
 }
 
 .pickerHeading {
   display: flex;
   justify-content: space-between;
+  gap: 16px;
   margin-bottom: 10px;
   font-size: 12px;
 }
@@ -108,48 +114,56 @@
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   gap: 8px;
-  margin-bottom: 10px;
+  margin-bottom: 14px;
 }
 
 .productSearch input {
   min-width: 0;
-  height: 40px;
+  height: 42px;
   padding: 0 12px;
-  border: 0;
-  background: var(--soft);
+  border: 1px solid var(--black);
+  border-radius: 0;
+  background: var(--white);
+  color: var(--black);
+  font: inherit;
+  outline: none;
 }
 
 .productSearch button,
 .loadMore {
-  min-height: 40px;
-  padding: 0 16px;
-  border: 0;
+  min-height: 42px;
+  padding: 0 18px;
+  border: 1px solid var(--black);
+  border-radius: 0;
   background: var(--black);
   color: var(--white);
+  font: inherit;
   font-size: 11px;
+  cursor: pointer;
 }
 
 .loadMore {
   display: block;
-  margin: 12px auto 0;
+  margin: 14px auto 0;
 }
 
 .productSearch button:disabled,
 .loadMore:disabled {
-  opacity: .45;
+  opacity: 0.45;
 }
 
 .productGrid {
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
-  gap: 8px;
+  gap: 10px;
 }
 
 .productGrid > button {
   min-width: 0;
-  padding: 6px;
+  padding: 7px;
   position: relative;
   border: 1px solid transparent;
+  border-radius: 0;
   background: var(--white);
   color: var(--black);
   font: inherit;
@@ -162,11 +176,11 @@
 }
 
 .productImage {
+  width: 100%;
+  aspect-ratio: 4 / 5;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 100%;
-  aspect-ratio: 4 / 5;
   position: relative;
   background: var(--soft);
 }
@@ -178,7 +192,7 @@
 
 .productName {
   display: block;
-  margin-top: 6px;
+  margin-top: 7px;
   overflow: hidden;
   font-size: 11px;
   line-height: 1.25;
@@ -207,37 +221,41 @@
 .editorActions {
   display: flex;
   justify-content: flex-end;
-  margin-top: 16px;
+  margin-top: 18px;
 }
 
-.saveButton:disabled {
-  cursor: default;
-  opacity: 0.42;
+.saveButton {
+  width: auto;
+  min-width: 166px;
+  min-height: 42px;
+  padding-inline: 16px;
+  font-size: 12px;
 }
 
 .collectionList {
   display: grid;
-  gap: 8px;
+  gap: 10px;
 }
 
 .collectionCard {
-  min-height: 104px;
+  min-height: 106px;
   display: grid;
-  grid-template-columns: minmax(160px, 1fr) auto 32px;
+  grid-template-columns: minmax(160px, 1fr) auto 34px;
   align-items: center;
   gap: 18px;
-  padding: 12px 14px;
-  border: 1px solid var(--line);
+  padding: 14px 16px;
+  background: var(--soft);
 }
 
 .collectionCard > div:first-child > span {
-  color: #497351;
+  color: var(--success);
   font-size: 10px;
+  font-weight: 600;
   text-transform: uppercase;
 }
 
 .collectionCard h3 {
-  margin: 5px 0 0;
+  margin: 6px 0 0;
   font-size: 16px;
   font-weight: 500;
 }
@@ -260,8 +278,8 @@
   justify-content: center;
   margin-left: -8px;
   position: relative;
-  border: 2px solid var(--white);
-  background: var(--soft);
+  border: 2px solid var(--soft);
+  background: var(--white);
 }
 
 .collectionProducts > span:first-child {
@@ -269,8 +287,8 @@
 }
 
 .deleteButton {
-  width: 32px;
-  height: 32px;
+  width: 34px;
+  height: 34px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -279,6 +297,11 @@
   background: transparent;
   color: var(--muted);
   cursor: pointer;
+}
+
+.deleteButton:hover {
+  background: var(--white);
+  color: var(--black);
 }
 
 .emptyState,
@@ -293,8 +316,9 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 6px;
-  border: 1px dashed var(--line);
+  gap: 7px;
+  padding: 24px;
+  background: var(--soft);
   text-align: center;
 }
 
@@ -319,16 +343,23 @@
 @media (max-width: 560px) {
   .header,
   .fields {
+    align-items: stretch;
     display: flex;
     flex-direction: column;
   }
 
-  .header > button {
+  .collectionAction {
     width: 100%;
   }
 
-  .fields {
-    gap: 12px;
+  .editor {
+    padding: 16px;
+  }
+
+  .pickerHeading {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 4px;
   }
 
   .productGrid {
@@ -336,7 +367,7 @@
   }
 
   .collectionCard {
-    grid-template-columns: minmax(0, 1fr) 32px;
+    grid-template-columns: minmax(0, 1fr) 34px;
   }
 
   .collectionProducts {

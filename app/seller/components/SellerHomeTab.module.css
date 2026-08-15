@@ -6,6 +6,7 @@
 
 .page {
   gap: 26px;
+  padding-top: 14px;
 }
 
 .dashboard {
@@ -13,18 +14,24 @@
 }
 
 .pageHeader {
-  min-height: 92px;
   display: flex;
-  align-items: flex-end;
+  align-items: center;
   justify-content: space-between;
   gap: 24px;
+}
+
+.titleRow {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
 }
 
 .eyebrow,
 .statusLabel {
   display: block;
   color: var(--muted);
-  font-size: 10px;
+  font-size: var(--seller-font-caption, var(--font-xs));
   line-height: 1.2;
   font-weight: 700;
   letter-spacing: 0.14em;
@@ -32,18 +39,33 @@
 }
 
 .pageHeader h1 {
-  margin: 8px 0 0;
+  margin: 0;
   font-size: clamp(30px, 3vw, 42px);
   line-height: 1;
   font-weight: 450;
   letter-spacing: -0.04em;
 }
 
-.pageHeader p {
-  margin: 10px 0 0;
-  color: var(--muted);
-  font-size: 13px;
-  line-height: 1.35;
+.headerStatus {
+  min-height: 28px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 0 10px;
+  font-size: var(--seller-font-caption, var(--font-xs));
+  line-height: 1;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.headerStatusReady {
+  background: #e6f3eb;
+  color: var(--success);
+}
+
+.headerStatusPending {
+  background: #fff0c9;
+  color: var(--warning);
 }
 
 .addButton {
@@ -88,26 +110,21 @@
   max-width: 690px;
   margin: 10px 0 0;
   color: rgba(255, 255, 255, 0.66);
-  font-size: 13px;
+  font-size: var(--seller-font-body, var(--font-sm));
   line-height: 1.45;
 }
 
 .mainGrid {
   display: grid;
-  grid-template-columns: minmax(0, 1.7fr) minmax(250px, 0.8fr);
+  grid-template-columns: minmax(0, 1fr);
   gap: 18px;
   align-items: stretch;
-}
-
-.panel,
-.storeStatus {
-  border: 1px solid var(--line);
-  background: var(--white);
 }
 
 .panel {
   min-width: 0;
   padding: 22px;
+  background: var(--white);
 }
 
 .panelHeading {
@@ -124,7 +141,7 @@
 
 .panelHeading h2 {
   margin: 6px 0 0;
-  font-size: 20px;
+  font-size: var(--seller-font-section, var(--font-xl));
   line-height: 1.15;
   font-weight: 500;
   letter-spacing: -0.02em;
@@ -193,7 +210,7 @@
 
 .taskCopy strong {
   display: block;
-  font-size: 13px;
+  font-size: var(--seller-font-body, var(--font-sm));
   line-height: 1.3;
   font-weight: 600;
 }
@@ -201,7 +218,7 @@
 .taskCopy p {
   margin: 4px 0 0;
   color: var(--muted);
-  font-size: 11px;
+  font-size: var(--seller-font-caption, var(--font-xs));
   line-height: 1.35;
 }
 
@@ -211,7 +228,7 @@
   gap: 6px;
   flex: 0 0 auto;
   padding-inline: 12px;
-  font-size: 11px;
+  font-size: var(--seller-font-body, var(--font-sm));
   text-decoration: none;
   white-space: nowrap;
 }
@@ -222,37 +239,9 @@
   align-items: center;
   gap: 5px;
   color: var(--success);
-  font-size: 11px;
+  font-size: var(--seller-font-caption, var(--font-xs));
   font-weight: 600;
   white-space: nowrap;
-}
-
-.storeStatus {
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  padding: 22px;
-}
-
-.storeStatusTitle {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-top: 22px;
-}
-
-.storeStatusTitle strong {
-  display: block;
-  font-size: 16px;
-  line-height: 1.2;
-  font-weight: 550;
-}
-
-.storeStatusTitle p {
-  margin: 4px 0 0;
-  color: var(--muted);
-  font-size: 11px;
-  line-height: 1.3;
 }
 
 .iconCircle,
@@ -289,53 +278,12 @@
   color: #e5c779;
 }
 
-.progressTrack {
-  height: 5px;
-  margin-top: 28px;
-  overflow: hidden;
-  background: #ececec;
-}
-
-.progressTrack span {
-  height: 100%;
-  display: block;
-  background: var(--gold);
-  transition: width var(--transition-medium);
-}
-
-.progressMeta {
-  display: flex;
-  justify-content: space-between;
-  margin-top: 8px;
-  color: var(--muted);
-  font-size: 10px;
-}
-
-.progressMeta strong {
-  color: var(--black);
-  font-variant-numeric: tabular-nums;
-}
-
-.statusLink {
-  display: inline-flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  margin-top: auto;
-  padding-top: 24px;
-  color: var(--black);
-  font-size: 12px;
-  font-weight: 600;
-  text-decoration: none;
-}
-
 .assortmentCard {
   min-height: 112px;
   display: flex;
   align-items: center;
   gap: 16px;
   padding: 22px 24px;
-  border: 1px solid var(--line);
   background: #f8f5ef;
 }
 
@@ -346,7 +294,7 @@
 
 .assortmentCopy h2 {
   margin: 6px 0 0;
-  font-size: 18px;
+  font-size: var(--seller-font-section, var(--font-xl));
   line-height: 1.15;
   font-weight: 550;
   letter-spacing: -0.015em;
@@ -356,7 +304,7 @@
   max-width: 680px;
   margin: 6px 0 0;
   color: var(--muted);
-  font-size: 11px;
+  font-size: var(--seller-font-caption, var(--font-xs));
   line-height: 1.4;
 }
 
@@ -364,8 +312,8 @@
   min-height: 78px;
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  border: 1px solid var(--line);
-  background: var(--white);
+  gap: 8px;
+  background: transparent;
 }
 
 .metric {
@@ -374,17 +322,14 @@
   align-items: center;
   gap: 10px;
   padding: 14px 18px;
+  background: var(--soft);
   color: var(--black);
   text-decoration: none;
   transition: background var(--transition-fast);
 }
 
-.metric + .metric {
-  border-left: 1px solid var(--line);
-}
-
 .metric:hover {
-  background: var(--soft);
+  background: #eeeae3;
 }
 
 .metricIcon {
@@ -392,26 +337,18 @@
   height: 34px;
 }
 
-.successMetric {
-  background: #e6f3eb;
-  color: var(--success);
-}
-
-.warningMetric {
-  background: #fff0c9;
-  color: var(--warning);
-}
-
+.successMetric,
+.warningMetric,
 .goldMetric {
-  background: #f3eadc;
-  color: var(--gold-deep);
+  background: var(--white);
+  color: var(--black);
 }
 
 .metricLabel {
   min-width: 0;
   overflow: hidden;
   color: var(--muted);
-  font-size: 11px;
+  font-size: var(--seller-font-body, var(--font-sm));
   line-height: 1.2;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -428,7 +365,7 @@
 
 .metricArrow {
   flex: 0 0 auto;
-  color: #a0a0a0;
+  color: var(--black);
 }
 
 .emptyTasks {
@@ -442,14 +379,14 @@
 
 .emptyTasks strong {
   display: block;
-  font-size: 13px;
+  font-size: var(--seller-font-body, var(--font-sm));
   font-weight: 600;
 }
 
 .emptyTasks p {
   margin: 4px 0 0;
   color: var(--muted);
-  font-size: 11px;
+  font-size: var(--seller-font-caption, var(--font-xs));
 }
 
 .financeCard {
@@ -458,14 +395,18 @@
   align-items: center;
   gap: 28px;
   padding: 18px 22px;
-  background: var(--black);
-  color: var(--white);
+  background: var(--soft);
+  color: var(--black);
   text-decoration: none;
-  transition: opacity var(--transition-fast);
+  transition: background var(--transition-fast);
 }
 
 .financeCard:hover {
-  opacity: 0.9;
+  background: #eaeaea;
+}
+
+.financeCard .goldIcon {
+  background: var(--white);
 }
 
 .financeHeading {
@@ -477,8 +418,8 @@
 
 .financeHeading span:not(.iconCircle) {
   display: block;
-  color: rgba(255, 255, 255, 0.58);
-  font-size: 10px;
+  color: var(--muted);
+  font-size: var(--seller-font-caption, var(--font-xs));
   letter-spacing: 0.12em;
   text-transform: uppercase;
 }
@@ -497,13 +438,13 @@
   align-items: center;
   gap: 22px;
   margin-left: auto;
-  color: rgba(255, 255, 255, 0.62);
-  font-size: 11px;
+  color: var(--muted);
+  font-size: var(--seller-font-caption, var(--font-xs));
   white-space: nowrap;
 }
 
 .financeCard > svg {
-  color: var(--gold);
+  color: var(--gold-deep);
 }
 
 @media (max-width: 1120px) {
@@ -539,21 +480,15 @@
     grid-template-columns: 1fr;
   }
 
-  .storeStatus {
-    min-height: 250px;
-  }
-
   .metrics {
     grid-template-columns: 1fr;
     gap: 8px;
-    border: 0;
     background: transparent;
   }
 
   .metric,
   .metric + .metric {
-    border: 1px solid var(--line);
-    background: var(--white);
+    background: var(--soft);
   }
 
   .assortmentCard {
@@ -598,8 +533,7 @@
     font-size: 22px;
   }
 
-  .panel,
-  .storeStatus {
+  .panel {
     padding: 18px;
   }
 

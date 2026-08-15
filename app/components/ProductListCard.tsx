@@ -26,6 +26,7 @@ type Props = {
   dateLabel?: string | null;
   suggestedCategory?: boolean;
   flushMedia?: boolean;
+  appearance?: "default" | "order-list";
   actions?: ReactNode;
   onOpen: () => void;
   onPrefetch?: () => void;
@@ -45,6 +46,7 @@ export function ProductListCard({
   dateLabel,
   suggestedCategory = false,
   flushMedia = false,
+  appearance = "default",
   actions,
   onOpen,
   onPrefetch,
@@ -86,7 +88,9 @@ export function ProductListCard({
 
   return (
     <article
-      className={`${styles.card} ${flushMedia ? styles.cardFlushMedia : ""}`.trim()}
+      className={`${styles.card} ${flushMedia ? styles.cardFlushMedia : ""} ${
+        appearance === "order-list" ? styles.cardOrderList : ""
+      }`.trim()}
       onMouseEnter={schedulePrefetch}
       onMouseLeave={cancelPrefetch}
     >
@@ -117,10 +121,12 @@ export function ProductListCard({
         </div>
 
         <div className={styles.identity}>
-          <span className={styles.label}>Товар</span>
+          {appearance === "default" ? (
+            <span className={styles.label}>Товар</span>
+          ) : null}
           <strong className={styles.title}>{displayTitle}</strong>
           <span className={styles.meta}>
-            <span>ID {id}</span>
+            {appearance === "default" ? <span>ID {id}</span> : null}
             {brandName ? <span>{brandName}</span> : null}
             {categoryName ? (
               <span className={suggestedCategory ? styles.suggested : undefined}>

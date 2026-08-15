@@ -42,6 +42,41 @@
   margin: -14px 0 -14px -18px;
 }
 
+.cardOrderList .main {
+  min-height: 88px;
+  grid-template-columns:
+    60px
+    minmax(190px, 1.35fr)
+    minmax(260px, 1fr)
+    minmax(130px, 0.72fr)
+    32px;
+  gap: 28px;
+  padding: 10px 22px;
+}
+
+.cardOrderList .media {
+  width: 60px;
+  height: 76px;
+}
+
+.cardOrderList .identity {
+  gap: 5px;
+}
+
+.cardOrderList .label,
+.cardOrderList .fact strong {
+  font-size: var(--seller-font-body, var(--font-sm));
+}
+
+.cardOrderList .meta {
+  font-size: var(--seller-font-caption, var(--font-xs));
+}
+
+.cardOrderList .chevron {
+  width: 32px;
+  height: 32px;
+}
+
 .image {
   object-fit: cover;
 }
@@ -173,6 +208,16 @@
   .facts {
     gap: 12px;
   }
+
+  .cardOrderList .main {
+    grid-template-columns:
+      60px
+      minmax(170px, 1fr)
+      minmax(220px, 1fr)
+      minmax(120px, auto)
+      32px;
+    gap: 18px;
+  }
 }
 
 @container (max-width: 700px) {
@@ -201,6 +246,11 @@
     grid-column: 4;
     grid-row: 1 / span 2;
     align-self: center;
+  }
+
+  .cardOrderList .main {
+    grid-template-columns: 60px minmax(0, 1fr) minmax(125px, auto) 32px;
+    padding: 12px 18px;
   }
 }
 
@@ -287,5 +337,16 @@
   .actions button {
     width: 100%;
     min-width: 0;
+  }
+
+  .cardOrderList .main {
+    grid-template-columns: 60px minmax(0, 1fr) 18px;
+    gap: 12px;
+    padding: 12px;
+  }
+
+  .cardOrderList .media {
+    width: 60px;
+    height: 76px;
   }
 }

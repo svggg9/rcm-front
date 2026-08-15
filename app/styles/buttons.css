@@ -97,7 +97,7 @@
 }
 
 .buttonSecondary {
-  border: 1px solid var(--line);
+  border: 1px solid var(--black);
   background: var(--white);
   color: var(--black);
 }

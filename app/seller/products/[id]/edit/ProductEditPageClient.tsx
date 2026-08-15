@@ -30,7 +30,6 @@ import styles from "./ProductEditPage.module.css";
 
 type Props = {
   productId: number;
-  initialStoreName: string | null;
   initialProduct: SellerProduct;
   initialCategories: Option[];
   initialBrands: Option[];
@@ -114,7 +113,6 @@ function getInitialTitle(product: SellerProduct) {
 
 export function ProductEditPageClient({
   productId,
-  initialStoreName,
   initialProduct,
   initialCategories,
   initialBrands,
@@ -871,19 +869,11 @@ export function ProductEditPageClient({
       : activeProductWithoutModerationChanges
         ? "Для цены, остатков и артикула продавца модерация не нужна"
       : undefined;
-  const storeName =
-    initialStoreName ||
-    brands[0]?.name?.trim() ||
-    product?.brand?.trim() ||
-    null;
-
   return (
     <div className="pageContainer">
       <div className={styles.sellerLayout}>
         <SellerSidebar
           currentTab="products"
-          storeName={storeName}
-          storeNotReady={!isSellerReadyForPublish()}
         />
 
         <div className={styles.editorContent}>

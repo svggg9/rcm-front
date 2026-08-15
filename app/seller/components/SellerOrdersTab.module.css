@@ -9,6 +9,37 @@
   margin-bottom: 24px;
 }
 
+.ordersToolbar :global(button[role="tab"]) {
+  min-height: 42px;
+  padding-inline: 14px;
+  border: 1px solid var(--black);
+  background: var(--white);
+  color: var(--black);
+  font-size: var(--seller-font-body, var(--font-sm));
+  font-weight: 500;
+}
+
+.ordersToolbar :global(button[role="tab"]:hover) {
+  background: var(--soft);
+  color: var(--black);
+}
+
+.ordersToolbar :global(button[role="tab"][aria-selected="true"]),
+.ordersToolbar :global(button[role="tab"][aria-selected="true"]:hover) {
+  background: var(--black);
+  color: var(--white);
+}
+
+.ordersToolbar :global([data-tab-count]) {
+  min-width: 0;
+  height: auto;
+  padding: 0;
+  background: transparent;
+  color: inherit;
+  font-size: var(--seller-font-caption, var(--font-xs));
+  font-weight: 700;
+}
+
 .list {
   display: flex;
   flex-direction: column;

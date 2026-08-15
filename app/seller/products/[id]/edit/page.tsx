@@ -56,13 +56,10 @@ export default async function ProductEditPage({ params }: Props) {
     id: brand.id,
     name: brand.name,
   }));
-  const storeName = sellerBrands[0]?.name?.trim() || null;
-
   return (
     <ProductEditPageClient
       key={productId}
       productId={productId}
-      initialStoreName={storeName}
       initialProduct={productResult.product}
       initialCategories={categories}
       initialBrands={sellerBrands}

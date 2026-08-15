@@ -212,8 +212,6 @@ function SellerPageContent({
   const financeRequestRef = useRef<Promise<SellerFinanceSummary> | null>(null);
   const dashboardRequestRef = useRef<Promise<SellerDashboardSummary> | null>(null);
   const mountedRef = useRef(true);
-  const storeName = initialBrands[0]?.name?.trim() || null;
-
   const {
     get: getOrderDetails,
     prefetch: prefetchOrderDetails,
@@ -226,6 +224,19 @@ function SellerPageContent({
 
     return () => {
       mountedRef.current = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    const previousScrollRestoration = window.history.scrollRestoration;
+    window.history.scrollRestoration = "manual";
+
+    window.requestAnimationFrame(() => {
+      window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+    });
+
+    return () => {
+      window.history.scrollRestoration = previousScrollRestoration;
     };
   }, []);
 
@@ -478,6 +489,9 @@ function SellerPageContent({
     setCurrentTab(nextTab);
     setSelectedOrderId(url.searchParams.get("orderId"));
     setVisitedTabs((current) => addVisitedTab(current, nextTab));
+    window.requestAnimationFrame(() => {
+      window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+    });
   }
 
   function handleSellerNavigation(event: MouseEvent<HTMLDivElement>) {
@@ -602,19 +616,12 @@ function SellerPageContent({
     if (currentTab === "home") setDashboardLoaded(false);
   }
 
-  const storeNotReady = Boolean(
-    onboardingStatus &&
-      (!onboardingStatus.legalCompleted || !onboardingStatus.agreementAccepted)
-  );
-
   return (
     <div className="pageContainer">
       <div className={styles.page}>
         <div className={styles.layout} onClickCapture={handleSellerNavigation}>
           <SellerSidebar
             currentTab={currentTab}
-            storeName={storeName}
-            storeNotReady={storeNotReady}
             productCount={dashboard?.totalProducts}
             orderCount={dashboard?.activeOrders}
           />

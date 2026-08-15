@@ -86,15 +86,18 @@ export function SellerBrandImages({ brandId }: { brandId: number }) {
 
   return (
     <section className={styles.gallerySection}>
-      <div className={styles.sectionHeader}>
-        <h2>Фотографии бренда</h2>
-      </div>
-
-      <div className={styles.galleryTop}>
-        <span>Для страницы бренда, подборок и каруселей. JPEG или WebP до 8 МБ.</span>
+      <div className={styles.sectionHeadingRow}>
+        <div className={styles.sectionHeading}>
+          <span className={styles.sectionNumber}>02</span>
+          <div>
+            <h2>Фотографии бренда</h2>
+            <p>До 8 изображений для страницы бренда и подборок.</p>
+          </div>
+        </div>
         <Button
           type="button"
-          variant="primaryShimmer"
+          variant="secondary"
+          className={styles.galleryAction}
           disabled={uploading || loading || images.length >= 8}
           loading={uploading}
           onClick={() => inputRef.current?.click()}
@@ -110,7 +113,9 @@ export function SellerBrandImages({ brandId }: { brandId: number }) {
         />
       </div>
 
-      {!loading && images.length ? (
+      {loading ? (
+        <div className={styles.galleryEmpty}>Загружаем фотографии…</div>
+      ) : images.length ? (
         <div className={styles.brandImageGrid}>
           {images.map((image, index) => (
             <article className={styles.brandImageCard} key={image.id}>
@@ -151,7 +156,11 @@ export function SellerBrandImages({ brandId }: { brandId: number }) {
             </article>
           ))}
         </div>
-      ) : null}
+      ) : (
+        <div className={styles.galleryEmpty}>
+          Добавьте первое изображение бренда. JPEG или WebP до 8 МБ.
+        </div>
+      )}
     </section>
   );
 }

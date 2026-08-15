@@ -50,6 +50,7 @@ export function CabinetTabs<T extends string>({
 
         {typeof item.count === "number" ? (
           <span
+            data-tab-count
             className={`${styles.count} textMicro ${
               countTone === "gold" ? styles.countGold : ""
             }`.trim()}
