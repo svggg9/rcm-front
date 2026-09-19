@@ -110,7 +110,7 @@ function ProfileTextField({
     .join(" ") || undefined;
 
   return (
-    <label className={styles.fieldWrap}>
+    <label className={styles.fieldWrap} data-ui="field">
       <span className={styles.fieldLabel}>
         {label}
         {required ? <span className={styles.requiredMark}> *</span> : null}
@@ -272,9 +272,6 @@ export function AccountProfileTab({
     birthDate,
     gender,
   });
-  const changed =
-    JSON.stringify(draft) !== JSON.stringify(savedDraft);
-
   function beginEditing() {
     setDraft(savedDraft);
     setProfileErrors({});
@@ -540,7 +537,6 @@ export function AccountProfileTab({
               type="submit"
               variant="primary"
               loading={saving}
-              disabled={!changed}
             >
               Сохранить
             </Button>

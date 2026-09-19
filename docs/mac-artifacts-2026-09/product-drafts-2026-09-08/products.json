@@ -1,0 +1,127 @@
+{
+  "version": 1,
+  "status": "approved_and_imported",
+  "purpose": "test_catalog_on_user_confirmed_server_66.151.35.76",
+  "currency": "RUB",
+  "notes": [
+    "Загружено в rcmarket на 66.151.35.76 после подтверждения пользователя; квитанция — import-receipt.json",
+    "Бренды и модели — из имён файлов, подлинность не проверялась",
+    "Все цены и остатки условные, только для тестирования",
+    "Состав, размеры, страна производства и эксплуатационные характеристики не заполнены",
+    "Иностранные бренды не следует представлять как российские"
+  ],
+  "products": [
+    {
+      "draftId": "demo-cap-motorin",
+      "brand": "Zegna",
+      "title": "Бейсболка Motorin",
+      "category": "Аксессуары",
+      "description": "Бейсболка с изогнутым козырьком и лаконичной вышивкой спереди. Два варианта цвета: бежевый и горчичный.",
+      "testPriceRub": 5900,
+      "variants": [
+        {
+          "color": "Бежевый",
+          "testStock": 8,
+          "images": [
+            "/Users/admin/Downloads/Товары/Zegna  бейсболка Motorin1.webp",
+            "/Users/admin/Downloads/Товары/Zegna  бейсболка Motorin2.webp",
+            "/Users/admin/Downloads/Товары/Zegna  бейсболка Motorin3.webp"
+          ]
+        },
+        {
+          "color": "Горчичный",
+          "testStock": 6,
+          "images": [
+            "/Users/admin/Downloads/Товары/Zegna  бейсболка Motorin другой цвет1.webp",
+            "/Users/admin/Downloads/Товары/Zegna  бейсболка Motorin другой цвет2.webp",
+            "/Users/admin/Downloads/Товары/Zegna  бейсболка Motorin другой цвет3.webp"
+          ]
+        }
+      ]
+    },
+    {
+      "draftId": "demo-goggles-cassidy",
+      "brand": "Chloé Eyewear",
+      "title": "Лыжная маска Cassidy",
+      "category": "Спорт",
+      "description": "Маска с розовой линзой, светлой оправой и контрастным красным ремешком. Коллаборация с Fusalp указана в названии исходных файлов.",
+      "testPriceRub": 12900,
+      "variants": [
+        {
+          "color": "Розовый / красный",
+          "testStock": 4,
+          "images": [
+            "/Users/admin/Downloads/Товары/Chloé Eyewear  лыжная маска из коллаборации с Fusalp Cassidy1.webp",
+            "/Users/admin/Downloads/Товары/Chloé Eyewear  лыжная маска из коллаборации с Fusalp Cassidy2.webp",
+            "/Users/admin/Downloads/Товары/Chloé Eyewear  лыжная маска из коллаборации с Fusalp Cassidy3.webp"
+          ]
+        }
+      ]
+    },
+    {
+      "draftId": "demo-bracelet",
+      "brand": "Emanuele Bicocchi",
+      "title": "Цепочный браслет с фигурными звеньями",
+      "category": "Аксессуары",
+      "description": "Браслет серебристого цвета с фигурными звеньями и застёжкой. В галерее — предметный снимок и фото на руке.",
+      "testPriceRub": 6900,
+      "variants": [
+        {
+          "color": "Серебристый",
+          "testStock": 6,
+          "images": [
+            "/Users/admin/Downloads/Товары/Emanuele Bicocchi  цепочный браслет1.webp",
+            "/Users/admin/Downloads/Товары/Emanuele Bicocchi  цепочный браслет2.webp"
+          ]
+        }
+      ]
+    },
+    {
+      "draftId": "demo-belt-cassandre",
+      "brand": "Saint Laurent",
+      "title": "Ремень Cassandre Vadim",
+      "category": "Аксессуары",
+      "description": "Чёрный ремень с прямоугольной пряжкой золотистого цвета и монограммой. В галерее — общий вид и крупный план пряжки.",
+      "testPriceRub": 7900,
+      "variants": [
+        {
+          "color": "Чёрный",
+          "testStock": 7,
+          "images": [
+            "/Users/admin/Downloads/Товары/Saint Laurent  двусторонний ремень Cassandre Vadim1.webp",
+            "/Users/admin/Downloads/Товары/Saint Laurent  двусторонний ремень Cassandre Vadim2.webp"
+          ]
+        }
+      ]
+    },
+    {
+      "draftId": "demo-watch-saturn",
+      "brand": "Swatch × Omega",
+      "title": "MoonSwatch Mission to Saturn, 42 мм",
+      "category": "Аксессуары",
+      "description": "Часы с круглым светлым корпусом, светлым циферблатом и коричневым ремешком. Название модели и диаметр взяты из имени файла.",
+      "testPriceRub": 15900,
+      "variants": [
+        {
+          "color": "Бежевый / коричневый",
+          "testStock": 3,
+          "images": [
+            "/Users/admin/Downloads/Товары/Swatch  наручные часы Moonswatch Mission to Saturn 42 мм из коллаборации с Omega1.webp",
+            "/Users/admin/Downloads/Товары/Swatch  наручные часы Moonswatch Mission to Saturn 42 мм из коллаборации с Omega2 доступно в 1 размере.webp"
+          ]
+        }
+      ]
+    }
+  ],
+  "excludedDuplicates": [
+    "/Users/admin/Downloads/Товары/37455112_70262605_1000.webp"
+  ],
+  "qualityWarnings": [
+    {
+      "files": [
+        "/Users/admin/Downloads/Товары/Swatch  наручные часы Moonswatch Mission to Saturn 42 мм из коллаборации с Omega2 доступно в 1 размере.webp"
+      ],
+      "message": "300×400: только дополнительный снимок, не обложка"
+    }
+  ]
+}

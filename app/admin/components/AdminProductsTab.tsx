@@ -4,7 +4,8 @@ import { useState } from "react";
 
 import { ProductListCard } from "../../components/ProductListCard";
 import { Button } from "../../components/ui/Button";
-import { CabinetTabs, type CabinetTabItem } from "../../components/ui/CabinetTabs";
+import { CabinetPanel } from "../../components/ui/CabinetPanel";
+import type { CabinetTabItem } from "../../components/ui/CabinetTabs";
 import { EmptyState } from "../../components/ui/EmptyState";
 import { ListLoadMore } from "../../components/ui/ListLoadMore";
 import {
@@ -98,17 +99,12 @@ export function AdminProductsTab({
   }
 
   return (
-    <section className={styles.page}>
-      <div className={styles.toolbar}>
-        <CabinetTabs
-          items={statusTabs}
-          value={status}
-          onChange={onStatusChange}
-          ariaLabel="Фильтр товаров по статусу"
-          countTone="gold"
-          appearance="segmented"
-        />
-
+    <CabinetPanel
+      items={statusTabs}
+      value={status}
+      onChange={onStatusChange}
+      ariaLabel="Фильтр товаров по статусу"
+      actions={
         <Button
           type="button"
           variant="secondary"
@@ -118,8 +114,8 @@ export function AdminProductsTab({
         >
           Обновить
         </Button>
-      </div>
-
+      }
+    >
       {products.length === 0 ? (
         statusCounts.ALL === 0 ? (
           <EmptyState
@@ -223,6 +219,6 @@ export function AdminProductsTab({
           />
         </>
       )}
-    </section>
+    </CabinetPanel>
   );
 }

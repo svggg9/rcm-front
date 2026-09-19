@@ -1,10 +1,5 @@
-.page,
 .panel {
   min-width: 0;
-}
-
-.tabs {
-  margin-bottom: 20px;
 }
 
 .createForm {

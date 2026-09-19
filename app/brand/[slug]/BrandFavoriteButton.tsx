@@ -1,25 +1,20 @@
 "use client";
 
-import Image from "next/image";
 import { toast } from "sonner";
+import { LikeButton } from "../../components/ui/LikeButton";
 
 import {
   type FavoriteBrand,
   useFavoriteBrands,
 } from "../../lib/favoriteBrands";
 
-import styles from "./BrandPage.module.css";
-
 export function BrandFavoriteButton({ brand }: { brand: FavoriteBrand }) {
   const { isFavorite, loading, toggle } = useFavoriteBrands();
   const active = isFavorite(brand.id);
 
   return (
-    <button
-      type="button"
-      className={`${styles.favoriteButton} ${
-        active ? styles.favoriteButtonActive : ""
-      }`}
+    <LikeButton
+      liked={active}
       onClick={async () => {
         try {
           await toggle(brand);
@@ -32,18 +27,9 @@ export function BrandFavoriteButton({ brand }: { brand: FavoriteBrand }) {
         }
       }}
       disabled={loading}
-      aria-pressed={active}
       aria-label={
         active ? "Убрать бренд из сохранённых" : "Сохранить бренд"
       }
-    >
-      <Image
-        src={active ? "/icons/like-filled.svg" : "/icons/like.svg"}
-        alt=""
-        width={22}
-        height={22}
-        aria-hidden="true"
-      />
-    </button>
+    />
   );
 }

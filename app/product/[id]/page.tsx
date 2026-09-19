@@ -60,21 +60,21 @@ export async function generateMetadata({
 
   if (!product) {
     return {
-      title: "Товар не найден | RCM",
+      title: "Товар не найден | рцмаркет",
       description: "Товар не найден.",
     };
   }
 
   const title = product.brand
-    ? `${product.brand} ${product.title} | RCM`
-    : `${product.title} | RCM`;
+    ? `${product.brand} ${product.title} | рцмаркет`
+    : `${product.title} | рцмаркет`;
   const canonicalPath = productPath(product);
 
   return {
     title,
     description:
       product.description ||
-      `Купить ${product.title} на RCM Marketplace.`,
+      `Купить ${product.title} на рцмаркет.`,
     alternates: {
       canonical: canonicalPath,
     },
@@ -82,7 +82,7 @@ export async function generateMetadata({
       title,
       description:
         product.description ||
-        `Купить ${product.title} на RCM Marketplace.`,
+        `Купить ${product.title} на рцмаркет.`,
       type: "website",
       url: canonicalPath,
       images: product.images?.[0] ? [{ url: product.images[0] }] : undefined,

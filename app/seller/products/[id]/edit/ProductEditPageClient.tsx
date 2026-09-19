@@ -6,7 +6,8 @@ import { useEffect, useRef, useState } from "react";
 
 import { apiFetch, API_URL } from "../../../../lib/api";
 import { Button } from "../../../../components/ui/Button";
-import { StatusBadge } from "../../../../components/ui/StatusBadge";
+import { Dialog } from "../../../../components/ui/Dialog";
+import { Icon } from "../../../../components/ui/Icon";
 import {
   scrollToFirstValidationError as scrollToFirstValidationErrorShared,
 } from "../../../../lib/formValidation";
@@ -15,12 +16,12 @@ import { ProductGeneralCard } from "./components/ProductGeneralCard";
 import { ProductVariantsCard } from "./components/ProductVariantsCard";
 import { ProductShippingCard } from "./components/ProductShippingCard";
 import { ProductPreviewAside } from "./components/ProductPreviewAside";
-import { SellerSidebar } from "../../../components/SellerSidebar";
+import { EditorSurface } from "../../../../components/ui/EditorSurface";
 import {
   getSellerOnboardingStatus,
   type SellerOnboardingStatus,
 } from "../../../lib/sellerOnboardingApi";
-import { toast } from "sonner";
+import { toast as globalToast, type ExternalToast } from "sonner";
 
 import type {
   Audience,
@@ -29,13 +30,15 @@ import type {
   ProductVariant,
   SellerProduct,
 } from "./types";
-import {
-  formatProductStatus,
-  getProductStatusTone,
-  numberOrNull,
-} from "./utils";
+import { numberOrNull } from "./utils";
 
 import styles from "./ProductEditPage.module.css";
+
+const toast = {
+  error: (message: string, options?: ExternalToast) => globalToast.error(message, { ...options, toasterId: "product-editor" }),
+  success: (message: string, options?: ExternalToast) => globalToast.success(message, { ...options, toasterId: "product-editor" }),
+  info: (message: string, options?: ExternalToast) => globalToast.info(message, { ...options, toasterId: "product-editor" }),
+};
 
 const MODAL_FOCUSABLE_SELECTOR = [
   'a[href]',
@@ -47,6 +50,7 @@ const MODAL_FOCUSABLE_SELECTOR = [
 ].join(", ");
 
 type Props = {
+  intercepted?: boolean;
   productId: number;
   initialProduct: SellerProduct;
   initialCategories: Option[];
@@ -130,6 +134,7 @@ function getInitialTitle(product: SellerProduct) {
 }
 
 export function ProductEditPageClient({
+  intercepted = false,
   productId,
   initialProduct,
   initialCategories,
@@ -137,6 +142,8 @@ export function ProductEditPageClient({
 }: Props) {
   const router = useRouter();
   const [dirty, setDirty] = useState(false);
+  const saveRequestRef = useRef(false);
+  const publishRequestRef = useRef(false);
 
   const [product, setProduct] = useState<SellerProduct | null>(initialProduct);
   const [categories, setCategories] = useState<Option[]>(initialCategories);
@@ -186,11 +193,14 @@ export function ProductEditPageClient({
   const [uploading, setUploading] = useState(false);
   const [reordering, setReordering] = useState(false);
   const [publishing, setPublishing] = useState(false);
-  const [publishSucceeded, setPublishSucceeded] = useState(false);
+  const [, setPublishSucceeded] = useState(false);
   const [publishSuccessOpen, setPublishSuccessOpen] = useState(false);
   const [creatingNextProduct, setCreatingNextProduct] = useState(false);
   const [archiving, setArchiving] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [confirmation, setConfirmation] = useState<"archive" | "delete" | null>(null);
+  const [confirmationError, setConfirmationError] = useState<string | null>(null);
+  const confirmationPending = useRef(false);
   const [mediaActionPending, setMediaActionPending] = useState(false);
   const [onboardingStatus, setOnboardingStatus] =
     useState<SellerOnboardingStatus | null>(null);
@@ -522,48 +532,33 @@ export function ProductEditPageClient({
   };
   }
 
-  async function saveProduct() {
+  async function saveProduct(forModeration = false): Promise<boolean> {
     if (
+      saveRequestRef.current ||
+      (publishRequestRef.current && !forModeration) ||
       saving ||
-      publishing ||
+      (publishing && !forModeration) ||
       archiving ||
       deleting ||
       uploading ||
       reordering ||
-      !dirty
-    ) return;
+      mediaActionPending
+    ) return false;
 
     if (!canEditProductOperations(product?.status)) {
       toast.error(getProductEditUnavailableReason(product?.status));
-      return;
+      return false;
     }
 
-    const validation = validateProduct();
-
-    if (!validation.valid) {
-      scrollToFirstValidationError();
-      return failValidation(validation.message ?? "Заполните обязательные поля");
-    }
-
-    if (!variants.length) {
-      return failValidation("Добавьте хотя бы один размер");
-    }
-
-    for (const variant of variants) {
-      if (variant.price <= 0) return failValidation("Цена варианта должна быть больше 0");
-
-      if (variant.availableQuantity !== null && variant.availableQuantity < 0) {
-        return failValidation("Количество не может быть меньше 0");
-      }
-    }
-
+    setValidationErrors({});
+    saveRequestRef.current = true;
     setSaveSucceeded(false);
     setSaving(true);
     const saveRevision = editRevisionRef.current;
 
     try {
       const variantsToSave = await resolveVariantsForSave();
-      if (editRevisionRef.current !== saveRevision) return;
+      if (editRevisionRef.current !== saveRevision) return false;
 
       const response = await apiFetch(`${API_URL}/api/seller/products/${productId}`, {
         method: "PUT",
@@ -603,12 +598,18 @@ export function ProductEditPageClient({
       const stateReloaded = await reloadProductState(saveRevision);
       if (stateReloaded && editRevisionRef.current === saveRevision) {
         setDirty(false);
-        setSaveSucceeded(true);
-        window.setTimeout(() => setSaveSucceeded(false), 1200);
+        if (!forModeration) {
+          setSaveSucceeded(true);
+          window.setTimeout(() => setSaveSucceeded(false), 1200);
+        }
+        return true;
       }
+      return false;
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Не удалось сохранить товар");
+      return false;
     } finally {
+      saveRequestRef.current = false;
       setSaving(false);
     }
   }
@@ -825,21 +826,19 @@ export function ProductEditPageClient({
 
   async function publishProduct() {
     if (
+      publishRequestRef.current ||
+      saveRequestRef.current ||
       publishing ||
       saving ||
       uploading ||
       reordering ||
       archiving ||
-      deleting
+      deleting ||
+      mediaActionPending
     ) return;
 
     if (!product || !isProductStatusPublishable(product.status)) {
       toast.info(getPublishUnavailableReason(product?.status));
-      return;
-    }
-
-    if (dirty) {
-      toast.error("Сначала сохрани изменения");
       return;
     }
 
@@ -880,10 +879,12 @@ export function ProductEditPageClient({
       document.activeElement instanceof HTMLElement
         ? document.activeElement
         : null;
+    publishRequestRef.current = true;
     setPublishSucceeded(false);
     setPublishing(true);
 
     try {
+      if (dirty && !(await saveProduct(true))) return;
       const response = await apiFetch(`${API_URL}/api/seller/products/${productId}/publish`, {
         method: "POST",
       });
@@ -909,6 +910,7 @@ export function ProductEditPageClient({
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Не удалось опубликовать товар");
     } finally {
+      publishRequestRef.current = false;
       setPublishing(false);
     }
   }
@@ -1001,7 +1003,7 @@ export function ProductEditPageClient({
     markDirty();
   }
 
-  async function archiveProduct() {
+  async function archiveProduct(confirmed = false) {
     if (
       archiving ||
       publishing ||
@@ -1018,13 +1020,14 @@ export function ProductEditPageClient({
       return;
     }
 
-    const confirmed = window.confirm(
-      product?.status === "ACTIVE"
-        ? "Снять товар с витрины? Он исчезнет из каталога и останется доступен в архиве."
-        : "Перенести товар в архив? Данные сохранятся, товар можно будет вернуть в черновики."
-    );
-
-    if (!confirmed) return;
+    if (!confirmed) {
+      setConfirmationError(null);
+      setConfirmation("archive");
+      return;
+    }
+    if (confirmationPending.current) return;
+    confirmationPending.current = true;
+    setConfirmationError(null);
 
     setArchiving(true);
 
@@ -1047,9 +1050,11 @@ export function ProductEditPageClient({
           : current
       );
       toast.success("Товар перемещён в архив");
+      setConfirmation(null);
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Не удалось переместить товар в архив");
+      setConfirmationError(e instanceof Error ? e.message : "Не удалось переместить товар в архив");
     } finally {
+      confirmationPending.current = false;
       setArchiving(false);
     }
   }
@@ -1088,7 +1093,7 @@ export function ProductEditPageClient({
     }
   }
 
-  async function deleteProduct() {
+  async function deleteProduct(confirmed = false) {
     if (
       deleting ||
       publishing ||
@@ -1100,11 +1105,14 @@ export function ProductEditPageClient({
       !canDeleteProduct(product.status)
     ) return;
 
-    const confirmed = window.confirm(
-      "Удалить товар? Он исчезнет из кабинета, восстановить его через интерфейс не получится."
-    );
-
-    if (!confirmed) return;
+    if (!confirmed) {
+      setConfirmationError(null);
+      setConfirmation("delete");
+      return;
+    }
+    if (confirmationPending.current) return;
+    confirmationPending.current = true;
+    setConfirmationError(null);
 
     setDeleting(true);
 
@@ -1122,9 +1130,10 @@ export function ProductEditPageClient({
       toast.success("Товар удалён");
       router.push("/seller?tab=products");
     } catch (error) {
-      toast.error(
+      setConfirmationError(
         error instanceof Error ? error.message : "Не удалось удалить товар"
       );
+      confirmationPending.current = false;
       setDeleting(false);
     }
   }
@@ -1133,7 +1142,6 @@ export function ProductEditPageClient({
     toast.error(message);
   }
 
-  const canPublish = Boolean(product && isProductStatusPublishable(product.status));
   const productMutationBusy =
     saving ||
     uploading ||
@@ -1156,91 +1164,21 @@ export function ProductEditPageClient({
     (!onboardingStatus.legalCompleted || !onboardingStatus.agreementAccepted);
   const onboardingStatusPending = onboardingStatus === null;
 
-  const publishBlockedReason = !canPublish
-    ? getPublishUnavailableReason(product?.status)
-    : onboardingError
-      ? "Не удалось проверить готовность магазина"
-      : onboardingStatusPending
-        ? "Проверяем готовность магазина"
-        : onboardingRequirementsPending
-          ? "Заполните реквизиты и примите оферту продавца"
-          : undefined;
   return (
-    <div className="pageContainer">
+    <EditorSurface title={<span className={!title.trim() ? styles.titlePlaceholder : undefined}>{title.trim() || "Название товара"}</span>}
+      toastId="product-editor"
+      dirty={dirty} busy={productMutationBusy || creatingNextProduct}
+      onClose={() => { if (intercepted) router.back(); else router.replace("/seller?tab=products"); }}
+      actions={<>
+        <Button onClick={() => void saveProduct()} disabled={productMutationBusy || saveSucceeded || !operationalEditingAllowed} loading={saving} success={saveSucceeded} variant="secondary">Сохранить</Button>
+        <Button onClick={() => void publishProduct()} disabled={productMutationBusy} loading={publishing} variant="primary">Отправить на модерацию</Button>
+      </>}>
+    <div className={styles.panelContent}>
       <div className={styles.sellerLayout}>
-        <SellerSidebar
-          currentTab="products"
-        />
 
         <div className={styles.editorContent}>
       <div className={styles.page}>
         <div className={styles.pageContent} ref={pageContentRef} tabIndex={-1}>
-          <nav className={`${styles.breadcrumbs} textCaption`} aria-label="Навигация">
-            <Link href="/seller">Кабинет продавца</Link>
-            <span>/</span>
-            <Link href="/seller?tab=products">Товары</Link>
-            <span>/</span>
-            <span>Редактирование товара</span>
-          </nav>
-
-        {product ? (
-          <section className={styles.productStatusBar} aria-label="Статус товара">
-            <div className={styles.productStatusCopy}>
-              <span className={styles.productStatusLabel}>Текущий статус</span>
-              <div className={styles.productStatusTitle}>
-                <StatusBadge
-                  tone={getProductStatusTone(product.status)}
-                  size="regular"
-                >
-                  {formatProductStatus(product.status)}
-                </StatusBadge>
-                <span>{getProductStatusDescription(product.status)}</span>
-              </div>
-            </div>
-
-            {product.status !== "BLOCKED" ? (
-            <div className={styles.productStatusActions}>
-              {product.status === "ARCHIVED" ? (
-                <Button
-                  type="button"
-                  variant="secondary"
-                  loading={archiving}
-                  disabled={productMutationBusy && !archiving}
-                  onClick={() => void moveProductToDraft()}
-                >
-                  Вернуть в черновик
-                </Button>
-              ) : (
-                <Button
-                  type="button"
-                  variant="secondary"
-                  loading={archiving}
-                  disabled={productMutationBusy && !archiving}
-                  onClick={() => void archiveProduct()}
-                >
-                  {product.status === "ACTIVE"
-                    ? "Снять с витрины"
-                    : product.status === "MODERATION"
-                      ? "Отозвать в архив"
-                      : "Перенести в архив"}
-                </Button>
-              )}
-
-              {canDeleteProduct(product.status) ? (
-                <Button
-                  type="button"
-                  variant="danger"
-                  loading={deleting}
-                  disabled={productMutationBusy && !deleting}
-                  onClick={() => void deleteProduct()}
-                >
-                  Удалить товар
-                </Button>
-              ) : null}
-            </div>
-            ) : null}
-          </section>
-        ) : null}
 
         {onboardingError ? (
           <div className={styles.onboardingWarning}>
@@ -1264,14 +1202,14 @@ export function ProductEditPageClient({
               Заполните юридические данные и примите оферту продавца, чтобы отправлять
               товары на модерацию.
             </p>
-            <a href="/seller?tab=legal">Перейти к реквизитам</a>
+            <Link href="/seller?tab=legal">Перейти к реквизитам</Link>
           </div>
         ) : null}
 
         {product?.status === "NEEDS_REVISION" && product.moderationComment ? (
           <div className={styles.revisionBox}>
             <strong>Товар вернули на доработку</strong>
-            <p>{product.moderationComment}</p>
+            <p>{withoutTrailingPeriod(product.moderationComment)}</p>
           </div>
         ) : null}
 
@@ -1329,28 +1267,12 @@ export function ProductEditPageClient({
 
             <ProductVariantsCard
               variants={variants}
-              invalidImages={validationErrors.images}
-              uploadProgress={uploadProgress}
-              images={images}
-              uploading={uploading}
-              reordering={reordering}
-              mediaDisabled={productMutationBusy || !contentEditingAllowed}
               variantStructureDisabled={contentControlsDisabled}
               operationalDisabled={operationalControlsDisabled}
-              mediaDisabledHint={mediaDisabledHint}
-              dragImageId={dragImageId}
               validationErrors={validationErrors.variants ?? {}}
               onUpdateVariant={updateVariant}
               onAddVariant={addVariant}
               onRemoveVariant={removeVariant}
-              onFilesChange={setSelectedFiles}
-              onUploadImages={(files, colorwayId) =>
-                void uploadImages(files, colorwayId)
-              }
-              onDragImageStart={setDragImageId}
-              onDragImageEnd={() => setDragImageId(null)}
-              onMoveImage={(imageId) => moveImage(imageId)}
-              onDeleteImage={(imageId) => void deleteImage(imageId)}
             />
 
             <fieldset
@@ -1386,57 +1308,21 @@ export function ProductEditPageClient({
               />
             </fieldset>
 
-            <div className={styles.formActions}>
-              <Button
-                type="button"
-                onClick={() => void saveProduct()}
-                disabled={
-                  productMutationBusy ||
-                  saveSucceeded ||
-                  !dirty ||
-                  !operationalEditingAllowed
-                }
-                loading={saving}
-                success={saveSucceeded}
-                variant="primary"
-                className={`${styles.primaryBtn} buttonPrimary textButton`}
-              >
-                Сохранить
-              </Button>
+            {onboardingStatusPending ? (
+              <div className={styles.publishRequirementHint} role="status">
+                Проверяем готовность магазина…
+              </div>
+            ) : onboardingRequirementsPending ? (
+              <div className={styles.publishRequirementHint}>
+                Для публикации сначала заполните реквизиты и примите оферту.{" "}
+                <Link href="/seller?tab=legal">Перейти к реквизитам</Link>
+              </div>
+            ) : onboardingError ? (
+              <div className={styles.publishRequirementHint}>
+                Не удалось проверить готовность магазина. Нажмите «Повторить» выше.
+              </div>
+            ) : null}
 
-              <Button
-                type="button"
-                onClick={() => void publishProduct()}
-                disabled={productMutationBusy || publishSucceeded || dirty || !canPublish}
-                loading={publishing}
-                success={publishSucceeded}
-                variant="primary"
-                className={`${styles.primaryBtn} buttonPrimary textButton`}
-                title={
-                  dirty
-                    ? "Сначала сохраните изменения"
-                    : publishBlockedReason
-                }
-              >
-                Отправить на публикацию
-              </Button>
-
-              {onboardingStatusPending ? (
-                <div className={styles.publishRequirementHint} role="status">
-                  Проверяем готовность магазина…
-                </div>
-              ) : onboardingRequirementsPending ? (
-                <div className={styles.publishRequirementHint}>
-                  Для публикации сначала заполните реквизиты и примите оферту.{" "}
-                  <Link href="/seller?tab=legal">Перейти к реквизитам</Link>
-                </div>
-              ) : onboardingError ? (
-                <div className={styles.publishRequirementHint}>
-                  Не удалось проверить готовность магазина. Нажмите «Повторить» выше.
-                </div>
-              ) : null}
-
-            </div>
           </main>
 
             <ProductPreviewAside
@@ -1444,7 +1330,57 @@ export function ProductEditPageClient({
             brandId={brandId}
             brands={brands}
             product={product}
-            images={images}
+            photoEditor={{
+              images, invalidImages: validationErrors.images, uploadProgress, uploading, reordering,
+              mediaDisabled: productMutationBusy || !contentEditingAllowed, mediaDisabledHint, dragImageId,
+              onFilesChange: setSelectedFiles,
+              onUploadImages: (files, colorwayId) => void uploadImages(files, colorwayId),
+              onDragImageStart: setDragImageId, onDragImageEnd: () => setDragImageId(null),
+              onMoveImage: moveImage, onDeleteImage: deleteImage, onMoveImageByIndex: moveImageByIndex,
+            }}
+            actions={
+              product && product.status !== "BLOCKED" ? (
+                <>
+                  {product.status === "ARCHIVED" ? (
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      loading={archiving}
+                      disabled={productMutationBusy && !archiving}
+                      onClick={() => void moveProductToDraft()}
+                    >
+                      Вернуть в черновик
+                    </Button>
+                  ) : (
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      loading={archiving}
+                      disabled={productMutationBusy && !archiving}
+                      onClick={() => void archiveProduct()}
+                    >
+                      {product.status === "ACTIVE"
+                        ? "Снять с витрины"
+                        : product.status === "MODERATION"
+                          ? "Отозвать в архив"
+                          : "Перенести в архив"}
+                    </Button>
+                  )}
+
+                  {canDeleteProduct(product.status) ? (
+                    <Button
+                      type="button"
+                      variant="danger"
+                      loading={deleting}
+                      disabled={productMutationBusy && !deleting}
+                      onClick={() => void deleteProduct()}
+                    >
+                      Удалить товар
+                    </Button>
+                  ) : null}
+                </>
+              ) : null
+            }
             />
             </div>
         </div>
@@ -1452,8 +1388,33 @@ export function ProductEditPageClient({
         </div>
       </div>
 
+      {confirmation ? (
+        <Dialog title={confirmation === "delete" ? "Удалить товар?" : product?.status === "ACTIVE" ? "Снять товар с витрины?" : "Перенести товар в архив?"}
+          busy={archiving || deleting} onClose={() => setConfirmation(null)}
+          actions={<>
+            <Button variant="secondary" disabled={archiving || deleting} onClick={() => setConfirmation(null)}>Отмена</Button>
+            <Button variant="primary" loading={archiving || deleting}
+              onClick={() => void (confirmation === "delete" ? deleteProduct(true) : archiveProduct(true))}>
+              {confirmation === "delete" ? "Удалить товар" : product?.status === "ACTIVE" ? "Снять с витрины" : "Перенести в архив"}
+            </Button>
+          </>}>
+          <p>{confirmation === "delete"
+            ? "Товар исчезнет из кабинета, восстановить его через интерфейс не получится"
+            : "Товар исчезнет из каталога, но его данные сохранятся в архиве. Позже его можно вернуть в черновики"}</p>
+          {confirmationError ? <div className="alertDanger" role="alert">{confirmationError}</div> : null}
+        </Dialog>
+      ) : null}
+
       {publishSuccessOpen ? (
-        <div className="modalOverlay" role="presentation">
+        <div
+          className="modalOverlay"
+          role="presentation"
+          onMouseDown={(event) => {
+            if (event.currentTarget === event.target) {
+              setPublishSuccessOpen(false);
+            }
+          }}
+        >
           <div
             ref={publishSuccessDialogRef}
             className={`modal ${styles.publishSuccessModal}`}
@@ -1464,7 +1425,7 @@ export function ProductEditPageClient({
           >
             <div className="modalHeader">
               <div>
-                <div className={styles.publishSuccessKicker}>Готово</div>
+                <Icon name="check-circle" className={styles.publishSuccessIcon} />
                 <h2 className="modalTitle" id="product-publish-success-title">
                   Товар отправлен на модерацию
                 </h2>
@@ -1477,14 +1438,14 @@ export function ProductEditPageClient({
                 onClick={() => setPublishSuccessOpen(false)}
                 aria-label="Закрыть"
               >
-                ×
+                <Icon name="x" />
               </button>
             </div>
 
             <div className="modalBody">
               <p className={styles.publishSuccessText}>
                 Карточка получила статус «На модерации». Пока мы её проверяем,
-                можно добавить следующий товар.
+                можно добавить следующий товар
               </p>
               <Link
                 href={`/seller/products/${productId}/preview`}
@@ -1500,14 +1461,14 @@ export function ProductEditPageClient({
             </div>
 
             <div className="modalFooter">
-              <button
+              <Button
                 type="button"
-                className="buttonSecondary"
+                variant="secondary"
                 disabled={creatingNextProduct}
                 onClick={() => router.push("/seller?tab=products")}
               >
                 К товарам
-              </button>
+              </Button>
               <Button
                 type="button"
                 variant="primary"
@@ -1521,24 +1482,12 @@ export function ProductEditPageClient({
         </div>
       ) : null}
     </div>
+    </EditorSurface>
   );
 }
 
-function getProductStatusDescription(status: SellerProduct["status"]) {
-  switch (status) {
-    case "ACTIVE":
-      return "Товар на витрине. Здесь можно менять цену, артикул и остатки; для правок карточки сначала снимите его с витрины.";
-    case "MODERATION":
-      return "Карточка проверяется и временно недоступна для редактирования.";
-    case "NEEDS_REVISION":
-      return "Исправьте замечания и отправьте карточку повторно.";
-    case "ARCHIVED":
-      return "Товар скрыт с витрины, его данные сохранены.";
-    case "BLOCKED":
-      return "Товар заблокирован администратором.";
-    default:
-      return "Черновик виден только вам.";
-  }
+function withoutTrailingPeriod(value: string) {
+  return value.trim().replace(/\.\s*$/, "");
 }
 
 function canDeleteProduct(status: SellerProduct["status"]) {

@@ -5,11 +5,32 @@
   background: var(--white);
   color: var(--black);
   cursor: pointer;
-  transition: border-color var(--transition-fast);
+  transition: border-color var(--transition-fast), background-color var(--transition-fast);
 }
 
-.card:hover {
-  border-color: #d4d4d0;
+.card.columnLabels {
+  border: 0;
+  border-bottom: 1px solid var(--product-grid-line);
+}
+.cardOrderList.columnLabels { background: var(--white); }
+.card.columnLabels:last-child { border-bottom: 0; }
+.card.columnLabels:hover { border-color: var(--product-grid-line); }
+.cardOrderList.columnLabels:hover { background: var(--surface-hover); }
+.cardOrderList.columnLabels.cardSelected { background: var(--soft); }
+.listHeader.cardWithControls {
+  border: 0;
+  border-bottom: 1px solid var(--product-grid-line);
+  margin-bottom: 0;
+  padding-inline: 0;
+}
+.listHeader.cardOrderList {
+  background: var(--soft);
+  color: var(--black);
+}
+
+.card:not(.columnLabels):hover {
+  border-color: var(--line);
+  background: var(--soft);
 }
 
 .main:focus-visible {
@@ -124,7 +145,14 @@
   font-weight: 400;
   text-overflow: ellipsis;
   white-space: nowrap;
+  text-decoration-line: underline;
+  text-decoration-color: transparent;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 4px;
+  transition: color var(--transition-fast), text-decoration-color var(--transition-fast);
 }
+
+.main:focus-visible .title { text-decoration-color: currentColor; }
 
 .meta {
   max-width: 100%;
@@ -199,7 +227,80 @@
   min-width: 126px;
 }
 
+.cardWithControls {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr) 44px;
+  padding-inline: 8px;
+}
+
+.cardSelected,
+.cardSelected:hover {
+  border-color: var(--black);
+}
+
+.leadingControl,
+.trailingControl {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.cardWithControls .actions { grid-column: 1 / -1; }
+.cardWithControls .meta > span + span::before { content: none; }
+
+.cardWithControls .main {
+  grid-template-columns: 60px minmax(150px, 1.35fr) minmax(240px, 1fr) minmax(120px, 0.72fr);
+  gap: 20px;
+  padding-inline: 8px;
+}
+
+.listHeader {
+  container-type: inline-size;
+  border-inline: 0.5px solid transparent;
+  margin-bottom: -8px;
+  color: var(--black);
+  font-size: var(--font-xs);
+  line-height: 1.3;
+  font-weight: 400;
+}
+
+.listHeader .main {
+  min-height: 0;
+  padding-block: 0;
+}
+
+.photoHeading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 0;
+}
+
+.sortButton { display: inline-flex; align-items: center; gap: 4px; padding: 8px 0; min-height: 36px; text-align: left; font: inherit; color: var(--black); white-space: nowrap; }
+.listHeader .sortButton { color: var(--black); }
+.sortButton:hover { text-decoration: underline; text-underline-offset: 4px; }
+.sortButton:focus-visible { outline: 2px solid var(--black); outline-offset: 2px; }
+.sortButton:disabled { cursor: wait; }
+
+@container (min-width: 901px) {
+  .columnLabels .label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+}
+
 @container (max-width: 900px) {
+  .listHeader > span { display: none; }
+  .listHeader .main { display: flex; flex-wrap: wrap; gap: 4px 16px; grid-column: 1 / -1; }
+  .listHeader.cardWithControls .main { grid-column: 2; }
+  .listHeader .main > span { display: none; }
+  .listHeader .facts { display: contents; }
   .main {
     grid-template-columns: 82px minmax(170px, 1fr) minmax(230px, 1fr) minmax(120px, auto) 20px;
     gap: 16px;
@@ -218,6 +319,14 @@
       32px;
     gap: 18px;
   }
+
+  .cardWithControls .main {
+    grid-template-columns: 60px minmax(0, 1fr) minmax(120px, auto);
+    gap: 14px;
+  }
+  .cardWithControls .facts { grid-column: 2 / 4; grid-row: 2; }
+  .cardWithControls .media { grid-row: 1 / 3; }
+  .cardWithControls .state { grid-column: 3; grid-row: 1; }
 }
 
 @container (max-width: 700px) {
@@ -252,6 +361,7 @@
     grid-template-columns: 60px minmax(0, 1fr) minmax(125px, auto) 32px;
     padding: 12px 18px;
   }
+  .cardWithControls .main { grid-template-columns: 60px minmax(0, 1fr) minmax(120px, auto); padding-inline: 8px; }
 }
 
 @container (max-width: 520px) {
@@ -349,4 +459,72 @@
     width: 60px;
     height: 76px;
   }
+
+  .cardWithControls .main { grid-template-columns: 60px minmax(0, 1fr); gap: 12px; padding-inline: 0; }
+  .cardWithControls .facts { grid-column: 1 / -1; grid-row: 3; gap: 8px; }
+  .cardWithControls .fact .label { font-size: 12px; font-weight: 400; }
+  .cardWithControls .state { grid-column: 2; grid-row: 2; }
+  .cardWithControls .leadingControl,
+  .cardWithControls .trailingControl { align-items: flex-start; padding-top: 12px; }
+}
+
+/* Seller table: shared column tracks keep the header and every row aligned. */
+.columnLabels.cardWithControls { padding-inline: 0; }
+.columnLabels .fact strong,
+.columnLabels .fact .label,
+.sortButton.mutedColumn {
+  color: var(--black-soft);
+  transition: color var(--transition-fast);
+}
+@media (hover: hover) {
+  .columnLabels .identity:hover .title,
+  .columnLabels .fact:hover strong,
+  .columnLabels .fact:hover .label,
+  .sortButton.mutedColumn:hover:not(:disabled) { color: var(--black); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .columnLabels .title,
+  .columnLabels .fact strong,
+  .columnLabels .fact .label,
+  .sortButton.mutedColumn { transition: none; }
+}
+.columnLabels .facts,
+.listHeader .facts { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.added { display: flex; align-items: stretch; min-width: 0; }
+.added > .fact { width: 100%; }
+@container (min-width: 901px) {
+  .columnLabels .main,
+  .listHeader .main {
+    grid-template-columns: 80px minmax(150px, 1.35fr) minmax(140px, 0.72fr) minmax(210px, 0.7fr) 120px;
+    gap: 0;
+    padding: 0;
+    align-items: stretch;
+  }
+  .columnLabels .media { margin-block: 10px; align-self: center; justify-self: center; }
+  .columnLabels .identity,
+  .columnLabels .state,
+  .columnLabels .fact {
+    justify-content: center;
+    padding: 12px;
+  }
+  .columnLabels .facts,
+  .listHeader .facts { gap: 0; align-items: stretch; }
+  .listHeader .sortButton {
+    min-height: 44px;
+    padding: 10px 12px;
+  }
+}
+
+@container (max-width: 900px) {
+  .columnLabels .added { grid-column: 2 / 4; grid-row: 3; border-top: 1px solid var(--product-grid-line); }
+  .columnLabels .facts {
+    gap: 0;
+    padding-top: 0;
+    border-top: 1px solid var(--product-grid-line);
+  }
+  .columnLabels .fact { padding: 10px 8px; }
+}
+
+@container (max-width: 520px) {
+  .columnLabels .added { grid-column: 1 / -1; grid-row: 4; }
 }

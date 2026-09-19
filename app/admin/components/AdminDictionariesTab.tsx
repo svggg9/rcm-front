@@ -1,9 +1,11 @@
 "use client";
+import { ConfirmActionButton } from "../../components/ui/ConfirmActionButton";
 
 import { useMemo, useState, type FormEvent } from "react";
 
 import { Button } from "../../components/ui/Button";
-import { CabinetTabs, type CabinetTabItem } from "../../components/ui/CabinetTabs";
+import { CabinetPanel } from "../../components/ui/CabinetPanel";
+import type { CabinetTabItem } from "../../components/ui/CabinetTabs";
 import { EmptyState } from "../../components/ui/EmptyState";
 import { FormSelect } from "../../components/ui/FormSelect";
 import { StatusBadge, type StatusBadgeTone } from "../../components/ui/StatusBadge";
@@ -56,17 +58,12 @@ export function AdminDictionariesTab({
   const [activeView, setActiveView] = useState<DictionaryView>("categories");
 
   return (
-    <section className={styles.page}>
-      <div className={styles.tabs}>
-        <CabinetTabs
-          items={dictionaryTabs}
-          value={activeView}
-          onChange={setActiveView}
-          ariaLabel="Справочники"
-          appearance="line"
-        />
-      </div>
-
+    <CabinetPanel
+      items={dictionaryTabs}
+      value={activeView}
+      onChange={setActiveView}
+      ariaLabel="Справочники"
+    >
       {dictionaryTabs.map((tab) => {
         const panelItems =
           tab.value === "categories"
@@ -88,7 +85,7 @@ export function AdminDictionariesTab({
           </div>
         );
       })}
-    </section>
+    </CabinetPanel>
   );
 }
 
@@ -252,7 +249,7 @@ function DictionaryCreateForm({
         />
       ) : null}
 
-      <label className={styles.field}>
+      <label className={styles.field} data-ui="field">
         <span className={styles.required}>Название</span>
         <input
           value={name}
@@ -429,7 +426,7 @@ function DictionaryRow({
       data-disabled={item.isActive === false || undefined}
     >
       {editing ? (
-        <label className={`${styles.field} ${styles.editField}`}>
+        <label className={`${styles.field} ${styles.editField}`} data-ui="field">
           <span>Название</span>
           <input
             value={name}
@@ -506,16 +503,20 @@ function DictionaryRow({
               >
                 Изменить
               </Button>
-              <Button
+              <ConfirmActionButton
                 type="button"
                 variant={item.isActive === false ? "secondary" : "danger"}
                 className={styles.rowButton}
                 disabled={actionInFlight && !busy}
                 loading={busy}
-                onClick={() => void toggleActive()}
+                requireConfirmation={item.isActive !== false}
+                confirmTitle={`Отключить «${displayName}»?`}
+                confirmText="Значение станет недоступно для выбора"
+                confirmLabel="Отключить"
+                onConfirm={toggleActive}
               >
                 {item.isActive === false ? "Включить" : "Отключить"}
-              </Button>
+              </ConfirmActionButton>
             </>
           )}
         </div>

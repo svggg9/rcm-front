@@ -1,0 +1,240 @@
+{
+  "batch": "rcm-demo-20260908",
+  "status": "plan_only",
+  "databaseHost": "66.151.35.76",
+  "database": "rcmarket",
+  "sellerUsername": "seed_seller_ip",
+  "products": [
+    {
+      "draftId": "demo-cap-motorin",
+      "brand": "Zegna",
+      "title": "Бейсболка Motorin",
+      "category": "Аксессуары",
+      "description": "Бейсболка с изогнутым козырьком и лаконичной вышивкой спереди. Два варианта цвета: бежевый и горчичный.",
+      "testPriceRub": 5900,
+      "variants": [
+        {
+          "color": "Бежевый",
+          "testStock": 8,
+          "images": [
+            {
+              "source": "/Users/admin/Downloads/Товары/Zegna  бейсболка Motorin1.webp",
+              "key": "products/rcm-demo-20260908/demo-cap-motorin/1-1-7e80a717c276a813.webp",
+              "url": "https://storage.yandexcloud.net/rcm/products/rcm-demo-20260908/demo-cap-motorin/1-1-7e80a717c276a813.webp",
+              "sha256": "7e80a717c276a813818d42b1e8e544f36ba32fffdf9d635662662ee9e7e9b829",
+              "bytes": 47326,
+              "width": 1000,
+              "height": 1334
+            },
+            {
+              "source": "/Users/admin/Downloads/Товары/Zegna  бейсболка Motorin2.webp",
+              "key": "products/rcm-demo-20260908/demo-cap-motorin/1-2-61f032417c9a66ee.webp",
+              "url": "https://storage.yandexcloud.net/rcm/products/rcm-demo-20260908/demo-cap-motorin/1-2-61f032417c9a66ee.webp",
+              "sha256": "61f032417c9a66eeace7bdf90fd2c9f0b995185a2701f9d5ee311d831eeadb55",
+              "bytes": 97640,
+              "width": 1000,
+              "height": 1334
+            },
+            {
+              "source": "/Users/admin/Downloads/Товары/Zegna  бейсболка Motorin3.webp",
+              "key": "products/rcm-demo-20260908/demo-cap-motorin/1-3-67d1f3ebee5dc875.webp",
+              "url": "https://storage.yandexcloud.net/rcm/products/rcm-demo-20260908/demo-cap-motorin/1-3-67d1f3ebee5dc875.webp",
+              "sha256": "67d1f3ebee5dc8755c5593ff6426c5182f5697d8c7a57b8e24d5a6b4a4d584a0",
+              "bytes": 308940,
+              "width": 1000,
+              "height": 1334
+            }
+          ]
+        },
+        {
+          "color": "Горчичный",
+          "testStock": 6,
+          "images": [
+            {
+              "source": "/Users/admin/Downloads/Товары/Zegna  бейсболка Motorin другой цвет1.webp",
+              "key": "products/rcm-demo-20260908/demo-cap-motorin/2-1-449eaf3b97063778.webp",
+              "url": "https://storage.yandexcloud.net/rcm/products/rcm-demo-20260908/demo-cap-motorin/2-1-449eaf3b97063778.webp",
+              "sha256": "449eaf3b97063778e9e8b1980f7616c94127fd653cb120a4e88b862af62699dd",
+              "bytes": 44780,
+              "width": 1000,
+              "height": 1334
+            },
+            {
+              "source": "/Users/admin/Downloads/Товары/Zegna  бейсболка Motorin другой цвет2.webp",
+              "key": "products/rcm-demo-20260908/demo-cap-motorin/2-2-56ef622eea0a6a77.webp",
+              "url": "https://storage.yandexcloud.net/rcm/products/rcm-demo-20260908/demo-cap-motorin/2-2-56ef622eea0a6a77.webp",
+              "sha256": "56ef622eea0a6a771e37cbca4ff71735a6406cf711cc1391c4e2865b0cb914bd",
+              "bytes": 101758,
+              "width": 1000,
+              "height": 1334
+            },
+            {
+              "source": "/Users/admin/Downloads/Товары/Zegna  бейсболка Motorin другой цвет3.webp",
+              "key": "products/rcm-demo-20260908/demo-cap-motorin/2-3-781f42cace17ddff.webp",
+              "url": "https://storage.yandexcloud.net/rcm/products/rcm-demo-20260908/demo-cap-motorin/2-3-781f42cace17ddff.webp",
+              "sha256": "781f42cace17ddff895a00a6ef22cca55f3bfe69b4679ff9937541fafc2352e7",
+              "bytes": 311146,
+              "width": 1000,
+              "height": 1334
+            }
+          ]
+        }
+      ],
+      "publicId": "dm0901",
+      "article": "RCM-DEMO-20260908-1"
+    },
+    {
+      "draftId": "demo-goggles-cassidy",
+      "brand": "Chloé Eyewear",
+      "title": "Лыжная маска Cassidy",
+      "category": "Спорт",
+      "description": "Маска с розовой линзой, светлой оправой и контрастным красным ремешком. Коллаборация с Fusalp указана в названии исходных файлов.",
+      "testPriceRub": 12900,
+      "variants": [
+        {
+          "color": "Розовый / красный",
+          "testStock": 4,
+          "images": [
+            {
+              "source": "/Users/admin/Downloads/Товары/Chloé Eyewear  лыжная маска из коллаборации с Fusalp Cassidy1.webp",
+              "key": "products/rcm-demo-20260908/demo-goggles-cassidy/1-1-22c7d2acfb666c34.webp",
+              "url": "https://storage.yandexcloud.net/rcm/products/rcm-demo-20260908/demo-goggles-cassidy/1-1-22c7d2acfb666c34.webp",
+              "sha256": "22c7d2acfb666c341dbd51c613310a613248cd287351fcaf19a1c19791a20011",
+              "bytes": 16754,
+              "width": 1000,
+              "height": 1334
+            },
+            {
+              "source": "/Users/admin/Downloads/Товары/Chloé Eyewear  лыжная маска из коллаборации с Fusalp Cassidy2.webp",
+              "key": "products/rcm-demo-20260908/demo-goggles-cassidy/1-2-1e5062abb05d183a.webp",
+              "url": "https://storage.yandexcloud.net/rcm/products/rcm-demo-20260908/demo-goggles-cassidy/1-2-1e5062abb05d183a.webp",
+              "sha256": "1e5062abb05d183a5f3b8349c9339868ca0bf4675f6821aef79bec2f4f05c224",
+              "bytes": 23568,
+              "width": 1000,
+              "height": 1334
+            },
+            {
+              "source": "/Users/admin/Downloads/Товары/Chloé Eyewear  лыжная маска из коллаборации с Fusalp Cassidy3.webp",
+              "key": "products/rcm-demo-20260908/demo-goggles-cassidy/1-3-6a5eeccec4bf2085.webp",
+              "url": "https://storage.yandexcloud.net/rcm/products/rcm-demo-20260908/demo-goggles-cassidy/1-3-6a5eeccec4bf2085.webp",
+              "sha256": "6a5eeccec4bf208514520466498ad0e26a785721e5ecfcbeb305a41a1f921869",
+              "bytes": 35670,
+              "width": 1000,
+              "height": 1334
+            }
+          ]
+        }
+      ],
+      "publicId": "dm0902",
+      "article": "RCM-DEMO-20260908-2"
+    },
+    {
+      "draftId": "demo-bracelet",
+      "brand": "Emanuele Bicocchi",
+      "title": "Цепочный браслет с фигурными звеньями",
+      "category": "Аксессуары",
+      "description": "Браслет серебристого цвета с фигурными звеньями и застёжкой. В галерее — предметный снимок и фото на руке.",
+      "testPriceRub": 6900,
+      "variants": [
+        {
+          "color": "Серебристый",
+          "testStock": 6,
+          "images": [
+            {
+              "source": "/Users/admin/Downloads/Товары/Emanuele Bicocchi  цепочный браслет1.webp",
+              "key": "products/rcm-demo-20260908/demo-bracelet/1-1-4058ac71e20268e7.webp",
+              "url": "https://storage.yandexcloud.net/rcm/products/rcm-demo-20260908/demo-bracelet/1-1-4058ac71e20268e7.webp",
+              "sha256": "4058ac71e20268e7bedc0302e891bbf3ce18f8e8bc7fdfebb34227cfa362e55d",
+              "bytes": 32426,
+              "width": 1000,
+              "height": 1334
+            },
+            {
+              "source": "/Users/admin/Downloads/Товары/Emanuele Bicocchi  цепочный браслет2.webp",
+              "key": "products/rcm-demo-20260908/demo-bracelet/1-2-1f797d0cfd18b993.webp",
+              "url": "https://storage.yandexcloud.net/rcm/products/rcm-demo-20260908/demo-bracelet/1-2-1f797d0cfd18b993.webp",
+              "sha256": "1f797d0cfd18b99330ce954ba954805283be3833adedf18414b8cdcef39af73f",
+              "bytes": 56094,
+              "width": 1000,
+              "height": 1334
+            }
+          ]
+        }
+      ],
+      "publicId": "dm0903",
+      "article": "RCM-DEMO-20260908-3"
+    },
+    {
+      "draftId": "demo-belt-cassandre",
+      "brand": "Saint Laurent",
+      "title": "Ремень Cassandre Vadim",
+      "category": "Аксессуары",
+      "description": "Чёрный ремень с прямоугольной пряжкой золотистого цвета и монограммой. В галерее — общий вид и крупный план пряжки.",
+      "testPriceRub": 7900,
+      "variants": [
+        {
+          "color": "Чёрный",
+          "testStock": 7,
+          "images": [
+            {
+              "source": "/Users/admin/Downloads/Товары/Saint Laurent  двусторонний ремень Cassandre Vadim1.webp",
+              "key": "products/rcm-demo-20260908/demo-belt-cassandre/1-1-487ada6c627b4865.webp",
+              "url": "https://storage.yandexcloud.net/rcm/products/rcm-demo-20260908/demo-belt-cassandre/1-1-487ada6c627b4865.webp",
+              "sha256": "487ada6c627b486546e309446ec6ba897d790744386fcec924e1ca64bb29c31a",
+              "bytes": 6618,
+              "width": 1000,
+              "height": 1334
+            },
+            {
+              "source": "/Users/admin/Downloads/Товары/Saint Laurent  двусторонний ремень Cassandre Vadim2.webp",
+              "key": "products/rcm-demo-20260908/demo-belt-cassandre/1-2-4dc2bd202a1e0cbd.webp",
+              "url": "https://storage.yandexcloud.net/rcm/products/rcm-demo-20260908/demo-belt-cassandre/1-2-4dc2bd202a1e0cbd.webp",
+              "sha256": "4dc2bd202a1e0cbdb17d0ee7c9d0fc8d8223381875a4c4bb0a8436b007bef57c",
+              "bytes": 25210,
+              "width": 1000,
+              "height": 1334
+            }
+          ]
+        }
+      ],
+      "publicId": "dm0904",
+      "article": "RCM-DEMO-20260908-4"
+    },
+    {
+      "draftId": "demo-watch-saturn",
+      "brand": "Swatch × Omega",
+      "title": "MoonSwatch Mission to Saturn, 42 мм",
+      "category": "Аксессуары",
+      "description": "Часы с круглым светлым корпусом, светлым циферблатом и коричневым ремешком. Название модели и диаметр взяты из имени файла.",
+      "testPriceRub": 15900,
+      "variants": [
+        {
+          "color": "Бежевый / коричневый",
+          "testStock": 3,
+          "images": [
+            {
+              "source": "/Users/admin/Downloads/Товары/Swatch  наручные часы Moonswatch Mission to Saturn 42 мм из коллаборации с Omega1.webp",
+              "key": "products/rcm-demo-20260908/demo-watch-saturn/1-1-98a277ac110647e9.webp",
+              "url": "https://storage.yandexcloud.net/rcm/products/rcm-demo-20260908/demo-watch-saturn/1-1-98a277ac110647e9.webp",
+              "sha256": "98a277ac110647e9181068312c0047ea08c2a2f960470529b870185051bd2224",
+              "bytes": 88546,
+              "width": 1000,
+              "height": 1334
+            },
+            {
+              "source": "/Users/admin/Downloads/Товары/Swatch  наручные часы Moonswatch Mission to Saturn 42 мм из коллаборации с Omega2 доступно в 1 размере.webp",
+              "key": "products/rcm-demo-20260908/demo-watch-saturn/1-2-bf02ebafbfd3a06f.webp",
+              "url": "https://storage.yandexcloud.net/rcm/products/rcm-demo-20260908/demo-watch-saturn/1-2-bf02ebafbfd3a06f.webp",
+              "sha256": "bf02ebafbfd3a06f53a318364a1db689ea335eb264ec329c8fcb8d70e9431463",
+              "bytes": 6318,
+              "width": 300,
+              "height": 400
+            }
+          ]
+        }
+      ],
+      "publicId": "dm0905",
+      "article": "RCM-DEMO-20260908-5"
+    }
+  ]
+}

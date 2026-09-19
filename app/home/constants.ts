@@ -4,10 +4,10 @@ export const HOME_PLACEHOLDER_IMAGE =
   "/kazansky.jpg";
 
 export const HOME_HERO: HeroBlock = {
-  eyebrow: "Независимая мода · Россия",
-  title: "Только отечественные\nпроизводители",
-  text: "Одежда и аксессуары от локальных марок — в одной современной витрине.",
-  buttonLabel: "В каталог",
+  eyebrow: "Независимые бренды",
+  title: "Для жизни, дома\nи подарков",
+  text: "Одежда, аксессуары, вещи для дома и предметы искусства от независимых брендов",
+  buttonLabel: "Каталог",
   buttonHref: "/catalog",
   image: HOME_PLACEHOLDER_IMAGE,
   imageAlt: "Главная подборка",

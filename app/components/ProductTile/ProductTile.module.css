@@ -46,7 +46,7 @@
 
 .imgHover {
   opacity: 0;
-  transition: opacity var(--transition);
+  transition: opacity 420ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .noImage {
@@ -115,47 +115,23 @@
   position: absolute;
   top: 8px;
   right: 8px;
-
-  display: flex;
-  align-items: center;
-  justify-content: center;
-
-  width: 34px;
-  height: 34px;
-
-  border: 0;
-  background: transparent;
-
-  cursor: pointer;
-
-  transition: transform var(--transition-fast);
 }
 
-.like:hover {
-  transform: scale(1.04);
-}
-
-.like:disabled {
-  opacity: 0.55;
-  cursor: wait;
-}
-
-.like img {
-  display: block;
-  width: 25px;
-  height: 25px;
-  filter: none;
-  transition: filter var(--transition-fast);
-}
-
-.like:hover img,
-.liked img {
-  filter: brightness(0);
-}
-
-@media (hover: hover) {
-  .mediaLink:hover .imgHover {
+@media (hover: hover) and (pointer: fine) {
+  .mediaLink:hover .imgHover[data-loaded="true"] {
     opacity: 1;
+  }
+
+  @starting-style {
+    .mediaLink:hover .imgHover[data-loaded="true"] {
+      opacity: 0;
+    }
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .imgHover {
+    transition: none;
   }
 }
 
@@ -185,12 +161,5 @@
   .like {
     top: 6px;
     right: 6px;
-    width: 30px;
-    height: 30px;
-  }
-
-  .like img {
-    width: 22px;
-    height: 22px;
   }
 }

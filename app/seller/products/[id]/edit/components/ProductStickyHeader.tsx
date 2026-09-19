@@ -100,13 +100,11 @@ export function ProductStickyHeader({
 
             <div className={styles.lockedMeta}>
               <span>{product?.article || "Артикул сайта появится после сохранения"}</span>
-              <span>•</span>
               <span>
                 {categories.find((category) => category.id === categoryId)?.name ||
                   product?.category ||
                   "Категория не выбрана"}
               </span>
-              <span>•</span>
               <span>
                 {brands.find((brand) => brand.id === brandId)?.name ||
                   product?.brand ||

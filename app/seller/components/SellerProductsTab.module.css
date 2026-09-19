@@ -1,29 +1,133 @@
+.borderlessPanel[data-ui="cabinet-panel"] { border: 0; }
+.borderlessPanel > :first-child {
+  box-shadow: none;
+  width: 100vw;
+  margin-left: calc(50% - 50vw);
+  padding-inline: max(32px, calc((100vw - var(--container)) / 2));
+}
+@media (max-width: 760px) {
+  .borderlessPanel > :first-child { padding-inline: 16px; }
+}
+.borderlessPanel [role="tab"] { border: 0; }
+
 .productsPage {
   display: flex;
   flex-direction: column;
   gap: 0;
 }
-
-.productSectionTabs {
-  margin-bottom: 16px;
-}
-
-.productSectionTabs :global(button[role="tab"]) {
-  color: var(--black);
-  font-weight: 400;
-}
-
-.productSectionTabs :global(button[role="tab"][aria-selected="true"]) {
-  font-weight: 600;
-}
+.productsToolbar > .toolbarAction { width: auto; margin-left: auto; flex-shrink: 0; }
+@media (max-width: 900px) { .productsToolbar { flex-wrap: wrap; } }
 
 .productsToolbar {
-  min-width: 0;
-  margin-bottom: 20px;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  width: 100%;
+  margin-bottom: 0;
+}
+
+.productsToolbar > * { width: min(232px, 100%); }
+.productsToolbar > .productSearch { width: min(320px, 100%); }
+
+.productsToolbar [data-ui="field"] > input:not([aria-invalid="true"]),
+.productsToolbar [data-ui="field"]:not([data-validation-error="true"]) > div:has(> [role="combobox"]),
+.productsToolbar [role="listbox"] {
+  border-color: var(--line);
 }
 
 .productsList {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 0;
+  border: 1px solid var(--line);
+  background: var(--white);
+  --product-grid-line: var(--line);
+}
+
+.hasSelection { padding-bottom: 160px; }
+.checkboxTarget { display: grid; place-items: center; width: 44px; height: 44px; cursor: pointer; }
+.checkbox {
+  appearance: none;
+  flex: 0 0 20px;
+  width: 20px;
+  height: 20px;
+  margin: 0;
+  border: 1px solid var(--line);
+  border-radius: 0;
+  background: var(--white);
+  cursor: pointer;
+  display: grid;
+  place-content: center;
+}
+.checkbox:checked, .checkbox:indeterminate { background: var(--black); border-color: var(--black); }
+.checkbox:checked::after { content: ""; width: 5px; height: 10px; border: solid var(--white); border-width: 0 1.5px 1.5px 0; transform: translateY(-1px) rotate(45deg); }
+.checkbox:indeterminate::after { content: ""; width: 10px; height: 1.5px; background: var(--white); }
+.checkbox:focus-visible, .selectAllLink:focus-visible { outline: 2px solid var(--black); outline-offset: 4px; }
+.checkbox:disabled { opacity: 0.4; cursor: not-allowed; }
+.iconButton, .clearSelection { width: 44px; height: 44px; padding: 0; flex-shrink: 0; }
+
+.actionMenu {
+  position: fixed;
+  inset: auto;
+  margin: 0;
+  padding: 8px;
+  width: min(300px, calc(100vw - 16px));
+  max-height: min(440px, calc(100dvh - 16px));
+  overflow-y: auto;
+  border: 0;
+  border-radius: 0;
+  background: var(--white);
+  color: var(--black);
+  box-shadow: 0 8px 40px rgb(0 0 0 / 16%);
+}
+.actionMenu:popover-open { animation: menuEnter 140ms ease-out; }
+.actionMenu button { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; width: 100%; min-height: 44px; border: 0; padding: 12px; background: transparent; color: inherit; font-size: 15px; font-weight: 400; line-height: 21px; text-align: left; cursor: pointer; }
+.actionMenu button:hover, .actionMenu button:focus-visible { background: var(--surface-hover, #f4f4f4); outline: none; }
+.actionMenu button:focus-visible { box-shadow: inset 0 0 0 1px var(--black); }
+.actionMenu button[aria-disabled="true"] { cursor: not-allowed; }
+.actionMenu button[aria-disabled="true"] > span { opacity: 0.45; }
+.actionMenu small { font-size: 12px; line-height: 17px; font-weight: 300; color: var(--black); }
+.actionMenu .deleteAction:not([aria-disabled="true"]) { color: var(--danger, #b42318); }
+
+.selectionBar {
+  position: fixed;
+  bottom: max(24px, env(safe-area-inset-bottom));
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 90;
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  width: max-content;
+  max-width: calc(100% - 40px);
+  padding: 20px 24px;
+  background: var(--white);
+  color: var(--black);
+  box-shadow: 0 4px 40px rgb(0 0 0 / 16%);
+  animation: barEnter 180ms ease-out;
+}
+.selectionSummary { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; }
+.selectionSummary strong { font-size: 16px; line-height: 22px; font-weight: 600; white-space: nowrap; }
+.selectAllLink { padding: 0; border: 0; background: none; color: var(--black); font-size: 12px; font-weight: 300; cursor: pointer; text-align: left; }
+.selectAllLink:disabled { cursor: default; }
+.selectionActions { display: flex; align-items: center; gap: 12px; }
+.selectionActions > button { white-space: nowrap; }
+.failureList { display: grid; gap: 24px; }
+.failureList li { display: grid; gap: 8px; overflow-wrap: anywhere; }
+.failureList p { margin: 0; }
+.failureList a { color: var(--black); text-decoration: underline; text-underline-offset: 4px; }
+.confirmCount { font-weight: 400; overflow-wrap: anywhere; }
+.confirmList { display: grid; gap: 8px; margin: 12px 0 0; padding-left: 20px; font-size: 14px; font-weight: 300; line-height: 21px; overflow-wrap: anywhere; }
+@keyframes barEnter { from { opacity: 0; translate: 0 8px; } to { opacity: 1; translate: 0 0; } }
+@keyframes menuEnter { from { opacity: 0; } to { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .selectionBar, .actionMenu:popover-open { animation: none; } }
+@media (max-width: 720px) {
+  .productsToolbar { flex-direction: column; gap: 8px; }
+  .productsToolbar > * { width: 100%; }
+  .selectionBar { width: calc(100% - 24px); max-width: none; padding: 16px; gap: 12px; flex-wrap: wrap; bottom: max(12px, env(safe-area-inset-bottom)); }
+  .selectionSummary { padding-right: 40px; width: 100%; }
+  .selectionActions { width: 100%; gap: 8px; }
+  .selectionActions > button:not(.iconButton) { flex: 1; padding-inline: 8px; }
+  .clearSelection { position: absolute; top: 8px; right: 8px; }
+  .hasSelection { padding-bottom: 190px; }
 }

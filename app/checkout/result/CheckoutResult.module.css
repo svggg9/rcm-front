@@ -106,6 +106,9 @@
 }
 
 .productMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 10px;
   min-height: 18px;
   margin-top: 4px;
 

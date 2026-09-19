@@ -3,9 +3,9 @@ import Link from "next/link";
 import styles from "./AboutPage.module.css";
 
 export const metadata = {
-  title: "О проекте — RCM",
+  title: "О проекте — рцмаркет",
   description:
-    "RCM — маркетплейс отечественных производителей, локальных брендов и качественных товаров.",
+    "рцмаркет — магазин независимых брендов для жизни, дома и подарков.",
 };
 
 const categories = [
@@ -37,7 +37,7 @@ const faq = [
   {
     question: "Нужен ли свой сайт?",
     answer:
-      "Нет. На RCM у бренда будет собственная страница производителя и карточки товаров в общем каталоге.",
+      "Нет. На рцмаркет у бренда будет собственная страница производителя и карточки товаров в общем каталоге.",
   },
   {
     question: "Сколько стоит подключение?",
@@ -57,10 +57,10 @@ export default function AboutPage() {
       <div className={styles.page}>
         <section className={styles.hero}>
           <div>
-            <div className={styles.kicker}>RCM Marketplace</div>
+            <div className={styles.kicker}>рцмаркет</div>
 
             <h1 className={styles.title}>
-              Маркетплейс отечественных производителей
+              Вещи независимых брендов
             </h1>
 
             <p className={styles.lead}>
@@ -74,7 +74,7 @@ export default function AboutPage() {
               </Link>
 
               <Link className="buttonSecondary" href="/catalog">
-                Перейти в каталог
+                Каталог
               </Link>
             </div>
           </div>
@@ -91,7 +91,7 @@ export default function AboutPage() {
         <section className={styles.cards}>
           <InfoCard
             title="Локальные бренды"
-            text="Фокус на отечественных производителях, малых командах и независимых проектах."
+            text="Собственный продукт, качество и характер — от небольших команд и независимых брендов"
           />
           <InfoCard
             title="Собственная витрина"
@@ -121,7 +121,7 @@ export default function AboutPage() {
         <section className={styles.splitSection}>
           <div>
             <div className={styles.kicker}>Для продавца</div>
-            <h2 className={styles.sectionTitle}>Что уже есть в RCM</h2>
+            <h2 className={styles.sectionTitle}>Что уже есть в рцмаркет</h2>
             <p className={styles.sectionText}>
               Мы запускаем проект небольшими безопасными шагами: сначала
               стабильный каталог, кабинет продавца, оформление заказа и базовая
@@ -170,7 +170,7 @@ export default function AboutPage() {
 
         <section className={styles.cta}>
           <div>
-            <div className={styles.ctaKicker}>RCM для производителей</div>
+            <div className={styles.ctaKicker}>рцмаркет для производителей</div>
             <h2>Готовы представить свой бренд?</h2>
             <p>
               Оставьте заявку — мы рассмотрим бренд и свяжемся с вами по

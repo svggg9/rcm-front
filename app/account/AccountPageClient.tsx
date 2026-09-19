@@ -17,7 +17,7 @@ import {
 } from "./components/AccountProfileTab";
 import { AccountOrdersTab } from "./components/AccountOrdersTab";
 import { CabinetSkeleton } from "../components/ui/CabinetSkeleton";
-import { CabinetTabs } from "../components/ui/CabinetTabs";
+import { CabinetPanel } from "../components/ui/CabinetPanel";
 
 import styles from "./AccountPageClient.module.css";
 
@@ -520,18 +520,54 @@ function AccountPageContent({
           />
 
           <div className={styles.content}>
-            {currentTab === "orders" || currentTab === "returns" ? (
-              <div className={styles.orderSectionTabs}>
-                <CabinetTabs<"orders" | "returns">
+            {visitedTabs.has("orders") || visitedTabs.has("returns") ? (
+              <div hidden={currentTab !== "orders" && currentTab !== "returns"}>
+                <CabinetPanel<"orders" | "returns">
                   items={[
                     { value: "orders", label: "Заказы" },
                     { value: "returns", label: "Возвраты" },
                   ]}
-                  value={currentTab}
+                  value={currentTab === "returns" ? "returns" : "orders"}
                   onChange={(tab) => openTab(tab)}
                   ariaLabel="Заказы и возвраты"
-                  appearance="line"
-                />
+                >
+                  {visitedTabs.has("orders") ? (
+                    <div hidden={currentTab !== "orders"} aria-busy={detailsLoading}>
+                      {selectedOrder ? (
+                        <AccountOrderDetails
+                          order={selectedOrder}
+                          onBack={closeOrderDetails}
+                          onOrderUpdated={updateOrder}
+                          formatOrderStatus={formatOrderStatus}
+                          formatPaymentStatus={formatPaymentStatus}
+                          formatDeliveryStatus={formatDeliveryStatus}
+                          buildOrderStatusLabel={buildOrderStatusLabel}
+                        />
+                      ) : selectedOrderId && detailsLoading ? (
+                        <CabinetSkeleton variant="detail" />
+                      ) : (
+                        <AccountOrdersTab
+                          orders={orders}
+                          totalElements={ordersTotal}
+                          loadingMore={ordersLoadingMore}
+                          onLoadMore={
+                            orders.length < ordersTotal ? loadMoreOrders : undefined
+                          }
+                          buildOrderStatusLabel={buildOrderStatusLabel}
+                          onOpenOrder={openOrder}
+                          onLoadOrder={getOrderDetails}
+                          onPrefetchOrder={prefetchOrderDetails}
+                        />
+                      )}
+                    </div>
+                  ) : null}
+
+                  {visitedTabs.has("returns") ? (
+                    <div hidden={currentTab !== "returns"}>
+                      <AccountReturnsTab onOpenOrders={() => openTab("orders")} />
+                    </div>
+                  ) : null}
+                </CabinetPanel>
               </div>
             ) : null}
 
@@ -562,12 +598,6 @@ function AccountPageContent({
               </div>
             ) : null}
 
-            {visitedTabs.has("returns") ? (
-              <div hidden={currentTab !== "returns"}>
-                <AccountReturnsTab onOpenOrders={() => openTab("orders")} />
-              </div>
-            ) : null}
-
             {visitedTabs.has("favorites") ? (
               <div hidden={currentTab !== "favorites"}>
                 <AccountFavoritesTab />
@@ -583,37 +613,6 @@ function AccountPageContent({
             {visitedTabs.has("info") ? (
               <div hidden={currentTab !== "info"}>
                 <AccountInfoTab defaultEmail={me?.email ?? ""} />
-              </div>
-            ) : null}
-
-            {visitedTabs.has("orders") ? (
-              <div hidden={currentTab !== "orders"} aria-busy={detailsLoading}>
-                {selectedOrder ? (
-                  <AccountOrderDetails
-                    order={selectedOrder}
-                    onBack={closeOrderDetails}
-                    onOrderUpdated={updateOrder}
-                    formatOrderStatus={formatOrderStatus}
-                    formatPaymentStatus={formatPaymentStatus}
-                    formatDeliveryStatus={formatDeliveryStatus}
-                    buildOrderStatusLabel={buildOrderStatusLabel}
-                  />
-                ) : selectedOrderId && detailsLoading ? (
-                  <CabinetSkeleton variant="detail" />
-                ) : (
-                  <AccountOrdersTab
-                    orders={orders}
-                    totalElements={ordersTotal}
-                    loadingMore={ordersLoadingMore}
-                    onLoadMore={
-                      orders.length < ordersTotal ? loadMoreOrders : undefined
-                    }
-                    buildOrderStatusLabel={buildOrderStatusLabel}
-                    onOpenOrder={openOrder}
-                    onLoadOrder={getOrderDetails}
-                    onPrefetchOrder={prefetchOrderDetails}
-                  />
-                )}
               </div>
             ) : null}
           </div>

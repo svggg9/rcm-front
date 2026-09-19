@@ -1,4 +1,5 @@
 .page {
+  min-width: 0;
   display: flex;
   flex-direction: column;
   gap: 22px;
@@ -26,7 +27,6 @@
   font-weight: 300;
 }
 
-.headerActions,
 .payoutActions {
   display: flex;
   align-items: center;
@@ -55,27 +55,6 @@
   background: var(--soft);
   color: var(--black);
   cursor: pointer;
-}
-
-.tabs {
-  display: flex;
-  gap: 24px;
-}
-
-.tab {
-  padding: 0 0 8px;
-  border: 0;
-  border-bottom: 1px solid transparent;
-  background: transparent;
-  color: var(--muted);
-  font: inherit;
-  font-size: var(--font-sm);
-  cursor: pointer;
-}
-
-.tabActive {
-  border-bottom-color: var(--black);
-  color: var(--black);
 }
 
 .summary {
@@ -229,9 +208,7 @@
 }
 
 @media (max-width: 700px) {
-  .page { padding: 18px 14px 36px; }
   .header { flex-direction: column; }
-  .headerActions { width: 100%; }
   .primaryButton { flex: 1; }
   .summary { grid-template-columns: 1fr; }
   .payoutMain { flex-direction: column; }

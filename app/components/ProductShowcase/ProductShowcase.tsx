@@ -45,7 +45,7 @@ export function ProductShowcase({
     [density, products, variant]
   );
   const label =
-    actionLabel ?? (variant === "grid" ? "В каталог" : "Показать больше");
+    actionLabel ?? (variant === "grid" ? "Каталог" : "Показать больше");
 
   const handleGridScroll = useCallback(() => {
     const node = scrollerRef.current;

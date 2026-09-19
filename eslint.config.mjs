@@ -12,6 +12,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Historical design/import tools, not application source.
+    "docs/mac-artifacts-2026-09/**",
   ]),
 ]);
 

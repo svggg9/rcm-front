@@ -1,15 +1,16 @@
 "use client";
 
-import Image from "next/image";
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import { CabinetSkeleton } from "../../components/ui/CabinetSkeleton";
 import { Icon, type IconName } from "../../components/ui/Icon";
-import { API_URL } from "../../lib/api";
-import { formatRussianPhone } from "../../lib/phone";
+import { StatusBadge } from "../../components/ui/StatusBadge";
+import { formatProductCreatedAt } from "../lib/sellerProductSort";
 import type { SellerOrderListItem } from "../types";
 
 import styles from "./SellerOrderCard.module.css";
+import listItemStyles from "../../components/ui/CabinetListItem.module.css";
+import { OrderProductsPreview } from "./OrderProductsPreview";
+import { OrderDetailsPanel } from "./OrderDetailsPanel";
 
 export type SellerOrderCardListItem = Omit<
   SellerOrderListItem,
@@ -33,9 +34,13 @@ type Props = {
   showDeliveryLabel?: boolean;
   openButtonLabel?: string;
   detailsIdPrefix?: string;
+  tableLayout?: boolean;
+  navigateOnOpen?: boolean;
+  compact?: boolean;
 };
 
 export type OrderCardDetails = {
+  paidAt?: string | null;
   subtotalAmount: number;
   deliveryAmount: number;
   discountAmount: number;
@@ -77,14 +82,25 @@ export function SellerOrderCard({
   showDeliveryLabel = true,
   openButtonLabel = "Открыть заказ",
   detailsIdPrefix = "order",
+  tableLayout = false,
+  navigateOnOpen = false,
+  compact = false,
 }: Props) {
   const [expanded, setExpanded] = useState(false);
   const [details, setDetails] = useState<OrderCardDetails | null>(null);
   const [detailsLoading, setDetailsLoading] = useState(false);
   const [detailsError, setDetailsError] = useState(false);
   const autoExpandHandled = useRef(false);
+  const detailsRequestRef = useRef(false);
   const prefetchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const orderVisual = getOrderVisual(order, statusLabel);
+  const articleRef = useRef<HTMLElement>(null);
+
+  useEffect(() => {
+    if (!autoExpand || !expanded || detailsLoading) return;
+    articleRef.current?.scrollIntoView({ block: "start" });
+    articleRef.current?.focus({ preventScroll: true });
+  }, [autoExpand, expanded, detailsLoading]);
 
   useEffect(
     () => () => {
@@ -108,8 +124,9 @@ export function SellerOrderCard({
   }
 
   const loadDetails = useCallback(async () => {
-    if (!onLoadDetails || detailsLoading) return;
+    if (!onLoadDetails || detailsRequestRef.current) return;
 
+    detailsRequestRef.current = true;
     setDetailsLoading(true);
     setDetailsError(false);
 
@@ -118,9 +135,24 @@ export function SellerOrderCard({
     } catch {
       setDetailsError(true);
     } finally {
+      detailsRequestRef.current = false;
       setDetailsLoading(false);
     }
-  }, [detailsLoading, onLoadDetails, order.id]);
+  }, [onLoadDetails, order.id]);
+
+  useEffect(() => {
+    if (!tableLayout || audience !== "seller" || !onLoadDetails || details || detailsError) return;
+    const article = articleRef.current;
+    if (!article) return;
+    const observer = new IntersectionObserver(entries => {
+      if (entries.some(entry => entry.isIntersecting)) {
+        observer.disconnect();
+        void loadDetails();
+      }
+    }, { rootMargin: "120px" });
+    observer.observe(article);
+    return () => observer.disconnect();
+  }, [tableLayout, audience, onLoadDetails, details, detailsError, loadDetails]);
 
   useEffect(() => {
     if (!autoExpand) {
@@ -138,6 +170,7 @@ export function SellerOrderCard({
   }, [autoExpand, details, detailsLoading, loadDetails]);
 
   function toggleExpanded() {
+    if (navigateOnOpen && onOpenOrder) { onOpenOrder(order.id); return; }
     const nextExpanded = !expanded;
     setExpanded(nextExpanded);
 
@@ -146,22 +179,28 @@ export function SellerOrderCard({
     }
   }
 
+  const SummaryTag = tableLayout ? "div" : "button";
+
   return (
     <article
-      className={`${styles.orderRow} ${expanded ? styles.orderRowExpanded : ""}`}
+      ref={articleRef}
+      tabIndex={-1}
+      className={`${styles.orderRow} ${expanded ? styles.orderRowExpanded : ""} ${tableLayout ? styles.tableRow : ""} ${compact ? `${styles.compact} ${listItemStyles.item}` : ""}`}
       onMouseEnter={schedulePrefetch}
       onMouseLeave={cancelPrefetch}
     >
-      <button
-        type="button"
+      <SummaryTag
         className={styles.orderToggle}
-        onClick={toggleExpanded}
-        aria-expanded={expanded}
-        aria-controls={`${detailsIdPrefix}-${order.id}`}
+        {...(!tableLayout ? {
+          type: "button" as const,
+          onClick: toggleExpanded,
+          "aria-expanded": expanded,
+          "aria-controls": `${detailsIdPrefix}-${order.id}`,
+        } : {})}
       >
         <span className={styles.orderField}>
           <span className={styles.orderLabel}>Дата заказа</span>
-          <strong>{formatOrderDate(order.createdAt)}</strong>
+          <strong>{tableLayout ? formatProductCreatedAt(order.createdAt) : formatOrderDate(order.createdAt)}</strong>
         </span>
 
         <span className={styles.orderField}>
@@ -169,21 +208,26 @@ export function SellerOrderCard({
           <strong>{formatOrderCode(order)}</strong>
         </span>
 
+        {tableLayout && <div className={styles.productsCell}>
+          <OrderProductsPreview order={order} details={details} loading={detailsLoading}
+            error={detailsError} onRetry={onLoadDetails ? () => void loadDetails() : undefined} />
+        </div>}
+
         <span className={styles.orderField}>
           <span className={styles.orderLabel}>Статус</span>
           <span className={styles.orderStatusBlock}>
-            <strong
+            {tableLayout ? <StatusBadge size="regular" tone={orderVisual.tone === "statusDanger" ? "danger" : orderVisual.tone === "statusWarning" ? "warning" : "success"}>{statusLabel}</StatusBadge> : <strong
               className={`${styles.orderStatus} ${styles[orderVisual.tone]}`}
             >
               {orderVisual.icon ? (
                 <Icon
                   name={orderVisual.icon}
-                  size={16}
-                  strokeWidth={1.7}
+                  size={20}
+                  strokeWidth={1.5}
                 />
               ) : null}
               <span>{statusLabel}</span>
-            </strong>
+            </strong>}
             {showStageElapsed &&
             order.deliveryStatus === "READY_FOR_SHIPMENT" ? (
               <StageElapsedTime
@@ -193,255 +237,34 @@ export function SellerOrderCard({
           </span>
         </span>
 
-        <span className={styles.expandIcon} aria-hidden="true">
-          <Icon name={expanded ? "minus" : "plus"} size={18} strokeWidth={1.8} />
-        </span>
-      </button>
+        {tableLayout && <span className={styles.orderField}>
+          <span className={styles.orderLabel}>Сумма</span>
+          <strong>{new Intl.NumberFormat("ru-RU", { style: "currency", currency: order.currency || "RUB", minimumFractionDigits: 0, maximumFractionDigits: 2 }).format(order.totalAmount)}</strong>
+        </span>}
+
+        {tableLayout ? <button type="button" className={styles.expandIcon}
+          aria-label={`${expanded ? "Свернуть" : "Открыть"} заказ ${formatOrderCode(order)}`}
+          aria-expanded={navigateOnOpen ? undefined : expanded} aria-controls={navigateOnOpen ? undefined : `${detailsIdPrefix}-${order.id}`}
+          onClick={toggleExpanded}>
+          <Icon name={navigateOnOpen ? "arrow-up-right" : expanded ? "minus" : "plus"} size={20} strokeWidth={1.5} />
+        </button> : <span className={styles.expandIcon} aria-hidden="true">
+          <Icon name={expanded ? "minus" : "plus"} size={20} strokeWidth={1.5} />
+        </span>}
+      </SummaryTag>
+
 
       {expanded ? (
         <div
           className={styles.orderDetails}
           id={`${detailsIdPrefix}-${order.id}`}
         >
-          <div className={styles.detailsBody}>
-            <section className={styles.positions}>
-              {detailsLoading ? (
-                <div className={styles.positionsSkeleton}>
-                  <CabinetSkeleton variant="list" rows={1} compact />
-                </div>
-              ) : detailsError ? (
-                <div className={styles.positionsError}>
-                  <span>Не удалось загрузить позиции заказа</span>
-                  <button type="button" onClick={() => void loadDetails()}>
-                    Повторить
-                  </button>
-                </div>
-              ) : details?.items.length ? (
-                <div className={styles.positionsList}>
-                  {details.items.map((item) => (
-                    <article
-                      className={styles.position}
-                      key={`${item.productId}-${item.variantId}`}
-                    >
-                      <div className={styles.positionProduct}>
-                        <div className={styles.positionImageWrap}>
-                          {item.imageUrl ? (
-                            <Image
-                              src={item.imageUrl}
-                              alt={item.productTitle}
-                              width={60}
-                              height={76}
-                              className={styles.positionImage}
-                            />
-                          ) : (
-                            <div
-                              className={styles.positionImagePlaceholder}
-                              aria-hidden="true"
-                            />
-                          )}
-                        </div>
-                        <div className={styles.positionCopy}>
-                          <strong>{item.productTitle}</strong>
-                          {isDistinctBrand(item.brandName, item.productTitle) ? (
-                            <span>{item.brandName}</span>
-                          ) : null}
-                          {item.size || item.color ? (
-                            <span>
-                              {[
-                                item.size ? `Размер ${item.size}` : null,
-                                item.color ? `Цвет ${item.color}` : null,
-                              ]
-                                .filter(Boolean)
-                                .join(" · ")}
-                            </span>
-                          ) : null}
-                        </div>
-                      </div>
-                      <div className={styles.positionMeta}>
-                        <div className={styles.positionValue}>
-                          <span className={styles.positionLabel}>Количество</span>
-                          <span>{item.quantity}</span>
-                        </div>
-                        <div className={styles.positionValue}>
-                          <span className={styles.positionLabel}>Цена</span>
-                          <OrderMoney
-                            value={item.price}
-                            currency={details.currency}
-                          />
-                        </div>
-                      </div>
-                    </article>
-                  ))}
-                </div>
-              ) : (
-                <div className={styles.positionsFallback}>
-                  {(order.productTitles?.length
-                    ? order.productTitles
-                    : [order.firstProductTitle]
-                  )
-                    .filter(Boolean)
-                    .map((title, index) => (
-                      <div key={`${title}-${index}`}>{title}</div>
-                    ))}
-                </div>
-              )}
-            </section>
-
-            <div className={styles.detailsPanels}>
-              <section className={styles.deliveryPanel}>
-                <h3>Доставка</h3>
-
-                <address className={styles.deliveryAddress}>
-                  <strong>{details?.recipientName || order.recipientName || "—"}</strong>
-                  {details?.deliveryAddress ? (
-                    <span>
-                      {isPickupDelivery(details.deliveryMethod)
-                        ? `Адрес СДЭК: ${details.deliveryAddress}`
-                        : details.deliveryAddress}
-                    </span>
-                  ) : null}
-                  {details?.recipientPhone ? (
-                    <span>{formatRussianPhone(details.recipientPhone)}</span>
-                  ) : null}
-                </address>
-
-                <dl className={styles.statusList}>
-                  <div>
-                    <dt>Статус доставки</dt>
-                    <dd>
-                      <OrderStatusText visual={getDeliveryVisual(order.deliveryStatus)}>
-                        {formatDeliveryStatus(order.deliveryStatus, audience)}
-                      </OrderStatusText>
-                    </dd>
-                  </div>
-                  {details?.delivery?.cdekNumber || details?.trackingNumber ? (
-                    <div>
-                      <dt>Номер СДЭК</dt>
-                      <dd>
-                        {details.delivery?.cdekNumber || details.trackingNumber}
-                      </dd>
-                    </div>
-                  ) : null}
-                </dl>
-
-                {details?.delivery &&
-                (details.delivery.trackingUrl || showDeliveryLabel) ? (
-                  <div className={styles.deliveryActions}>
-                    {details.delivery.trackingUrl ? (
-                      <a
-                        href={details.delivery.trackingUrl}
-                        target="_blank"
-                        rel="noreferrer"
-                      >
-                        Отследить отправление
-                      </a>
-                    ) : null}
-                    {showDeliveryLabel ? (
-                      <a
-                        href={`${API_URL}/api/seller/orders/${order.id}/delivery-label`}
-                        target="_blank"
-                        rel="noreferrer"
-                      >
-                        Скачать накладную СДЭК
-                      </a>
-                    ) : null}
-                  </div>
-                ) : null}
-              </section>
-
-              <section className={styles.totalsPanel}>
-                <h3>Сумма</h3>
-                <dl className={styles.totalsList}>
-                  <div>
-                    <dt>Статус оплаты</dt>
-                    <dd>
-                      <OrderStatusText
-                        visual={getPaymentVisual(order.paymentStatus)}
-                        showIcon={false}
-                      >
-                        {formatPaymentStatus(order.paymentStatus)}
-                      </OrderStatusText>
-                    </dd>
-                  </div>
-                  <div>
-                    <dt>Товары</dt>
-                    <dd>
-                      <OrderMoney
-                        value={details?.subtotalAmount ?? order.totalAmount}
-                        currency={details?.currency || order.currency}
-                      />
-                    </dd>
-                  </div>
-                  <div>
-                    <dt>Доставка</dt>
-                    <dd>
-                      {details
-                        ? details.deliveryAmount === 0
-                          ? "Бесплатно"
-                          : (
-                              <OrderMoney
-                                value={details.deliveryAmount}
-                                currency={details.currency}
-                              />
-                            )
-                        : "—"}
-                    </dd>
-                  </div>
-                  {details && details.discountAmount > 0 ? (
-                    <div>
-                      <dt>Скидка</dt>
-                      <dd>
-                        −
-                        <OrderMoney
-                          value={details.discountAmount}
-                          currency={details.currency}
-                        />
-                      </dd>
-                    </div>
-                  ) : null}
-                  <div className={styles.totalRow}>
-                    <dt>Итого</dt>
-                    <dd>
-                      <OrderMoney
-                        value={details?.totalAmount ?? order.totalAmount}
-                        currency={details?.currency || order.currency}
-                      />
-                    </dd>
-                  </div>
-                </dl>
-              </section>
-            </div>
-          </div>
-
-          {onOpenOrder ? (
-            <div className={styles.detailsFooter}>
-              <button
-                type="button"
-                className={styles.openButton}
-                onClick={() => onOpenOrder(order.id)}
-              >
-                {openButtonLabel}
-              </button>
-            </div>
-          ) : null}
+          <OrderDetailsPanel order={order} details={details} loading={detailsLoading} error={detailsError}
+            onRetry={() => void loadDetails()} audience={audience} showDeliveryLabel={showDeliveryLabel}
+            onOpenOrder={onOpenOrder} openButtonLabel={openButtonLabel} />
         </div>
       ) : null}
     </article>
   );
-}
-
-function isDistinctBrand(
-  brandName: string | null | undefined,
-  productTitle: string
-) {
-  const normalizedBrand = brandName?.trim().toLocaleLowerCase("ru-RU");
-  const normalizedTitle = productTitle.trim().toLocaleLowerCase("ru-RU");
-
-  return Boolean(normalizedBrand && normalizedBrand !== normalizedTitle);
-}
-
-function isPickupDelivery(method: string | null | undefined) {
-  return method === "PICKUP_POINT" || method === "PICKUP";
 }
 
 type StageSlaTone = "neutral" | "warning" | "critical";
@@ -508,108 +331,6 @@ type OrderVisual = {
   icon?: IconName;
 };
 
-function OrderStatusText({
-  visual,
-  children,
-  showIcon = true,
-}: {
-  visual: OrderVisual;
-  children: string;
-  showIcon?: boolean;
-}) {
-  return (
-    <span className={`${styles.inlineStatus} ${styles[visual.tone]}`}>
-      {showIcon && visual.icon ? (
-        <Icon name={visual.icon} size={15} strokeWidth={1.7} />
-      ) : null}
-      <span>{children}</span>
-    </span>
-  );
-}
-
-function getPaymentVisual(
-  status: SellerOrderListItem["paymentStatus"]
-): OrderVisual {
-  if (status === "PENDING") {
-    return { tone: "statusWarning", icon: "clock" };
-  }
-  if (status === "PAID") {
-    return { tone: "statusSuccess" };
-  }
-  if (status === "FAILED") {
-    return { tone: "statusDanger", icon: "info" };
-  }
-  if (status === "CANCELED") {
-    return { tone: "statusDanger", icon: "cancel-circle" };
-  }
-  return { tone: "statusDanger", icon: "return-circle" };
-}
-
-function getDeliveryVisual(
-  status: SellerOrderListItem["deliveryStatus"]
-): OrderVisual {
-  if (status === "CANCELLED") {
-    return { tone: "statusDanger", icon: "cancel-circle" };
-  }
-  if (status === "RETURNED") {
-    return { tone: "statusDanger", icon: "return-circle" };
-  }
-  if (status === "DELIVERED") {
-    return { tone: "statusSuccess", icon: "check-circle" };
-  }
-  if (status === "IN_TRANSIT") {
-    return { tone: "statusSuccess", icon: "delivery-truck" };
-  }
-  if (status === "READY_FOR_PICKUP") {
-    return { tone: "statusSuccess", icon: "pickup-point" };
-  }
-  if (status === "READY_FOR_SHIPMENT") {
-    return { tone: "statusWarning", icon: "shipment-handoff" };
-  }
-  return { tone: "statusWarning", icon: "clock" };
-}
-
-function formatPaymentStatus(status: SellerOrderListItem["paymentStatus"]) {
-  switch (status) {
-    case "PENDING":
-      return "Ожидает оплаты";
-    case "PAID":
-      return "Оплачен";
-    case "FAILED":
-      return "Ошибка оплаты";
-    case "CANCELED":
-      return "Оплата отменена";
-    case "REFUNDED":
-      return "Возвращён";
-    default:
-      return status;
-  }
-}
-
-function formatDeliveryStatus(
-  status: SellerOrderListItem["deliveryStatus"],
-  audience: OrderCardAudience
-) {
-  switch (status) {
-    case "PENDING":
-      return "Оформление доставки";
-    case "READY_FOR_SHIPMENT":
-      return audience === "seller" ? "Передайте в СДЭК" : "Готовится к отправке";
-    case "READY_FOR_PICKUP":
-      return "Ожидает получения";
-    case "IN_TRANSIT":
-      return "В пути";
-    case "DELIVERED":
-      return "Доставлен";
-    case "RETURNED":
-      return "Возвращён";
-    case "CANCELLED":
-      return "Отменён";
-    default:
-      return status;
-  }
-}
-
 function formatOrderDate(value: string) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "—";
@@ -622,7 +343,7 @@ function formatOrderDate(value: string) {
     .replace(/\./g, "-");
 }
 
-function formatOrderCode(order: SellerOrderCardListItem) {
+export function formatOrderCode(order: SellerOrderCardListItem) {
   const source = `${order.orderGroupId}:${order.id}`;
   const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
   let hash = 2166136261;
@@ -639,33 +360,6 @@ function formatOrderCode(order: SellerOrderCardListItem) {
     value = Math.imul(value ^ (value >>> 13), 1597334677) >>> 0;
   }
   return result;
-}
-
-function OrderMoney({
-  value,
-  currency,
-}: {
-  value: number;
-  currency: string;
-}) {
-  const parts = new Intl.NumberFormat("ru-RU", {
-    style: "currency",
-    currency: currency || "RUB",
-    maximumFractionDigits: 0,
-  }).formatToParts(value);
-
-  return (
-    <span className={styles.money}>
-      {parts.map((part, index) => (
-        <span
-          className={part.type === "currency" ? styles.currencySymbol : undefined}
-          key={`${part.type}-${index}`}
-        >
-          {part.value}
-        </span>
-      ))}
-    </span>
-  );
 }
 
 function getOrderVisual(

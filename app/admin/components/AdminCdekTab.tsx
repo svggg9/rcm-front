@@ -179,8 +179,8 @@ export function AdminCdekTab({
                   <td>
                     <div>{event.eventType || "—"}</div>
                     <span>
-                      return {formatFlag(event.isReturn)} · reverse{" "}
-                      {formatFlag(event.isReverse)} · client{" "}
+                      return {formatFlag(event.isReturn)}, reverse{" "}
+                      {formatFlag(event.isReverse)}, client{" "}
                       {formatFlag(event.isClientReturn)}
                     </span>
                   </td>

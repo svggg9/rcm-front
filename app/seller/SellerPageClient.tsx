@@ -1,18 +1,17 @@
 "use client";
 
-import { useEffect, useRef, useState, type MouseEvent } from "react";
+import { lazy, Suspense, useEffect, useRef, useState, type ComponentProps, type MouseEvent } from "react";
 import dynamic from "next/dynamic";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 
 import { apiFetch, API_URL } from "../lib/api";
 import { useSessionResourceCache } from "../lib/useSessionResourceCache";
-import { CabinetTabs } from "../components/ui/CabinetTabs";
 import { CabinetSkeleton } from "../components/ui/CabinetSkeleton";
 
 import { SellerSidebar } from "./components/SellerSidebar";
 import { SellerHomeTab } from "./components/SellerHomeTab";
-import type { SellerOrderCardListItem } from "./components/SellerOrderCard";
+import { buildSellerStatusLabel } from "./lib/sellerOrderStatus";
 import {
   getSellerOnboardingStatus,
   type SellerOnboardingStatus as SellerOnboardingStatusType,
@@ -23,12 +22,14 @@ import {
   getSellerDashboardSummaryClient,
   getSellerOrdersClient,
   getSellerProductsClient,
+  SELLER_PRODUCTS_PAGE_SIZE,
 } from "./lib/sellerClientDataApi";
+import type { ProductChange } from "./lib/sellerProductActions";
+import { DEFAULT_PRODUCT_SORT, nextProductSort, type ProductSort, type ProductSortKey } from "./lib/sellerProductSort";
 
 import type {
   SellerOrder,
   SellerOrderListItem,
-  SellerOrderStatus,
   SellerBrand,
   SellerFinanceSummary,
   SellerDashboardSummary,
@@ -39,13 +40,12 @@ import type {
 
 import styles from "./SellerPageClient.module.css";
 
-const SellerProductsTab = dynamic(
-  () =>
-    import("./components/SellerProductsTab").then(
-      (module) => module.SellerProductsTab
-    ),
-  { loading: () => <CabinetSkeleton variant="list" compact /> }
-);
+const LazySellerProductsTab = lazy(() => import("./components/SellerProductsTab").then(
+  (module) => ({ default: module.SellerProductsTab })
+));
+function SellerProductsTab(props: ComponentProps<typeof LazySellerProductsTab>) {
+  return <Suspense fallback={<CabinetSkeleton variant="list" compact />}><LazySellerProductsTab {...props} /></Suspense>;
+}
 const SellerOrdersTab = dynamic(
   () =>
     import("./components/SellerOrdersTab").then(
@@ -65,58 +65,18 @@ const SellerBrandTab = dynamic(
     import("./components/SellerBrandTab").then((module) => module.SellerBrandTab),
   { loading: () => <CabinetSkeleton variant="form" /> }
 );
-const SellerFinanceTab = dynamic(
-  () =>
-    import("./components/SellerFinanceTab").then(
-      (module) => module.SellerFinanceTab
-    ),
-  { loading: () => <CabinetSkeleton variant="dashboard" /> }
-);
+const LazySellerFinanceTab = lazy(() => import("./components/SellerFinanceTab").then(
+  (module) => ({ default: module.SellerFinanceTab })
+));
+function SellerFinanceTab(props: ComponentProps<typeof LazySellerFinanceTab>) {
+  return <Suspense fallback={<CabinetSkeleton variant="dashboard" />}><LazySellerFinanceTab {...props} /></Suspense>;
+}
 const SellerLegalTab = dynamic(
   () =>
     import("./components/SellerLegalTab").then((module) => module.SellerLegalTab),
   { loading: () => <CabinetSkeleton variant="form" /> }
 );
 
-function formatOrderStatus(status: SellerOrderStatus): string {
-  switch (status) {
-    case "NEW":
-      return "Новый";
-    case "CONFIRMED":
-      return "Подтверждён";
-    case "PROCESSING":
-      return "В обработке";
-    case "SHIPPED":
-      return "Отправлен";
-    case "PAID":
-      return "Оплачен";
-    case "COMPLETED":
-      return "Завершён";
-    case "CANCELED":
-      return "Отменён";
-    default:
-      return status;
-  }
-}
-
-function buildSellerStatusLabel(order: SellerOrderCardListItem): string {
-  if (order.status === "CANCELED") return "Отменён";
-  if (order.paymentStatus === "PENDING") return "Ожидает оплаты";
-  if (order.paymentStatus === "FAILED") return "Ошибка оплаты";
-  if (order.paymentStatus === "CANCELED") return "Оплата отменена";
-  if (order.paymentStatus === "REFUNDED") return "Возвращён";
-  if (order.deliveryStatus === "READY_FOR_SHIPMENT") return "Передайте в СДЭК";
-  if (order.deliveryStatus === "READY_FOR_PICKUP") return "Ожидает получения";
-  if (order.deliveryStatus === "IN_TRANSIT") return "В пути";
-  if (order.deliveryStatus === "DELIVERED") return "Доставлен";
-  if (order.deliveryStatus === "RETURNED") return "Возвращён";
-  if (order.deliveryStatus === "CANCELLED") return "Отменён";
-  if (order.paymentStatus === "PAID" && order.deliveryStatus === "PENDING") {
-    return "Оформление доставки";
-  }
-
-  return formatOrderStatus(order.status);
-}
 
 type Props = {
   initialProducts: SellerProductListItem[];
@@ -167,8 +127,11 @@ function SellerPageContent({
   initialOrderId,
 }: Props) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [currentTab, setCurrentTab] = useState<SellerTab>(initialTab);
   const [selectedOrderId, setSelectedOrderId] = useState(initialOrderId);
+  const [linkedOrder, setLinkedOrder] = useState<SellerOrderListItem | null>(null);
+  const [linkedOrderError, setLinkedOrderError] = useState<string | null>(null);
   const [visitedTabs, setVisitedTabs] = useState<Set<SellerTab>>(
     () => new Set([initialTab])
   );
@@ -194,6 +157,8 @@ function SellerPageContent({
   const [productsLoading, setProductsLoading] = useState(false);
   const [ordersLoading, setOrdersLoading] = useState(false);
   const [productsLoadingMore, setProductsLoadingMore] = useState(false);
+  const [productSort, setProductSort] = useState<ProductSort | null>(DEFAULT_PRODUCT_SORT);
+  const [productsSorting, setProductsSorting] = useState(false);
   const [ordersLoadingMore, setOrdersLoadingMore] = useState(false);
   const [financeLoading, setFinanceLoading] = useState(false);
   const [dashboardLoading, setDashboardLoading] = useState(false);
@@ -228,6 +193,25 @@ function SellerPageContent({
   const [creatingProduct, setCreatingProduct] = useState(false);
 
   useEffect(() => {
+    const id = parseOrderId(selectedOrderId);
+    if (currentTab !== "orders" || !id || orders.some(order => order.id === id)) return;
+    let active = true;
+    getOrderDetails(id).then(order => {
+      if (!active) return;
+      setLinkedOrder({
+        ...order, firstProductTitle: order.items[0]?.productTitle ?? null,
+        productTitles: order.items.map(item => item.productTitle), firstImageUrl: order.items[0]?.imageUrl ?? null,
+        itemsCount: order.items.reduce((total, item) => total + item.quantity, 0),
+      });
+      setLinkedOrderError(null);
+    }).catch(() => { if (active) setLinkedOrderError("Не удалось открыть выбранный заказ"); });
+    return () => { active = false; };
+  }, [currentTab, selectedOrderId, orders, getOrderDetails]);
+
+  const visibleOrders = linkedOrder?.id === parseOrderId(selectedOrderId) && !orders.some(order => order.id === linkedOrder.id)
+    ? [linkedOrder, ...orders] : orders;
+
+  useEffect(() => {
     mountedRef.current = true;
 
     return () => {
@@ -250,6 +234,7 @@ function SellerPageContent({
 
   useEffect(() => {
     setProducts(initialProducts);
+    setProductSort(DEFAULT_PRODUCT_SORT);
     setProductsTotal(initialProductsTotal);
     setProductsNextPage(initialProductsNextPage);
     setProductsLoaded(initialProductsLoaded);
@@ -497,12 +482,13 @@ function SellerPageContent({
       setVisitedTabs((current) => addVisitedTab(current, nextTab));
     };
 
+    syncFromHistory();
     window.addEventListener("popstate", syncFromHistory);
 
     return () => {
       window.removeEventListener("popstate", syncFromHistory);
     };
-  }, []);
+  }, [searchParams]);
 
   function navigateSeller(href: string) {
     const url = new URL(href, window.location.origin);
@@ -573,11 +559,27 @@ function SellerPageContent({
     }
   }
 
+  function handleProductsChanged(changes: ProductChange[]) {
+    if (!changes.length) return;
+    const statuses = new Map(changes.map(change => [change.id, change.status]));
+    const removedCount = products.filter(product => statuses.get(product.id) === "DELETED").length;
+    setProducts(current => current.flatMap(product => statuses.get(product.id) === "DELETED" ? []
+      : [{ ...product, status: statuses.get(product.id) ?? product.status }]));
+    if (removedCount) {
+      setProductsTotal(current => Math.max(0, current - removedCount));
+      // Deletion shifts page offsets. Re-read the partially filled page on
+      // load-more; appendUniqueById keeps existing rows without skipping any.
+      setProductsNextPage(current => current === null ? null
+        : Math.floor((products.length - removedCount) / SELLER_PRODUCTS_PAGE_SIZE));
+    }
+    setDashboardLoaded(false);
+  }
+
   async function loadMoreProducts() {
     if (productsNextPage === null || productsRequestRef.current) return;
 
     setProductsLoadingMore(true);
-    const request = getSellerProductsClient(productsNextPage);
+    const request = getSellerProductsClient(productsNextPage, SELLER_PRODUCTS_PAGE_SIZE, productSort);
     productsRequestRef.current = request;
 
     try {
@@ -599,6 +601,27 @@ function SellerPageContent({
     } finally {
       productsRequestRef.current = null;
       if (mountedRef.current) setProductsLoadingMore(false);
+    }
+  }
+
+  async function sortProducts(key: ProductSortKey) {
+    if (productsRequestRef.current) return;
+    const nextSort = nextProductSort(productSort, key);
+    setProductsSorting(true);
+    const request = getSellerProductsClient(0, SELLER_PRODUCTS_PAGE_SIZE, nextSort);
+    productsRequestRef.current = request;
+    try {
+      const page = await request;
+      if (!mountedRef.current) return;
+      setProducts(page.content);
+      setProductsTotal(page.totalElements);
+      setProductsNextPage(getNextPage(page));
+      setProductSort(nextSort);
+    } catch (error) {
+      if (mountedRef.current) toast.error(error instanceof Error ? error.message : "Не удалось отсортировать товары");
+    } finally {
+      productsRequestRef.current = null;
+      if (mountedRef.current) setProductsSorting(false);
     }
   }
 
@@ -639,50 +662,32 @@ function SellerPageContent({
     if (currentTab === "home") setDashboardLoaded(false);
   }
 
+  const tabLoadError = loadError ? (
+    <div className={styles.loadError} role="alert">
+      <span>{loadError}</span>
+      <button type="button" onClick={retryCurrentTab}>Повторить</button>
+    </div>
+  ) : null;
+
   return (
     <div className="pageContainer">
       <div className={styles.page}>
-        <div className={styles.layout} onClickCapture={handleSellerNavigation}>
+        <div className={`${styles.layout} ${currentTab === "products" ? styles.attachedPanel : ""}`} onClickCapture={handleSellerNavigation}>
           <SellerSidebar
             currentTab={currentTab}
-            productCount={dashboard?.attentionProducts}
-            orderCount={dashboard?.readyOrders}
+
           />
 
           <div className={styles.content}>
-            {loadError ? (
-              <div className={styles.loadError} role="alert">
-                <span>{loadError}</span>
-                <button type="button" onClick={retryCurrentTab}>
-                  Повторить
-                </button>
-              </div>
-            ) : null}
-            {currentTab === "orders" || currentTab === "returns" ? (
-              <div className={styles.orderSectionTabs}>
-                <CabinetTabs<"orders" | "returns">
-                  items={[
-                    { value: "orders", label: "Заказы" },
-                    { value: "returns", label: "Возвраты" },
-                  ]}
-                  value={currentTab}
-                  onChange={(tab) => {
-                    navigateSeller(
-                      tab === "orders" ? "/seller?tab=orders" : "/seller?tab=returns"
-                    );
-                  }}
-                  ariaLabel="Заказы и возвраты"
-                  appearance="line"
-                />
-              </div>
-            ) : null}
-
+            {currentTab === "home" || currentTab === "brand" || currentTab === "legal" ? tabLoadError : null}
             {currentTab === "home" ? (
               <div>
                 {!dashboardLoaded || dashboardLoading ? (
                   <CabinetSkeleton variant="dashboard" />
                 ) : !loadError ? (
-                  <SellerHomeTab
+              <SellerHomeTab
+                onNavigate={navigateSeller}
+                onCreateProduct={() => { if (!creatingProduct) void createDraftProduct(); }}
                     brand={initialBrands[0] ?? null}
                     summary={dashboard}
                     onboardingStatus={onboardingStatus}
@@ -691,24 +696,18 @@ function SellerPageContent({
                     onRetryOnboarding={() => {
                       setOnboardingRequestVersion((current) => current + 1);
                     }}
-                    creatingProduct={creatingProduct}
-                    onCreateProduct={() => void createDraftProduct()}
                   />
                 ) : null}
               </div>
             ) : null}
 
             {currentTab === "finance" ? (
-              <div>
-                {!financeLoaded || financeLoading ? (
-                  <CabinetSkeleton variant="dashboard" />
-                ) : !loadError ? (
-                  <SellerFinanceTab
-                    finance={finance}
-                    onPrefetchOrder={prefetchOrderDetails}
-                  />
-                ) : null}
-              </div>
+              <SellerFinanceTab
+                finance={finance}
+                loading={!loadError && (!financeLoaded || financeLoading)}
+                error={tabLoadError}
+                onPrefetchOrder={prefetchOrderDetails}
+              />
             ) : null}
 
             {visitedTabs.has("brand") ? (
@@ -723,12 +722,14 @@ function SellerPageContent({
               </div>
             ) : null}
 
-            {currentTab === "products" && !loadError ? (
+            {currentTab === "products" ? (
               <div>
                 <SellerProductsTab
+                  brands={initialBrands}
                   products={products}
                   totalElements={productsTotal}
-                  loading={!productsLoaded || productsLoading}
+                  loading={!loadError && (!productsLoaded || productsLoading)}
+                  error={tabLoadError}
                   loadingMore={productsLoadingMore}
                   onLoadMore={
                     productsNextPage === null
@@ -737,38 +738,44 @@ function SellerPageContent({
                   }
                   creatingProduct={creatingProduct}
                   onCreateProduct={() => void createDraftProduct()}
+                  onProductsChanged={handleProductsChanged}
+                  sort={productSort}
+                  sorting={productsSorting}
+                  onSort={key => void sortProducts(key)}
                 />
               </div>
             ) : null}
 
-            {currentTab === "orders" && !loadError ? (
-              <div>
-                {!ordersLoaded || ordersLoading ? (
-                  <CabinetSkeleton variant="list" compact />
-                ) : (
-                  <SellerOrdersTab
-                    orders={orders}
-                    totalElements={ordersTotal}
-                    loadingMore={ordersLoadingMore}
-                    onLoadMore={
-                      ordersNextPage === null
-                        ? undefined
-                        : () => void loadMoreOrders()
-                    }
-                    buildSellerStatusLabel={buildSellerStatusLabel}
-                    expandedOrderId={parseOrderId(selectedOrderId)}
-                    onLoadOrder={getOrderDetails}
-                    onPrefetchOrder={prefetchOrderDetails}
-                    showStageElapsed
-                  />
-                )}
-              </div>
-            ) : null}
-
-            {currentTab === "returns" ? (
-              <div>
-                <SellerReturnsTab />
-              </div>
+            {currentTab === "orders" || currentTab === "returns" ? (
+              <section aria-label="Заказы и возвраты">
+                {tabLoadError}
+                {currentTab === "orders" && !loadError ? (
+                  <div>
+                    {selectedOrderId && linkedOrderError && <div className="alertDanger" role="alert">{linkedOrderError}</div>}
+                    {!ordersLoaded || ordersLoading ? (
+                      <CabinetSkeleton variant="list" compact />
+                    ) : (
+                      <SellerOrdersTab
+                        key={selectedOrderId || "orders"}
+                        orders={visibleOrders}
+                        totalElements={ordersTotal}
+                        loadingMore={ordersLoadingMore}
+                        onLoadMore={
+                          ordersNextPage === null
+                            ? undefined
+                            : () => void loadMoreOrders()
+                        }
+                        buildSellerStatusLabel={buildSellerStatusLabel}
+                        expandedOrderId={parseOrderId(selectedOrderId)}
+                        onLoadOrder={getOrderDetails}
+                        onPrefetchOrder={prefetchOrderDetails}
+                        showStageElapsed
+                      />
+                    )}
+                  </div>
+                ) : null}
+                {currentTab === "returns" ? <SellerReturnsTab /> : null}
+              </section>
             ) : null}
           </div>
         </div>

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useId, useState } from "react";
 
 import styles from "../ProductEditPage.module.css";
 
@@ -34,6 +34,7 @@ export function NumberField({
   decimal = false,
   onChange,
 }: Props) {
+  const errorId = useId();
   const [inputState, setInputState] = useState({
     value,
     displayValue: value === "" ? "" : String(value),
@@ -47,12 +48,14 @@ export function NumberField({
   }
 
   return (
-    <label className={styles.field}>
+    <label className={styles.field} data-ui="field">
       <span className={styles.required}>{label}</span>
 
       <input
         type="text"
         aria-invalid={invalid ? "true" : undefined}
+        aria-required="true"
+        aria-describedby={invalid ? errorId : undefined}
         inputMode={decimal ? "decimal" : "numeric"}
         pattern={decimal ? "[0-9]*[.,]?[0-9]*" : "[0-9]*"}
         value={displayValue}
@@ -73,9 +76,10 @@ export function NumberField({
           onChange(parsedValue);
         }}
         className={`${styles.input} ${
-          invalid ? styles.fieldInvalid : ""
+          invalid ? "inputError" : ""
         } ${value === "" ? styles.requiredEmpty : ""}`}
       />
+      {invalid ? <span className="fieldError" id={errorId}>Укажите значение больше нуля</span> : null}
     </label>
   );
 }

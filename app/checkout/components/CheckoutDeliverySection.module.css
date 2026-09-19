@@ -289,6 +289,16 @@
   line-height: 1.45;
 }
 
+.pickupSelectedValue > span + span {
+  margin-left: 8px;
+}
+
+.mobileSummary,
+.editButton,
+.doneButton {
+  display: none;
+}
+
 .infoBlock {
   display: flex;
   flex-direction: column;
@@ -449,5 +459,87 @@
     width: fit-content;
     margin-top: 6px;
     transform: none;
+  }
+}
+
+@media (max-width: 640px) {
+  .section {
+    padding: 16px 0;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .header {
+    min-height: 44px;
+    margin-bottom: 10px;
+  }
+
+  .title {
+    font-size: 17px;
+  }
+
+  .mobileSummary {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    color: var(--black);
+    font-size: 14px;
+    line-height: 1.4;
+    overflow-wrap: anywhere;
+  }
+
+  .summaryMuted {
+    color: var(--muted);
+    font-size: 13px;
+  }
+
+  .bodyCompact {
+    display: none;
+  }
+
+  .editButton {
+    display: inline-flex;
+    flex: 0 0 44px;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    border: 0;
+    background: transparent;
+    color: var(--black);
+    cursor: pointer;
+  }
+
+  .doneButton {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    align-self: flex-start;
+    min-height: 44px;
+    padding: 0 16px;
+    border: 1px solid var(--black);
+    background: var(--white);
+    color: var(--black);
+    font-size: 13px;
+    cursor: pointer;
+  }
+
+  .selectField,
+  .textField,
+  .textareaField {
+    font-size: 16px;
+  }
+
+  .suggestItem {
+    min-height: 44px;
+  }
+
+  .textareaField {
+    min-height: 80px;
+  }
+
+  .metaBadge {
+    border-color: var(--line);
+    background: var(--white);
+    color: var(--muted);
   }
 }

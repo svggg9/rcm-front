@@ -225,7 +225,7 @@ export default function CartPage() {
                 Повторить
               </button>
               <Link href="/catalog" className={styles.errorCatalog}>
-                Перейти в каталог
+                Каталог
               </Link>
             </div>
           </div>

@@ -2,12 +2,15 @@
 
 import { useMemo, useState } from "react";
 
-import { CabinetTabs, type CabinetTabItem } from "../../components/ui/CabinetTabs";
+import { FormSelect } from "../../components/ui/FormSelect";
+import { TextInput } from "../../components/ui/TextInput";
+import productStyles from "./SellerProductsTab.module.css";
 import { EmptyState } from "../../components/ui/EmptyState";
 import { ListLoadMore } from "../../components/ui/ListLoadMore";
 
 import {
   SellerOrderCard,
+  formatOrderCode,
   type OrderCardDetails,
   type OrderCardAudience,
   type SellerOrderCardListItem,
@@ -58,64 +61,64 @@ export function SellerOrdersTab<
   openButtonLabel,
 }: Props<TOrder>) {
   const [filter, setFilter] = useState<OrderFilter>("ALL");
-  const allOrdersLoaded = !onLoadMore;
+  const [search, setSearch] = useState("");
 
-  const orderTabs: CabinetTabItem<OrderFilter>[] = [
+  const orderTabs: { value: OrderFilter; label: string; count?: number }[] = [
     { value: "ALL", label: "Все", count: totalElements },
     {
       value: "READY",
       label: audience === "seller" ? "К отправке" : "В обработке",
-      count: allOrdersLoaded
+      count: !onLoadMore
         ? orders.filter(isReadyOrder).length || undefined
         : undefined,
     },
     {
       value: "PENDING_PAYMENT",
       label: "Не оплачены",
-      count: allOrdersLoaded
+      count: !onLoadMore
         ? orders.filter(isPendingPaymentOrder).length || undefined
         : undefined,
     },
     {
       value: "IN_TRANSIT",
       label: "В пути",
-      count: allOrdersLoaded
+      count: !onLoadMore
         ? orders.filter(isInTransitOrder).length || undefined
         : undefined,
     },
     {
       value: "COMPLETED",
       label: "Завершены",
-      count: allOrdersLoaded
+      count: !onLoadMore
         ? orders.filter(isCompletedOrder).length || undefined
         : undefined,
     },
     {
       value: "CANCELED",
       label: "Отменены",
-      count: allOrdersLoaded
+      count: !onLoadMore
         ? orders.filter(isCanceledOrder).length || undefined
         : undefined,
     },
   ];
 
   const filteredOrders = useMemo(
-    () => orders.filter((order) => matchesOrderFilter(order, filter)),
-    [filter, orders]
+    () => audience === "buyer" ? orders : orders.filter((order) => matchesOrderFilter(order, filter)
+      && [formatOrderCode(order), order.recipientName, order.firstProductTitle, ...(order.productTitles ?? [])]
+        .filter(Boolean).join(" ").toLocaleLowerCase("ru").includes(search.trim().toLocaleLowerCase("ru"))),
+    [audience, filter, orders, search]
   );
 
   return (
     <section className={styles.page}>
-      <div className={styles.ordersToolbar}>
-        <CabinetTabs
-          items={orderTabs}
-          value={filter}
-          onChange={setFilter}
-          ariaLabel="Фильтр заказов"
-          countTone="gold"
-          appearance="segmented"
-        />
-      </div>
+      {audience !== "buyer" ? <div className={productStyles.productsToolbar}>
+        <div className={productStyles.productSearch}><TextInput type="search" hideLabel
+          label="Номер заказа, товар или получатель" placeholder="Номер заказа, товар или получатель"
+          value={search} onChange={event => setSearch(event.target.value)} /></div>
+        <FormSelect ariaLabel="Статус заказа" placeholder="Статус заказа" emptyOptionLabel="Все заказы"
+          options={orderTabs.filter(tab => tab.value !== "ALL").map(({ value, label }) => ({value, label}))}
+          value={filter === "ALL" ? "" : filter} onChange={value => setFilter((value || "ALL") as OrderFilter)} />
+      </div> : null}
 
       {orders.length === 0 ? (
         <EmptyState
@@ -136,12 +139,15 @@ export function SellerOrdersTab<
               title="Заказов нет"
               text={
                 onLoadMore
-                  ? "В загруженной части списка заказов с таким статусом нет."
-                  : "По выбранному статусу ничего не найдено."
+                  ? "В загруженной части списка нет подходящих заказов"
+                  : "По выбранным фильтрам ничего не найдено"
               }
             />
           ) : (
-            <div className={styles.list}>
+            <div className={`${styles.list} ${audience === "seller" ? styles.tableList : ""}`}>
+              {audience === "seller" && <div className={styles.tableHeader} aria-hidden="true">
+                <span>Дата заказа</span><span>Номер заказа</span><span>Товары</span><span>Статус</span><span>Сумма</span><span />
+              </div>}
               {filteredOrders.map((order) => (
                 <SellerOrderCard
                   key={order.id}
@@ -155,6 +161,7 @@ export function SellerOrdersTab<
                   audience={audience}
                   showDeliveryLabel={showDeliveryLabel}
                   openButtonLabel={openButtonLabel}
+                  tableLayout={audience === "seller"}
                 />
               ))}
             </div>
@@ -198,6 +205,8 @@ function isPendingPaymentOrder(order: SellerOrderCardListItem) {
 function isReadyOrder(order: SellerOrderCardListItem) {
   return (
     !isCanceledOrder(order) &&
+    !["SHIPPED", "COMPLETED"].includes(order.status) &&
+    !["IN_TRANSIT", "DELIVERED", "READY_FOR_PICKUP"].includes(order.deliveryStatus) &&
     order.paymentStatus === "PAID" &&
     (order.deliveryStatus === "READY_FOR_SHIPMENT" ||
       order.status === "PROCESSING")

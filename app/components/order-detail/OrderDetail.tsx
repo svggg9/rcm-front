@@ -166,7 +166,7 @@ export function OrderDetailProductList({ items }: { items: OrderDetailProductIte
 
             {item.size || item.color ? (
               <div className={`${styles.productMeta} textSmall`}>
-                {[item.size, item.color].filter(Boolean).join(" · ")}
+                {[item.size, item.color].filter(Boolean).join(", ")}
               </div>
             ) : null}
 

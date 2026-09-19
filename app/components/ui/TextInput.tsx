@@ -1,4 +1,4 @@
-import type { InputHTMLAttributes } from "react";
+import { useId, type InputHTMLAttributes } from "react";
 
 import { Field } from "./Field";
 
@@ -21,6 +21,7 @@ export function TextInput({
   ...props
 }: Props) {
   const visibleError = error?.trim();
+  const errorId = useId();
 
   return (
     <Field
@@ -34,8 +35,10 @@ export function TextInput({
         className={`input ${error ? "inputError" : ""} ${className}`.trim()}
         aria-invalid={error ? "true" : undefined}
         {...props}
+        aria-required={required || undefined}
+        aria-describedby={[props["aria-describedby"], visibleError ? errorId : null].filter(Boolean).join(" ") || undefined}
       />
-      {visibleError ? <div className="fieldError">{visibleError}</div> : null}
+      {visibleError ? <div className="fieldError" id={errorId}>{visibleError}</div> : null}
     </Field>
   );
 }

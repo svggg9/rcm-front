@@ -1,27 +1,10 @@
-.alert,
-.alertSuccess,
-.alertWarning,
-.alertDanger {
-  padding: 14px 16px;
-
-  border: 1px solid var(--line);
-  background: var(--soft);
-
-  font-size: var(--font-sm);
-  line-height: 1.5;
+.alert, .alertSuccess, .alertWarning, .alertDanger {
+  padding: 16px; border: 0; color: var(--black); font-size: 15px; line-height: 21px; font-weight: 400;
 }
-
-.alertSuccess {
-  border-color: rgba(33, 106, 67, 0.2);
-  color: var(--success);
-}
-
-.alertWarning {
-  border-color: rgba(138, 106, 47, 0.2);
-  color: var(--warning);
-}
-
-.alertDanger {
-  border-color: rgba(155, 44, 44, 0.2);
-  color: var(--danger);
-}
+.alert { background: var(--soft); }
+.alertSuccess { background: color-mix(in srgb, var(--success) 8%, var(--white)); }
+.alertWarning { background: color-mix(in srgb, var(--warning) 8%, var(--white)); }
+.alertDanger { background: color-mix(in srgb, var(--danger) 8%, var(--white)); }
+.alertSuccess > svg { color: var(--success); }
+.alertWarning > svg { color: var(--warning); }
+.alertDanger > svg { color: var(--danger); }

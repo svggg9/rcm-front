@@ -1,5 +1,4 @@
 import Image from "next/image";
-import Link from "next/link";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { cache } from "react";
@@ -90,7 +89,7 @@ const getBrandPage = cache(async (slug: string): Promise<BrandPageData | null> =
 function getBrandDescription(brand: BrandResponse): string {
   return (
     brand.description ||
-    `Товары производителя ${brand.name} на RCMarket — маркетплейсе отечественных производителей.`
+    `Товары производителя ${brand.name} на рцмаркет — магазине независимых брендов.`
   );
 }
 
@@ -105,7 +104,7 @@ export async function generateMetadata({
 
   if (!brand) {
     return {
-      title: "Производитель не найден | RCMarket",
+      title: "Производитель не найден | рцмаркет",
       description: "Производитель не найден.",
     };
   }
@@ -113,13 +112,13 @@ export async function generateMetadata({
   const description = getBrandDescription(brand);
 
   return {
-    title: `${brand.name} — товары производителя | RCMarket`,
+    title: `${brand.name} — товары производителя | рцмаркет`,
     description,
     alternates: {
       canonical: `/brand/${brand.slug}`,
     },
     openGraph: {
-      title: `${brand.name} — товары производителя | RCMarket`,
+      title: `${brand.name} — товары производителя | рцмаркет`,
       description,
       type: "website",
       url: `/brand/${brand.slug}`,
@@ -147,20 +146,6 @@ export default async function BrandPage({
     <div className="pageContainer">
       <div className={styles.catalogPage}>
         <div className={styles.catalogTop}>
-          <nav className={styles.breadcrumbs} aria-label="Навигационная цепочка">
-            <ol className={styles.breadcrumbList}>
-              <li className={styles.breadcrumbItem}>
-                <Link href="/catalog" className={styles.breadcrumbLink}>
-                  Каталог
-                </Link>
-              </li>
-
-              <li className={styles.breadcrumbItem}>
-                <span className={styles.breadcrumbCurrent}>{brand.name}</span>
-              </li>
-            </ol>
-          </nav>
-
           <div className={styles.headingWrap}>
             {brand.wordmarkUrl ? (
               <>

@@ -97,6 +97,7 @@ if (typeof window !== "undefined") {
 
 async function toggleFavoriteBrand(brand: FavoriteBrand): Promise<boolean> {
   const previous = snapshot.brands;
+  const revision = authRevision;
   const exists = previous.some((item) => item.id === brand.id);
   const next = exists
     ? previous.filter((item) => item.id !== brand.id)
@@ -104,15 +105,25 @@ async function toggleFavoriteBrand(brand: FavoriteBrand): Promise<boolean> {
 
   emit({ brands: next, loading: false });
 
-  const response = await apiFetch(
-    `${API_URL}/api/favorite-brands/${brand.id}`,
-    { method: exists ? "DELETE" : "POST" }
-  );
-
-  if (!response.ok) {
-    emit({ brands: previous, loading: false });
-    const text = await response.text().catch(() => "");
-    throw new Error(text || "Не удалось обновить избранные бренды");
+  try {
+    const response = await apiFetch(
+      `${API_URL}/api/favorite-brands/${brand.id}`,
+      { method: exists ? "DELETE" : "POST" }
+    );
+    if (!response.ok) {
+      const text = await response.text().catch(() => "");
+      throw new Error(text || "Не удалось обновить избранные бренды");
+    }
+  } catch (error) {
+    if (revision === authRevision) {
+      // Restore only this brand, including network errors; retain unrelated
+      // successful toggles and never restore the previous user's snapshot.
+      const restored = snapshot.brands.filter(item => item.id !== brand.id);
+      const index = previous.findIndex(item => item.id === brand.id);
+      if (index >= 0) restored.splice(Math.min(index, restored.length), 0, previous[index]);
+      emit({ brands: restored, loading: false });
+    }
+    throw error;
   }
 
   return !exists;

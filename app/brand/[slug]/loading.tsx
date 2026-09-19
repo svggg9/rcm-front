@@ -12,7 +12,6 @@ export default function Loading() {
       aria-busy="true"
     >
       <div className={styles.header} aria-hidden="true">
-        <SkeletonBlock className={styles.breadcrumb} />
         <SkeletonBlock className={styles.title} />
         <SkeletonBlock className={styles.description} />
         <SkeletonBlock className={styles.descriptionShort} />

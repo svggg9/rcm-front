@@ -1,0 +1,12 @@
+.item {
+  position: relative;
+  background: var(--white);
+  border: 1px solid var(--line);
+  border-radius: 0;
+  transition: background-color 140ms ease, border-color 140ms ease;
+}
+.item:focus-within { outline: 2px solid var(--black); outline-offset: -2px; }
+@media (hover: hover) {
+  .item:hover { background: var(--soft); border-color: #b8b8b8; }
+}
+@media (prefers-reduced-motion: reduce) { .item { transition: none; } }

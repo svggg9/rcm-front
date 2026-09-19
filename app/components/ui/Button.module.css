@@ -1,0 +1,4 @@
+.stableContent:global(.buttonContent) { display: inline-grid; }
+.stableContent > * { grid-area: 1 / 1; justify-self: center; align-self: center; }
+.label { white-space: nowrap; }
+.hidden { visibility: hidden; }

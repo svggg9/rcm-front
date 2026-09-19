@@ -164,7 +164,7 @@ export function AdminReturnRequests({ orderId }: Props) {
           {request.status === "SUBMITTED" ||
           request.status === "REQUESTED" ? (
             <div className={styles.review}>
-              <label>
+              <label data-ui="field">
                 <span>Комментарий администратора</span>
                 <textarea
                   value={comments[request.id] ?? ""}
@@ -199,7 +199,7 @@ export function AdminReturnRequests({ orderId }: Props) {
           {request.status === "INSPECTED" ||
           request.status === "REFUND_PENDING" ? (
             <div className={styles.review}>
-              <label>
+              <label data-ui="field">
                 <span>Сумма возврата</span>
                 <input
                   inputMode="decimal"

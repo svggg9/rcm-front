@@ -13,8 +13,8 @@ type Props = {
 
 export function CartSummary({ subtotal, itemCount, onCheckout, disabled }: Props) {
   return (
-    <aside className={styles.summary}>
-      <h2 className={styles.summaryTitle}>Итого</h2>
+    <aside className={styles.summary} data-cart-summary>
+      <h2 className={styles.summaryTitle}>Ваш заказ</h2>
 
       <div className={styles.summaryBlock}>
         <div className={styles.summaryRow}>
@@ -31,10 +31,11 @@ export function CartSummary({ subtotal, itemCount, onCheckout, disabled }: Props
       </div>
 
       <div className={styles.summaryTotal}>
-        <span>К оплате</span>
+        <span className={styles.subtotalLabel}>Товары</span>
         <span>
           <Price amount={subtotal} />
         </span>
+        <span className={styles.mobileDeliveryNote}>Доставка при оформлении</span>
       </div>
 
       <Button
@@ -44,7 +45,8 @@ export function CartSummary({ subtotal, itemCount, onCheckout, disabled }: Props
         onClick={onCheckout}
         disabled={disabled}
       >
-        Перейти к оформлению
+        <span className={styles.desktopCheckoutLabel}>Перейти к оформлению</span>
+        <span className={styles.mobileCheckoutLabel}>К оформлению</span>
       </Button>
 
       <p className={styles.summaryNote}>

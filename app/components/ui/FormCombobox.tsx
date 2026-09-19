@@ -17,6 +17,7 @@ type Props = {
   options: Option[];
   placeholder?: string;
   invalid?: boolean;
+  errorId?: string;
   required?: boolean;
   full?: boolean;
   disabled?: boolean;
@@ -33,6 +34,7 @@ export function FormCombobox({
   options,
   placeholder,
   invalid = false,
+  errorId,
   required = false,
   full = false,
   disabled = false,
@@ -116,6 +118,7 @@ export function FormCombobox({
 
   return (
     <div
+      data-ui="field"
       className={full ? styles.fieldFull : styles.field}
       data-validation-error={invalid ? "true" : undefined}
       ref={rootRef}
@@ -132,6 +135,9 @@ export function FormCombobox({
         <input
           ref={inputRef}
           aria-invalid={invalid ? "true" : undefined}
+          aria-label={label}
+          aria-describedby={invalid ? errorId : undefined}
+          aria-required={required || undefined}
           value={inputValue}
           className={`${styles.comboboxInput} ${shouldShowModerationBadge ? styles.comboboxInputWithBadge : ""} ${hasValue ? "" : styles.placeholder}`}
           placeholder={open ? placeholder : undefined}
@@ -174,7 +180,7 @@ export function FormCombobox({
             setQuery("");
           }}
         >
-          <Icon name="chevron-down" size={18} strokeWidth={1.8} />
+          <Icon name="chevron-down" size={20} strokeWidth={1.5} />
         </button>
 
         <div className={styles.menu} id={listboxId} role="listbox">

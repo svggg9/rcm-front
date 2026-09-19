@@ -37,7 +37,7 @@ async function serverFetchResult<T>(path: string) {
 
 export async function getSellerProductsServer() {
   const result = await serverFetchResult<PageResponse<SellerProductListItem>>(
-    "/api/seller/products/list?page=0&size=50"
+    "/api/seller/products/list?page=0&size=50&sort=createdAt,desc"
   );
   const items = Array.isArray(result.data?.content) ? result.data.content : [];
 

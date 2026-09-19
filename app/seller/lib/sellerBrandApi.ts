@@ -76,7 +76,7 @@ export async function uploadSellerBrandWordmark(
 
   if (!response.ok) {
     const text = await response.text().catch(() => "");
-    throw new Error(text || "Не удалось загрузить вордмарк бренда");
+    throw new Error(text || "Не удалось загрузить текстовый логотип бренда");
   }
 
   return response.json();
@@ -177,6 +177,22 @@ export async function createSellerStorefrontCollection(
   if (!response.ok) {
     const text = await response.text().catch(() => "");
     throw new Error(text || "Не удалось создать подборку");
+  }
+  return response.json();
+}
+
+export async function updateSellerStorefrontCollection(
+  brandId: number,
+  collectionId: number,
+  payload: SellerStorefrontCollectionRequest
+): Promise<SellerStorefrontCollection> {
+  const response = await apiFetch(
+    `${API_URL}/api/seller/brands/${brandId}/collections/${collectionId}`,
+    { method: "PUT", body: JSON.stringify(payload) }
+  );
+  if (!response.ok) {
+    const text = await response.text().catch(() => "");
+    throw new Error(text || "Не удалось сохранить подборку");
   }
   return response.json();
 }

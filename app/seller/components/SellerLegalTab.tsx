@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import type {
   FormEvent,
   InputHTMLAttributes,
@@ -10,6 +10,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 import { Button } from "../../components/ui/Button";
+import { Dialog } from "../../components/ui/Dialog";
 import { CabinetSkeleton } from "../../components/ui/CabinetSkeleton";
 import { ChoiceMark } from "../../components/ui/ChoiceMark";
 import { Icon } from "../../components/ui/Icon";
@@ -136,11 +137,11 @@ export function SellerLegalTab() {
   const router = useRouter();
   const formRef = useRef<HTMLFormElement | null>(null);
   const [form, setForm] = useState<SellerLegalInfoForm>(INITIAL_FORM);
-  const [savedForm, setSavedForm] = useState<SellerLegalInfoForm>(INITIAL_FORM);
   const [errors, setErrors] = useState<FormErrors>({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [creatingProduct, setCreatingProduct] = useState(false);
+  const creatingProductRef = useRef(false);
   const [successOpen, setSuccessOpen] = useState(false);
   const [cityOptions, setCityOptions] = useState<DeliveryCityOption[]>([]);
   const [cityOptionsOpen, setCityOptionsOpen] = useState(false);
@@ -163,12 +164,10 @@ export function SellerLegalTab() {
         if (!cancelled && info) {
           const nextForm = mapLegalInfoToForm(info);
           setForm(nextForm);
-          setSavedForm(nextForm);
           setPointQuery(nextForm.shippingAddress || nextForm.cdekShipmentPoint);
         }
 
         if (!cancelled && !info) {
-          setSavedForm(INITIAL_FORM);
           setPointQuery("");
         }
       } catch (e) {
@@ -339,9 +338,7 @@ export function SellerLegalTab() {
     });
   }
 
-  const formChanged = JSON.stringify(form) !== JSON.stringify(savedForm);
   const hasValidationErrors = Object.keys(errors).length > 0;
-  const formValid = Object.keys(validateForm(form)).length === 0;
 
   function validateForm(values: SellerLegalInfoForm): FormErrors {
     const nextErrors: FormErrors = {};
@@ -419,6 +416,7 @@ export function SellerLegalTab() {
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (saving) return;
 
     const nextErrors = validateForm(form);
 
@@ -435,7 +433,6 @@ export function SellerLegalTab() {
 
     try {
       await saveSellerLegalInfo(form);
-      setSavedForm(form);
       setSuccessOpen(true);
       emitSellerOnboardingChanged();
     } catch (e) {
@@ -446,9 +443,11 @@ export function SellerLegalTab() {
   }
 
   async function createProductDraft() {
-    if (creatingProduct) return;
+    if (creatingProductRef.current) return;
 
+    creatingProductRef.current = true;
     setCreatingProduct(true);
+    setError(null);
 
     try {
       const response = await apiFetch(`${API_URL}/api/seller/products/draft`, {
@@ -464,8 +463,7 @@ export function SellerLegalTab() {
       router.push(`/seller/products/${productId}/edit`);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Не удалось создать товар");
-      setSuccessOpen(false);
-    } finally {
+      creatingProductRef.current = false;
       setCreatingProduct(false);
     }
   }
@@ -784,8 +782,7 @@ export function SellerLegalTab() {
             type="submit"
             variant="primary"
             className={styles.saveButton}
-            data-incomplete={!formValid || undefined}
-            disabled={saving || !formChanged}
+            disabled={saving}
             loading={saving}
           >
             Сохранить
@@ -794,55 +791,14 @@ export function SellerLegalTab() {
       </form>
 
       {successOpen ? (
-        <div className="modalOverlay" role="presentation">
-          <div
-            className={`modal ${styles.successModal}`}
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="seller-legal-success-title"
-          >
-            <div className="modalHeader">
-              <div>
-                <div className={styles.modalKicker}>Готово</div>
-                <h2 className="modalTitle" id="seller-legal-success-title">
-                  Реквизиты сохранены
-                </h2>
-              </div>
-              <button
-                type="button"
-                className="modalClose"
-                onClick={() => setSuccessOpen(false)}
-                aria-label="Закрыть"
-              >
-                ×
-              </button>
-            </div>
-
-            <div className="modalBody">
-              <p className={styles.modalText}>
-                Теперь можно добавить первый товар и отправить карточку на модерацию.
-              </p>
-            </div>
-
-            <div className="modalFooter">
-              <button
-                type="button"
-                className="buttonSecondary"
-                onClick={() => setSuccessOpen(false)}
-              >
-                Позже
-              </button>
-              <button
-                type="button"
-                className="buttonPrimary"
-                disabled={creatingProduct}
-                onClick={() => void createProductDraft()}
-              >
-                Создать товар
-              </button>
-            </div>
-          </div>
-        </div>
+        <Dialog title="Реквизиты сохранены" success busy={creatingProduct}
+          onClose={() => setSuccessOpen(false)} actions={<>
+            <Button variant="secondary" disabled={creatingProduct} onClick={() => setSuccessOpen(false)}>Позже</Button>
+            <Button variant="primary" loading={creatingProduct} onClick={() => void createProductDraft()}>Создать товар</Button>
+          </>}>
+          <p>Теперь можно добавить товар и отправить карточку на модерацию</p>
+          {error ? <div className="alertDanger" role="alert">{error}</div> : null}
+        </Dialog>
       ) : null}
     </section>
   );
@@ -870,11 +826,12 @@ function LegalTextField({
   onChange,
   ...props
 }: LegalFieldProps & InputHTMLAttributes<HTMLInputElement>) {
+  const errorId = useId();
   const requiredEmpty =
     required && !suppressRequiredHighlight && !String(props.value ?? "").trim();
 
   return (
-    <label className={styles.fieldWrap}>
+    <label className={styles.fieldWrap} data-ui="field">
       <span className={`${styles.fieldLabel} ${required ? styles.required : ""}`}>
         {label}
       </span>
@@ -888,6 +845,8 @@ function LegalTextField({
         inputMode={numeric ? "numeric" : props.inputMode}
         pattern={numeric ? "[0-9]*" : props.pattern}
         aria-invalid={error ? "true" : undefined}
+        aria-required={required || undefined}
+        aria-describedby={[props["aria-describedby"], error ? errorId : null].filter(Boolean).join(" ") || undefined}
         onPaste={(event) => {
           if (numeric) return;
 
@@ -913,6 +872,7 @@ function LegalTextField({
         }}
       />
       {valid && !error ? <FieldValidIcon /> : null}
+      {error && <span id={errorId} className="fieldError">{error}</span>}
     </label>
   );
 }
@@ -925,8 +885,9 @@ function LegalTextarea({
   className = "",
   ...props
 }: LegalFieldProps & TextareaHTMLAttributes<HTMLTextAreaElement>) {
+  const errorId = useId();
   return (
-    <label className={styles.fieldWrap}>
+    <label className={styles.fieldWrap} data-ui="field">
       <span className={`${styles.fieldLabel} ${required ? styles.required : ""}`}>
         {label}
       </span>
@@ -936,8 +897,11 @@ function LegalTextarea({
         } ${className}`.trim()}
         aria-invalid={error ? "true" : undefined}
         {...props}
+        aria-required={required || undefined}
+        aria-describedby={[props["aria-describedby"], error ? errorId : null].filter(Boolean).join(" ") || undefined}
       />
       {valid && !error ? <FieldValidIcon /> : null}
+      {error && <span id={errorId} className="fieldError">{error}</span>}
     </label>
   );
 }

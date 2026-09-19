@@ -39,10 +39,10 @@
 .cardHeader p {
   max-width: 640px;
   margin: 0;
-  color: var(--muted);
-  font-size: var(--font-xs);
+  color: var(--black);
+  font-size: 15px;
   line-height: 1.4;
-  font-weight: 400;
+  font-weight: 300;
   letter-spacing: 0;
 }
 
@@ -109,10 +109,10 @@
 
 .contactHint {
   margin: 0;
-  color: var(--muted);
-  font-size: var(--font-xs);
+  color: var(--black);
+  font-size: 15px;
   line-height: 1.4;
-  font-weight: 400;
+  font-weight: 300;
 }
 
 .typeOption > [data-appearance="outline-check"],
@@ -145,7 +145,7 @@
   z-index: 10;
   max-height: 280px;
   overflow: auto;
-  border: 0.5px solid var(--black);
+  border: 1px solid var(--black);
   background: var(--white);
   box-shadow: 0 14px 30px rgba(0, 0, 0, 0.08);
 }
@@ -161,7 +161,7 @@
   padding: 8px 10px;
   border: 0;
   background: var(--white);
-  color: #333333;
+  color: var(--black);
   font-family: inherit;
   font-size: 14px;
   line-height: 1.25;
@@ -187,9 +187,9 @@
 .input,
 .textarea {
   width: 100%;
-  border: 0.5px solid var(--black);
+  border: 1px solid var(--black);
   background: var(--white);
-  color: #333333;
+  color: var(--black);
   font-family: inherit;
   font-size: 14px;
   line-height: 1.4;
@@ -295,14 +295,12 @@
   min-width: 0;
 }
 
-.fieldError {
-  display: none;
-}
+.fieldError { display: block; margin: 0; font-size: 13px; line-height: 18px; color: var(--danger); }
 
 .error {
   padding: 14px;
-  border: 1px solid rgba(155, 44, 44, 0.18);
-  background: rgba(155, 44, 44, 0.05);
+  border: 0;
+  background: color-mix(in srgb, var(--danger) 8%, var(--white));
   color: var(--danger);
   font-size: var(--font-sm);
   line-height: 1.4;
@@ -318,81 +316,12 @@
 .actions button {
   width: auto;
   min-width: 180px;
-  height: 44px;
-  min-height: 44px;
-  font-size: var(--font-sm);
-  line-height: 1.2;
-  font-weight: 500;
-  letter-spacing: 0;
-}
-
-.successModal {
-  max-width: 460px;
-  border: 0;
-}
-
-.successModal :global(.modalHeader) {
-  padding: 24px 24px 0;
-}
-
-.successModal :global(.modalTitle) {
-  color: var(--black);
-  font-size: var(--font-xl);
-  line-height: 1.25;
-  font-weight: 400;
-  letter-spacing: 0;
-}
-
-.successModal :global(.modalBody) {
-  padding: 20px 24px 24px;
-}
-
-.successModal :global(.modalFooter) {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
-  padding: 0 24px 24px;
-}
-
-.successModal :global(.modalFooter button) {
-  width: 100%;
-  height: 44px;
-  min-height: 44px;
-  font-size: var(--font-sm);
-  line-height: 1.2;
-  font-weight: 500;
-  letter-spacing: 0;
-}
-
-.modalKicker {
-  margin-bottom: 8px;
-  color: var(--gold);
-  font-size: 10px;
-  line-height: 1;
-  font-weight: 400;
-  letter-spacing: 0;
-  text-transform: uppercase;
-}
-
-.modalText {
-  margin: 0;
-  color: var(--muted);
-  font-size: var(--font-sm);
-  line-height: 1.4;
-  font-weight: 300;
-  letter-spacing: 0;
 }
 
 @container (max-width: 720px) {
   .contactsGrid,
   .grid {
     grid-template-columns: 1fr;
-  }
-}
-
-@media (max-width: 900px) {
-  .successModal :global(.modalFooter) {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
@@ -409,13 +338,4 @@
   .actions button {
     width: 100%;
   }
-}
-.actions .saveButton[data-incomplete="true"]:not([data-loading="true"]) {
-  border-color: var(--line);
-  background: var(--line);
-  color: var(--muted);
-}
-
-.actions .saveButton[data-incomplete="true"]:not(:disabled) {
-  cursor: pointer;
 }

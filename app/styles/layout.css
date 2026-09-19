@@ -3,6 +3,25 @@
   margin: 0 auto;
 }
 
+@media (max-width: 640px) {
+  .appShell:has([data-buyer-mobile="true"]) {
+    --site-header-height: var(--mobile-buyer-header-height);
+  }
+
+  .appShell:has([data-buyer-bottom-nav]) {
+    padding-bottom: var(--buyer-bottom-nav-height);
+  }
+
+  /* Keep the final footer links reachable behind checkout action bars too. */
+  .appShell:has([data-cart-summary]) {
+    padding-bottom: calc(var(--buyer-bottom-nav-height) + 116px);
+  }
+
+  .appShell:has([data-checkout-summary]) {
+    padding-bottom: calc(128px + env(safe-area-inset-bottom, 0px));
+  }
+}
+
 .pageSection {
   padding: var(--space-8) 0;
   border-bottom: 1px solid var(--line);

@@ -74,7 +74,7 @@ export function AccountInfoTab({ defaultEmail = "" }: Props) {
         </div>
 
         <form className={styles.subscribeForm} onSubmit={handleSubscribe}>
-          <label className={styles.subscribeField}>
+          <label className={styles.subscribeField} data-ui="field">
             <span>Электронная почта</span>
             <input
               value={email}

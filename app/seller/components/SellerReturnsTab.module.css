@@ -3,15 +3,9 @@
   flex-direction: column;
 }
 
-.muted {
-  margin: 7px 0 0;
-  color: var(--muted);
-  font-size: var(--font-sm);
-}
-
 .summary {
   margin: 0 0 14px;
-  color: var(--muted);
+  color: var(--black);
   font-size: 12px;
 }
 
@@ -21,7 +15,8 @@
 }
 
 .card {
-  border: 1px solid var(--black);
+  min-width: 0;
+  border: 0.5px solid #e7e7e4;
   padding: 20px;
 }
 
@@ -35,6 +30,7 @@
 .header > div {
   display: grid;
   gap: 5px;
+  min-width: 0;
 }
 
 .header strong {
@@ -42,10 +38,13 @@
   font-weight: 600;
 }
 
-.header span,
+.header > div > span,
 .comment {
-  color: var(--muted);
-  font-size: var(--font-sm);
+  color: var(--black);
+  font-size: 15px;
+  line-height: 21px;
+  font-weight: 300;
+  overflow-wrap: anywhere;
 }
 
 .details {
@@ -58,13 +57,14 @@
 .details div {
   display: grid;
   gap: 4px;
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
-.details dt,
-.inspection label > span {
+.details dt {
   color: var(--black);
   font-size: 12px;
-  font-weight: 300;
+  font-weight: 400;
 }
 
 .details dd {
@@ -78,6 +78,7 @@
 
 .actions {
   display: flex;
+  flex-wrap: wrap;
   gap: 10px;
   margin-top: 20px;
 }
@@ -87,45 +88,22 @@
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 16px;
   margin-top: 20px;
-  padding-top: 20px;
-  border-top: 1px solid var(--black);
 }
 
-.inspection label {
-  display: grid;
-  gap: 8px;
-}
-
-.inspection input,
-.inspection select,
-.inspection textarea {
-  width: 100%;
-  min-height: 44px;
-  border: 0.5px solid var(--black);
-  border-radius: 0;
-  background: var(--white);
-  color: #333333;
-  font: inherit;
-  font-size: 14px;
-  font-weight: 400;
-  padding: 0 15px;
-}
-
-.inspection textarea {
-  min-height: 110px;
-  padding: 12px 15px;
-  resize: vertical;
-}
+.inspection > * { min-width: 0; }
+.inspection .actions { margin-top: 0; }
 
 .fullWidth {
   grid-column: 1 / -1;
 }
 
-.error {
+.feedback {
+  display: grid;
+  justify-items: start;
+  gap: 12px;
   margin-top: 16px;
-  color: var(--danger, #b42318);
-  font-size: var(--font-sm);
 }
+.feedback p { margin: 0; }
 
 .loadMore {
   display: flex;
@@ -134,6 +112,7 @@
 }
 
 @media (max-width: 768px) {
+  .card { padding: 16px; }
   .header {
     flex-direction: column;
   }
@@ -147,3 +126,5 @@
     grid-column: auto;
   }
 }
+
+.card { scroll-margin-top: calc(var(--site-header-height) + 20px); }

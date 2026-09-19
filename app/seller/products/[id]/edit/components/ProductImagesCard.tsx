@@ -1,4 +1,5 @@
 "use client";
+import { ConfirmActionButton } from "../../../../../components/ui/ConfirmActionButton";
 
 import { useState } from "react";
 import Image from "next/image";
@@ -155,17 +156,18 @@ export function ProductImagesCard({
                 <div className={styles.mainImageBadge}>Главное</div>
               ) : null}
 
-              <button
+              <ConfirmActionButton
                 type="button"
-                tabIndex={-1}
-                onClick={() => onDeleteImage(image.id)}
+                confirmTitle="Удалить фото товара?"
+                confirmText="Чтобы вернуть фотографию, её потребуется загрузить заново"
+                onConfirm={() => onDeleteImage(image.id)}
                 className={styles.imageDeleteBtn}
                 aria-label="Удалить фото"
               >
                 <svg viewBox="0 0 16 16" aria-hidden="true" className={styles.variantActionIcon}>
                   <path d="M4.5 4.5L11.5 11.5M11.5 4.5L4.5 11.5" />
                 </svg>
-              </button>
+              </ConfirmActionButton>
 
               <div className={styles.imageControls}>
                 <button

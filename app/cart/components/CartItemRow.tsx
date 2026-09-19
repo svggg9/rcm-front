@@ -1,4 +1,5 @@
 "use client";
+import { ConfirmActionButton } from "../../components/ui/ConfirmActionButton";
 
 import Image from "next/image";
 import Link from "next/link";
@@ -66,7 +67,6 @@ export function CartItemRow({
         {size || color ? (
           <div className={styles.variantMeta}>
             {size ? <span>Размер: {size}</span> : null}
-            {size && color ? <span aria-hidden="true">·</span> : null}
             {color ? <span>Цвет: {color}</span> : null}
           </div>
         ) : null}
@@ -75,39 +75,42 @@ export function CartItemRow({
           {showQuantityControls ? (
             <div className={styles.quantityControl}>
               <span className={styles.quantityLabel}>Количество</span>
-            <div className={styles.qty}>
-              <button
-                type="button"
+              <div className={styles.qty}>
+                <button
+                  type="button"
                   disabled={pending || item.quantity <= 1}
-                onClick={() => onChangeQty(item.variantId, item.quantity - 1)}
-                aria-label="Уменьшить количество"
-              >
-                <Icon name="minus" size={15} strokeWidth={1.4} />
-              </button>
+                  onClick={() => onChangeQty(item.variantId, item.quantity - 1)}
+                  aria-label={`Уменьшить количество: ${item.title}`}
+                >
+                  <Icon name="minus" size={15} strokeWidth={1.4} />
+                </button>
 
                 <span aria-live="polite">{item.quantity}</span>
 
-              <button
-                type="button"
+                <button
+                  type="button"
                   disabled={pending}
-                onClick={() => onChangeQty(item.variantId, item.quantity + 1)}
-                aria-label="Увеличить количество"
-              >
-                <Icon name="plus" size={15} strokeWidth={1.4} />
-              </button>
+                  onClick={() => onChangeQty(item.variantId, item.quantity + 1)}
+                  aria-label={`Увеличить количество: ${item.title}`}
+                >
+                  <Icon name="plus" size={15} strokeWidth={1.4} />
+                </button>
+              </div>
             </div>
-          </div>
           ) : null}
 
-          <button
+          <ConfirmActionButton
             type="button"
             className={styles.removeBtn}
             disabled={pending}
-            onClick={() => onRemove(item.variantId)}
+            confirmTitle="Удалить товар из корзины?"
+            confirmText={`«${item.title}» будет удалён из корзины`}
+            onConfirm={() => onRemove(item.variantId)}
+            aria-label={`Удалить ${item.title} из корзины`}
           >
-            <Icon name="x" size={14} strokeWidth={1.4} />
+            <Icon name="trash" size={19} strokeWidth={1.4} />
             <span>Удалить</span>
-          </button>
+          </ConfirmActionButton>
         </div>
       </div>
     </article>

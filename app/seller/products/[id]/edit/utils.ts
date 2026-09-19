@@ -8,7 +8,7 @@ export function formatProductStatus(status: string) {
   const labels: Record<string, string> = {
     DRAFT: "Черновик",
     MODERATION: "На модерации",
-    NEEDS_REVISION: "Нужна доработка",
+    NEEDS_REVISION: "Нужны исправления",
     ACTIVE: "Активен",
     ARCHIVED: "Архив",
     BLOCKED: "Заблокирован",
@@ -22,8 +22,8 @@ export function getProductStatusTone(status: string): StatusBadgeTone {
     case "ACTIVE":
       return "success";
     case "MODERATION":
-    case "NEEDS_REVISION":
       return "warning";
+    case "NEEDS_REVISION":
     case "BLOCKED":
       return "danger";
     default:

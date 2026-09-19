@@ -130,7 +130,7 @@
   white-space: nowrap;
 }
 
-.price span {
+.price > span {
   color: inherit;
   font-weight: inherit;
 }
@@ -273,8 +273,8 @@
   text-align: right;
 }
 
-.summaryRow span span,
-.summaryTotal span span {
+.summaryRow > span > span,
+.summaryTotal > span > span {
   color: inherit;
   font-weight: inherit;
 }
@@ -296,6 +296,11 @@
   width: 100%;
   height: 52px;
   margin-top: 25px;
+}
+
+.mobileCheckoutLabel,
+.mobileDeliveryNote {
+  display: none;
 }
 
 .summaryNote {
@@ -455,11 +460,13 @@
 
 @media (max-width: 640px) {
   .page {
-    padding: 22px 0 50px;
+    padding: 20px 0 116px;
   }
 
   .top {
-    margin-bottom: 32px;
+    align-items: flex-start;
+    margin-bottom: 24px;
+    text-align: left;
   }
 
   .title {
@@ -472,7 +479,7 @@
   }
 
   .items {
-    gap: 30px;
+    gap: 24px;
   }
 
   .item {
@@ -508,28 +515,51 @@
   }
 
   .variantMeta {
-    gap: 5px;
+    column-gap: 12px;
+    row-gap: 4px;
     margin-top: 8px;
     font-size: 11px;
   }
 
   .itemActions {
-    align-items: flex-start;
-    flex-direction: column;
-    gap: 9px;
-    padding-top: 14px;
+    align-items: center;
+    flex-direction: row;
+    gap: 4px;
+    padding-top: 8px;
   }
 
   .quantityControl {
-    gap: 9px;
+    gap: 0;
   }
 
   .quantityLabel {
-    font-size: 10px;
+    display: none;
+  }
+
+  .qty {
+    min-height: 44px;
+    grid-template-columns: 44px 18px 44px;
+    background: transparent;
+  }
+
+  .qty button {
+    width: 44px;
+    height: 44px;
+  }
+
+  .qty > span {
+    min-width: 18px;
+    line-height: 44px;
   }
 
   .removeBtn {
-    min-height: 28px;
+    width: 44px;
+    min-height: 44px;
+    padding: 0;
+  }
+
+  .removeBtn > span {
+    display: none;
   }
 
   .grid {
@@ -537,15 +567,55 @@
   }
 
   .summary {
-    padding: 24px 20px 22px;
+    position: fixed;
+    z-index: 80;
+    top: auto;
+    right: 0;
+    bottom: var(--buyer-bottom-nav-height, calc(64px + env(safe-area-inset-bottom, 0px)));
+    left: 0;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(152px, 1.05fr);
+    align-items: center;
+    gap: 12px;
+    padding: 12px max(16px, env(safe-area-inset-right, 0px)) 12px max(16px, env(safe-area-inset-left, 0px));
+    border-top: 1px solid var(--line);
+    background: var(--white);
   }
 
-  .summaryTitle {
-    font-size: 18px;
+  .summaryTitle,
+  .summaryBlock,
+  .summaryNote,
+  .desktopCheckoutLabel {
+    display: none;
   }
 
   .summaryTotal {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 3px;
+    margin: 0;
     font-size: 16px;
+    font-weight: 500;
+  }
+
+  .subtotalLabel,
+  .mobileDeliveryNote {
+    color: var(--muted);
+    font-size: 10px;
+    line-height: 1.3;
+    font-weight: 400;
+  }
+
+  .mobileCheckoutLabel,
+  .mobileDeliveryNote {
+    display: inline;
+  }
+
+  .checkoutBtn {
+    height: 48px;
+    margin: 0;
+    padding-right: 12px;
+    padding-left: 12px;
   }
 
   .emptyState :global(.emptyStateLarge),
@@ -566,6 +636,6 @@
   }
 
   .page .recommendations {
-    margin-top: 58px;
+    display: none;
   }
 }

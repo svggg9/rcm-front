@@ -6,30 +6,21 @@ import { Suspense, useEffect, useRef, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
 import styles from "./Header.module.css";
-import { apiFetch, API_URL } from "../../lib/api";
 import { useCartCount } from "../../lib/useCartCount";
 import { useCurrentUser } from "../../lib/useCurrentUser";
 import { useFavorites } from "../../lib/FavoritesContext";
 import { useAuthModal } from "../AuthModal/useAuthModal";
 import { Icon } from "../ui/Icon";
+import { BuyerBottomNavigation } from "../BuyerNavigation/BuyerBottomNavigation";
+import { getBuyerMobilePage } from "../../lib/buyerNavigation";
+import { HeaderIcon } from "./HeaderIcon";
+import { isSellerCabinetPath, SellerHeader } from "./SellerHeader";
+import { Button } from "../ui/Button";
+import { loadMenuCategories, type MenuCategory } from "./menuCategories";
 
-type Category = {
-  id: number;
-  name: string;
-  isActive?: boolean | null;
-  status?: string | null;
+type HeaderProps = {
+  initialCategories: MenuCategory[] | null;
 };
-
-type SellerBrandOption = {
-  id: number;
-  name: string;
-};
-
-const audienceItems = [
-  { key: "all", label: "Для всех" },
-  { key: "men", label: "Для него" },
-  { key: "women", label: "Для нее" },
-];
 
 function isSellerRole(role: string | null) {
   return role === "SELLER" || role === "ROLE_SELLER";
@@ -39,23 +30,27 @@ function isAdminRole(role: string | null) {
   return role === "ADMIN" || role === "ROLE_ADMIN";
 }
 
-function HeaderContent() {
+function HeaderContent({ initialCategories }: HeaderProps) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const headerRef = useRef<HTMLElement | null>(null);
-  const loadedSellerBrandUserIdRef = useRef<number | null>(null);
+  const menuDialogRef = useRef<HTMLDialogElement | null>(null);
+  const searchInputRef = useRef<HTMLInputElement | null>(null);
+  const searchButtonRef = useRef<HTMLButtonElement | null>(null);
 
   const activeCategory = searchParams.get("category");
   const activeAudience = searchParams.get("audience") || "all";
   const activeSearch = searchParams.get("q") || "";
-  const isSellerPath = pathname.startsWith("/seller");
+  const buyerMobilePage = getBuyerMobilePage(pathname, searchParams);
 
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [loadingCategories, setLoadingCategories] = useState(false);
+  const [categories, setCategories] = useState<MenuCategory[]>(initialCategories ?? []);
+  const [loadingCategories, setLoadingCategories] = useState(initialCategories === null);
+  const [categoriesError, setCategoriesError] = useState(false);
+  const [categoryLoadAttempt, setCategoryLoadAttempt] = useState(0);
   const [menuOpen, setMenuOpen] = useState(false);
-  const [menuAudience, setMenuAudience] = useState(activeAudience);
-  const [sellerBrandName, setSellerBrandName] = useState<string | null>(null);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState(activeSearch);
 
   const { user, isAuthenticated: isAuth } = useCurrentUser();
   const cartCount = useCartCount();
@@ -65,94 +60,42 @@ function HeaderContent() {
 
 
   useEffect(() => {
-    let cancelled = false;
-
-    async function loadSellerBrandName() {
-      if (
-        isSellerPath ||
-        isAuth !== true ||
-        !isSellerRole(role)
-      ) {
-        loadedSellerBrandUserIdRef.current = null;
-        setSellerBrandName(null);
-        return;
-      }
-
-      const userId = user?.id ?? null;
-      if (userId !== null && loadedSellerBrandUserIdRef.current === userId) {
-        return;
-      }
-
-      loadedSellerBrandUserIdRef.current = userId;
-
-      try {
-        const response = await apiFetch(`${API_URL}/api/seller/brands`);
-
-        if (!response.ok) {
-          throw new Error("Failed to load seller brands");
-        }
-
-        const data = (await response.json()) as SellerBrandOption[];
-        const firstBrandName = Array.isArray(data)
-          ? data[0]?.name?.trim() || null
-          : null;
-
-        if (!cancelled) {
-          setSellerBrandName(firstBrandName);
-        }
-      } catch {
-        if (!cancelled) {
-          loadedSellerBrandUserIdRef.current = null;
-          setSellerBrandName(null);
-        }
-      }
-    }
-
-    void loadSellerBrandName();
-
+    if (!menuOpen) return;
+    const dialog = menuDialogRef.current;
+    const trigger = document.activeElement;
+    dialog?.showModal();
     return () => {
-      cancelled = true;
+      dialog?.close();
+      if (trigger instanceof HTMLElement && trigger.isConnected) trigger.focus();
     };
-  }, [isAuth, isSellerPath, role, user?.id]);
+  }, [menuOpen]);
 
   useEffect(() => {
-    if (!menuOpen) {
-      setMenuAudience(activeAudience);
+    if (searchOpen) searchInputRef.current?.focus();
+  }, [searchOpen]);
+
+  useEffect(() => {
+    if (initialCategories !== null && categoryLoadAttempt === 0) {
+      setCategories(initialCategories);
+      setLoadingCategories(false);
+      setCategoriesError(false);
+      return;
     }
-  }, [activeAudience, menuOpen]);
-
-  useEffect(() => {
-    if (!menuOpen || categories.length > 0) return;
-
     let cancelled = false;
 
     async function loadCategories() {
       setLoadingCategories(true);
+      setCategoriesError(false);
 
       try {
-        const response = await apiFetch(`${API_URL}/api/catalog/categories`);
-
-        if (!response.ok) {
-          throw new Error("Failed to load categories");
-        }
-
-        const data: unknown = await response.json();
+        const data = await loadMenuCategories();
 
         if (!cancelled) {
-          setCategories(
-            Array.isArray(data)
-              ? (data as Category[]).filter(
-                  (category) =>
-                    category.isActive !== false &&
-                    category.status !== "DISABLED" &&
-                    !category.name.includes("/")
-                )
-              : []
-          );
+          setCategories(data);
         }
       } catch {
         if (!cancelled) {
-          setCategories([]);
+          setCategoriesError(true);
         }
       } finally {
         if (!cancelled) {
@@ -166,7 +109,7 @@ function HeaderContent() {
     return () => {
       cancelled = true;
     };
-  }, [categories.length, menuOpen]);
+  }, [initialCategories, categoryLoadAttempt]);
 
   useEffect(() => {
     const node = headerRef.current;
@@ -188,10 +131,12 @@ function HeaderContent() {
   }, []);
 
   useEffect(() => {
-    document.body.style.overflow = menuOpen ? "hidden" : "";
+    if (!menuOpen) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
 
     return () => {
-      document.body.style.overflow = "";
+      document.body.style.overflow = previousOverflow;
     };
   }, [menuOpen]);
 
@@ -217,93 +162,100 @@ function HeaderContent() {
   }
 
   function openMobileMenu() {
-    setMenuAudience(activeAudience);
+    setSearchOpen(false);
     setMenuOpen(true);
   }
 
-  function handleMobileAudienceClick(audience: string) {
-    setMenuAudience(audience);
-  }
-
-  function handleMobileAudienceCatalogClick() {
+  function handleMobileCatalogClick() {
     setMenuOpen(false);
-    router.push(buildCatalogUrl({ audience: menuAudience, category: null }));
+    router.push("/catalog");
   }
 
   function handleMobileCategoryClick(category: string) {
     setMenuOpen(false);
-    router.push(buildCatalogUrl({ audience: menuAudience, category }));
+    router.push(buildCatalogUrl({ audience: null, category, q: null }));
   }
 
-  const selectedMenuAudience =
-    audienceItems.find((item) => item.key === menuAudience) ?? audienceItems[0];
-  const accountLabel = user?.username || "Профиль";
 
 
   return (
-    <header className={styles.header} ref={headerRef}>
+    <>
+    <header className={styles.header} ref={headerRef} data-buyer-mobile={buyerMobilePage ? "true" : undefined}>
+      {buyerMobilePage ? (
+        <div className={styles.buyerBar}>
+          <div className={styles.buyerLeading}>
+            {buyerMobilePage.backHref ? (
+              <Link href={buyerMobilePage.backHref} className={styles.buyerUtility} aria-label="Назад">
+                <Icon name="chevron-left" size={22} />
+              </Link>
+            ) : (
+              <button type="button" className={styles.buyerUtility} aria-label="Открыть меню" aria-expanded={menuOpen} aria-controls="site-menu" onClick={openMobileMenu}>
+                <HeaderIcon name="menu" />
+              </button>
+            )}
+          </div>
+          {buyerMobilePage.title ? (
+            <span className={styles.buyerTitle}>{buyerMobilePage.title}</span>
+          ) : (
+            <Link href="/" className={styles.buyerLogo} aria-label="рцмаркет — главная">
+              <Image src="/brand/wordmark-gold-white.svg" alt="рцмаркет" width={794} height={100} priority />
+            </Link>
+          )}
+          <div className={styles.buyerTrailing}>
+            {buyerMobilePage.backHref ? (
+              <button type="button" className={styles.buyerUtility} aria-label="Открыть меню" aria-expanded={menuOpen} aria-controls="site-menu" onClick={openMobileMenu}>
+                <HeaderIcon name="menu" />
+              </button>
+            ) : null}
+          </div>
+        </div>
+      ) : null}
+      {isSellerCabinetPath(pathname) ? <SellerHeader /> : (
       <div className={styles.top}>
         <div className={styles.inner}>
+          <div className={styles.leadingActions}>
           <button
             type="button"
             className={styles.menuBtn}
             aria-label="Открыть меню"
             aria-expanded={menuOpen}
+            aria-controls="site-menu"
             onClick={openMobileMenu}
           >
-            <span />
-            <span />
-            <span />
+            <HeaderIcon name="menu" />
           </button>
 
-          <Link href="/" className={styles.logo} aria-label="РЦМ">
+          <Link href="/favorites" className={`${styles.iconBtn} ${favoritesCount > 0 ? styles.iconBtnActive : ""}`} aria-label={favoritesCount > 0 ? `Избранное: ${favoritesCount}` : "Избранное"}>
+            <HeaderIcon name="heart" />
+          </Link>
+          </div>
+
+          <Link href="/" className={styles.logo} aria-label="рцмаркет — главная">
             <Image
-              src="/icons/logo-rcm.webp"
-              alt="РЦМ"
-              width={132}
-              height={44}
+              src="/brand/wordmark-gold-white.svg"
+              alt="рцмаркет"
+              width={794}
+              height={100}
               className={styles.logoImg}
               priority
             />
-            <span className={styles.logoBeta}>beta</span>
           </Link>
 
           <div className={styles.actions}>
-            {isAuth === true && isAdminRole(role) ? (
-              <Link
-                href="/admin"
-                className={styles.iconBtn}
-                aria-label="Админка"
-                title="Админка"
-              >
-                <Icon name="settings" size={26} strokeWidth={1.25} />
-              </Link>
-            ) : null}
-            {isAuth === true && isSellerRole(role) && sellerBrandName ? (
-              <Link
-                href="/seller"
-                className={styles.brandBtn}
-                aria-label="Кабинет продавца"
-                title="Кабинет продавца"
-              >
-                <Icon name="log-in" size={24} strokeWidth={1.25} />
-                {sellerBrandName}
-              </Link>
-            ) : null}
-
-            <Link
-              href="/favorites"
-              className={`${styles.iconBtn} ${
-                favoritesCount > 0 ? styles.iconBtnActive : ""
-              }`.trim()}
-              aria-label={
-                favoritesCount > 0
-                  ? `Избранное: ${favoritesCount}`
-                  : "Избранное"
-              }
+            <button
+              type="button"
+              ref={searchButtonRef}
+              className={styles.iconBtn}
+              aria-label="Поиск"
+              aria-expanded={searchOpen}
+              aria-controls="site-search"
+              onClick={() => {
+                setSearchQuery(activeSearch);
+                setSearchOpen(!searchOpen);
+              }}
             >
-              <Icon name="heart" size={26} strokeWidth={1.25} />
-            </Link>
+              <HeaderIcon name="search" />
+            </button>
 
             <Link
               href="/cart"
@@ -314,169 +266,163 @@ function HeaderContent() {
                 cartCount > 0 ? `Корзина: ${cartCount}` : "Корзина"
               }
             >
-              <Icon name="shopping-bag" size={26} strokeWidth={1.25} />
+              <HeaderIcon name="bag" />
             </Link>
-
-            {isAuth === true ? (
-              <Link href="/account" className={styles.iconBtn}>
-                <Icon name="user" size={26} strokeWidth={1.25} />
-              </Link>
-              ) : (
-                <button
-                  type="button"
-                  className={styles.iconBtn}
-                  onClick={() =>
-                    openAuth("login", "/account", {
-                      placement: "anchored",
-                    })
-                  }
-                  aria-label="Войти"
-                >
-                  <Icon name="user" size={26} strokeWidth={1.25} />
-                </button>
-              )}
           </div>
         </div>
       </div>
 
+      )}
+
+      {searchOpen && !isSellerCabinetPath(pathname) ? (
+        <form id="site-search" role="search" className={styles.searchPanel} onSubmit={(event) => {
+          event.preventDefault();
+          setSearchOpen(false);
+          router.push(buildCatalogUrl({ q: searchQuery.trim() }));
+        }} onKeyDown={(event) => {
+          if (event.key === "Escape") {
+            setSearchOpen(false);
+            searchButtonRef.current?.focus();
+          }
+        }}>
+          <label htmlFor="site-search-query">Поиск по каталогу</label>
+          <div className={styles.searchRow}>
+            <input id="site-search-query" ref={searchInputRef} value={searchQuery} onChange={(event) => setSearchQuery(event.target.value)} type="search" placeholder="Товар или бренд" />
+            <button type="submit">Найти</button>
+            <button type="button" className={styles.searchClose} aria-label="Закрыть поиск" onClick={() => { setSearchOpen(false); searchButtonRef.current?.focus(); }}><Icon name="x" size={24} /></button>
+          </div>
+        </form>
+      ) : null}
+
       {menuOpen ? (
-        <div className={styles.mobilePanel} role="dialog" aria-modal="true">
-          <div className={styles.mobilePanelHead}>
-            <Link
-              href="/"
-              className={styles.mobilePanelLogo}
-              aria-label="РЦМ"
-              onClick={() => setMenuOpen(false)}
-            >
-              <Image
-                src="/icons/logo-rcm.webp"
-                alt="РЦМ"
-                width={132}
-                height={44}
-                className={styles.logoImg}
-                priority
-              />
-            </Link>
+        <dialog
+          id="site-menu"
+          ref={menuDialogRef}
+          className={styles.mobilePanel}
+          aria-label="Меню сайта"
+          onCancel={() => setMenuOpen(false)}
+          onKeyDown={(event) => {
+            if (event.key !== "Tab") return;
+            const controls = Array.from(
+              event.currentTarget.querySelectorAll<HTMLElement>("button:not(:disabled), a[href]")
+            ).filter((element) => element.tabIndex >= 0 && element.getClientRects().length > 0);
+            const first = controls[0];
+            const last = controls[controls.length - 1];
+            if (event.shiftKey && document.activeElement === first) {
+              event.preventDefault();
+              last?.focus();
+            } else if (!event.shiftKey && document.activeElement === last) {
+              event.preventDefault();
+              first?.focus();
+            }
+          }}
+          onClick={(event) => {
+            if (event.target === event.currentTarget) setMenuOpen(false);
+          }}
+        >
+          <button
+            type="button"
+            className={styles.mobileClose}
+            aria-label="Закрыть меню"
+            onClick={() => setMenuOpen(false)}
+          >
+            <Icon name="x" size={36} strokeWidth={1.25} />
+          </button>
 
-            <button
-              type="button"
-              className={styles.mobileClose}
-              aria-label="Закрыть меню"
-              onClick={() => setMenuOpen(false)}
-            >
-              <span />
-              <span />
-            </button>
-          </div>
-
-          <nav className={styles.mobileAudience} aria-label="Разделы">
-            {audienceItems.map((item) => (
+          <div className={styles.mobileDrawer}>
+            <nav className={styles.mobileCategories} aria-label="Категории">
               <button
-                key={item.key}
                 type="button"
-                className={`${styles.mobileAudienceBtn} ${
-                  menuAudience === item.key ? styles.mobileAudienceBtnActive : ""
-                }`}
-                onClick={() => handleMobileAudienceClick(item.key)}
+                className={`${styles.mobileCategory} ${styles.mobileMenuEmphasis}`}
+                onClick={handleMobileCatalogClick}
               >
-                {item.label}
+                <span>Всё</span>
+                <span className={styles.mobileChevron} aria-hidden="true" />
               </button>
-            ))}
-          </nav>
 
-          <nav className={styles.mobileCategories} aria-label="Категории">
-            <button
-              type="button"
-              className={styles.mobileCategory}
-              onClick={handleMobileAudienceCatalogClick}
-            >
-              <span>{selectedMenuAudience.label}</span>
-              <span aria-hidden="true">›</span>
-            </button>
+              {loadingCategories ? (
+                <div className={styles.mobileMenuMessage} role="status">
+                  Загрузка категорий
+                </div>
+              ) : categoriesError ? (
+                <div className={styles.mobileMenuMessage} role="status">
+                  <p>Не удалось загрузить категории</p>
+                  <Button onClick={() => setCategoryLoadAttempt((value) => value + 1)}>
+                    Повторить
+                  </Button>
+                </div>
+              ) : categories.map((category) => (
+                <button
+                  key={category.id}
+                  type="button"
+                  className={`${styles.mobileCategory} ${activeCategory?.split("/")[0].trim() === category.name ? styles.mobileCategoryActive : ""}`}
+                  onClick={() => handleMobileCategoryClick(category.name)}
+                >
+                  <span>{category.name}</span>
+                  <span className={styles.mobileChevron} aria-hidden="true" />
+                </button>
+              ))}
+            </nav>
 
-            {!loadingCategories
-              ? categories.map((category) => (
-                  <button
-                    key={category.id}
-                    type="button"
-                    className={`${styles.mobileCategory} ${
-                      activeCategory?.split("/")[0].trim() === category.name
-                        ? styles.mobileCategoryActive
-                        : ""
-                    }`}
-                    onClick={() => handleMobileCategoryClick(category.name)}
-                  >
-                    <span>{category.name}</span>
-                    <span aria-hidden="true">›</span>
-                  </button>
-                ))
-              : null}
-          </nav>
+            <div className={styles.mobileAccount}>
+              {isAuth === true && isAdminRole(role) ? (
+                <Link href="/admin" className={styles.mobileProfileLink} onClick={() => setMenuOpen(false)}>
+                  <span>Администрирование</span>
+                  <span className={styles.mobileChevron} aria-hidden="true" />
+                </Link>
+              ) : null}
 
-          <div className={styles.mobileAccount}>
-            <div className={styles.mobileAccountTitle}>В личный кабинет</div>
+              {isAuth === true && isSellerRole(role) ? (
+                <Link href="/seller" className={`${styles.mobileProfileLink} ${styles.mobileMenuEmphasis}`} onClick={() => setMenuOpen(false)}>
+                  <span>Кабинет продавца</span>
+                  <span className={styles.mobileChevron} aria-hidden="true" />
+                </Link>
+              ) : null}
 
-            {isAuth === true && isAdminRole(role) ? (
-              <Link
-                href="/admin"
-                className={styles.mobileProfileLink}
-                onClick={() => setMenuOpen(false)}
-              >
-                <span className={styles.mobileProfileMain}>
-                  <Icon name="settings" size={18} strokeWidth={1.8} />
-                  <span>Админка</span>
-                </span>
-                <span aria-hidden="true">›</span>
-              </Link>
-            ) : null}
-
-            {isAuth === true ? (
-              <Link
-                href="/account"
-                className={styles.mobileProfileLink}
-                onClick={() => setMenuOpen(false)}
-              >
-                <span className={styles.mobileProfileMain}>
-                  <Icon name="user" size={20} strokeWidth={1.25} />
-                  <span>{accountLabel}</span>
-                </span>
-                <span aria-hidden="true">›</span>
-              </Link>
-            ) : (
               <div className={styles.mobileAuthActions}>
-                <button
-                  type="button"
-                  className={styles.mobilePrimary}
-                  onClick={() => {
-                    setMenuOpen(false);
-                    openAuth("login", "/account");
-                  }}
-                >
-                  Войти
-                </button>
-                <button
-                  type="button"
-                  className={styles.mobileSecondary}
-                  onClick={() => {
-                    setMenuOpen(false);
-                    openAuth("register", "/account");
-                  }}
-                >
-                  Зарегистрироваться
-                </button>
+                {isAuth === true ? (
+                  <Link href="/account" className={`buttonPrimary ${styles.mobileAction}`} onClick={() => setMenuOpen(false)}>
+                    Личный кабинет
+                  </Link>
+                ) : (
+                  <>
+                    <Button variant="primary" className={styles.mobileAction} onClick={() => {
+                      setMenuOpen(false);
+                      openAuth("login", "/account");
+                    }}>
+                      Войти
+                    </Button>
+                    <Button className={styles.mobileAction} onClick={() => {
+                      setMenuOpen(false);
+                      openAuth("register", "/account");
+                    }}>
+                      Зарегистрироваться
+                    </Button>
+                  </>
+                )}
               </div>
-            )}
+            </div>
           </div>
-        </div>
+        </dialog>
       ) : null}
     </header>
+    {buyerMobilePage?.tab ? (
+      <BuyerBottomNavigation
+        activeTab={buyerMobilePage.tab}
+        cartCount={cartCount}
+        favoritesCount={favoritesCount}
+        isAuthenticated={isAuth === true}
+        onSignIn={() => openAuth("login", "/account")}
+      />
+    ) : null}
+    </>
   );
 }
 
-export function Header() {
+export function Header({ initialCategories }: HeaderProps) {
   return (
     <Suspense fallback={null}>
-      <HeaderContent />
+      <HeaderContent initialCategories={initialCategories} />
     </Suspense>
   );
 }

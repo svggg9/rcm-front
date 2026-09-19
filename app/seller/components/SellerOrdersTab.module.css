@@ -30,20 +30,35 @@
   color: var(--white);
 }
 
-.ordersToolbar :global([data-tab-count]) {
-  min-width: 0;
-  height: auto;
-  padding: 0;
-  background: transparent;
-  color: inherit;
-  font-size: var(--seller-font-caption, var(--font-xs));
-  font-weight: 700;
-}
-
 .list {
   display: flex;
   flex-direction: column;
   gap: 16px;
   border: 0;
   background: var(--white);
+}
+
+.tableList {
+  --order-columns: minmax(95px, .65fr) minmax(100px, .65fr) minmax(220px, 2fr) minmax(150px, 1fr) minmax(105px, .7fr) 44px;
+  container-type: inline-size;
+  gap: 0;
+  border: 1px solid var(--line);
+}
+
+.tableHeader {
+  display: grid;
+  grid-template-columns: var(--order-columns);
+  border-bottom: 1px solid var(--line);
+  background: var(--soft);
+  color: var(--black);
+  font-size: var(--font-xs);
+  line-height: 1.3;
+  font-weight: 400;
+}
+
+.tableHeader > span { display: flex; align-items: center; min-height: 44px; padding: 10px 12px; }
+.tableHeader > span + span { border-left: 1px solid var(--line); }
+
+@container (max-width: 900px) {
+  .tableHeader { display: none; }
 }

@@ -3,8 +3,9 @@
   display: flex;
   align-items: center;
   width: 100%;
-  min-height: clamp(520px, 66vh, 720px);
-  margin-top: 0;
+  min-height: calc(clamp(504px, 45vw, 864px) + var(--site-header-height));
+  margin-top: calc(-1 * var(--site-header-height));
+  padding-top: var(--site-header-height);
   overflow: hidden;
   background: var(--soft);
 }
@@ -24,11 +25,13 @@
   z-index: 1;
   display: flex;
   flex-direction: column;
+  align-items: center;
   justify-content: center;
   width: min(560px, calc(100% - 48px));
-  margin-left: clamp(24px, 7vw, 96px);
+  margin-inline: auto;
   padding: 56px 0;
   color: var(--white);
+  text-align: center;
   text-shadow: 0 2px 18px rgba(0, 0, 0, 0.32);
 }
 
@@ -70,38 +73,16 @@
 }
 
 .button {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-
-  min-height: 48px;
-  padding: 0 22px;
-
-  border: 1px solid var(--black);
-  background: var(--white);
-  color: var(--black);
-
-  font-size: 12px;
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-
+  min-width: 200px;
+  min-height: 56px;
+  padding: 0 32px;
+  font-size: 14px;
   text-shadow: none;
-  transition: opacity var(--transition-fast), background var(--transition-fast);
-}
-
-.button:hover {
-  background: rgba(255, 255, 255, 0.88);
 }
 
 @media (max-width: 1100px) {
-  .hero {
-    min-height: 560px;
-  }
-
   .content {
     width: min(560px, calc(100% - 40px));
-    margin-left: 28px;
     padding: 48px 0;
   }
 }
@@ -110,7 +91,7 @@
   .hero {
     display: block;
     min-height: auto;
-    margin-top: 0;
+    padding-top: 0;
     overflow: visible;
     background: var(--white);
   }
@@ -119,8 +100,8 @@
     position: relative;
     inset: auto;
     width: 100%;
-    margin-top: 10px;
-    height: min(370px, 42.35svh);
+    margin-top: 0;
+    height: calc(min(540px, 112.5vw) + var(--site-header-height));
     overflow: hidden;
     background: var(--soft);
   }
@@ -131,9 +112,9 @@
 
   .content {
     width: 100%;
-    min-height: calc(100svh - var(--site-header-height) - min(370px, 42.35svh));
+    min-height: auto;
     margin-left: 0;
-    padding: 28px 0 24px;
+    padding: 28px 16px 24px;
     color: var(--black);
     text-shadow: none;
   }
@@ -159,18 +140,12 @@
   }
 
   .actions {
+    width: 100%;
     margin-top: auto;
     padding-top: 28px;
   }
 
   .button {
     width: 100%;
-    min-height: 48px;
-    background: var(--black);
-    color: var(--white);
-  }
-
-  .button:hover {
-    background: var(--black);
   }
 }

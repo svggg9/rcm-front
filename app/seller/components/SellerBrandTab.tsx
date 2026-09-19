@@ -1,10 +1,13 @@
 "use client";
 
 import Image from "next/image";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { Button } from "../../components/ui/Button";
-import { Icon } from "../../components/ui/Icon";
+import { DesignSystemIcon } from "../../components/ui/DesignSystemIcon";
+import { TextInput } from "../../components/ui/TextInput";
+import { Textarea } from "../../components/ui/Textarea";
+import { scrollToFirstValidationError } from "../../lib/formValidation";
 
 import type {
   SellerBrand,
@@ -18,7 +21,6 @@ import {
 
 import styles from "./SellerBrandTab.module.css";
 import { SellerBrandImages } from "./SellerBrandImages";
-import { SellerStorefrontCollections } from "./SellerStorefrontCollections";
 
 type FormState = {
   name: string;
@@ -83,7 +85,15 @@ export function SellerBrandTab({ initialBrands }: Props) {
 
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
+  const [saveSuccess, setSaveSuccess] = useState(false);
   const [dirty, setDirty] = useState(false);
+  const pageRef = useRef<HTMLElement | null>(null);
+
+  useEffect(() => {
+    if (!saveSuccess) return;
+    const timer = window.setTimeout(() => setSaveSuccess(false), 1500);
+    return () => window.clearTimeout(timer);
+  }, [saveSuccess]);
 
   const selectedBrand = brands[0] ?? null;
 
@@ -94,7 +104,7 @@ export function SellerBrandTab({ initialBrands }: Props) {
   }
 
   async function save() {
-    if (!selectedBrand || !form) return;
+    if (!selectedBrand || !form || saving || uploadingWordmark || saveSuccess) return;
 
     setSaving(true);
     setError(null);
@@ -111,10 +121,12 @@ export function SellerBrandTab({ initialBrands }: Props) {
       );
       setForm(toFormState(updated));
       setSaved(true);
+      setSaveSuccess(true);
       setDirty(false);
       emitSellerOnboardingChanged();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Не удалось сохранить профиль");
+      scrollToFirstValidationError({ root: pageRef.current });
     } finally {
       setSaving(false);
     }
@@ -124,7 +136,7 @@ export function SellerBrandTab({ initialBrands }: Props) {
     return (
       <section className={styles.page}>
         <div className={styles.emptyState}>
-          <Icon name="store" size={28} />
+          <DesignSystemIcon name="store" role="empty" />
           <strong>Профиль бренда недоступен</strong>
           <span>Обратитесь к администратору площадки</span>
         </div>
@@ -133,7 +145,7 @@ export function SellerBrandTab({ initialBrands }: Props) {
   }
 
   async function uploadWordmark(file: File | null) {
-    if (!selectedBrand || !form || !file) return;
+    if (!selectedBrand || !form || !file || saving || uploadingWordmark) return;
 
     setUploadingWordmark(true);
     setError(null);
@@ -150,7 +162,9 @@ export function SellerBrandTab({ initialBrands }: Props) {
       );
     } catch (e) {
       setError(
-        e instanceof Error ? e.message : "Не удалось загрузить вордмарк бренда"
+        e instanceof Error
+          ? e.message
+          : "Не удалось загрузить текстовый логотип бренда"
       );
     } finally {
       setUploadingWordmark(false);
@@ -161,28 +175,19 @@ export function SellerBrandTab({ initialBrands }: Props) {
   if (!selectedBrand || !form) return null;
 
   return (
-    <section className={styles.page}>
-      {error ? <div className={styles.error}>{error}</div> : null}
-
-      <form
-        className={styles.main}
-        onSubmit={(event) => {
-          event.preventDefault();
-          void save();
-        }}
-      >
+    <section className={styles.page} ref={pageRef}>
         <header className={styles.pageHeader}>
           <div>
             <span className={styles.pageKicker}>Витрина магазина</span>
             <h1>{form.name}</h1>
-            <p>Настройте публичную страницу бренда.</p>
+            <p>Настройте публичную страницу бренда</p>
           </div>
 
           <div className={styles.headerActions}>
             {selectedBrand.slug ? (
               <a
                 href={`/brand/${selectedBrand.slug}`}
-                className={styles.openLink}
+                className={`buttonSecondary ${styles.openLink}`}
                 target="_blank"
                 rel="noreferrer"
               >
@@ -191,38 +196,34 @@ export function SellerBrandTab({ initialBrands }: Props) {
             ) : null}
             <Button
               type="submit"
+              form="seller-brand-profile"
               variant="primary"
-              disabled={saving || !dirty}
+              loading={saving}
+              success={saveSuccess}
+              reserveLabelSpace
+              disabled={uploadingWordmark || saveSuccess}
             >
               Сохранить
             </Button>
           </div>
         </header>
+        {error ? <div className={styles.error} role="alert" data-validation-error="true" tabIndex={-1}>{error}</div> : null}
+        {saved ? <div className={styles.success} role="status"><DesignSystemIcon name="check-circle" /><span>Изменения сохранены</span></div> : null}
+        {dirty ? <p className={styles.saveState} role="status">Есть несохранённые изменения</p> : null}
 
-        <div className={styles.saveState} aria-live="polite">
-          {saved ? (
-            <>
-              <Icon name="check-circle" size={16} />
-              <span>Изменения сохранены</span>
-            </>
-          ) : dirty ? (
-            <span>Есть несохранённые изменения</span>
-          ) : null}
-        </div>
-
-        <section className={styles.profileSection}>
+        <form id="seller-brand-profile" className={styles.profileSection}
+          onSubmit={(event) => { event.preventDefault(); void save(); }}>
           <div className={styles.sectionHeading}>
-            <span className={styles.sectionNumber}>01</span>
             <div>
               <h2>Профиль бренда</h2>
-              <p>Название, описание и контакты для покупателей.</p>
+              <p>Название, описание и контакты для покупателей</p>
             </div>
           </div>
 
           <div className={styles.profileGrid}>
             <div className={styles.wordmarkCard}>
               <div className={styles.wordmarkStage}>
-                <span className={styles.summaryLabel}>Вордмарк</span>
+                <span className={styles.summaryLabel}>Текстовый логотип</span>
                 <div className={styles.brandProfileTitle}>
                   {form.wordmarkUrl ? (
                     <span className={styles.wordmarkPreview}>
@@ -244,12 +245,14 @@ export function SellerBrandTab({ initialBrands }: Props) {
                 variant="secondary"
                 className={styles.wordmarkButton}
                 onClick={() => wordmarkInputRef.current?.click()}
-                disabled={uploadingWordmark}
+                disabled={saving}
+                loading={uploadingWordmark}
+                reserveLabelSpace
               >
-                {uploadingWordmark ? "Загрузка" : "Загрузить вордмарк"}
+                Загрузить текстовый логотип
               </Button>
               <p className={styles.wordmarkHint}>
-                SVG или WebP до 2 МБ. Используется в шапке публичной страницы.
+                SVG или WebP до 2 МБ — для шапки публичной страницы
               </p>
               <input
                 ref={wordmarkInputRef}
@@ -262,96 +265,52 @@ export function SellerBrandTab({ initialBrands }: Props) {
               />
             </div>
 
-            <div className={styles.formSection}>
-              <BrandField label="Название">
-                <input
-                  className={`${styles.input} ${styles.inputReadonly}`}
-                  value={form.name}
-                  disabled
-                />
-              </BrandField>
-
-              <BrandField label="Описание">
-                <textarea
-                  className={styles.textarea}
+            <fieldset className={styles.formSection} disabled={saving}>
+              <TextInput label="Название" value={form.name} readOnly className={styles.inputReadonly} />
+              <Textarea label="Описание"
                   value={form.description}
                   onChange={(event) =>
                     updateField("description", event.target.value)
                   }
                   rows={5}
                   maxLength={1000}
-                  placeholder="Расскажите о стиле, истории и идее бренда"
-                />
-              </BrandField>
+                  hint="Расскажите о стиле, истории и идее бренда"
+              />
 
               <div className={styles.detailsGrid}>
-                <BrandField label="Страна">
-                  <input
-                    className={styles.input}
+                  <TextInput label="Страна"
                     value={form.country}
                     onChange={(event) => updateField("country", event.target.value)}
-                    placeholder="Россия"
                   />
-                </BrandField>
-                <BrandField label="Год основания">
-                  <input
-                    className={styles.input}
+                  <TextInput label="Год основания"
                     value={form.foundationYear}
                     onChange={(event) =>
                       updateField("foundationYear", event.target.value.replace(/\D/g, ""))
                     }
                     inputMode="numeric"
                     maxLength={4}
-                    placeholder="2024"
                   />
-                </BrandField>
-                <BrandField label="Сайт">
-                  <input
-                    className={styles.input}
+                  <TextInput label="Сайт"
                     value={form.website}
                     onChange={(event) => updateField("website", event.target.value)}
                     placeholder="https://example.ru"
                   />
-                </BrandField>
-                <BrandField label="Telegram">
-                  <input
-                    className={styles.input}
+                  <TextInput label="Telegram"
                     value={form.telegram}
                     onChange={(event) => updateField("telegram", event.target.value)}
                     placeholder="@brand"
                   />
-                </BrandField>
-                <BrandField label="ВКонтакте">
-                  <input
-                    className={styles.input}
+                  <TextInput label="ВКонтакте"
                     value={form.vk}
                     onChange={(event) => updateField("vk", event.target.value)}
                     placeholder="vk.com/brand"
                   />
-                </BrandField>
               </div>
-            </div>
+            </fieldset>
           </div>
-        </section>
+        </form>
 
         <SellerBrandImages brandId={selectedBrand.id} />
-        <SellerStorefrontCollections brandId={selectedBrand.id} />
-      </form>
     </section>
-  );
-}
-
-function BrandField({
-  label,
-  children,
-}: {
-  label: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <label className={styles.fieldWrap}>
-      <span className={styles.fieldLabel}>{label}</span>
-      {children}
-    </label>
   );
 }

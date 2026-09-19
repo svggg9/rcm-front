@@ -5,5 +5,5 @@ type Props = {
 export function FormError({ message }: Props) {
   if (!message) return null;
 
-  return <div className="formError">{message}</div>;
+  return <div className="formError" role="alert">{message}</div>;
 }

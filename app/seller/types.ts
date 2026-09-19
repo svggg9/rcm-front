@@ -92,6 +92,8 @@ export type SellerOrderDeliveryInfo = {
 };
 
 export type SellerOrder = {
+  paidAt?: string | null;
+  paymentMethod?: string | null;
   id: number;
   orderGroupId: string;
   status: SellerOrderStatus;
@@ -148,7 +150,9 @@ export type SellerProduct = {
 
 export type SellerProductListItem = {
   id: number;
+  createdAt?: string | null;
   title: string;
+  article: string | null;
   status?: ProductStatus;
 
   brandName: string | null;
@@ -306,6 +310,7 @@ export type SellerStorefrontProduct = {
   brand: string | null;
   coverImage: string | null;
   status: string | null;
+  minPrice?: number | null;
 };
 
 export type SellerFinanceSummary = {

@@ -1,5 +1,5 @@
 export const metadata = {
-  title: "Пользовательское соглашение — RCM",
+  title: "Пользовательское соглашение — рцмаркет",
 };
 
 export default function TermsPage() {

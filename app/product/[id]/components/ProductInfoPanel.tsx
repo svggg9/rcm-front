@@ -3,6 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { Button } from "../../../components/ui/Button";
+import { LikeButton } from "../../../components/ui/LikeButton";
 import { Price } from "../../../components/ui/Price";
 import { ProductDetailsAccordion } from "./ProductDetailsAccordion";
 import { ProductVariantSelect } from "./ProductVariantSelect";
@@ -98,25 +99,12 @@ export function ProductInfoPanel({
           ) : null}
 
           {!isSellerView ? (
-            <button
-              type="button"
-              className={`${styles.favoriteIconBtn} ${
-                isFav ? styles.favoriteIconBtnActive : ""
-              }`}
-              onClick={() => void onToggleFavorite()}
-              disabled={favoritePending}
-              aria-busy={favoritePending || undefined}
+            <LikeButton
+              liked={isFav}
+              onClick={onToggleFavorite}
+              pending={favoritePending}
               aria-label={isFav ? "Убрать из избранного" : "Добавить в избранное"}
-              aria-pressed={isFav}
-            >
-              <Image
-                src={isFav ? "/icons/like-filled.svg" : "/icons/like.svg"}
-                alt=""
-                aria-hidden="true"
-                width={24}
-                height={24}
-              />
-            </button>
+            />
           ) : null}
         </div>
 

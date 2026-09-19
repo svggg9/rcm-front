@@ -14,6 +14,7 @@ import { toast } from "sonner";
 
 import { apiFetch, API_URL } from "../../lib/api";
 import { startYandexAuth } from "../../lib/yandexAuth";
+import { safeReturnPath } from "../../lib/safeReturnPath";
 import {
   ensureGuestCartId,
   getGuestCartId,
@@ -60,21 +61,68 @@ export default function AuthModalDialog({
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
+    const modal = modalRef.current;
+    const trigger = document.activeElement;
+    const previousOverflow = document.body.style.overflow;
+
+    function getFocusableElements() {
+      return Array.from(
+        modal?.querySelectorAll<HTMLElement>(
+          'a[href], button, input:not([type="hidden"]), select, textarea, [tabindex]'
+        ) ?? []
+      ).filter(
+        (element) =>
+          element.tabIndex >= 0 &&
+          !element.matches(":disabled") &&
+          element.getClientRects().length > 0
+      );
+    }
+
     function onKeyDown(event: KeyboardEvent) {
       if (event.key === "Escape") {
         onClose();
+      }
+
+      if (event.key !== "Tab" || placement !== "modal" || !modal) return;
+
+      const focusableElements = getFocusableElements();
+      const firstElement = focusableElements[0];
+      const lastElement = focusableElements[focusableElements.length - 1];
+      const activeElement = document.activeElement;
+
+      if (!firstElement || !lastElement) {
+        event.preventDefault();
+        modal.focus({ preventScroll: true });
+      } else if (!focusableElements.some((element) => element === activeElement)) {
+        event.preventDefault();
+        (event.shiftKey ? lastElement : firstElement).focus();
+      } else if (event.shiftKey && activeElement === firstElement) {
+        event.preventDefault();
+        lastElement.focus();
+      } else if (!event.shiftKey && activeElement === lastElement) {
+        event.preventDefault();
+        firstElement.focus();
       }
     }
 
     window.addEventListener("keydown", onKeyDown);
     if (placement === "modal") {
       document.body.style.overflow = "hidden";
+      const focusableElements = getFocusableElements();
+      const initialFocus =
+        focusableElements.find((element) => element.matches("input")) ??
+        focusableElements[0] ??
+        modal;
+      initialFocus?.focus({ preventScroll: true });
     }
 
     return () => {
       window.removeEventListener("keydown", onKeyDown);
       if (placement === "modal") {
-        document.body.style.overflow = "";
+        document.body.style.overflow = previousOverflow;
+        if (trigger instanceof HTMLElement && trigger.isConnected) {
+          trigger.focus({ preventScroll: true });
+        }
       }
     };
   }, [onClose, placement]);
@@ -329,6 +377,7 @@ export default function AuthModalDialog({
               placement === "anchored" ? styles.modalAnchored : ""
             }`}
             role="dialog"
+            tabIndex={placement === "modal" ? -1 : undefined}
             aria-modal={placement === "modal"}
             aria-label="Вход или регистрация"
             onMouseDown={(event) => event.stopPropagation()}
@@ -432,6 +481,21 @@ export default function AuthModalDialog({
                           </button>
                         </div>
                       </div>
+
+                      <Link
+                        href={`/auth/password/reset?next=${encodeURIComponent(safeReturnPath(returnPath))}`}
+                        className={styles.forgotInline}
+                        onClick={(event) => {
+                          if (submitting) {
+                            event.preventDefault();
+                            return;
+                          }
+                          onClose();
+                        }}
+                        aria-disabled={submitting || undefined}
+                      >
+                        Забыли пароль?
+                      </Link>
 
                       <div className={styles.authActions}>
                         <Button

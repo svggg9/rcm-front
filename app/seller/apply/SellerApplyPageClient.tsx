@@ -341,8 +341,8 @@ export function SellerApplyPageClient() {
     <div className="pageContainer">
       <div className={styles.page}>
         <header className={styles.hero}>
-          <span className={styles.kicker}>Для российских марок</span>
-          <h1 className={styles.title}>Стать продавцом на RCM</h1>
+          <span className={styles.kicker}>Для независимых брендов</span>
+          <h1 className={styles.title}>Стать продавцом на рцмаркет</h1>
           <p className={styles.lead}>
             Расскажите о своей марке и ассортименте. Мы рассмотрим заявку и
             откроем доступ к кабинету продавца.
@@ -404,7 +404,7 @@ export function SellerApplyPageClient() {
                 title="Заявку пока не одобрили"
                 text={
                   application.adminComment ||
-                  "Проверьте данные и отправьте новую заявку или свяжитесь с командой RCM."
+                  "Проверьте данные и отправьте новую заявку или свяжитесь с командой рцмаркет."
                 }
                 actionLabel="Отправить новую заявку"
                 onAction={() => {

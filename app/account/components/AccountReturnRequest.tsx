@@ -120,7 +120,7 @@ export function AccountReturnRequest({
         <span>В одной заявке можно вернуть одну позицию.</span>
       </div>
 
-      <label className={styles.field}>
+      <label className={styles.field} data-ui="field">
         <span>Товар</span>
         <select
           value={itemKey}
@@ -132,13 +132,13 @@ export function AccountReturnRequest({
               key={`${item.productId}:${item.variantId}`}
               value={`${item.productId}:${item.variantId}`}
             >
-              {item.productTitle} · {item.size} · {item.color}
+              {item.productTitle}, {item.size}, {item.color}
             </option>
           ))}
         </select>
       </label>
 
-      <label className={styles.field}>
+      <label className={styles.field} data-ui="field">
         <span>Причина</span>
         <select
           value={reason}
@@ -152,7 +152,7 @@ export function AccountReturnRequest({
         </select>
       </label>
 
-      <label className={styles.field}>
+      <label className={styles.field} data-ui="field">
         <span>Комментарий</span>
         <textarea
           value={comment}

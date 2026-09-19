@@ -7,7 +7,10 @@ import type {
   CatalogCategoryGroup,
   CatalogFilterSelection,
   CatalogSize,
+  SelectedAudience,
+  SortValue,
 } from "./catalogTypes";
+import { audienceLabels, categoryGroupSelected, sortLabels, toggleCategorySelection } from "./catalogUtils";
 import { Icon } from "../ui/Icon";
 
 type Props = {
@@ -60,7 +63,9 @@ export function CatalogFiltersDrawer({
   const layerRef = useRef<HTMLDivElement>(null);
   const dialogRef = useRef<HTMLElement>(null);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
-  const [category, setCategory] = useState(initialFilters.category);
+  const [categories, setCategories] = useState(initialFilters.categories);
+  const [audience, setAudience] = useState<SelectedAudience>(initialFilters.audience ?? "all");
+  const [sort, setSort] = useState<SortValue>(initialFilters.sort ?? "");
   const [selectedBrands, setSelectedBrands] = useState(initialFilters.brands);
   const [selectedSizes, setSelectedSizes] = useState(initialFilters.sizes);
   const [minPrice, setMinPrice] = useState(
@@ -71,11 +76,17 @@ export function CatalogFiltersDrawer({
   );
   const [brandSearch, setBrandSearch] = useState("");
   const [expandedGroups, setExpandedGroups] = useState<string[]>(() => {
-    const activeGroup = selectedGroupName(initialFilters.category, categoryGroups);
-    return activeGroup
-      ? [activeGroup]
+    const activeGroups = initialFilters.categories
+      .map((category) => selectedGroupName(category, categoryGroups))
+      .filter((name): name is string => Boolean(name));
+    return activeGroups.length > 0
+      ? Array.from(new Set(activeGroups))
       : categoryGroups.slice(0, 1).map((group) => group.name);
   });
+
+  const toggleCategory = (category: string) => {
+    setCategories((current) => toggleCategorySelection(current, category, categoryGroups));
+  };
 
   const toggleCategoryGroup = (groupName: string) => {
     setExpandedGroups((current) =>
@@ -170,22 +181,28 @@ export function CatalogFiltersDrawer({
   if (!open) return null;
 
   function resetDraft() {
-    setCategory("");
+    setCategories([]);
     setSelectedBrands([]);
     setSelectedSizes([]);
     setMinPrice("");
     setMaxPrice("");
     setBrandSearch("");
+    if (window.matchMedia("(max-width: 640px)").matches) {
+      setAudience("all");
+      setSort("");
+    }
   }
 
   function applyDraft() {
     if (priceInvalid) return;
     onApply({
-      category,
+      categories,
       brands: selectedBrands,
       sizes: selectedSizes,
       minPrice: parsedMinPrice,
       maxPrice: parsedMaxPrice,
+      audience,
+      sort,
     });
   }
 
@@ -193,6 +210,7 @@ export function CatalogFiltersDrawer({
     <div ref={layerRef} className={styles.drawerLayer}>
       <button
         type="button"
+        tabIndex={-1}
         className={styles.drawerBackdrop}
         aria-label="Закрыть фильтры"
         onClick={onClose}
@@ -208,7 +226,10 @@ export function CatalogFiltersDrawer({
         <header className={styles.drawerHeader}>
           <div>
             <span className={styles.drawerEyebrow}>Каталог</span>
-            <h2 id="catalog-filters-title">Все фильтры</h2>
+            <h2 id="catalog-filters-title">
+              <span className={styles.desktopFilterLabel}>Все фильтры</span>
+              <span className={styles.mobileFilterLabel}>Фильтры</span>
+            </h2>
           </div>
           <button
             ref={closeButtonRef}
@@ -222,13 +243,31 @@ export function CatalogFiltersDrawer({
         </header>
 
         <div className={styles.drawerContent}>
-          <section className={styles.filterSection}>
+          <section className={`${styles.filterSection} ${styles.mobileFilterSection}`} aria-labelledby="catalog-audience-title">
+            <h3 id="catalog-audience-title">Для кого</h3>
+            <div className={styles.audienceOptions}>
+              {(["all", "women", "men"] as SelectedAudience[]).map((value) => (
+                <button
+                  key={value}
+                  type="button"
+                  className={styles.audienceOption}
+                  aria-pressed={audience === value}
+                  onClick={() => setAudience(value)}
+                >
+                  {audienceLabels[value]}
+                </button>
+              ))}
+            </div>
+          </section>
+
+          <section className={`${styles.filterSection} ${styles.desktopCategorySection}`}>
             <h3>Категории</h3>
             <button
               type="button"
               className={styles.categoryOption}
-              data-selected={category === ""}
-              onClick={() => setCategory("")}
+              data-selected={categories.length === 0}
+              aria-pressed={categories.length === 0}
+              onClick={() => setCategories([])}
             >
               Все категории
             </button>
@@ -237,7 +276,7 @@ export function CatalogFiltersDrawer({
               {categoryGroups.map((group) => {
                 const hasChildren = group.categories.length > 0;
                 const expanded = expandedGroups.includes(group.name);
-                const groupSelected = category === group.name;
+                const groupSelected = categoryGroupSelected(categories, group);
 
                 if (!hasChildren) {
                   const value = group.rootCategory?.name ?? group.name;
@@ -246,8 +285,9 @@ export function CatalogFiltersDrawer({
                       key={group.name}
                       type="button"
                       className={styles.categoryOption}
-                      data-selected={category === value}
-                      onClick={() => setCategory(value)}
+                      data-selected={categories.includes(value)}
+                      aria-pressed={categories.includes(value)}
+                      onClick={() => toggleCategory(value)}
                     >
                       {group.name}
                     </button>
@@ -261,8 +301,9 @@ export function CatalogFiltersDrawer({
                         type="button"
                         className={styles.categoryParentChoice}
                         aria-expanded={expanded}
+                        aria-pressed={groupSelected}
                         onClick={() => {
-                          setCategory(group.name);
+                          toggleCategory(group.name);
                           toggleCategoryGroup(group.name);
                         }}
                       >
@@ -291,10 +332,11 @@ export function CatalogFiltersDrawer({
                             key={item.id}
                             type="button"
                             className={styles.categoryOption}
-                            data-selected={category === item.name}
-                            onClick={() => setCategory(item.name)}
+                            data-selected={categories.includes(item.name)}
+                            aria-pressed={categories.includes(item.name)}
+                            onClick={() => toggleCategory(item.name)}
                           >
-                            <CategoryCheckbox selected={category === item.name} />
+                            <CategoryCheckbox selected={categories.includes(item.name)} />
                             {item.label}
                           </button>
                         ))}
@@ -306,9 +348,9 @@ export function CatalogFiltersDrawer({
             </div>
           </section>
 
-          <section className={styles.filterSection}>
+          <section className={styles.filterSection} data-mobile-hidden={brands.length <= 1 && selectedBrands.length === 0}>
             <h3>Бренд</h3>
-            <label className={styles.brandSearch}>
+            <label className={styles.brandSearch} data-ui="field">
               <Icon name="search" size={17} strokeWidth={1.5} />
               <span className={styles.visuallyHidden}>Найти бренд</span>
               <input
@@ -341,7 +383,7 @@ export function CatalogFiltersDrawer({
             </div>
           </section>
 
-          <section className={styles.filterSection}>
+          <section className={styles.filterSection} data-mobile-hidden={sizes.length <= 1 && selectedSizes.length === 0}>
             <h3>Размер</h3>
             <div className={styles.sizeGrid}>
               {sizes.map((size) => {
@@ -367,7 +409,7 @@ export function CatalogFiltersDrawer({
           <section className={styles.filterSection}>
             <h3>Цена, ₽</h3>
             <div className={styles.priceFields}>
-              <label>
+              <label data-ui="field">
                 <span>От</span>
                 <input
                   type="number"
@@ -379,7 +421,7 @@ export function CatalogFiltersDrawer({
                 />
               </label>
               <span aria-hidden="true">—</span>
-              <label>
+              <label data-ui="field">
                 <span>До</span>
                 <input
                   type="number"
@@ -395,6 +437,23 @@ export function CatalogFiltersDrawer({
               <p className={styles.priceError}>Цена «от» не может быть выше цены «до».</p>
             ) : null}
           </section>
+
+          <section className={`${styles.filterSection} ${styles.mobileFilterSection}`} aria-labelledby="catalog-sort-title">
+            <h3 id="catalog-sort-title">Сортировка</h3>
+            <div className={styles.mobileSortOptions}>
+              {([
+                ["", "Рекомендовано"],
+                ["newest", sortLabels.newest],
+                ["price-asc", sortLabels["price-asc"]],
+                ["price-desc", sortLabels["price-desc"]],
+              ] as Array<[SortValue, string]>).map(([value, label]) => (
+                <button key={value} type="button" aria-pressed={sort === value} onClick={() => setSort(value)}>
+                  <span>{label}</span>
+                  {sort === value ? <Icon name="check" size={18} strokeWidth={1.5} /> : null}
+                </button>
+              ))}
+            </div>
+          </section>
         </div>
 
         <footer className={styles.drawerFooter}>
@@ -407,7 +466,7 @@ export function CatalogFiltersDrawer({
             disabled={priceInvalid || pending}
             onClick={applyDraft}
           >
-            {pending ? "Применяем…" : "Применить фильтры"}
+            {pending ? "Применяем…" : <><span className={styles.desktopFilterLabel}>Применить фильтры</span><span className={styles.mobileFilterLabel}>Показать товары</span></>}
           </button>
         </footer>
       </aside>

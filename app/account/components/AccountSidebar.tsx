@@ -1,8 +1,8 @@
 ﻿"use client";
 
+import Link from "next/link";
 import { CabinetSidebar } from "../../components/ui/CabinetSidebar";
 import { Button } from "../../components/ui/Button";
-import { Icon } from "../../components/ui/Icon";
 import styles from "./AccountSidebar.module.css";
 
 type AccountTab =
@@ -34,17 +34,31 @@ export function AccountSidebar({
       mobileInline
       onNavigate={onNavigate}
       footer={
-        <Button
-          type="button"
-          variant="secondary"
-          className={styles.logout}
-          onClick={onLogout}
-        >
-          <span className={styles.logoutContent}>
-            <Icon name="log-out" size={18} strokeWidth={1.5} />
+        <div className={styles.actions}>
+          {showSellerCabinet ? (
+            <Link
+              href="/seller"
+              className={`buttonSecondary ${styles.action}`}
+              prefetch={false}
+              onClick={(event) => {
+                if (onNavigate && !event.metaKey && !event.ctrlKey && !event.shiftKey && !event.altKey) {
+                  event.preventDefault();
+                  onNavigate("/seller");
+                }
+              }}
+            >
+              Кабинет продавца
+            </Link>
+          ) : null}
+          <Button
+            type="button"
+            variant="secondary"
+            className={styles.action}
+            onClick={onLogout}
+          >
             Выйти
-          </span>
-        </Button>
+          </Button>
+        </div>
       }
       items={[
         {
@@ -53,16 +67,6 @@ export function AccountSidebar({
           icon: "user",
           active: currentTab === "home",
         },
-        ...(showSellerCabinet
-          ? [
-              {
-                href: "/seller",
-                label: "Кабинет продавца",
-                icon: "store" as const,
-                active: false,
-              },
-            ]
-          : []),
         {
           href: "/account?tab=orders",
           label: "Заказы и возвраты",

@@ -1,0 +1,22 @@
+{
+  "name": "рцмаркет",
+  "selectedVariant": "03-unbounded",
+  "fontBasis": "Unbounded 500",
+  "selectedAt": "2026-09-08",
+  "implementationStatus": "asset-package-only",
+  "wordmark": {
+    "black": "wordmark-black.svg",
+    "white": "wordmark-white.svg"
+  },
+  "favicon": {
+    "svg": "favicon.svg",
+    "ico": "favicon.ico",
+    "png16": "favicon-16.png",
+    "png32": "favicon-32.png"
+  },
+  "touchIcon": "apple-touch-icon.png",
+  "optionalPwaIcons": [
+    "icon-192.png",
+    "icon-512.png"
+  ]
+}

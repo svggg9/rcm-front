@@ -3,7 +3,8 @@
 import { useMemo, useState, type ReactNode } from "react";
 
 import { Button } from "../../components/ui/Button";
-import { CabinetTabs, type CabinetTabItem } from "../../components/ui/CabinetTabs";
+import { CabinetPanel } from "../../components/ui/CabinetPanel";
+import type { CabinetTabItem } from "../../components/ui/CabinetTabs";
 import { EmptyState } from "../../components/ui/EmptyState";
 import { Icon } from "../../components/ui/Icon";
 import { ListLoadMore } from "../../components/ui/ListLoadMore";
@@ -197,17 +198,12 @@ export function AdminSellersTab({
   }
 
   return (
-    <section className={styles.page}>
-      <div className={styles.toolbar}>
-        <CabinetTabs
-          items={filterTabs}
-          value={status}
-          onChange={onStatusChange}
-          ariaLabel="Фильтр заявок продавцов по статусу"
-          countTone="gold"
-          appearance="segmented"
-        />
-
+    <CabinetPanel
+      items={filterTabs}
+      value={status}
+      onChange={onStatusChange}
+      ariaLabel="Фильтр заявок продавцов по статусу"
+      actions={
         <Button
           type="button"
           variant="secondary"
@@ -217,8 +213,8 @@ export function AdminSellersTab({
         >
           Обновить
         </Button>
-      </div>
-
+      }
+    >
       <ActionNotice message={actionMessage} tone="success" />
       <ActionNotice message={actionError} tone="danger" />
 
@@ -262,7 +258,7 @@ export function AdminSellersTab({
           />
         </>
       )}
-    </section>
+    </CabinetPanel>
   );
 }
 
@@ -292,7 +288,7 @@ function SellerApplicationCard({
           <span className={styles.label}>Бренд</span>
           <strong className={styles.title}>{application.brandName}</strong>
           <span className={styles.meta}>
-            ID {application.id} · пользователь {application.userId}
+            ID {application.id}, пользователь {application.userId}
           </span>
         </div>
 
@@ -472,7 +468,7 @@ function SellerApplicationDetails({
           </DetailsSection>
 
           <DetailsSection title="Решение">
-            <label className={styles.textareaField}>
+            <label className={styles.textareaField} data-ui="field">
               <span>Комментарий администратора</span>
               <textarea
                 value={adminComment}

@@ -1,31 +1,77 @@
 .rcmToast {
-  border-radius: 0 !important;
-  border: 1px solid var(--gold) !important;
-  background: var(--white) !important;
-  color: var(--black) !important;
-  box-shadow: none !important;
+  overflow: hidden !important;
+  width: max-content !important;
+  max-width: min(360px, calc(100vw - 32px)) !important;
+  border-radius: 6px !important;
+  border: 0 !important;
+  background: var(--black) !important;
+  color: var(--white) !important;
 
-  padding: 14px 16px !important;
+  padding: 10px 14px !important;
 
   font-size: var(--font-sm) !important;
+  text-align: left !important;
+  font-family: inherit !important;
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) !important;
+  gap: 6px !important;
+  box-shadow: none !important;
+}
+
+.rcmToast[data-type="success"] {
+  background: var(--black) !important;
+}
+.rcmToast[data-type="error"] {
+  background: var(--black) !important;
+}
+.rcmToast [data-icon] { display: none !important; }
+.rcmToast [data-content] {
+  grid-column: 1;
+  min-width: 0;
+  gap: 4px !important;
   text-align: center !important;
 }
+.rcmToast .rcmToastAction {
+  grid-column: 1;
+  justify-self: center;
+  margin: 4px 0 0 !important;
+  height: auto !important;
+  min-height: 42px;
+  padding: 8px 16px !important;
+  border: 1px solid rgba(17, 17, 17, 0.16) !important;
+  border-radius: 8px !important;
+  background: rgba(255, 255, 255, 0.5) !important;
+  color: var(--black) !important;
+  font: inherit !important;
+}
+.rcmToast [data-close-button] {
+  display: none !important;
+}
+.rcmToast .rcmToastAction:hover { background: var(--white) !important; }
+.rcmToast .rcmToastAction:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
 
 .rcmToastTitle {
   width: 100%;
   text-align: center !important;
 
-  color: var(--black) !important;
+  color: var(--white) !important;
   font-size: var(--font-sm) !important;
   font-weight: 500 !important;
+  line-height: 1.35 !important;
 }
 
 .rcmToastDescription {
   width: 100%;
   text-align: center !important;
 
-  color: var(--muted) !important;
+  color: rgba(255, 255, 255, 0.72) !important;
   font-size: var(--font-sm) !important;
+  font-weight: 300 !important;
+  line-height: 1.4 !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rcmToast { transition: none !important; }
 }
 
 @media (max-width: 640px) {
@@ -36,8 +82,15 @@
     width: auto !important;
   }
 
-  .rcmToast {
-    width: 100% !important;
-    max-width: none !important;
+  body:has([data-buyer-bottom-nav]) .rcmToaster {
+    bottom: calc(var(--buyer-bottom-nav-height) + 12px) !important;
+  }
+
+  body:has([data-cart-summary]) .rcmToaster {
+    bottom: calc(var(--buyer-bottom-nav-height) + 128px) !important;
+  }
+
+  body:has([data-checkout-summary]) .rcmToaster {
+    bottom: calc(140px + env(safe-area-inset-bottom, 0px)) !important;
   }
 }

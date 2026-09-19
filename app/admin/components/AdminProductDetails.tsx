@@ -28,7 +28,7 @@ function formatStatus(status: string) {
     case "MODERATION":
       return "На модерации";
     case "NEEDS_REVISION":
-      return "На доработке";
+      return "Нужны исправления";
     case "ACTIVE":
       return "Активен";
     case "ARCHIVED":
@@ -45,8 +45,8 @@ function getProductStatusTone(status: string) {
     case "ACTIVE":
       return "success";
     case "MODERATION":
-    case "NEEDS_REVISION":
       return "warning";
+    case "NEEDS_REVISION":
     case "BLOCKED":
       return "danger";
     default:
@@ -186,7 +186,7 @@ export function AdminProductDetails({
                     <div>
                       <span className="textSmall">{variant.sku}</span>
                       <div className={`${styles.muted} textCaption`}>
-                        Размер: {variant.size || "—"} · Цвет: {variant.color || "—"}
+                        Размер: {variant.size || "—"}, Цвет: {variant.color || "—"}
                       </div>
                     </div>
                     <div className={`${styles.variantPrice} textSmall`}>
@@ -237,7 +237,7 @@ export function AdminProductDetails({
             ) : null}
 
             <div className={styles.moderationGrid}>
-              <label className={styles.adminField}>
+              <label className={styles.adminField} data-ui="field">
                 <span className="textCaption">Привязать к существующей</span>
                 <select
                   value={selectedCategoryId}
@@ -268,7 +268,7 @@ export function AdminProductDetails({
                 Привязать
               </button>
 
-              <label className={styles.adminField}>
+              <label className={styles.adminField} data-ui="field">
                 <span className="textCaption">Создать новую категорию</span>
                 <input
                   value={newCategoryName}
@@ -289,7 +289,7 @@ export function AdminProductDetails({
               </button>
             </div>
 
-            <label className={styles.adminTextareaField}>
+            <label className={styles.adminTextareaField} data-ui="field">
               <span className="textCaption">Комментарий модератора</span>
               <textarea
                 value={revisionComment}

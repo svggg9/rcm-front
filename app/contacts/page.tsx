@@ -1,7 +1,7 @@
 import Link from "next/link";
 
 export const metadata = {
-  title: "Контакты — RCM",
+  title: "Контакты — рцмаркет",
 };
 
 export default function ContactsPage() {
@@ -9,7 +9,7 @@ export default function ContactsPage() {
     <main className="pageContainer">
       <section className="sectionBlock">
         <div className="sectionKicker">Контакты</div>
-        <h1 className="sectionTitleLarge">Связаться с RCM</h1>
+        <h1 className="sectionTitleLarge">Связаться с рцмаркет</h1>
         <p className="sectionHint">
           Страница находится в подготовке. Для подключения бренда оставьте
           заявку продавца.

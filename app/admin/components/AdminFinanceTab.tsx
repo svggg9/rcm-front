@@ -5,7 +5,7 @@ import { toast } from "sonner";
 
 import { EmptyState } from "../../components/ui/EmptyState";
 import { Button } from "../../components/ui/Button";
-import { CabinetTabs } from "../../components/ui/CabinetTabs";
+import { CabinetPanel } from "../../components/ui/CabinetPanel";
 import { ListLoadMore } from "../../components/ui/ListLoadMore";
 import { StatusBadge, type StatusBadgeTone } from "../../components/ui/StatusBadge";
 import {
@@ -101,7 +101,7 @@ export function AdminFinanceTab(props: Props) {
   ) {
     const key = `${payout.id}:${action}`;
     if (action === "cancel" && !window.confirm("Отменить этот реестр выплаты?")) return;
-    if (action === "paid" && !window.confirm("Деньги действительно списаны со счета РЦМ?")) return;
+    if (action === "paid" && !window.confirm("Деньги действительно списаны со счета рцмаркет?")) return;
 
     const paymentOrderNumber = paymentOrders[payout.id]?.trim();
     if (action === "sent" && !paymentOrderNumber) {
@@ -153,61 +153,60 @@ export function AdminFinanceTab(props: Props) {
           <h1>Финансы</h1>
           <p>Выплаты продавцам и финансовый журнал</p>
         </div>
-        <div className={styles.headerActions}>
-          <Button
-            type="button"
-            variant="secondary"
-            loading={view === "ledger" ? props.refreshing : props.payoutsLoading}
-            onClick={refresh}
-          >
-            Обновить
-          </Button>
-          {view === "payouts" ? (
-            <Button
-              type="button"
-              variant="primary"
-              disabled={actionKey === "generate"}
-              loading={actionKey === "generate"}
-              onClick={() => void generatePayouts()}
-            >
-              Сформировать реестр
-            </Button>
-          ) : null}
-        </div>
       </header>
 
-      <CabinetTabs<FinanceView>
+      <CabinetPanel<FinanceView>
         items={[
           { value: "payouts", label: "Выплаты" },
           { value: "ledger", label: "Журнал операций" },
         ]}
         value={view}
         onChange={changeView}
-        appearance="segmented"
         ariaLabel="Разделы финансов админки"
-      />
-
-      {view === "payouts" ? (
-        <PayoutRegistry
-          payouts={props.payouts}
-          stats={props.payoutStats}
-          loading={props.payoutsLoading}
-          loadingMore={props.payoutsLoadingMore}
-          actionKey={actionKey}
-          paymentOrders={paymentOrders}
-          onPaymentOrderChange={(id, value) =>
-            setPaymentOrders((current) => ({ ...current, [id]: value }))
-          }
-          onAction={(payout, action) => void runPayoutAction(payout, action)}
-          onLoadMore={props.onLoadMorePayouts}
-        />
-      ) : (
-        !props.ledgerLoaded && props.refreshing ? (
+        actions={
+          <>
+            <Button
+              type="button"
+              variant="secondary"
+              loading={view === "ledger" ? props.refreshing : props.payoutsLoading}
+              onClick={refresh}
+            >
+              Обновить
+            </Button>
+            {view === "payouts" ? (
+              <Button
+                type="button"
+                variant="primary"
+                disabled={actionKey === "generate"}
+                loading={actionKey === "generate"}
+                onClick={() => void generatePayouts()}
+              >
+                Сформировать реестр
+              </Button>
+            ) : null}
+          </>
+        }
+      >
+        {view === "payouts" ? (
+          <PayoutRegistry
+            payouts={props.payouts}
+            stats={props.payoutStats}
+            loading={props.payoutsLoading}
+            loadingMore={props.payoutsLoadingMore}
+            actionKey={actionKey}
+            paymentOrders={paymentOrders}
+            onPaymentOrderChange={(id, value) =>
+              setPaymentOrders((current) => ({ ...current, [id]: value }))
+            }
+            onAction={(payout, action) => void runPayoutAction(payout, action)}
+            onLoadMore={props.onLoadMorePayouts}
+          />
+        ) : !props.ledgerLoaded && props.refreshing ? (
           <CabinetSkeleton variant="list" rows={4} compact />
         ) : (
           <Ledger key={props.orderGroupId} {...props} />
-        )
-      )}
+        )}
+      </CabinetPanel>
     </section>
   );
 }
@@ -253,9 +252,9 @@ function PayoutRegistry({
             <article className={styles.payoutCard} key={payout.id}>
               <div className={styles.payoutMain}>
                 <div className={styles.payoutIdentity}>
-                  <span>Реестр #{payout.id} · {formatDate(payout.scheduledDate)}</span>
+                  <span>Реестр #{payout.id}, {formatDate(payout.scheduledDate)}</span>
                   <strong>{payout.sellerName}</strong>
-                  <small>ИНН {payout.inn} · продавец #{payout.sellerId}</small>
+                  <small>ИНН {payout.inn}, продавец #{payout.sellerId}</small>
                 </div>
                 <div className={styles.payoutAmount}>
                   <span>К выплате</span>
@@ -378,7 +377,7 @@ function Ledger({
       </div>
 
       <div className={adminStyles.financeFilters}>
-        <label className={adminStyles.adminField}>
+        <label className={adminStyles.adminField} data-ui="field">
           <span className="textCaption">Тип движения</span>
           <select
             className={`${adminStyles.adminSelect} textSmall`}
@@ -388,7 +387,7 @@ function Ledger({
             {ENTRY_TYPES.map((value) => <option key={value} value={value}>{formatEntryType(value)}</option>)}
           </select>
         </label>
-        <label className={adminStyles.adminField}>
+        <label className={adminStyles.adminField} data-ui="field">
           <span className="textCaption">Группа заказа</span>
           <input
             className={`${adminStyles.adminInput} textSmall`}
@@ -461,7 +460,7 @@ function PayoutStatus({ status }: { status: AdminSellerPayoutStatus }) {
 function formatEntryType(value: FinancialLedgerEntryType | "ALL") {
   const labels: Partial<Record<FinancialLedgerEntryType | "ALL", string>> = {
     ALL: "Все движения",
-    COMMISSION_ACCRUED: "Комиссия РЦМ",
+    COMMISSION_ACCRUED: "Комиссия рцмаркет",
     COMMISSION_REVERSED: "Возврат комиссии",
     BUYER_DELIVERY_FEE: "Доставка покупателя",
     DELIVERY_COST_FORWARD: "Стоимость доставки",

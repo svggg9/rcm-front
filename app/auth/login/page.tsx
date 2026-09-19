@@ -1,6 +1,7 @@
 "use client";
 
 import { Suspense, useRef, useState } from "react";
+import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 
@@ -128,6 +129,13 @@ function LoginPageContent() {
               </button>
             </div>
 
+            <Link
+              href={`/auth/password/reset?next=${encodeURIComponent(next)}`}
+              className={styles.forgot}
+            >
+              Забыли пароль?
+            </Link>
+
             <Button type="submit" variant="primaryShimmer" className={styles.button}>
               Войти
             </Button>
@@ -145,4 +153,3 @@ export default function LoginPage() {
     </Suspense>
   );
 }
-

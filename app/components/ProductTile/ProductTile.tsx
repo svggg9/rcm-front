@@ -8,6 +8,7 @@ import { toast } from "sonner";
 
 import styles from "./ProductTile.module.css";
 import { Price } from "../ui/Price";
+import { LikeButton } from "../ui/LikeButton";
 import { useFavorites } from "../../lib/FavoritesContext";
 import { productPath } from "../../lib/productUrls";
 
@@ -37,6 +38,7 @@ export function ProductTile({
   const fav = isFavorite(product.id);
   const [favoritePending, setFavoritePending] = useState(false);
   const [hoverImageRequested, setHoverImageRequested] = useState(false);
+  const [loadedHoverImage, setLoadedHoverImage] = useState<string | null>(null);
   const favoritePendingRef = useRef(false);
 
   const prefetchedRef = useRef(false);
@@ -130,32 +132,26 @@ export function ProductTile({
 
             {hasHoverImage && hoverImageRequested ? (
               <Image
+                key={hoverImage}
                 src={hoverImage}
                 alt=""
                 fill
                 sizes={imageSizes}
                 className={styles.imgHover}
+                data-loaded={loadedHoverImage === hoverImage || undefined}
+                onLoad={() => setLoadedHoverImage(hoverImage)}
               />
             ) : null}
           </Link>
 
-          <button
-            type="button"
-            className={`${styles.like} ${fav ? styles.liked : ""}`}
+          <LikeButton
+            className={styles.like}
+            liked={fav}
             onClick={onLike}
-            disabled={favoritePending}
-            aria-busy={favoritePending || undefined}
+            pending={favoritePending}
             aria-label={fav ? "Убрать из избранного" : "Сохранить"}
             title={fav ? "Убрать" : "Сохранить"}
-          >
-            <Image
-              src={fav ? "/icons/like-filled.svg" : "/icons/like.svg"}
-              alt=""
-              width={20}
-              height={20}
-              aria-hidden="true"
-            />
-          </button>
+          />
         </div>
 
         <div className={styles.info}>

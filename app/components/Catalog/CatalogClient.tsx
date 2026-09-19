@@ -13,7 +13,9 @@ import {
 } from "react";
 
 import styles from "./Catalog.module.css";
+import { CatalogCategorySheet } from "./CatalogCategorySheet";
 import { CatalogFiltersDrawer } from "./CatalogFiltersDrawer";
+import { CatalogResults } from "./CatalogResults";
 import type {
   CatalogCategoryGroup,
   CatalogCollectionOption,
@@ -27,20 +29,22 @@ import type {
 import {
   audienceLabels,
   buildCatalogQuery,
-  getMinPrice,
+  categoryGroupSelected,
+  expandCategorySelections,
+  getMobileCategoryChoices,
   sortLabels,
+  toggleCategorySelection,
 } from "./catalogUtils";
-import { ProductTile } from "../ProductTile/ProductTile";
-import { EmptyState } from "../ui/EmptyState";
 import { Icon } from "../ui/Icon";
 
 type Props = {
   products: CatalogProduct[];
   categoryGroups: CatalogCategoryGroup[];
+  mobileAvailableCategories: string[] | null;
   brands: string[];
   sizes: CatalogSize[];
   collections: CatalogCollectionOption[];
-  selectedCategory: string;
+  selectedCategories: string[];
   selectedAudience: SelectedAudience;
   selectedBrands: string[];
   selectedSizes: string[];
@@ -55,8 +59,6 @@ type Props = {
   selectedCollectionId?: number;
   hasError: boolean;
 };
-
-const PRIMARY_CATEGORY_NAMES = new Set(["Одежда", "Обувь", "Аксессуары"]);
 
 function getPaginationItems(currentPage: number, totalPages: number) {
   const items: Array<number | "dots-start" | "dots-end"> = [];
@@ -124,6 +126,7 @@ function ScrollableSubcategoryNav({
 
   const revealActiveItem = useCallback(() => {
     const nav = navRef.current;
+    if (nav?.contains(document.activeElement)) return;
     const activeItem = nav?.querySelector<HTMLElement>('[data-active="true"]');
     if (!nav || !activeItem) return;
 
@@ -200,10 +203,11 @@ function ScrollableSubcategoryNav({
 export function CatalogClient({
   products,
   categoryGroups,
+  mobileAvailableCategories,
   brands,
   sizes,
   collections,
-  selectedCategory,
+  selectedCategories,
   selectedAudience,
   selectedBrands,
   selectedSizes,
@@ -219,7 +223,9 @@ export function CatalogClient({
   hasError,
 }: Props) {
   const router = useRouter();
+  const selectedCategory = selectedCategories.length === 1 ? selectedCategories[0] : "";
   const [filtersOpen, setFiltersOpen] = useState(false);
+  const [categoriesOpen, setCategoriesOpen] = useState(false);
   const [sortOpen, setSortOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
   const filterButtonRef = useRef<HTMLButtonElement>(null);
@@ -229,47 +235,46 @@ export function CatalogClient({
     () => getPaginationItems(currentPage, totalPages),
     [currentPage, totalPages]
   );
-  const primaryGroups = useMemo(
-    () => categoryGroups.filter((group) => PRIMARY_CATEGORY_NAMES.has(group.name)),
-    [categoryGroups]
-  );
   const activeCategoryGroup = useMemo(
     () =>
-      categoryGroups.find(
-        (group) =>
-          group.name === selectedCategory ||
-          group.rootCategory?.name === selectedCategory ||
-          group.categories.some((category) => category.name === selectedCategory)
-      ),
-    [categoryGroups, selectedCategory]
+      categoryGroups.find((group) => categoryGroupSelected(selectedCategories, group)),
+    [categoryGroups, selectedCategories]
   );
   const selectedCollection = useMemo(
     () => collections.find((collection) => collection.id === selectedCollectionId),
     [collections, selectedCollectionId]
   );
+  const mobileCategories = useMemo(
+    () => getMobileCategoryChoices(categoryGroups, mobileAvailableCategories, selectedCategories),
+    [categoryGroups, mobileAvailableCategories, selectedCategories]
+  );
 
   const currentFilters: CatalogFilterSelection = useMemo(
     () => ({
-      category: selectedCategory,
+      categories: selectedCategories,
       brands: selectedBrands,
       sizes: selectedSizes,
       minPrice,
       maxPrice,
+      audience: selectedAudience,
+      sort: initialSort || (selectedView === "new" ? "newest" : ""),
     }),
-    [maxPrice, minPrice, selectedBrands, selectedCategory, selectedSizes]
+    [initialSort, maxPrice, minPrice, selectedAudience, selectedBrands, selectedCategories, selectedSizes, selectedView]
   );
 
   const activeFilterCount =
-    (selectedCategory ? 1 : 0) +
     selectedBrands.length +
     selectedSizes.length +
     (minPrice !== undefined || maxPrice !== undefined ? 1 : 0);
   const displayedSort: SortValue =
     initialSort || (selectedView === "new" ? "newest" : "");
+  const mobileFilterCount = activeFilterCount +
+    (selectedAudience !== "all" ? 1 : 0) + (displayedSort ? 1 : 0);
 
   const queryFor = useCallback(
     (
       overrides: Partial<CatalogFilterSelection> & {
+        category?: string;
         q?: string;
         sort?: SortValue;
         page?: number;
@@ -279,7 +284,9 @@ export function CatalogClient({
     ) =>
       buildCatalogQuery({
         audience: selectedAudience,
-        category: overrides.category ?? selectedCategory,
+        categories: overrides.category !== undefined
+          ? (overrides.category ? [overrides.category] : [])
+          : overrides.categories ?? selectedCategories,
         brands: overrides.brands ?? selectedBrands,
         sizes: overrides.sizes ?? selectedSizes,
         minPrice: Object.prototype.hasOwnProperty.call(overrides, "minPrice")
@@ -307,7 +314,7 @@ export function CatalogClient({
       searchQuery,
       selectedAudience,
       selectedBrands,
-      selectedCategory,
+      selectedCategories,
       selectedCollectionId,
       selectedSizes,
       selectedView,
@@ -337,22 +344,32 @@ export function CatalogClient({
     setFiltersOpen(false);
     window.requestAnimationFrame(() => filterButtonRef.current?.focus());
   }, []);
+  const closeCategories = useCallback(() => setCategoriesOpen(false), []);
+
+  function toggleCategory(category: string) {
+    const categories = category
+      ? toggleCategorySelection(selectedCategories, category, categoryGroups)
+      : [];
+    startTransition(() => {
+      router.push(queryFor({ categories, view: "", collectionId: undefined }), { scroll: false });
+    });
+  }
 
   function applyFilters(filters: CatalogFilterSelection) {
     closeFilters();
     startTransition(() => {
       router.push(
         buildCatalogQuery({
-          audience: selectedAudience,
-          category: filters.category,
+          audience: filters.audience ?? selectedAudience,
+          categories: filters.categories,
           brands: filters.brands,
           sizes: filters.sizes,
           minPrice: filters.minPrice,
           maxPrice: filters.maxPrice,
           q: searchQuery,
-          sort: initialSort,
-          view: filters.category ? "" : selectedView,
-          collectionId: filters.category ? undefined : selectedCollectionId,
+          sort: filters.sort ?? initialSort,
+          view: filters.categories.length > 0 || (selectedView === "new" && filters.sort !== "newest") ? "" : selectedView,
+          collectionId: filters.categories.length > 0 ? undefined : selectedCollectionId,
         })
       );
     });
@@ -360,8 +377,8 @@ export function CatalogClient({
 
   const title = searchQuery
     ? `Результаты для «${searchQuery}»`
-    : selectedCategory
-      ? shortCategoryName(selectedCategory)
+    : selectedCategories.length > 0
+      ? selectedCategories.map(shortCategoryName).join(", ")
       : selectedCollection
         ? selectedCollection.title
         : selectedView === "new"
@@ -371,15 +388,6 @@ export function CatalogClient({
             : audienceLabels[selectedAudience];
 
   const activeChips = [
-    ...(selectedCategory
-      ? [
-          {
-            key: "category",
-            label: shortCategoryName(selectedCategory),
-            href: queryFor({ category: "", page: undefined }),
-          },
-        ]
-      : []),
     ...selectedBrands.map((brand) => ({
       key: `brand-${brand}`,
       label: brand,
@@ -408,103 +416,48 @@ export function CatalogClient({
 
   return (
     <div className={styles.catalogPage} aria-busy={isPending}>
-      <nav className={styles.breadcrumbs} aria-label="Хлебные крошки">
-        <ol>
-          <li>
-            <Link href="/">Главная</Link>
-          </li>
-          <li>
-            <Icon name="chevron-right" size={13} strokeWidth={1.35} />
-            {selectedCategory || selectedCollection || selectedView || searchQuery ? (
-              <Link href={buildCatalogQuery({ audience: selectedAudience })}>Каталог</Link>
-            ) : (
-              <span aria-current="page">Каталог</span>
-            )}
-          </li>
-          {activeCategoryGroup && selectedCategory !== activeCategoryGroup.name ? (
-            <li>
-              <Icon name="chevron-right" size={13} strokeWidth={1.35} />
-              <Link href={queryFor({ category: activeCategoryGroup.name, q: "" })}>
-                {activeCategoryGroup.name}
-              </Link>
-            </li>
-          ) : null}
-          {selectedCategory ? (
-            <li>
-              <Icon name="chevron-right" size={13} strokeWidth={1.35} />
-              {searchQuery ? (
-                <Link href={queryFor({ q: "" })}>{shortCategoryName(selectedCategory)}</Link>
-              ) : (
-                <span aria-current="page">{shortCategoryName(selectedCategory)}</span>
-              )}
-            </li>
-          ) : null}
-          {selectedCollection ? (
-            <li>
-              <Icon name="chevron-right" size={13} strokeWidth={1.35} />
-              {searchQuery ? (
-                <Link href={queryFor({ q: "" })}>{selectedCollection.title}</Link>
-              ) : (
-                <span aria-current="page">{selectedCollection.title}</span>
-              )}
-            </li>
-          ) : selectedView === "new" ? (
-            <li>
-              <Icon name="chevron-right" size={13} strokeWidth={1.35} />
-              {searchQuery ? (
-                <Link href={queryFor({ q: "" })}>Новинки</Link>
-              ) : (
-                <span aria-current="page">Новинки</span>
-              )}
-            </li>
-          ) : null}
-          {searchQuery ? (
-            <li>
-              <Icon name="chevron-right" size={13} strokeWidth={1.35} />
-              <span aria-current="page">Поиск: {searchQuery}</span>
-            </li>
-          ) : null}
-        </ol>
-      </nav>
+      <h1 className={styles.visuallyHidden}>{title}</h1>
 
-      <header className={styles.catalogHeader}>
-        <h1 className={styles.visuallyHidden}>{title}</h1>
-        <p className={styles.productCount}>{productCountLabel(totalProducts)}</p>
-      </header>
-
-      {primaryGroups.length > 0 ? (
+      {categoryGroups.length > 0 ? (
         <nav className={styles.primaryCategories} aria-label="Основные категории">
-          <Link
-            href={queryFor({ category: "", view: "", collectionId: undefined, q: "" })}
-            data-active={!selectedCategory}
-          >
-            Всё
-          </Link>
-          {primaryGroups.map((group) => (
-            <Link
+          {categoryGroups.map((group) => (
+            <span
               key={group.name}
-              href={queryFor({
-                category: group.name,
-                view: "",
-                collectionId: undefined,
-                q: "",
-              })}
-              data-active={activeCategoryGroup?.name === group.name}
+              className={styles.categoryChip}
+              data-active={categoryGroupSelected(selectedCategories, group)}
             >
-              {group.name}
-            </Link>
+              <button
+                type="button"
+                className={styles.categoryChoice}
+                aria-pressed={categoryGroupSelected(selectedCategories, group)}
+                disabled={isPending}
+                onClick={() => toggleCategory(group.name)}
+              >
+                {group.name}
+              </button>
+              {categoryGroupSelected(selectedCategories, group) ? (
+                <button
+                  type="button"
+                  className={styles.categoryClear}
+                  aria-label={`Сбросить категорию «${group.name}»`}
+                  disabled={isPending}
+                  onClick={() => toggleCategory("")}
+                >
+                  <Icon name="x" size={18} strokeWidth={1.5} />
+                </button>
+              ) : null}
+            </span>
           ))}
         </nav>
       ) : null}
 
-      {!selectedCategory ? (
+      {selectedCategories.length === 0 ? (
         <ScrollableSubcategoryNav key="discovery" ariaLabel="Подборки каталога">
-          <Link
-            href={queryFor({ view: "", collectionId: undefined, q: "" })}
-            data-active={!selectedView && selectedCollectionId === undefined}
-          >
-            Все товары
-          </Link>
+          {selectedView || selectedCollectionId !== undefined ? (
+            <Link href={queryFor({ view: "", collectionId: undefined, q: "" })}>
+              Все товары
+            </Link>
+          ) : null}
           <Link
             href={queryFor({
               view: "new",
@@ -535,44 +488,51 @@ export function CatalogClient({
           key={activeCategoryGroup.name}
           ariaLabel={`Подкатегории ${activeCategoryGroup.name}`}
         >
-          <Link
-            href={queryFor({
-              category: activeCategoryGroup.name,
-              view: "",
-              collectionId: undefined,
-              q: "",
-            })}
-            data-active={selectedCategory === activeCategoryGroup.name}
-          >
-            Все
-          </Link>
           {activeCategoryGroup.categories.map((category) => (
-            <Link
+            <button
               key={category.id}
-              href={queryFor({
-                category: category.name,
-                view: "",
-                collectionId: undefined,
-                q: "",
-              })}
-              data-active={selectedCategory === category.name}
+              type="button"
+              data-active={selectedCategories.includes(category.name)}
+              aria-pressed={selectedCategories.includes(category.name)}
+              disabled={isPending}
+              onClick={() => toggleCategory(category.name)}
             >
               {category.label}
-            </Link>
+            </button>
           ))}
         </ScrollableSubcategoryNav>
       ) : null}
 
       <div className={styles.catalogToolbar}>
+        {mobileCategories.length > 1 ? (
+          <button
+            type="button"
+            className={styles.mobileCategoryButton}
+            aria-haspopup="dialog"
+            aria-expanded={categoriesOpen}
+            onClick={() => setCategoriesOpen(true)}
+          >
+            <span>{selectedCategories.length > 1 ? `Категории: ${selectedCategories.length}` : selectedCategory ? shortCategoryName(selectedCategory) : selectedCollection?.title || (selectedView === "new" ? "Новинки" : "Все товары")}</span>
+            <Icon name="chevron-down" size={17} strokeWidth={1.5} />
+          </button>
+        ) : (
+          <span className={styles.mobileCatalogContext}>
+            {selectedCategories.length > 1 ? `Категории: ${selectedCategories.length}` : selectedCategory ? shortCategoryName(selectedCategory) : selectedCollection?.title || (selectedView === "new" ? "Новинки" : "Все товары")}
+          </span>
+        )}
         <button
           ref={filterButtonRef}
           type="button"
           className={styles.filtersButton}
+          aria-haspopup="dialog"
+          aria-expanded={filtersOpen}
           onClick={() => setFiltersOpen(true)}
         >
           <Icon name="sliders" size={17} strokeWidth={1.4} />
-          Все фильтры
-          {activeFilterCount > 0 ? <span>{activeFilterCount}</span> : null}
+          <span className={styles.desktopFilterLabel}>Все фильтры</span>
+          <span className={styles.mobileFilterLabel}>Фильтры</span>
+          {activeFilterCount > 0 ? <span className={`${styles.filterCount} ${styles.desktopFilterLabel}`}>{activeFilterCount}</span> : null}
+          {mobileFilterCount > 0 ? <span className={`${styles.filterCount} ${styles.mobileFilterLabel}`}>{mobileFilterCount}</span> : null}
         </button>
 
         <div ref={sortRef} className={styles.sortWrap} data-open={sortOpen}>
@@ -627,13 +587,7 @@ export function CatalogClient({
             </Link>
           ))}
           <Link
-            href={buildCatalogQuery({
-              audience: selectedAudience,
-              q: searchQuery,
-              sort: initialSort,
-              view: selectedView,
-              collectionId: selectedCollectionId,
-            })}
+            href={queryFor({ brands: [], sizes: [], minPrice: undefined, maxPrice: undefined })}
             className={styles.clearFilters}
           >
             Очистить всё
@@ -641,37 +595,28 @@ export function CatalogClient({
         </div>
       ) : null}
 
-      <section className={styles.results}>
-        <ul className={styles.grid}>
-          {products.map((product) => (
-            <ProductTile
-              key={product.id}
-              product={{
-                id: product.id,
-                publicId: product.publicId,
-                title: product.title,
-                brand: product.brand,
-                brandSlug: product.brandSlug,
-                images: product.images,
-                minPrice: getMinPrice(product),
-              }}
-            />
-          ))}
-        </ul>
+      <CatalogResults
+        key={`${queryFor({ page: currentPage })}|${totalProducts}|${products.map((product) => product.id).join(",")}`}
+        products={products}
+        query={{
+          audience: selectedAudience,
+          categories: expandCategorySelections(selectedCategories, categoryGroups),
+          brands: selectedBrands,
+          sizes: selectedSizes,
+          minPrice,
+          maxPrice,
+          q: searchQuery,
+          sort: displayedSort,
+          page: currentPage,
+          collectionId: selectedCollectionId,
+        }}
+        totalPages={totalPages}
+        totalProducts={totalProducts}
+        hasError={hasError}
+        firstPageHref={queryFor({ page: 1 })}
+      />
 
-        {products.length === 0 ? (
-          <EmptyState
-            icon={hasError ? "alert" : "search"}
-            tone={hasError ? "danger" : "default"}
-            title={hasError ? "Не удалось загрузить каталог" : "Ничего не найдено"}
-            text={
-              hasError
-                ? "Перезапустите backend после обновления фильтров или попробуйте позже."
-                : "Попробуйте изменить категорию, бренд, размер или диапазон цены."
-            }
-          />
-        ) : null}
-      </section>
+      <p className={styles.productCount}>{productCountLabel(totalProducts)}</p>
 
       {totalPages > 1 ? (
         <nav className={styles.pagination} aria-label="Пагинация">
@@ -698,6 +643,7 @@ export function CatalogClient({
 
       {filtersOpen ? (
         <CatalogFiltersDrawer
+          key={queryFor({ page: currentPage })}
           open
           categoryGroups={categoryGroups}
           brands={brands}
@@ -706,6 +652,15 @@ export function CatalogClient({
           pending={isPending}
           onApply={applyFilters}
           onClose={closeFilters}
+        />
+      ) : null}
+      {categoriesOpen ? (
+        <CatalogCategorySheet
+          categories={mobileCategories}
+          selectedCategories={selectedCategories}
+          pending={isPending}
+          onSelect={toggleCategory}
+          onClose={closeCategories}
         />
       ) : null}
     </div>

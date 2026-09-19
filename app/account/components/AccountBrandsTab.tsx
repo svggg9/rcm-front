@@ -5,6 +5,7 @@ import Link from "next/link";
 import { toast } from "sonner";
 
 import { EmptyState } from "../../components/ui/EmptyState";
+import { LikeButton } from "../../components/ui/LikeButton";
 import { useFavoriteBrands } from "../../lib/favoriteBrands";
 
 import styles from "./AccountBrandsTab.module.css";
@@ -64,20 +65,12 @@ export function AccountBrandsTab() {
                 {brand.country ? <small>{brand.country}</small> : null}
               </Link>
 
-              <button
-                type="button"
+              <LikeButton
+                liked
                 className={styles.remove}
-                onClick={() => void removeBrand(brand)}
+                onClick={() => removeBrand(brand)}
                 aria-label={`Убрать ${brand.name} из сохранённых`}
-              >
-                <Image
-                  src="/icons/like-filled.svg"
-                  alt=""
-                  width={18}
-                  height={18}
-                  aria-hidden="true"
-                />
-              </button>
+              />
             </li>
           ))}
         </ul>

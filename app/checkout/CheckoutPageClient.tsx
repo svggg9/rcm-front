@@ -1129,7 +1129,7 @@ function CheckoutPageContent({ initialMe, initialCart }: CheckoutPageProps) {
                   router.push("/catalog")
                 }
               >
-                Перейти в каталог
+                Каталог
               </button>
             }
           />

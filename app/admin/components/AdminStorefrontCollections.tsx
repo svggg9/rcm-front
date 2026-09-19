@@ -1,4 +1,5 @@
 "use client";
+import { ConfirmActionButton } from "../../components/ui/ConfirmActionButton";
 
 import Image from "next/image";
 import { memo, useEffect, useRef, useState } from "react";
@@ -234,7 +235,7 @@ export const AdminStorefrontCollections = memo(function AdminStorefrontCollectio
             </button>
           </div>
           <div className={styles.fields}>
-            <label>
+            <label data-ui="field">
               <span>Название</span>
               <input
                 value={draft.title}
@@ -243,7 +244,7 @@ export const AdminStorefrontCollections = memo(function AdminStorefrontCollectio
                 onChange={(event) => setDraft({ ...draft, title: event.target.value })}
               />
             </label>
-            <label>
+            <label data-ui="field">
               <span>Описание</span>
               <input
                 value={draft.description}
@@ -266,7 +267,7 @@ export const AdminStorefrontCollections = memo(function AdminStorefrontCollectio
           </label>
           <div className={styles.pickerHead}>
             <strong>Товары</strong>
-            <span>{draft.productIds.length} из 16 · найдено {productsTotal}</span>
+            <span>{draft.productIds.length} из 16, найдено {productsTotal}</span>
           </div>
           <form
             className={styles.productSearch}
@@ -364,9 +365,12 @@ export const AdminStorefrontCollections = memo(function AdminStorefrontCollectio
                 {collection.active ? "Скрыть" : "Опубликовать"}
               </button>
               <button type="button" onClick={() => edit(collection)}>Изменить</button>
-              <button type="button" aria-label="Удалить" onClick={() => void remove(collection.id)}>
+              <ConfirmActionButton type="button" aria-label="Удалить"
+                confirmTitle={`Удалить подборку «${collection.title}»?`}
+                confirmText="Подборка будет удалена, сами товары останутся"
+                onConfirm={() => remove(collection.id)}>
                 <Icon name="x" size={16} />
-              </button>
+              </ConfirmActionButton>
             </div>
           </article>
         ))}

@@ -77,9 +77,9 @@ export default async function HomePage({ searchParams }: HomePageProps) {
 
   return (
     <div className={styles.page}>
-      <div className="pageContainer">
-        <HeroSection block={heroBlock} />
+      <HeroSection block={heroBlock} />
 
+      <div className="pageContainer">
         <ProductRailSection block={productBlocks[0]} />
 
         {productBlocks.slice(1).map((block, index) => (
@@ -89,7 +89,7 @@ export default async function HomePage({ searchParams }: HomePageProps) {
         <section className={styles.serviceStrip} aria-label="Преимущества магазина">
           <div>
             <strong>Оригинальные товары</strong>
-            <span>Напрямую от российских марок</span>
+            <span>Напрямую от независимых брендов</span>
           </div>
           <div>
             <strong>Единая доставка</strong>

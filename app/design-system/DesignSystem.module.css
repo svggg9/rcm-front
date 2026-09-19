@@ -1,0 +1,80 @@
+.page { max-width: 1180px; padding-block: 40px 72px; }
+.pageHeader { max-width: 760px; display: grid; gap: 16px; margin-bottom: 28px; }
+.pageHeader h1 { font-size: clamp(32px, 5vw, 48px); }
+.pageHeader > p { font-size: 15px; line-height: 1.6; }
+.pageHeader .kicker { color: var(--gold-deep); font-size: 13px; }
+.page .note { color: var(--muted); font-size: 13px; line-height: 1.6; font-weight: 400; }
+.navigation { display: flex; flex-wrap: wrap; gap: 4px 20px; padding-bottom: 20px; }
+.navigation a { display: inline-flex; align-items: center; min-height: 44px; color: var(--black); font-size: 15px; text-decoration: underline; text-underline-offset: 5px; }
+.navigation a:hover { color: var(--gold-deep); }
+.section { padding-block: 32px; scroll-margin-top: calc(var(--site-header-height) + 24px); }
+.sectionHeader { display: grid; gap: 10px; margin-bottom: 24px; max-width: 780px; }
+.sectionHeader h2, .nextStep h2 { font-size: 28px; font-weight: 400; }
+.sectionHeader p, .nextStep p { color: var(--muted); font-size: 15px; line-height: 1.6; }
+.page h3 { font-size: 17px; font-weight: 500; }
+.palette { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 24px 16px; }
+.swatch { display: grid; gap: 8px; min-width: 0; }
+.swatch > div { height: 64px; border: 1px solid var(--line); }
+.swatch strong, .caption strong { font-size: 14px; font-weight: 500; }
+.page code { color: var(--muted); font-size: 12px; overflow-wrap: anywhere; }
+.review { margin-top: 20px; max-width: 800px; font-size: 14px; }
+.review summary { padding-block: 12px; cursor: pointer; text-decoration: underline; text-underline-offset: 4px; }
+.review p { color: var(--muted); line-height: 1.6; padding-bottom: 8px; }
+.typeList { display: grid; gap: 28px; }
+.typeRow { display: grid; grid-template-columns: 190px minmax(0, 1fr); gap: 24px; align-items: baseline; }
+.caption { display: grid; gap: 6px; }
+.typeRow > p { overflow-wrap: anywhere; }
+.buttonFamily { margin-bottom: 28px; }
+.buttonStates { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; margin: 16px 0 12px; }
+.buttonStates > div { display: flex; flex-direction: column; align-items: flex-start; gap: 12px; min-width: 0; }
+.buttonStates > div > span { font-size: 13px; color: var(--muted); }
+.buttonStates button { min-width: 132px; }
+.page .textButton { border: 0; background: transparent; color: var(--black); font-weight: 600; transition: transform var(--transition-fast); }
+.page .textButton:focus-visible { outline: 2px solid var(--black); outline-offset: 3px; }
+.page .textButton:active:not(:disabled) { transform: translateY(1px); }
+.page .textButton:disabled[data-loading] { opacity: 1; }
+@media (hover: hover) and (pointer: fine) {
+  .page .textButton:hover:not(:disabled) { background: var(--surface-hover); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .page .textButton { transition: none; }
+}
+.likePreview { display: flex; align-items: center; gap: 16px; margin: 16px 0 12px; }
+.demo { display: grid; gap: 16px; padding-top: 8px; }
+.saveSlot { display: inline-grid; }
+.saveSizer, .saveButton { grid-area: 1 / 1; }
+.saveSizer { visibility: hidden; pointer-events: none; }
+.saveButton { width: 100%; }
+.checkbox { display: inline-flex; align-items: center; gap: 10px; min-height: 44px; font-size: 14px; }
+.checkbox input { width: 18px; height: 18px; accent-color: var(--black); }
+.actions { display: flex; flex-wrap: wrap; gap: 12px; }
+.demoResult { min-height: 24px; font-size: 14px; color: var(--muted); }
+.formGrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 28px; align-items: start; }
+.statusRow { display: flex; flex-wrap: wrap; align-items: center; gap: 16px; margin-bottom: 20px; }
+.statusRow > code { width: 70px; }
+.compareGrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 28px; margin-bottom: 20px; }
+.stack { display: grid; gap: 16px; min-width: 0; }
+.feedbackPreview { display: flex; align-items: flex-start; gap: 12px; padding: 16px; font-size: 15px; line-height: 1.5; }
+.feedbackPreview svg { flex-shrink: 0; }
+.feedbackPreview strong { color: var(--black); font-weight: 500; }
+.feedbackPreview p { margin-top: 4px; color: var(--black); font-weight: 400; }
+.feedbackPreview > span { color: var(--black); }
+.feedbackPreview[data-tone="danger"] { color: var(--danger); background: color-mix(in srgb, var(--danger) 8%, var(--white)); }
+.feedbackPreview[data-tone="success"] { color: var(--success); background: color-mix(in srgb, var(--success) 8%, var(--white)); }
+.iconGrid { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 24px 12px; margin-bottom: 20px; }
+.iconGrid > div { display: flex; flex-direction: column; align-items: center; gap: 12px; text-align: center; font-size: 13px; line-height: 1.4; }
+.statePreview { margin-top: 24px; padding: 24px; border: 1px solid var(--line); }
+.statePreview[data-state="success"] :global(.emptyStateIcon) { color: var(--success); }
+.skeletonGrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; max-width: 520px; margin: 0 auto; padding: 0; list-style: none; }
+.nextStep { display: grid; gap: 12px; padding-top: 32px; max-width: 760px; }
+
+@media (max-width: 720px) {
+  .page { padding-block: 24px 48px; }
+  .section { padding-block: 24px; }
+  .palette { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .typeRow { grid-template-columns: minmax(0, 1fr); gap: 10px; }
+  .formGrid, .compareGrid { grid-template-columns: minmax(0, 1fr); }
+  .buttonStates { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px 12px; }
+  .iconGrid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .statePreview { padding: 16px; }
+}

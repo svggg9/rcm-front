@@ -1,5 +1,5 @@
 export const metadata = {
-  title: "Политика конфиденциальности — RCM",
+  title: "Политика конфиденциальности — рцмаркет",
 };
 
 export default function PrivacyPage() {

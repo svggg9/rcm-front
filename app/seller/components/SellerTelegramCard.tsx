@@ -1,4 +1,5 @@
 "use client";
+import { ConfirmActionButton } from "../../components/ui/ConfirmActionButton";
 
 import Image from "next/image";
 import { useEffect, useState } from "react";
@@ -143,15 +144,18 @@ export function SellerTelegramCard() {
 
       <div className={styles.actions}>
         {linked ? (
-          <Button
+          <ConfirmActionButton
             type="button"
             variant="secondary"
             className={styles.actionButton}
-            onClick={() => void unlink()}
+            confirmTitle="Отключить Telegram?"
+            confirmText="Уведомления в Telegram больше не будут приходить"
+            confirmLabel="Отключить"
+            onConfirm={unlink}
             loading={unlinking}
           >
             Отключить
-          </Button>
+          </ConfirmActionButton>
         ) : (
           <Button
             type="button"

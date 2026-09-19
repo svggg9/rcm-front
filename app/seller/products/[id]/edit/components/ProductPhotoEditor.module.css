@@ -1,0 +1,27 @@
+.editor { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.heading { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.heading h2 { margin: 0; font-size: 20px; line-height: 28px; font-weight: 400; }
+.heading > span { font-size: 12px; color: var(--muted); }
+.media { position: relative; width: 100%; aspect-ratio: 1; background: var(--soft); border: 1px solid var(--line); }
+.image { object-fit: contain; }
+.dragActive { outline: 2px solid var(--gold-deep); outline-offset: -2px; }
+.invalid { border-color: var(--danger); }
+.empty { position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 12px; padding: 24px; text-align: center; color: var(--muted); }
+.empty p { margin: 0; color: var(--black); font-size: 15px; }
+.empty span { font-size: 13px; line-height: 20px; }
+.mainBadge { position: absolute; left: 12px; top: 12px; background: var(--white); padding: 5px 8px; color: var(--black); font-size: 12px; line-height: 16px; }
+.thumbnails { display: flex; gap: 8px; overflow-x: auto; padding: 2px; }
+.thumbnail { position: relative; flex: 0 0 64px; height: 72px; border: 1px solid var(--line); background: var(--white); padding: 4px; cursor: pointer; }
+.thumbnail.selected { border-color: var(--black); outline: 1px solid var(--black); }
+.thumbnail:hover { border-color: var(--gold-deep); }
+.thumbnail:focus-visible { outline: 2px solid var(--gold-deep); outline-offset: 1px; }
+.dragging { opacity: .5; }
+.toolbar { display: flex; align-items: center; gap: 4px; min-height: 44px; }
+.orderControls { display: flex; }
+.toolbar > :last-child { margin-left: auto; }
+.toolbar .iconButton { width: 44px; height: 44px; min-width: 44px; padding: 0; border: 0; }
+.toolbar .textButton { padding: 0 8px; border: 0; font-size: 13px; font-weight: 400; }
+.editor .uploadButton { width: 100%; }
+.editor .hint { margin: 0; font-size: 12px; line-height: 18px; color: var(--muted); }
+.progress { height: 3px; background: var(--line); }
+.progress span { display: block; height: 100%; background: var(--black); }

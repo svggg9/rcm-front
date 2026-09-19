@@ -32,11 +32,26 @@ export type CatalogCategoryGroup = {
 };
 
 export type CatalogFilterSelection = {
-  category: string;
+  categories: string[];
   brands: string[];
   sizes: string[];
   minPrice?: number;
   maxPrice?: number;
+  audience?: SelectedAudience;
+  sort?: SortValue;
+};
+
+export type CatalogProductsQuery = {
+  audience: SelectedAudience;
+  categories: string[];
+  brands: string[];
+  sizes: string[];
+  minPrice?: number;
+  maxPrice?: number;
+  q: string;
+  sort: SortValue;
+  page: number;
+  collectionId?: number;
 };
 
 export type CatalogProduct = {

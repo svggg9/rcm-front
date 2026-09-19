@@ -15,11 +15,11 @@ const footerGroups = [
     ],
   },
   {
-    title: "О RCM",
-    ariaLabel: "О площадке RCM",
+    title: "О рцмаркет",
+    ariaLabel: "О площадке рцмаркет",
     links: [
       { href: "/about", label: "О проекте" },
-      { href: "/catalog", label: "Российские марки" },
+      { href: "/catalog", label: "Независимые бренды" },
       { href: "/seller/apply", label: "Стать продавцом" },
       { href: "/seller", label: "Кабинет продавца" },
       { href: "/contacts", label: "Связаться с нами" },
@@ -30,15 +30,12 @@ const footerGroups = [
     ariaLabel: "Разделы каталога",
     links: [
       { href: "/catalog?sort=newest", label: "Новые поступления" },
-      { href: "/catalog?audience=women", label: "Для неё" },
-      { href: "/catalog?audience=men", label: "Для него" },
-      { href: "/catalog?audience=all", label: "Для всех" },
       { href: "/favorites", label: "Сохранённые вещи" },
     ],
   },
   {
     title: "Покупайте и продавайте",
-    ariaLabel: "Сервисы RCM",
+    ariaLabel: "Сервисы рцмаркет",
     links: [
       { href: "/auth/register", label: "Создать аккаунт" },
       { href: "/account", label: "Личный кабинет" },
@@ -87,10 +84,9 @@ export function Footer() {
 
           <div className={styles.bottom}>
             <p>
-              RCM — маркетплейс отечественных производителей и независимых
-              локальных марок.
+              рцмаркет — магазин независимых брендов для жизни, дома и подарков
             </p>
-            <p>© {currentYear} RCM. Все права защищены.</p>
+            <p>© {currentYear} рцмаркет. Все права защищены.</p>
           </div>
         </div>
       </div>

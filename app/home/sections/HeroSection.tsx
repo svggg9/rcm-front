@@ -28,7 +28,7 @@ export function HeroSection({ block }: HeroSectionProps) {
         {block.text ? <p className={styles.text}>{block.text}</p> : null}
 
         <div className={styles.actions}>
-          <Link href={block.buttonHref} className={styles.button}>
+          <Link href={block.buttonHref} className={`buttonPrimary ${styles.button}`}>
             {block.buttonLabel}
           </Link>
         </div>

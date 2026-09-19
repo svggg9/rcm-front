@@ -18,10 +18,10 @@
   cursor: pointer;
 
   transition:
-    background var(--transition),
-    color var(--transition),
-    border-color var(--transition),
-    opacity var(--transition),
+    background var(--transition-fast),
+    color var(--transition-fast),
+    border-color var(--transition-fast),
+    opacity var(--transition-fast),
     transform var(--transition-fast),
     box-shadow var(--transition-fast);
 }
@@ -224,4 +224,17 @@ button[class*="primaryBtn"]:active:not(:disabled),
 
 .buttonPairItem + .buttonPairItem {
   border-left: 1px solid var(--black);
+}
+
+/* Three approved action levels. Legacy variant names remain compatible. */
+.buttonPrimary, .buttonPrimaryShimmer, .buttonSecondary, .buttonTertiary, .buttonGhost, .buttonDanger {
+  border-radius: 0; font-family: inherit; font-size: 15px; line-height: 21px; font-weight: 600; min-height: 42px; text-decoration: none;
+}
+.buttonTertiary, .buttonGhost { height: 42px; padding: 0 16px; border: 0; color: var(--black); background: transparent; transition: transform var(--transition-fast); }
+.buttonTertiary:hover:not(:disabled), .buttonGhost:hover:not(:disabled) { background: var(--surface-hover, #f4f4f4); opacity: 1; }
+:is(.buttonPrimary, .buttonPrimaryShimmer, .buttonSecondary, .buttonTertiary, .buttonGhost, .buttonDanger):active:not(:disabled) { transform: translateY(1px); }
+:is(.buttonPrimary, .buttonPrimaryShimmer, .buttonSecondary, .buttonTertiary, .buttonGhost, .buttonDanger):focus-visible { outline: 2px solid var(--black); outline-offset: 3px; }
+:is(.buttonSecondary, .buttonTertiary, .buttonGhost):disabled:is([data-loading], [data-success]) { opacity: 1; }
+@media (prefers-reduced-motion: reduce) {
+  :is(.buttonPrimary, .buttonPrimaryShimmer, .buttonSecondary, .buttonTertiary, .buttonGhost, .buttonDanger) { transition: none; }
 }

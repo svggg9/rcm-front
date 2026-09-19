@@ -70,7 +70,7 @@ export function ProductDetailsAccordion({
               <div className={styles.articleRows}>
                 <div>
                   <span>Артикул сайта</span>
-                  <strong>{selectedVariant?.sku || `RCM-${product.id}`}</strong>
+                  <strong>{selectedVariant?.sku || `рцмаркет-${product.id}`}</strong>
                 </div>
 
                 {isSellerView && selectedVariant?.sellerArticle ? (

@@ -1,4 +1,4 @@
-import { useRef } from "react";
+import { useId, useRef } from "react";
 
 import { FormCombobox } from "../../../../../components/ui/FormCombobox";
 import { FormSelect } from "../../../../../components/ui/FormSelect";
@@ -52,6 +52,7 @@ export function ProductGeneralCard({
   onSuggestedCategoryNameChange,
   onAudienceChange,
 }: Props) {
+  const fieldId = useId();
   const descriptionRef = useRef<HTMLTextAreaElement | null>(null);
   const compositionRef = useRef<HTMLTextAreaElement | null>(null);
 
@@ -104,31 +105,34 @@ export function ProductGeneralCard({
         />
 
         <div className={styles.formGrid}>
-          <label className={styles.fieldFull}>
+          <label className={styles.fieldFull} data-ui="field">
             <span className={styles.required}>Название</span>
 
             <input
               value={title}
               aria-invalid={validationErrors.title ? "true" : undefined}
+              aria-describedby={validationErrors.title ? `${fieldId}-title-error` : undefined}
               onChange={(event) => onTitleChange(event.target.value)}
               className={`${styles.input} ${
-                validationErrors.title ? styles.fieldInvalid : ""
+                validationErrors.title ? "inputError" : ""
               } ${title.trim() ? "" : styles.requiredEmpty}`}
             />
 
             {validationErrors.title ? (
-              <small className={styles.fieldErrorText}>
-                Введите название товара.
-              </small>
+              <span className="fieldError" id={`${fieldId}-title-error`}>
+                Введите название товара
+              </span>
             ) : null}
           </label>
 
+          <div className={styles.field}>
           <FormCombobox
             label="Категория"
             value={categoryId}
             customValue={suggestedCategoryName}
             required
             invalid={validationErrors.categoryId}
+            errorId={`${fieldId}-category-error`}
             placeholder="Ввести свою категорию"
             showModerationBadge={false}
             options={categories.map((category) => ({
@@ -140,6 +144,10 @@ export function ProductGeneralCard({
               onSuggestedCategoryNameChange(customValue);
             }}
           />
+          {validationErrors.categoryId ? <span className="fieldError" id={`${fieldId}-category-error`}>
+            Выберите категорию или предложите свою
+          </span> : null}
+          </div>
 
           <FormSelect<Audience>
             label="Кому подходит"
@@ -165,7 +173,7 @@ export function ProductGeneralCard({
         />
 
         <div className={styles.formGrid}>
-          <label className={styles.fieldFull}>
+          <label className={styles.fieldFull} data-ui="field">
             <span className={styles.required}>Описание товара</span>
 
             <div className={styles.descriptionFieldShell}>
@@ -173,13 +181,13 @@ export function ProductGeneralCard({
               <button
                 type="button"
                 className={styles.descriptionToolButton}
-                title="Маркерованный список"
-                aria-label="Маркерованный список"
+                title="Маркированный список"
+                aria-label="Маркированный список"
                 onClick={() =>
                   applyTextList(description, onDescriptionChange, descriptionRef.current, "•")
                 }
               >
-                <Icon name="list" size={17} strokeWidth={1.8} />
+                <Icon name="list" size={20} strokeWidth={1.5} />
               </button>
               <button
                 type="button"
@@ -190,7 +198,7 @@ export function ProductGeneralCard({
                   applyTextList(description, onDescriptionChange, descriptionRef.current, "—")
                 }
               >
-                <Icon name="minus" size={17} strokeWidth={1.8} />
+                <Icon name="minus" size={20} strokeWidth={1.5} />
               </button>
             </div>
 
@@ -199,23 +207,22 @@ export function ProductGeneralCard({
                 ref={descriptionRef}
                 value={description}
                 aria-invalid={validationErrors.description ? "true" : undefined}
+                aria-describedby={validationErrors.description ? `${fieldId}-description-error` : undefined}
                 onChange={(event) => onDescriptionChange(event.target.value)}
-                className={`${styles.textarea} ${
-                validationErrors.description ? styles.fieldInvalid : ""
-              } ${description.trim() ? "" : styles.requiredEmpty}`}
+                className={styles.textarea}
                 rows={5}
                 maxLength={2000}
               />
             </div>
 
             {validationErrors.description ? (
-              <small className={styles.fieldErrorText}>
-                Введите описание товара.
-              </small>
+              <span className="fieldError" id={`${fieldId}-description-error`}>
+                Введите описание товара
+              </span>
             ) : null}
           </label>
 
-          <label className={styles.fieldFull}>
+          <label className={styles.fieldFull} data-ui="field">
             <span>Состав</span>
 
             <div className={`${styles.descriptionFieldShell} ${styles.compositionFieldShell}`}>
@@ -229,7 +236,7 @@ export function ProductGeneralCard({
                     applyTextList(composition, onCompositionChange, compositionRef.current, "•")
                   }
                 >
-                  <Icon name="list" size={17} strokeWidth={1.8} />
+                  <Icon name="list" size={20} strokeWidth={1.5} />
                 </button>
                 <button
                   type="button"
@@ -240,7 +247,7 @@ export function ProductGeneralCard({
                     applyTextList(composition, onCompositionChange, compositionRef.current, "—")
                   }
                 >
-                  <Icon name="minus" size={17} strokeWidth={1.8} />
+                  <Icon name="minus" size={20} strokeWidth={1.5} />
                 </button>
               </div>
 

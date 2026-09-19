@@ -2,6 +2,7 @@ import {
   AlertCircle,
   ArrowUpRight,
   Bell,
+  Box,
   Check,
   CircleCheck,
   ChevronDown,
@@ -14,21 +15,24 @@ import {
   EyeOff,
   FileText,
   Heart,
+  House,
   Info,
   LayoutDashboard,
+  LayoutGrid,
   List,
   ListOrdered,
   LogIn,
   Minus,
-  Package,
+  ReceiptText,
+  Pencil,
   Plus,
   Search,
   Settings,
   SlidersHorizontal,
-  ShoppingBag,
   ShoppingCart,
   Store,
   Truck,
+  Trash2,
   User,
   Wallet,
   X,
@@ -52,6 +56,8 @@ export type IconName =
   | "eye-off"
   | "file"
   | "heart"
+  | "home"
+  | "grid"
   | "dashboard"
   | "delivery-truck"
   | "info"
@@ -62,6 +68,7 @@ export type IconName =
   | "money"
   | "minus"
   | "package"
+  | "pencil"
   | "pickup-point"
   | "plus"
   | "return-circle"
@@ -72,6 +79,7 @@ export type IconName =
   | "shopping-bag"
   | "store"
   | "truck"
+  | "trash"
   | "user"
   | "wallet"
   | "x";
@@ -108,6 +116,8 @@ const icons: Record<Exclude<IconName, CustomIconName>, LucideIcon> = {
   "eye-off": EyeOff,
   file: FileText,
   heart: Heart,
+  home: House,
+  grid: LayoutGrid,
   dashboard: LayoutDashboard,
   info: Info,
   list: List,
@@ -115,14 +125,16 @@ const icons: Record<Exclude<IconName, CustomIconName>, LucideIcon> = {
   "log-in": LogIn,
   money: CircleDollarSign,
   minus: Minus,
-  package: Package,
+  package: Box,
+  pencil: Pencil,
   plus: Plus,
   search: Search,
   settings: Settings,
   sliders: SlidersHorizontal,
-  "shopping-bag": ShoppingBag,
+  "shopping-bag": ReceiptText,
   store: Store,
   truck: Truck,
+  trash: Trash2,
   user: User,
   wallet: Wallet,
   x: X,
@@ -131,10 +143,11 @@ const icons: Record<Exclude<IconName, CustomIconName>, LucideIcon> = {
 export function Icon({
   name,
   size = 20,
-  strokeWidth = 1.8,
+  strokeWidth = 1.5,
   className,
   "aria-hidden": ariaHidden = true,
 }: Props) {
+  if (name === "shipment-handoff") return <Truck size={size} strokeWidth={strokeWidth} className={className} aria-hidden={ariaHidden} />;
   if (name === "cancel-circle") {
     return (
       <svg
@@ -214,27 +227,6 @@ export function Icon({
       >
         <path d="M8.5 7.25h-4v-4" />
         <path d="M4.85 7.1A8.5 8.5 0 1 1 4.2 16.6" />
-      </svg>
-    );
-  }
-
-  if (name === "shipment-handoff") {
-    return (
-      <svg
-        className={className}
-        width={size}
-        height={size}
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth={strokeWidth}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        aria-hidden={ariaHidden}
-      >
-        <path d="m3.25 7.25 6.5-3.25 6.5 3.25-6.5 3.25-6.5-3.25Z" />
-        <path d="M3.25 7.25v8.25l6.5 3.5 2.75-1.5M9.75 10.5V19" />
-        <path d="M13.25 13.5h7.5M17.75 10.5l3 3-3 3" />
       </svg>
     );
   }

@@ -1,0 +1,36 @@
+.section { min-width: 0; }
+.heading { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px 20px; margin-bottom: 20px; }
+.actions { display: flex; align-items: center; gap: 20px; }
+.all { display: inline-flex; align-items: center; min-height: 44px; color: var(--black); font-size: var(--font-sm); text-decoration: underline; text-underline-offset: 4px; }
+.arrows { display: flex; gap: 8px; }
+.arrow { display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; padding: 0; border: 1px solid var(--black); border-radius: 0; background: var(--white); color: var(--black); cursor: pointer; transition: transform var(--transition-fast); }
+.arrow:disabled { opacity: 0.35; cursor: default; }
+.arrow:active:not(:disabled) { transform: translateY(1px); }
+.rail { display: flex; gap: 20px; margin: 0; padding: 4px 4px 12px; list-style: none; overflow-x: auto; overscroll-behavior-x: contain; scroll-snap-type: x proximity; scroll-padding-inline: 4px; }
+.rail > li { width: 180px; min-width: 0; flex: 0 0 180px; scroll-snap-align: start; }
+.item { display: flex; }
+.card { display: flex; flex-direction: column; gap: 10px; width: 100%; min-width: 0; color: var(--black); text-decoration: none; }
+.cover { display: grid; place-items: center; width: 100%; aspect-ratio: 3 / 4; overflow: hidden; }
+.cover img { width: 100%; height: 100%; object-fit: contain; }
+.noPhoto { display: flex; flex-direction: column; align-items: center; gap: 12px; font-size: var(--font-xs); }
+.card h3 { margin: 0; font-size: var(--font-md); line-height: 1.4; font-weight: 400; overflow-wrap: anywhere; }
+.price { margin-top: auto; padding-top: 2px; font-size: var(--font-md); line-height: 1.4; }
+.arrow:focus-visible, .all:focus-visible, .card:focus-visible { outline: 2px solid var(--black); outline-offset: 2px; }
+.empty { display: flex; align-items: center; gap: 16px; min-height: 88px; }
+.empty p, .error p { font-size: var(--font-md); line-height: 1.4; }
+.error { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; padding: 16px; background: color-mix(in srgb, var(--danger) 8%, var(--white)); }
+.error > svg { color: var(--danger); flex-shrink: 0; }
+.error p { flex: 1; }
+@media (hover: hover) and (pointer: fine) {
+  .arrow:hover:not(:disabled) { background: var(--surface-hover); }
+  .card:hover h3 { text-decoration: underline; text-underline-offset: 4px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .arrow { transition: none; }
+  .arrow:active:not(:disabled) { transform: none; }
+}
+@media (max-width: 600px) {
+  .rail { gap: 16px; }
+  .rail > li { width: 156px; flex-basis: 156px; }
+  .arrows { display: none; }
+}

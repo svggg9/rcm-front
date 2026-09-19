@@ -3,6 +3,7 @@ import type {
   CatalogCategoryGroup,
   CatalogView,
   CatalogProduct,
+  CatalogProductsQuery,
   CatalogSearchParamValue,
   SelectedAudience,
   SortValue,
@@ -82,7 +83,6 @@ const CATEGORY_GROUPS = [
       "шарф",
       "перчат",
       "очк",
-      "украшен",
       "аксессуар",
     ],
   },
@@ -209,9 +209,86 @@ export function expandCategorySelection(
   );
 }
 
+export function getMobileCategoryChoices(
+  groups: CatalogCategoryGroup[],
+  availableNames: string[] | null,
+  selectedCategories: string[]
+): Array<{ value: string; label: string }> {
+  const dictionary = groups.flatMap((group) => [
+    ...(group.rootCategory ? [group.rootCategory.name] : []),
+    ...group.categories.map((category) => category.name),
+  ]);
+  // Availability uses exact backend values. Grouping may deduplicate a plain
+  // and a prefixed dictionary name; it must not discard a published category.
+  const names = Array.from(new Set(availableNames ?? dictionary));
+  selectedCategories.forEach((category) => {
+    if (!names.includes(category)) names.push(category);
+  });
+  const labelFor = (name: string) => name.split("/").map((part) => part.trim()).filter(Boolean).at(-1) ?? name;
+  const dictionaryIndex = (name: string) => {
+    const index = dictionary.findIndex((item) => item === name || labelFor(item) === labelFor(name));
+    return index < 0 ? dictionary.length : index;
+  };
+  names.sort((a, b) => dictionaryIndex(a) - dictionaryIndex(b) || a.localeCompare(b, "ru"));
+  const labelCounts = new Map<string, number>();
+  names.forEach((name) => labelCounts.set(labelFor(name), (labelCounts.get(labelFor(name)) ?? 0) + 1));
+  return names.map((value) => ({
+    value,
+    label: (labelCounts.get(labelFor(value)) ?? 0) > 1 ? value : labelFor(value),
+  }));
+}
+
 export function firstSearchParam(value: CatalogSearchParamValue): string {
   if (Array.isArray(value)) return value[0] ?? "";
   return value ?? "";
+}
+
+export function canonicalCategoryName(value: string): string {
+  const name = value.trim();
+  const [root, ...children] = name.split(" / ");
+  return root === "Дом" || root === "Искусство"
+    ? ["Дом и искусство", ...children].join(" / ")
+    : name;
+}
+
+export function expandCategorySelections(
+  categories: string[],
+  groups: CatalogCategoryGroup[]
+): string[] {
+  return Array.from(new Set(categories.flatMap((category) => expandCategorySelection(category, groups))));
+}
+
+export function categoryGroupSelected(categories: string[], group: CatalogCategoryGroup): boolean {
+  return categories.some((category) =>
+    category === group.name || category === group.rootCategory?.name ||
+    group.categories.some((child) => child.name === category)
+  );
+}
+
+export function toggleCategorySelection(
+  categories: string[],
+  category: string,
+  groups: CatalogCategoryGroup[]
+): string[] {
+  const root = groups.find((group) => group.name === category || group.rootCategory?.name === category);
+  if (root) return [root.name];
+  const parent = groups.find((group) => group.categories.some((child) => child.name === category));
+  if (!parent) return [category];
+  const siblings = categories.filter((value) => parent.categories.some((child) => child.name === value));
+  const next = siblings.includes(category)
+    ? siblings.filter((value) => value !== category)
+    : [...siblings, category];
+  return next.length > 0 ? next : [parent.name];
+}
+
+export function normalizeCategorySelection(categories: string[], groups: CatalogCategoryGroup[]): string[] {
+  if (categories.length === 0) return [];
+  const group = groups.find((item) => categoryGroupSelected([categories[0]], item));
+  if (!group) return [categories[0]];
+  if (categories.some((category) => category === group.name || category === group.rootCategory?.name)) {
+    return [group.name];
+  }
+  return categories.filter((category) => categoryGroupSelected([category], group));
 }
 
 export function normalizeSearchList(value: CatalogSearchParamValue): string[] {
@@ -254,6 +331,23 @@ type RawProduct = {
 
 export function getMinPrice(product: CatalogProduct): number {
   return product.minPrice;
+}
+
+/** The public products endpoint uses zero-based pages; catalog URLs use one-based pages. */
+export function buildCatalogProductsQuery(params: CatalogProductsQuery): string {
+  const search = new URLSearchParams();
+  if (params.audience !== "all") search.set("audience", params.audience);
+  params.categories.forEach((category) => search.append("categories", category));
+  params.brands.forEach((brand) => search.append("brands", brand));
+  params.sizes.forEach((size) => search.append("sizes", size));
+  if (params.minPrice !== undefined) search.set("minPrice", String(params.minPrice));
+  if (params.maxPrice !== undefined) search.set("maxPrice", String(params.maxPrice));
+  if (params.q) search.set("q", params.q);
+  if (params.sort) search.set("sort", params.sort);
+  if (params.collectionId !== undefined) search.set("collectionId", String(params.collectionId));
+  search.set("page", String(Math.max(0, params.page - 1)));
+  search.set("size", "48");
+  return search.toString();
 }
 
 export function normalizeAudience(value: string | null): SelectedAudience {
@@ -376,6 +470,7 @@ export function parsePositiveId(value?: CatalogSearchParamValue): number | undef
 export function buildCatalogQuery(params: {
   audience?: string;
   category?: string;
+  categories?: string[];
   brands?: string[];
   sizes?: string[];
   minPrice?: number;
@@ -392,9 +487,8 @@ export function buildCatalogQuery(params: {
     searchParams.set("audience", params.audience);
   }
 
-  if (params.category) {
-    searchParams.set("category", params.category);
-  }
+  const categories = params.categories ?? (params.category ? [params.category] : []);
+  Array.from(new Set(categories)).filter(Boolean).forEach((category) => searchParams.append("category", category));
 
   params.brands?.forEach((brand) => searchParams.append("brands", brand));
   params.sizes?.forEach((size) => searchParams.append("sizes", size));
@@ -442,4 +536,3 @@ export function normalizeSort(value?: string): SortValue {
 
   return "";
 }
-

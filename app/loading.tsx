@@ -27,8 +27,7 @@ export default function Loading() {
       aria-label="Загрузка страницы"
       aria-busy="true"
     >
-      <div className="pageContainer">
-        <section className={styles.hero}>
+      <section className={styles.hero}>
           <SkeletonBlock className={styles.heroBackdrop} />
           <div className={styles.heroContent}>
             <SkeletonBlock className={styles.heroEyebrow} />
@@ -38,8 +37,9 @@ export default function Loading() {
             <SkeletonBlock className={styles.heroTextShort} />
             <SkeletonBlock className={styles.heroButton} />
           </div>
-        </section>
+      </section>
 
+      <div className="pageContainer">
         <RailSkeleton />
         <RailSkeleton />
         <RailSkeleton />

@@ -1,14 +1,14 @@
 .field {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 4px;
 }
 
 .label {
   color: var(--black);
   font-size: 12px;
   line-height: 1.25;
-  font-weight: 300;
+  font-weight: 400;
   letter-spacing: -0.01em;
 }
 
@@ -21,9 +21,9 @@
 .select,
 .textarea {
   width: 100%;
-  border: 0.5px solid var(--black);
+  border: 1px solid var(--black);
   background: var(--white);
-  color: #333333;
+  color: var(--black);
   font: inherit;
   font-size: 14px;
   font-weight: 400;
@@ -57,12 +57,12 @@
 }
 
 .inputError {
-  border-bottom-color: var(--danger);
+  border-color: var(--danger);
 }
 
 .fieldError,
 .formError {
-  margin-top: 8px;
+  margin-top: 0;
   color: var(--danger);
   font-size: var(--font-sm);
   line-height: 1.4;
@@ -78,14 +78,14 @@
   position: relative;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 4px;
 }
 
 .fieldBoxed > .label {
   position: static;
   color: var(--black);
   font-size: 12px;
-  font-weight: 300;
+  font-weight: 400;
   line-height: 1.25;
   letter-spacing: -0.01em;
 }
@@ -108,7 +108,7 @@
 .fieldBoxed > .phoneInputShell {
   border: 1px solid var(--line);
   background: var(--white);
-  color: #333333;
+  color: var(--black);
   font-size: 14px;
   font-weight: 400;
   line-height: 1.4;
@@ -123,7 +123,7 @@
 .fieldBoxed > .phoneInputShell {
   height: 44px;
   padding: 0 15px;
-  border: 0.5px solid var(--black);
+  border: 1px solid var(--black);
 }
 
 .fieldBoxed.fieldLabelHidden > .input,
@@ -136,7 +136,7 @@
 .fieldBoxed > .textarea {
   min-height: 110px;
   padding: 12px 15px;
-  border: 0.5px solid var(--black);
+  border: 1px solid var(--black);
 }
 
 .fieldBoxed > .input:hover,
@@ -160,7 +160,7 @@
 }
 
 .fieldBoxed > .fieldError {
-  margin-top: 6px;
+  margin-top: 0;
 }
 
 .phoneInputShell {
@@ -177,8 +177,8 @@
   flex: 0 0 auto;
   margin-right: 0.25em;
   color: var(--black);
-  font-size: var(--font-input);
-  font-weight: 300;
+  font-size: 14px;
+  font-weight: 400;
   line-height: 1.4;
 }
 
@@ -189,8 +189,8 @@
   background: transparent;
   color: var(--black);
   font: inherit;
-  font-size: var(--font-input);
-  font-weight: 300;
+  font-size: 14px;
+  font-weight: 400;
   line-height: 1.4;
   letter-spacing: 0;
   outline: none;
@@ -200,3 +200,23 @@
   color: var(--muted);
   font-size: var(--font-placeholder);
 }
+
+/* Approved field roles. Shared primitives own their appearance, not page overrides. */
+.appShell [data-ui="field"] { gap: 4px; color: var(--black); font-size: 12px; line-height: 15px; font-weight: 400; }
+.appShell [data-ui="field"] > :is(.label, span:first-child) { color: var(--black); font-size: 12px; line-height: 15px; font-weight: 400; }
+.appShell [data-ui="field"] > small { color: var(--black); font-size: 15px; line-height: 21px; font-weight: 300; }
+.appShell [data-ui="field"] > :is(input, textarea, select, .phoneInputShell),
+.appShell [data-ui="field"] > div:has(> [role="combobox"]) { border: 1px solid var(--black); border-radius: 0; background: var(--white); }
+.appShell [data-ui="field"] > :is(input, textarea, select, .phoneInputShell):not(:disabled):not(.inputError):hover,
+.appShell [data-ui="field"] > div:has(> [role="combobox"]:not(:disabled):not([aria-invalid="true"])):hover { background: var(--surface-hover); }
+.appShell [data-ui="field"] :is(input, textarea, select, [role="combobox"], [role="option"], .phoneInputPrefix),
+.appShell [data-ui="field"] :is([role="combobox"], [role="option"]) > span:first-child { color: var(--black); font-family: inherit; font-size: 14px; line-height: 21px; font-weight: 400; letter-spacing: normal; }
+.appShell [data-ui="field"] > :is(input, textarea, select):focus-visible,
+.appShell [data-ui="field"] > :is(.phoneInputShell, div):has(> [role="combobox"]:focus-visible, > input:focus-visible) { outline: 1px solid var(--black); outline-offset: 2px; }
+.appShell [data-ui="field"] > :is([aria-invalid="true"], .inputError),
+.appShell [data-ui="field"] > :is(div, .phoneInputShell):has([aria-invalid="true"]) { border-color: var(--danger); outline-color: var(--danger); }
+.appShell [data-ui="field"] > .fieldError,
+.fieldError { display: block; margin: 0; color: var(--danger); font-size: 13px; line-height: 18px; font-weight: 400; }
+.phoneInputShell { height: 44px; padding: 0 15px; border: 1px solid var(--black); }
+.formError { padding: 16px; border: 0; background: color-mix(in srgb, var(--danger) 8%, var(--white)); color: var(--black); font-size: 15px; line-height: 21px; }
+:is(.input, .textarea, .select).inputError:focus { border-color: var(--danger); }

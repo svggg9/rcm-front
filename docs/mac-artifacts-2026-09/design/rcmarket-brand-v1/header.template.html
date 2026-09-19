@@ -1,0 +1,38 @@
+<div id="rcm-public-header" aria-label="Шапка публичного сайта рцмаркет">
+  <style>
+    #rcm-public-header{font-family:Arial,sans-serif;font-weight:400;color:#111;background:#fff;--rh-height:100px;--rh-icon:32px}
+    #rcm-public-header *{box-sizing:border-box}
+    #rcm-public-header .rh-bar{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;min-height:var(--rh-height);padding:0 26px;background:#111;color:#fff}
+    #rcm-public-header .rh-side{display:flex;align-items:center;gap:32px}
+    #rcm-public-header .rh-side:last-child{justify-content:flex-end}
+    #rcm-public-header .rh-action{display:grid;place-items:center;width:44px;height:44px;padding:0;border:0;border-radius:0;background:transparent;color:#fff;cursor:pointer;transition:transform 140ms ease,opacity 140ms ease}
+    #rcm-public-header .rh-action:hover{opacity:.75}
+    #rcm-public-header .rh-action:active{transform:translateY(1px) scale(.985)}
+    #rcm-public-header .rh-logo{display:grid;place-items:center;width:224px;line-height:0;padding:0;color:#fff;text-decoration:none}
+    #rcm-public-header .rh-logo img{display:block;width:100%;height:auto}
+    #rcm-public-header .rh-icon{display:block;width:var(--rh-icon);height:var(--rh-icon);background-position:center;background-repeat:no-repeat;background-size:contain}
+    #rcm-public-header .rh-menu{filter:invert(1);background-image:url('data:image/svg+xml;base64,PHN2ZyB2aWV3Qm94PSIwIDAgMTYgMTYiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHBhdGggZmlsbD0ibm9uZSIgZD0iTTAgMGgxNnYxNkgweiIvPjxwYXRoIGQ9Ik0wIDE0di0xaDE2djFIMHptMC02VjdoMTZ2MUgwem0wLTd2MWgxNlYxSDB6Ii8+PC9zdmc+')}
+    #rcm-public-header .rh-heart{filter:invert(1);background-image:url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTYiIGhlaWdodD0iMTYiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGcgZmlsbD0ibm9uZSIgZmlsbC1ydWxlPSJldmVub2RkIj48cGF0aCBkPSJNMCAwaDE2djE2SDB6Ii8+PHBhdGggZD0iTTEuNTYzIDIuNzI2Qy4wMjcgNC4yNjIuMDE1IDYuNzg2IDEuNDcgOC40MDVsLjQ2OC40ODguMTI3LjEyN2E0LjggNC44IDAgMDAuMzMuMjk1TDggMTQuNjkybDUuNjI1LTUuMzU1LjE0Mi0uMTIuMTY2LS4xNTQuNDQ1LS40NTZjMS42MDgtMS42MDggMS42NS00LjI1NC4wNjEtNS44NDMtMS41MzYtMS41MzYtNC4wNi0xLjU0OC01LjY3OS0uMDk0bC0uNTA1LjQ4Ny0uMjM3LjI0My0uMDk2LS4xMDYtLjUxNS0uNTA3Yy0xLjYwOC0xLjYwOC00LjI1NC0xLjY1LTUuODQzLS4wNnptNC45OTIuNjMzbC41OTEuNTcyLjE1LjE2MS43MTUuNzIyLjcxNy0uNzEuMTI3LS4xMzQuNDQ3LS40MzdjMS4yMjMtMS4yMjMgMy4yMzUtMS4yNTUgNC40MjktLjA2MiAxLjE0NyAxLjE0OCAxLjE2MiAzLjA1My4wNzUgNC4yODRsLS40NTcuNDc3LS4xMTguMTE4LS4xMzIuMTIzLS4xMzIuMTExLTQuOTY2IDQuNzI0LTQuOTQ2LTQuNzQzLS4xMDctLjA5LS4xODMtLjE2OC0uNDMzLS40NDVDMS4xMDkgNi42MzkgMS4wNzcgNC42MjcgMi4yNyAzLjQzM2MxLjE0OC0xLjE0NyAzLjA1My0xLjE2MiA0LjI4NS0uMDc0eiIgZmlsbD0iIzAwMCIvPjwvZz48L3N2Zz4=')}
+    #rcm-public-header .rh-search{filter:invert(1);background-image:url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTYiIGhlaWdodD0iMTYiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGcgZmlsbD0ibm9uZSIgZmlsbC1ydWxlPSJldmVub2RkIj48cGF0aCBkPSJNMTYgMHYxNkgwVjB6Ii8+PHBhdGggZD0iTTExLjg0NiAzLjA3NWE1Ljc0NyA1Ljc0NyAwIDAwLTcuODktMS45NjcgNS43NDkgNS43NDkgMCAwMDIuOTY4IDEwLjY3OGMuODQxIDAgMS42ODktLjE5NyAyLjQ4Ni0uNTgzTDExLjY5IDE1aDEuMjI3bC0yLjYwMS00LjMzYTUuNzQ3IDUuNzQ3IDAgMDAxLjUzLTcuNTk1ek05LjM0IDEwLjA2OGE0LjY5NCA0LjY5NCAwIDAxLTIuNDE3LjY3MyA0LjY3NCA0LjY3NCAwIDAxLTQuMDM4LTIuMjgyIDQuNjgzIDQuNjgzIDAgMDEtLjUzMi0zLjU2MSA0LjY3NCA0LjY3NCAwIDAxMi4xNDItMi44OTQgNC42OTMgNC42OTMgMCAwMTIuNDE3LS42NzJjMS42NjkgMCAzLjE3OS44NTMgNC4wMzggMi4yODJhNC42NzIgNC42NzIgMCAwMS41MzIgMy41NiA0LjY3NCA0LjY3NCAwIDAxLTIuMTQyIDIuODk0eiIgZmlsbD0iIzAwMCIgZmlsbC1ydWxlPSJub256ZXJvIi8+PC9nPjwvc3ZnPg==')}
+    #rcm-public-header .rh-bag{background-image:url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTYiIGhlaWdodD0iMTYiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGcgZmlsbD0iIzExMSIgZmlsbC1ydWxlPSJldmVub2RkIj48cGF0aCBkPSJNMCAxNmgxNlYwSDB6Ii8+PHBhdGggZD0iTTIgMTRoMTJWNUgydjl6TTYgMy4wMzZjMC0xLjEwMy44OTctMiAyLTJzMiAuODk3IDIgMlY0SDZ2LS45NjR6TTExIDR2LS45NjRjMC0xLjY1NS0xLjM0Ni0zLTMtM3MtMyAxLjM0NS0zIDNWNEgxdjExaDE0VjRoLTR6Ii8+PHBhdGggZD0iTTIgMTRoMTJWNUgydjl6TTYgMy4wMzZjMC0xLjEwMy44OTctMiAyLTJzMiAuODk3IDIgMlY0SDZ2LS45NjR6TTExIDR2LS45NjRjMC0xLjY1NS0xLjM0Ni0zLTMtM3MtMyAxLjM0NS0zIDNWNEgxdjExaDE0VjRoLTR6IiBmaWxsPSIjRkZGIi8+PC9nPjwvc3ZnPg==')}
+    #rcm-public-header .rh-selection{padding:24px 32px;font-size:15px;line-height:24px;font-weight:400;color:#626262}
+    #rcm-public-header .rh-selection:empty{display:none}
+    @media(max-width:540px){#rcm-public-header .rh-bar{min-height:76px;padding:0 8px}#rcm-public-header .rh-side{gap:0}#rcm-public-header .rh-logo{width:clamp(92px,calc(100vw - 208px),180px)}#rcm-public-header .rh-icon{width:26px;height:26px}}
+    @media(prefers-reduced-motion:reduce){#rcm-public-header .rh-action{transition:none}#rcm-public-header .rh-action:active{transform:none}}
+  </style>
+  <header class="rh-bar">
+    <div class="rh-side">
+      <button type="button" class="rh-action" aria-label="Меню"><span class="rh-icon rh-menu" aria-hidden="true"></span></button>
+      <button type="button" class="rh-action" aria-label="Избранное"><span class="rh-icon rh-heart" aria-hidden="true"></span></button>
+    </div>
+    <a class="rh-logo" href="#" aria-label="рцмаркет — главная"><img src="{{WORDMARK_WHITE}}" alt="рцмаркет"></a>
+    <div class="rh-side">
+      <button type="button" class="rh-action" aria-label="Поиск"><span class="rh-icon rh-search" aria-hidden="true"></span></button>
+      <button type="button" class="rh-action" aria-label="Корзина"><span class="rh-icon rh-bag" aria-hidden="true"></span></button>
+    </div>
+  </header>
+  <div class="rh-selection" role="status" aria-live="polite"></div>
+  <script>
+    (()=>{const root=document.getElementById('rcm-public-header');const status=root.querySelector('.rh-selection');root.querySelectorAll('.rh-action').forEach(button=>button.addEventListener('click',()=>{status.textContent=button.getAttribute('aria-label')+' · предварительный макет'}));root.querySelector('.rh-logo').addEventListener('click',e=>{e.preventDefault();status.textContent=''});const state={height:100,icons:32};function render(){root.style.setProperty('--rh-height',state.height+'px');root.style.setProperty('--rh-icon',state.icons+'px')}if(globalThis.Tweak){const tweak=new Tweak({container:root,onChange:render});tweak.addSlider(state,'height',{label:'Высота шапки',min:80,max:112,step:4,unit:'px'});tweak.addSlider(state,'icons',{label:'Размер иконок',min:24,max:36,step:2,unit:'px'})}})();
+  </script>
+</div>

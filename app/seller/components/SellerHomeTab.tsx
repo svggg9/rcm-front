@@ -1,14 +1,16 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 
 import { Button } from "../../components/ui/Button";
-import { Icon, type IconName } from "../../components/ui/Icon";
+import type { IconName } from "../../components/ui/Icon";
+import { DesignSystemIcon as Icon } from "../../components/ui/DesignSystemIcon";
+import { StatusBadge } from "../../components/ui/StatusBadge";
 import type { SellerOnboardingStatus } from "../lib/sellerOnboardingApi";
 import type { SellerBrand, SellerDashboardSummary } from "../types";
 
 import styles from "./SellerHomeTab.module.css";
+import { SellerOverview } from "./SellerOverview";
 
 type Props = {
   brand: SellerBrand | null;
@@ -17,7 +19,7 @@ type Props = {
   onboardingLoading?: boolean;
   onboardingError?: boolean;
   onRetryOnboarding?: () => void;
-  creatingProduct: boolean;
+  onNavigate: (href: string) => void;
   onCreateProduct: () => void;
 };
 
@@ -38,7 +40,7 @@ export function SellerHomeTab({
   onboardingLoading = false,
   onboardingError = false,
   onRetryOnboarding,
-  creatingProduct,
+  onNavigate,
   onCreateProduct,
 }: Props) {
   const applicationReady = Boolean(
@@ -53,53 +55,37 @@ export function SellerHomeTab({
     );
 
   return (
-    <section className={styles.page}>
+    <section className={styles.page} aria-label="Обзор магазина">
       <header className={styles.pageHeader}>
         <div>
           <div className={styles.titleRow}>
             <h1>{brand?.name || "Магазин"}</h1>
-            <span
-              className={`${styles.headerStatus} ${
-                setupRequired ? styles.headerStatusPending : styles.headerStatusReady
-              }`}
-            >
-              <Icon
-                name={setupRequired ? "clock" : "check-circle"}
-                size={15}
-              />
-              {setupRequired ? "Подготовка" : "Работает"}
-            </span>
+            <StatusBadge size="regular" tone={!onboardingStatus ? "default" : setupRequired ? "warning" : "success"}>
+              {!onboardingStatus ? (onboardingLoading ? "Проверка" : "Статус недоступен") : setupRequired ? "Подготовка" : "Активен"}
+            </StatusBadge>
           </div>
         </div>
 
-        <Button
-          type="button"
-          variant="secondary"
-          className={styles.addButton}
-          loading={creatingProduct}
-          onClick={onCreateProduct}
-        >
-          Добавить товар
-        </Button>
       </header>
 
       {onboardingStatus === null ? (
         onboardingLoading ? (
-          <div className={styles.statusLoading} role="status" aria-busy="true">
-            Проверяем готовность магазина…
+          <div className={styles.statusLoading} role="status" aria-busy="true" aria-label="Проверяем готовность магазина">
+            <span className="buttonLoader" aria-hidden="true" />
           </div>
         ) : (
           <div className={styles.statusError} role="alert">
-            <div>
+            <Icon name="alert" />
+            <div className={styles.statusErrorCopy}>
               <strong>Не удалось проверить готовность магазина</strong>
               <span>
                 {onboardingError
-                  ? "Кабинет доступен, повторите проверку статуса."
-                  : "Статус магазина пока недоступен."}
+                  ? "Кабинет доступен, повторите проверку статуса"
+                  : "Статус магазина пока недоступен"}
               </span>
             </div>
             {onRetryOnboarding ? (
-              <Button type="button" variant="secondary" onClick={onRetryOnboarding}>
+              <Button type="button" variant="secondary" className={styles.action} onClick={onRetryOnboarding}>
                 Повторить
               </Button>
             ) : null}
@@ -109,12 +95,9 @@ export function SellerHomeTab({
         <SetupDashboard
           status={onboardingStatus}
           applicationReady={applicationReady}
-          creatingProduct={creatingProduct}
-          onCreateProduct={onCreateProduct}
         />
-      ) : (
-        <WorkingDashboard brand={brand} summary={summary} />
-      )}
+      ) : null}
+      <SellerOverview brand={brand} summary={summary} onboarding={onboardingStatus} onNavigate={onNavigate} onCreateProduct={onCreateProduct} />
     </section>
   );
 }
@@ -122,13 +105,9 @@ export function SellerHomeTab({
 function SetupDashboard({
   status,
   applicationReady,
-  creatingProduct,
-  onCreateProduct,
 }: {
   status: SellerOnboardingStatus;
   applicationReady: boolean;
-  creatingProduct: boolean;
-  onCreateProduct: () => void;
 }) {
   const steps = [
     applicationReady,
@@ -139,17 +118,17 @@ function SetupDashboard({
   const remainingSteps = steps.length - completedSteps;
   const tasks: StoreTask[] = [
     {
-      title: "Заявка продавца одобрена",
+      title: "Заявка продавца",
       description: applicationReady
-        ? "Магазин создан, доступ к кабинету открыт."
-        : "Дождитесь решения по заявке продавца.",
+        ? "Магазин создан, доступ к кабинету открыт"
+        : "Дождитесь решения по заявке продавца",
       icon: applicationReady ? "check-circle" : "clock",
       tone: applicationReady ? "success" : "warning",
       completed: applicationReady,
     },
     {
       title: "Заполнить данные магазина",
-      description: "Реквизиты, банк и пункт отправления.",
+      description: "Реквизиты, банк и пункт отправления",
       href: status.legalCompleted ? undefined : "/seller?tab=legal",
       action: status.legalCompleted ? undefined : "Заполнить",
       icon: status.legalCompleted ? "check-circle" : "file",
@@ -158,7 +137,7 @@ function SetupDashboard({
     },
     {
       title: "Принять условия работы",
-      description: "Ознакомьтесь и примите оферту продавца.",
+      description: "Ознакомьтесь и примите оферту продавца",
       href: status.agreementAccepted ? undefined : "/seller?tab=legal",
       action: status.agreementAccepted ? undefined : "Перейти к оферте",
       icon: status.agreementAccepted ? "check-circle" : "info",
@@ -168,308 +147,26 @@ function SetupDashboard({
   ];
 
   return (
-    <div className={styles.dashboard}>
-      <section className={styles.setupIntro}>
-        <span className={`${styles.iconCircle} ${styles.warningIcon}`}>
-          <Icon name="clock" size={20} />
-        </span>
-        <div>
-          <span className={styles.statusLabel}>Подготовка магазина</span>
-          <h2>Завершите настройку, чтобы начать продажи</h2>
-          <p>
-            Осталось {remainingSteps} {pluralizeStep(remainingSteps)}. Ассортимент
-            можно готовить параллельно.
-          </p>
-        </div>
-      </section>
-
-      <div className={styles.mainGrid}>
-        <section className={styles.panel}>
-          <PanelHeading
-            eyebrow="Задачи для запуска"
-            title={`${completedSteps} из ${steps.length} выполнено`}
-            icon="check-circle"
-          />
+    <section className={styles.panel} aria-label="Подготовка магазина">
+          <div className={styles.setupHeading}>
+            <h2>Подготовка магазина</h2>
+            <span>{completedSteps} из {steps.length} выполнено</span>
+          </div>
+          <p className={styles.setupCopy}>Осталось {remainingSteps} {pluralizeStep(remainingSteps)} до начала продаж. Ассортимент можно готовить уже сейчас</p>
           <div className={styles.taskList}>
             {tasks.map((task) => (
               <TaskRow key={task.title} task={task} />
             ))}
           </div>
-        </section>
-      </div>
-
-      <section className={styles.assortmentCard}>
-        <span className={`${styles.iconCircle} ${styles.goldIcon}`}>
-          <Icon name="package" size={20} />
-        </span>
-        <div className={styles.assortmentCopy}>
-          <span className={styles.eyebrow}>Делайте параллельно</span>
-          <h2>Подготовьте ассортимент</h2>
-          <p>
-            Создавайте карточки товаров уже сейчас — опубликовать их можно после
-            завершения настройки магазина.
-          </p>
-        </div>
-        <Button
-          type="button"
-          variant="primary"
-          className={styles.addButton}
-          loading={creatingProduct}
-          onClick={onCreateProduct}
-        >
-          Добавить товар
-        </Button>
-      </section>
-    </div>
+    </section>
   );
-}
-
-function WorkingDashboard({
-  brand,
-  summary,
-}: {
-  brand: SellerBrand | null;
-  summary: SellerDashboardSummary | null;
-}) {
-  const activeProducts = summary?.activeProducts ?? 0;
-  const attentionProducts = summary?.attentionProducts ?? 0;
-  const readyOrders = summary?.readyOrders ?? 0;
-  const tasks: StoreTask[] = [];
-
-  if (readyOrders > 0) {
-    tasks.push({
-      title: `${readyOrders} ${pluralizeOrder(readyOrders)} к отправке`,
-      description: "Подготовьте товары и передайте отправления в службу доставки.",
-      href: "/seller?tab=orders",
-      action: "Открыть заказы",
-      icon: "delivery-truck",
-      tone: "warning",
-    });
-  }
-
-  if (attentionProducts > 0) {
-    tasks.push({
-      title: `${attentionProducts} ${pluralizeProduct(
-        attentionProducts
-      )} нужно исправить`,
-      description: "Откройте замечания модерации и обновите карточки.",
-      href: "/seller?tab=products",
-      action: "Открыть товары",
-      icon: "alert",
-      tone: "danger",
-    });
-  }
-
-  if ((summary?.failedPayouts ?? 0) > 0) {
-    tasks.push({
-      title: "Не удалось провести выплату",
-      description: "Проверьте статус выплаты и банковские реквизиты.",
-      href: "/seller?tab=finance",
-      action: "Открыть выплаты",
-      icon: "wallet",
-      tone: "danger",
-    });
-  }
-
-  if (summary && !summary.telegramLinked) {
-    tasks.push({
-      title: "Подключите уведомления в Telegram",
-      description: "Получайте сообщения о новых заказах и важных изменениях.",
-      href: "/seller?tab=legal",
-      action: "Подключить",
-      icon: "bell",
-      tone: "neutral",
-    });
-  }
-
-  if (brand && (!brand.description || !brand.wordmarkUrl)) {
-    tasks.push({
-      title: "Дополните витрину магазина",
-      description: "Добавьте описание и wordmark, чтобы оформить страницу бренда.",
-      href: "/seller?tab=brand",
-      action: "Открыть витрину",
-      icon: "store",
-      tone: "neutral",
-    });
-  }
-
-  return (
-    <div className={styles.dashboard}>
-      <section className={styles.metrics} aria-label="Сводка магазина">
-        <Metric
-          icon="package"
-          tone="success"
-          label="Активные товары"
-          value={String(activeProducts)}
-          href="/seller?tab=products"
-        />
-        <Metric
-          icon="delivery-truck"
-          tone={readyOrders > 0 ? "warning" : "success"}
-          label="К отправке"
-          value={String(readyOrders)}
-          href="/seller?tab=orders"
-        />
-        <Metric
-          icon="money"
-          tone="gold"
-          label="Продажи"
-          value={summary ? formatMoney(summary.salesAmount) : "—"}
-          href="/seller?tab=finance"
-        />
-      </section>
-
-      <div className={styles.mainGrid}>
-        <section className={styles.panel}>
-          <PanelHeading
-            title="Задачи"
-            icon={tasks.length > 0 ? "bell" : "check-circle"}
-          />
-          {tasks.length > 0 ? (
-            <div className={styles.taskList}>
-              {tasks.map((task) => (
-                <TaskRow key={task.title} task={task} />
-              ))}
-            </div>
-          ) : (
-            <div className={styles.emptyTasks}>
-              <span className={`${styles.iconCircle} ${styles.successIcon}`}>
-                <Icon name="check" size={20} />
-              </span>
-              <div>
-                <strong>Всё под контролем</strong>
-                <p>Новых задач по магазину пока нет.</p>
-              </div>
-            </div>
-          )}
-        </section>
-
-      </div>
-
-      <Link
-        href="/seller?tab=finance"
-        className={styles.financeCard}
-        prefetch={false}
-      >
-        <div className={styles.financeHeading}>
-          <span className={`${styles.iconCircle} ${styles.goldIcon}`}>
-            <Icon name="wallet" size={20} />
-          </span>
-          <div>
-            <span>Доступно к выплате</span>
-            <strong>
-              {summary ? formatMoney(summary.availablePayout) : "Нет данных"}
-            </strong>
-          </div>
-        </div>
-        <span className={styles.financeAction}>Посмотреть выплаты</span>
-        <Icon name="arrow-up-right" size={19} />
-      </Link>
-
-      <div className={styles.activityGrid}>
-        <section className={styles.eventsPanel}>
-          <PanelHeading title="Последние события" icon="clock" />
-          {summary?.recentEvents?.length ? (
-            <div className={styles.eventList}>
-              {summary.recentEvents.map((event) => (
-                <Link
-                  key={`${event.type}-${event.occurredAt}-${event.href}`}
-                  href={event.href}
-                  className={styles.event}
-                  prefetch={false}
-                >
-                  <span className={styles.eventIcon}>
-                    <Icon name={eventIcon(event.type)} size={17} />
-                  </span>
-                  <span className={styles.eventCopy}>
-                    <strong>{event.title}</strong>
-                    <span>{event.description}</span>
-                  </span>
-                  <time dateTime={event.occurredAt}>
-                    {formatEventDate(event.occurredAt)}
-                  </time>
-                </Link>
-              ))}
-            </div>
-          ) : (
-            <p className={styles.emptyEvents}>
-              Новые заказы, публикации и выплаты появятся здесь.
-            </p>
-          )}
-        </section>
-
-        <section className={styles.supportCard}>
-          <span className={`${styles.iconCircle} ${styles.goldIcon}`}>
-            <Image
-              src="/icons/telegram.svg"
-              alt=""
-              width={20}
-              height={20}
-              className={styles.telegramIcon}
-            />
-          </span>
-          <div>
-            <span className={styles.eyebrow}>Помощь</span>
-            <h2>Поддержка в Telegram</h2>
-            <p>Напишите вопрос — передадим его команде и поможем разобраться.</p>
-          </div>
-          <a
-            href={summary?.supportTelegramUrl || "/contacts"}
-            className={`buttonSecondary ${styles.supportAction}`}
-            target={summary?.supportTelegramUrl ? "_blank" : undefined}
-            rel={summary?.supportTelegramUrl ? "noreferrer" : undefined}
-          >
-            Написать в поддержку
-          </a>
-        </section>
-      </div>
-    </div>
-  );
-}
-
-function PanelHeading({
-  eyebrow,
-  title,
-  icon,
-}: {
-  eyebrow?: string;
-  title: string;
-  icon: IconName;
-}) {
-  return (
-    <div className={styles.panelHeading}>
-      <div>
-        {eyebrow ? <span className={styles.eyebrow}>{eyebrow}</span> : null}
-        <h2 className={!eyebrow ? styles.panelTitleOnly : undefined}>{title}</h2>
-      </div>
-      <Icon name={icon} size={19} />
-    </div>
-  );
-}
-
-function eventIcon(type: string): IconName {
-  if (type === "ORDER_CREATED") return "shopping-bag";
-  if (type === "PRODUCT_PUBLISHED") return "check-circle";
-  return "wallet";
-}
-
-function formatEventDate(value: string) {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "";
-
-  return new Intl.DateTimeFormat("ru-RU", {
-    day: "numeric",
-    month: "short",
-  })
-    .format(date)
-    .replace(/\.$/, "");
 }
 
 function TaskRow({ task }: { task: StoreTask }) {
   return (
     <article className={`${styles.task} ${styles[task.tone]}`}>
-      <span className={styles.taskIcon}>
-        <Icon name={task.icon} size={18} />
+      <span className={`${styles.taskIcon} ${["check-circle", "clock", "alert"].includes(task.icon) ? styles.statusIcon : ""}`}>
+        <Icon name={task.icon} />
       </span>
       <div className={styles.taskCopy}>
         <strong>{task.title}</strong>
@@ -478,14 +175,14 @@ function TaskRow({ task }: { task: StoreTask }) {
       {task.href && task.action ? (
         <Link
           href={task.href}
-          className={`buttonSecondary ${styles.taskAction}`}
+          className={`buttonSecondary ${styles.action} ${styles.taskAction}`}
           prefetch={false}
         >
           {task.action}
         </Link>
       ) : task.completed ? (
         <span className={styles.taskComplete}>
-          <Icon name="check" size={15} />
+          <Icon name="check" role="utility" />
           Готово
         </span>
       ) : null}
@@ -493,49 +190,8 @@ function TaskRow({ task }: { task: StoreTask }) {
   );
 }
 
-function Metric({
-  icon,
-  tone,
-  label,
-  value,
-  href,
-}: {
-  icon: IconName;
-  tone: "success" | "warning" | "gold";
-  label: string;
-  value: string;
-  href: string;
-}) {
-  return (
-    <Link href={href} className={styles.metric} prefetch={false}>
-      <span className={`${styles.metricIcon} ${styles[`${tone}Metric`]}`}>
-        <Icon name={icon} size={18} />
-      </span>
-      <span className={styles.metricLabel}>{label}</span>
-      <strong>{value}</strong>
-      <Icon name="arrow-up-right" size={16} className={styles.metricArrow} />
-    </Link>
-  );
-}
-
-function formatMoney(value: number) {
-  return new Intl.NumberFormat("ru-RU", {
-    style: "currency",
-    currency: "RUB",
-    maximumFractionDigits: 0,
-  }).format(Number(value || 0));
-}
-
 function pluralizeStep(value: number) {
   return pluralize(value, "шаг", "шага", "шагов");
-}
-
-function pluralizeOrder(value: number) {
-  return pluralize(value, "заказ", "заказа", "заказов");
-}
-
-function pluralizeProduct(value: number) {
-  return pluralize(value, "товар", "товара", "товаров");
 }
 
 function pluralize(value: number, one: string, few: string, many: string) {

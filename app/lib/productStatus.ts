@@ -19,7 +19,7 @@ export function formatProductStatus(status: ProductStatusValue) {
     case "MODERATION":
       return "На модерации";
     case "NEEDS_REVISION":
-      return "На доработке";
+      return "Нужны исправления";
     case "ACTIVE":
       return "Активен";
     case "ARCHIVED":
@@ -40,8 +40,8 @@ export function getProductStatusTone(
     case "ACTIVE":
       return "success";
     case "MODERATION":
-    case "NEEDS_REVISION":
       return "warning";
+    case "NEEDS_REVISION":
     case "BLOCKED":
     case "DELETED":
       return "danger";

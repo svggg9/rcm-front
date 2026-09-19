@@ -20,7 +20,7 @@ export function EmptyState({
   return (
     <div className="emptyStateLarge" data-tone={tone}>
       <div className="emptyStateIcon" aria-hidden="true">
-        <Icon name={icon} size={26} />
+        <Icon name={icon} size={32} />
       </div>
       <div className="emptyStateTitle">{title}</div>
       {text ? <div className="emptyStateText">{text}</div> : null}

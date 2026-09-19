@@ -1,0 +1,80 @@
+{
+  "batch": "rcm-demo-20260908",
+  "seller": "seed_seller_ip",
+  "database": "rcmarket",
+  "products": [
+    {
+      "id": 403,
+      "brand": "Zegna",
+      "title": "Бейсболка Motorin",
+      "status": "ACTIVE",
+      "brandId": 18,
+      "category": "Аксессуары / Головные уборы",
+      "publicId": "dm0901",
+      "imageCount": 6,
+      "variantCount": 2,
+      "colorwayCount": 2
+    },
+    {
+      "id": 404,
+      "brand": "Chloé Eyewear",
+      "title": "Лыжная маска Cassidy",
+      "status": "ACTIVE",
+      "brandId": 19,
+      "category": "Спорт / Спортивные аксессуары",
+      "publicId": "dm0902",
+      "imageCount": 3,
+      "variantCount": 1,
+      "colorwayCount": 1
+    },
+    {
+      "id": 405,
+      "brand": "Emanuele Bicocchi",
+      "title": "Цепочный браслет с фигурными звеньями",
+      "status": "ACTIVE",
+      "brandId": 20,
+      "category": "Аксессуары",
+      "publicId": "dm0903",
+      "imageCount": 2,
+      "variantCount": 1,
+      "colorwayCount": 1
+    },
+    {
+      "id": 406,
+      "brand": "Saint Laurent",
+      "title": "Ремень Cassandre Vadim",
+      "status": "ACTIVE",
+      "brandId": 21,
+      "category": "Аксессуары / Ремни",
+      "publicId": "dm0904",
+      "imageCount": 2,
+      "variantCount": 1,
+      "colorwayCount": 1
+    },
+    {
+      "id": 407,
+      "brand": "Swatch × Omega",
+      "title": "MoonSwatch Mission to Saturn, 42 мм",
+      "status": "ACTIVE",
+      "brandId": 22,
+      "category": "Аксессуары / Часы",
+      "publicId": "dm0905",
+      "imageCount": 2,
+      "variantCount": 1,
+      "colorwayCount": 1
+    }
+  ],
+  "status": "committed",
+  "databaseHost": "66.151.35.76",
+  "originalProductsModified": false,
+  "assets": {
+    "uploaded": 15,
+    "sha256Verified": true,
+    "prefix": "products/rcm-demo-20260908/"
+  },
+  "notes": [
+    "Цены и остатки тестовые",
+    "Размеры, состав и параметры упаковки оставлены незаполненными",
+    "Товары созданы активными; заказы, платежи и уведомления не создавались"
+  ]
+}

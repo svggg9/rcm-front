@@ -5,12 +5,14 @@ import { useEffect, useRef, type KeyboardEvent, type ReactNode } from "react";
 
 import { Icon } from "./ui/Icon";
 import { Price } from "./ui/Price";
+import { SortIndicator } from "./ui/SortIndicator";
 import {
   StatusBadge,
   type StatusBadgeTone,
 } from "./ui/StatusBadge";
 
 import styles from "./ProductListCard.module.css";
+import { formatProductCreatedAt, nextProductSort, type ProductSort, type ProductSortKey } from "../seller/lib/sellerProductSort";
 
 type Props = {
   id: number;
@@ -24,10 +26,15 @@ type Props = {
   statusLabel: string;
   statusTone?: StatusBadgeTone;
   dateLabel?: string | null;
+  createdAt?: string | null;
   suggestedCategory?: boolean;
   flushMedia?: boolean;
   appearance?: "default" | "order-list";
+  columnLabels?: boolean;
   actions?: ReactNode;
+  leadingControl?: ReactNode;
+  trailingControl?: ReactNode;
+  selected?: boolean;
   onOpen: () => void;
   onPrefetch?: () => void;
 };
@@ -44,10 +51,15 @@ export function ProductListCard({
   statusLabel,
   statusTone = "default",
   dateLabel,
+  createdAt,
   suggestedCategory = false,
   flushMedia = false,
   appearance = "default",
+  columnLabels = false,
   actions,
+  leadingControl,
+  trailingControl,
+  selected = false,
   onOpen,
   onPrefetch,
 }: Props) {
@@ -90,10 +102,11 @@ export function ProductListCard({
     <article
       className={`${styles.card} ${flushMedia ? styles.cardFlushMedia : ""} ${
         appearance === "order-list" ? styles.cardOrderList : ""
-      }`.trim()}
+      } ${leadingControl || trailingControl ? styles.cardWithControls : ""} ${columnLabels ? styles.columnLabels : ""} ${selected ? styles.cardSelected : ""}`.trim()}
       onMouseEnter={schedulePrefetch}
       onMouseLeave={cancelPrefetch}
     >
+      {leadingControl ? <div className={styles.leadingControl}>{leadingControl}</div> : null}
       <div
         className={styles.main}
         role="button"
@@ -136,13 +149,19 @@ export function ProductListCard({
           </span>
         </div>
 
+        {columnLabels ? <div className={styles.state}>
+          <span className={styles.label}>Статус</span>
+          <StatusBadge tone={statusTone} size="regular">{statusLabel}</StatusBadge>
+          {dateLabel ? <span className={styles.date}>{dateLabel}</span> : null}
+        </div> : null}
+
         <div className={styles.facts}>
           <ProductFact label="Цена">
             <Price amount={Number(minPrice ?? 0)} />
           </ProductFact>
-          <ProductFact label="Варианты">
+          {!columnLabels ? <ProductFact label="Варианты">
             {formatVariantsCount(variantsCount ?? 0)}
-          </ProductFact>
+          </ProductFact> : null}
           <ProductFact label="Остаток">
             {totalStock === null
               ? "Без лимита"
@@ -150,18 +169,24 @@ export function ProductListCard({
           </ProductFact>
         </div>
 
-        <div className={styles.state}>
+        {!columnLabels ? <div className={styles.state}>
           <span className={styles.label}>Статус</span>
           <StatusBadge tone={statusTone} size="regular">
             {statusLabel}
           </StatusBadge>
           {dateLabel ? <span className={styles.date}>{dateLabel}</span> : null}
-        </div>
+        </div> : null}
 
-        <span className={styles.chevron} aria-hidden="true">
+        {columnLabels ? <div className={styles.added}>
+          <ProductFact label="Добавлен">{formatProductCreatedAt(createdAt)}</ProductFact>
+        </div> : null}
+
+        {!trailingControl ? <span className={styles.chevron} aria-hidden="true">
           <Icon name="chevron-right" size={18} strokeWidth={1.5} />
-        </span>
+        </span> : null}
       </div>
+
+      {trailingControl ? <div className={styles.trailingControl}>{trailingControl}</div> : null}
 
       {actions ? (
         <div className={styles.actions}>
@@ -169,6 +194,39 @@ export function ProductListCard({
         </div>
       ) : null}
     </article>
+  );
+}
+
+export function ProductListHeader({ sort, onSort, disabled = false, leadingControl }: {
+  sort: ProductSort | null;
+  onSort: (key: ProductSortKey) => void;
+  disabled?: boolean;
+  leadingControl?: ReactNode;
+}) {
+  function heading(key: ProductSortKey, label: string) {
+    const active = sort?.key === key;
+    return <button type="button" className={`${styles.sortButton} ${key === "minPrice" || key === "totalStock" || key === "createdAt" ? styles.mutedColumn : ""}`} disabled={disabled}
+      aria-label={`${label}: ${active ? (sort.direction === "asc" ? "по возрастанию" : "по убыванию") : "без сортировки"}. Сортировать ${nextProductSort(sort, key).direction === "desc" ? "по убыванию" : "по возрастанию"}`}
+      onClick={() => onSort(key)}>
+      {label}
+      <SortIndicator direction={active ? sort.direction : null} />
+    </button>;
+  }
+  return (
+    <div className={`${styles.listHeader} ${styles.cardOrderList} ${styles.cardWithControls}`} role="group" aria-label="Сортировка товаров">
+      {leadingControl ?? <span />}
+      <div className={styles.main}>
+        <span className={styles.photoHeading}>Фото</span>
+        {heading("title", "Название")}
+        {heading("status", "Статус")}
+        <div className={styles.facts}>
+          {heading("minPrice", "Цена")}
+          {heading("totalStock", "Остаток")}
+        </div>
+        {heading("createdAt", "Добавлен")}
+      </div>
+      <span />
+    </div>
   );
 }
 

@@ -14,10 +14,12 @@ type Option = {
 };
 
 type Props<TValue extends SelectValue> = {
-  label: string;
+  label?: string;
+  ariaLabel?: string;
   value: TValue | "";
   options: Option[];
   placeholder?: string;
+  emptyOptionLabel?: string;
   invalid?: boolean;
   errorId?: string;
   required?: boolean;
@@ -28,9 +30,11 @@ type Props<TValue extends SelectValue> = {
 
 export function FormSelect<TValue extends SelectValue>({
   label,
+  ariaLabel,
   value,
   options,
   placeholder,
+  emptyOptionLabel,
   invalid = false,
   errorId,
   required = false,
@@ -76,13 +80,14 @@ export function FormSelect<TValue extends SelectValue>({
 
   return (
     <div
+      data-ui="field"
       className={full ? styles.fieldFull : styles.field}
       data-validation-error={invalid ? "true" : undefined}
       ref={rootRef}
     >
-      <span id={labelId} className={required ? styles.required : undefined}>
+      {label ? <span id={labelId} className={required ? styles.required : undefined}>
         {label}
-      </span>
+      </span> : null}
 
       <div
         className={`${styles.select} ${open ? styles.selectOpen : ""} ${
@@ -101,7 +106,8 @@ export function FormSelect<TValue extends SelectValue>({
           aria-haspopup="listbox"
           aria-invalid={invalid || undefined}
           aria-controls={listboxId}
-          aria-labelledby={`${labelId} ${valueId}`}
+          aria-label={label ? undefined : ariaLabel}
+          aria-labelledby={label ? `${labelId} ${valueId}` : undefined}
           onClick={() => setOpen((current) => !current)}
         >
           <span
@@ -111,7 +117,7 @@ export function FormSelect<TValue extends SelectValue>({
             {displayValue}
           </span>
           <span className={styles.chevron} aria-hidden="true">
-            <Icon name="chevron-down" size={18} strokeWidth={1.8} />
+            <Icon name="chevron-down" size={20} strokeWidth={1.5} />
           </span>
         </button>
 
@@ -122,7 +128,7 @@ export function FormSelect<TValue extends SelectValue>({
           aria-hidden={!open}
         >
           <div className={styles.options}>
-            {placeholder && !required ? (
+            {(emptyOptionLabel || placeholder) && !required ? (
               <button
                 type="button"
                 className={styles.option}
@@ -131,7 +137,7 @@ export function FormSelect<TValue extends SelectValue>({
                 tabIndex={open ? 0 : -1}
                 onClick={() => selectValue("")}
               >
-                <span className={`${styles.optionLabel} ${styles.optionPlaceholder}`}>{placeholder}</span>
+                <span className={`${styles.optionLabel} ${emptyOptionLabel ? styles.optionValue : styles.optionPlaceholder}`}>{emptyOptionLabel ?? placeholder}</span>
               </button>
             ) : null}
 

@@ -406,7 +406,8 @@ export function CheckoutResultContent({ orderId: routeOrderId }: { orderId?: str
                     </div>
                     {item.size || item.color ? (
                       <div className={`${styles.productMeta} textSmall`}>
-                        {[item.size, item.color].filter(Boolean).join(" · ")}
+                        {item.size ? <span>{item.size}</span> : null}
+                        {item.color ? <span>{item.color}</span> : null}
                       </div>
                     ) : null}
                   </div>

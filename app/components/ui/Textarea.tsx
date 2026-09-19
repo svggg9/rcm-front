@@ -1,4 +1,4 @@
-import type { TextareaHTMLAttributes } from "react";
+import { useId, type TextareaHTMLAttributes } from "react";
 
 import { Field } from "./Field";
 
@@ -19,6 +19,7 @@ export function Textarea({
   ...props
 }: Props) {
   const visibleError = error?.trim();
+  const errorId = useId();
 
   return (
     <Field label={label} required={required} hint={hint} variant={fieldVariant}>
@@ -26,8 +27,10 @@ export function Textarea({
         className={`textarea ${error ? "inputError" : ""} ${className}`.trim()}
         aria-invalid={error ? "true" : undefined}
         {...props}
+        aria-required={required || undefined}
+        aria-describedby={[props["aria-describedby"], visibleError ? errorId : null].filter(Boolean).join(" ") || undefined}
       />
-      {visibleError ? <div className="fieldError">{visibleError}</div> : null}
+      {visibleError ? <div className="fieldError" id={errorId}>{visibleError}</div> : null}
     </Field>
   );
 }

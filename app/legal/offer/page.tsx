@@ -1,5 +1,5 @@
 export const metadata = {
-  title: "Оферта — RCM",
+  title: "Оферта — рцмаркет",
 };
 
 export default function OfferPage() {

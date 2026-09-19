@@ -2,15 +2,10 @@
   padding: 24px 0 34px;
 }
 
-.breadcrumb {
-  width: 170px;
-  height: 11px;
-}
-
 .title {
   width: min(440px, 62vw);
   height: 38px;
-  margin: 38px auto 0;
+  margin: 0 auto;
 }
 
 .description {

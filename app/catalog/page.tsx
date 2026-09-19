@@ -5,10 +5,13 @@ import { cache } from "react";
 import { API_URL } from "../lib/api";
 import { CatalogClient } from "../components/Catalog/CatalogClient";
 import {
-  expandCategorySelection,
+  buildCatalogProductsQuery,
+  canonicalCategoryName,
+  expandCategorySelections,
   firstSearchParam,
   groupCatalogCategories,
   normalizeAudience,
+  normalizeCategorySelection,
   normalizeCatalogView,
   normalizeProducts,
   normalizeSearchList,
@@ -21,6 +24,7 @@ import type {
   CatalogCategory,
   CatalogCollectionOption,
   CatalogProduct,
+  CatalogProductsQuery,
   CatalogSearchParams,
   CatalogSize,
   CatalogView,
@@ -28,10 +32,10 @@ import type {
   SortValue,
 } from "../components/Catalog/catalogTypes";
 
-const SITE_NAME = "RCMarket";
+const SITE_NAME = "рцмаркет";
 
 type NormalizedCatalogParams = {
-  selectedCategory: string;
+  selectedCategories: string[];
   selectedAudience: SelectedAudience;
   searchQuery: string;
   selectedBrands: string[];
@@ -58,12 +62,12 @@ function buildCatalogSeoTitle(params: {
   if (params.category) {
     if (params.audience === "men") return `${params.category} для мужчин | ${SITE_NAME}`;
     if (params.audience === "women") return `${params.category} для женщин | ${SITE_NAME}`;
-    return `${params.category} российских марок | ${SITE_NAME}`;
+    return `${params.category} независимых брендов | ${SITE_NAME}`;
   }
 
   if (params.audience === "men") return `Товары для мужчин | ${SITE_NAME}`;
   if (params.audience === "women") return `Товары для женщин | ${SITE_NAME}`;
-  return `Каталог российских марок | ${SITE_NAME}`;
+  return `Каталог независимых брендов | ${SITE_NAME}`;
 }
 
 function buildCatalogSeoDescription(params: {
@@ -74,37 +78,37 @@ function buildCatalogSeoDescription(params: {
   collectionTitle?: string;
 }): string {
   if (params.q) {
-    return `Результаты поиска «${params.q}» в каталоге RCMarket.`;
+    return `Результаты поиска «${params.q}» в каталоге рцмаркет.`;
   }
 
   if (params.collectionTitle) {
-    return `${params.collectionTitle}: редакционная подборка российских марок в RCMarket.`;
+    return `${params.collectionTitle}: редакционная подборка независимых брендов в рцмаркет.`;
   }
 
   if (params.view === "new") {
-    return "Новинки российских производителей и независимых локальных марок в RCMarket.";
+    return "Новинки независимых брендов в рцмаркет.";
   }
 
   if (params.category) {
-    return `${params.category} в каталоге RCMarket: вещи российских производителей и независимых локальных марок.`;
+    return `${params.category} в каталоге рцмаркет: вещи независимых брендов.`;
   }
 
   if (params.audience === "men") {
-    return "Мужская коллекция российских производителей и независимых локальных марок в RCMarket.";
+    return "Мужская коллекция независимых брендов в рцмаркет.";
   }
 
   if (params.audience === "women") {
-    return "Женская коллекция российских производителей и независимых локальных марок в RCMarket.";
+    return "Женская коллекция независимых брендов в рцмаркет.";
   }
 
-  return "Каталог российских производителей и независимых локальных марок RCMarket.";
+  return "Каталог независимых брендов рцмаркет.";
 }
 
 function buildCatalogCanonical(params: NormalizedCatalogParams & { page: number }): string {
   const search = new URLSearchParams();
 
   if (params.selectedAudience !== "all") search.set("audience", params.selectedAudience);
-  if (params.selectedCategory) search.set("category", params.selectedCategory);
+  params.selectedCategories.forEach((category) => search.append("category", category));
   params.selectedBrands.forEach((brand) => search.append("brands", brand));
   params.selectedSizes.forEach((size) => search.append("sizes", size));
   if (params.minPrice !== undefined) search.set("minPrice", String(params.minPrice));
@@ -122,7 +126,10 @@ function buildCatalogCanonical(params: NormalizedCatalogParams & { page: number 
 }
 
 function normalizeCatalogParams(params: CatalogSearchParams): NormalizedCatalogParams {
-  const selectedCategory = firstSearchParam(params.category).trim();
+  const selectedCategories = Array.from(new Set(
+    (Array.isArray(params.category) ? params.category : [params.category ?? ""])
+      .map(canonicalCategoryName).filter(Boolean)
+  ));
   const selectedAudience = normalizeAudience(firstSearchParam(params.audience) || null);
   const searchQuery = firstSearchParam(params.q).trim().slice(0, 120);
   const selectedBrands = normalizeSearchList(params.brands ?? params.brand);
@@ -132,7 +139,7 @@ function normalizeCatalogParams(params: CatalogSearchParams): NormalizedCatalogP
   let selectedView = normalizeCatalogView(firstSearchParam(params.view));
   let selectedCollectionId = parsePositiveId(params.collection);
 
-  if (selectedCategory) {
+  if (selectedCategories.length > 0) {
     selectedView = "";
     selectedCollectionId = undefined;
   } else if (selectedCollectionId !== undefined) {
@@ -144,7 +151,7 @@ function normalizeCatalogParams(params: CatalogSearchParams): NormalizedCatalogP
   }
 
   return {
-    selectedCategory,
+    selectedCategories,
     selectedAudience,
     searchQuery,
     selectedBrands,
@@ -195,14 +202,14 @@ export async function generateMetadata({
   );
   const selectedCollectionId = selectedCollection?.id;
   const title = buildCatalogSeoTitle({
-    category: normalized.selectedCategory,
+    category: normalized.selectedCategories.join(", "),
     audience: normalized.selectedAudience,
     q: normalized.searchQuery,
     view: normalized.selectedView,
     collectionTitle: selectedCollection?.title,
   });
   const description = buildCatalogSeoDescription({
-    category: normalized.selectedCategory,
+    category: normalized.selectedCategories.join(", "),
     audience: normalized.selectedAudience,
     q: normalized.searchQuery,
     view: normalized.selectedView,
@@ -218,42 +225,15 @@ export async function generateMetadata({
   };
 }
 
-async function getCatalogProducts(params: {
-  audience: SelectedAudience;
-  categories: string[];
-  brands: string[];
-  sizes: string[];
-  minPrice?: number;
-  maxPrice?: number;
-  q: string;
-  sort: SortValue;
-  page: number;
-  collectionId?: number;
-}): Promise<{
+async function getCatalogProducts(params: CatalogProductsQuery): Promise<{
   products: CatalogProduct[];
   totalPages: number;
   totalProducts: number;
   hasError: boolean;
 }> {
   try {
-    const search = new URLSearchParams();
-
-    if (params.audience !== "all") search.set("audience", params.audience);
-    params.categories.forEach((category) => search.append("categories", category));
-    params.brands.forEach((brand) => search.append("brands", brand));
-    params.sizes.forEach((size) => search.append("sizes", size));
-    if (params.minPrice !== undefined) search.set("minPrice", String(params.minPrice));
-    if (params.maxPrice !== undefined) search.set("maxPrice", String(params.maxPrice));
-    if (params.q) search.set("q", params.q);
-    if (params.sort) search.set("sort", params.sort);
-    if (params.collectionId !== undefined) {
-      search.set("collectionId", String(params.collectionId));
-    }
-    search.set("page", String(Math.max(0, params.page - 1)));
-    search.set("size", "48");
-
     const response = await fetch(
-      `${API_URL}/api/products/page?${search.toString()}`,
+      `${API_URL}/api/products/page?${buildCatalogProductsQuery(params)}`,
       params.q ? { cache: "no-store" } : { next: { revalidate: 60 } }
     );
 
@@ -285,9 +265,34 @@ async function getCatalogProducts(params: {
   }
 }
 
+/**
+ * The dictionary has no availability counts. A complete small-catalog snapshot
+ * lets mobile omit empty choices without guessing from one filtered page.
+ * Larger catalogs and unavailable responses retain the full dictionary.
+ */
+const getMobileAvailableCategories = cache(async (): Promise<string[] | null> => {
+  try {
+    const response = await fetch(`${API_URL}/api/products/page?page=0&size=96`, {
+      next: { revalidate: 60 },
+    });
+    if (!response.ok) return null;
+    const data: unknown = await response.json();
+    if (!data || typeof data !== "object") return null;
+    const page = data as { content?: unknown; totalElements?: unknown };
+    if (!Array.isArray(page.content) || typeof page.totalElements !== "number") return null;
+    const products = normalizeProducts(page.content);
+    if (products.length !== page.totalElements) return null;
+    return Array.from(new Set(products.map((product) => product.category).filter(Boolean)));
+  } catch {
+    return null;
+  }
+});
+
 async function getCatalogArray(path: string): Promise<unknown[]> {
   try {
-    const response = await fetch(`${API_URL}${path}`, { next: { revalidate: 300 } });
+    const response = await fetch(`${API_URL}${path}`, process.env.NODE_ENV === "development"
+      ? { cache: "no-store" }
+      : { next: { revalidate: 300 } });
     if (!response.ok) return [];
     const data: unknown = await response.json();
     return Array.isArray(data) ? data : [];
@@ -331,11 +336,16 @@ export default async function CatalogPage({
 }: {
   searchParams?: Promise<CatalogSearchParams>;
 }) {
-  const normalized = normalizeCatalogParams((searchParams ? await searchParams : {}) ?? {});
+  const params = (searchParams ? await searchParams : {}) ?? {};
+  const normalized = normalizeCatalogParams(params);
+  const requestedCategories = Array.isArray(params.category) ? params.category : [params.category ?? ""];
+  if (requestedCategories.some((category) => canonicalCategoryName(category) !== category.trim())) {
+    redirect(buildCatalogCanonical(normalized));
+  }
   const effectiveSort: SortValue =
     normalized.sortBy || (normalized.selectedView === "new" ? "newest" : "");
   const canStartProductsImmediately =
-    !normalized.selectedCategory && normalized.selectedCollectionId === undefined;
+    normalized.selectedCategories.length === 0 && normalized.selectedCollectionId === undefined;
   const earlyProducts = canStartProductsImmediately
     ? getCatalogProducts({
         audience: normalized.selectedAudience,
@@ -350,10 +360,11 @@ export default async function CatalogPage({
       })
     : Promise.resolve(null);
 
-  const [options, collections, prefetchedProducts] = await Promise.all([
+  const [options, collections, prefetchedProducts, mobileAvailableCategories] = await Promise.all([
     getCatalogOptions(),
     getActiveCatalogCollections(),
     earlyProducts,
+    getMobileAvailableCategories(),
   ]);
   const selectedCollection = collections.find(
     (collection) => collection.id === normalized.selectedCollectionId
@@ -369,8 +380,12 @@ export default async function CatalogPage({
   }
 
   const categoryGroups = groupCatalogCategories(options.categories);
-  const expandedCategories = expandCategorySelection(
-    normalized.selectedCategory,
+  const selectedCategories = normalizeCategorySelection(normalized.selectedCategories, categoryGroups);
+  if (categoryGroups.length > 0 && selectedCategories.join("\n") !== normalized.selectedCategories.join("\n")) {
+    redirect(buildCatalogCanonical({ ...effectiveNormalized, selectedCategories }));
+  }
+  const expandedCategories = expandCategorySelections(
+    normalized.selectedCategories,
     categoryGroups
   );
   const { products, totalPages, totalProducts, hasError } =
@@ -397,10 +412,11 @@ export default async function CatalogPage({
       <CatalogClient
         products={products}
         categoryGroups={categoryGroups}
+        mobileAvailableCategories={mobileAvailableCategories}
         brands={options.brands}
         sizes={options.sizes}
         collections={collections}
-        selectedCategory={normalized.selectedCategory}
+        selectedCategories={normalized.selectedCategories}
         selectedAudience={normalized.selectedAudience}
         selectedBrands={normalized.selectedBrands}
         selectedSizes={normalized.selectedSizes}

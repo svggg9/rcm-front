@@ -9,10 +9,9 @@ export function EmptyCart() {
       <EmptyState
         icon="cart"
         title="Корзина пуста"
-        text="Добавьте вещи из каталога, чтобы оформить заказ."
         actions={
           <Link href="/catalog" className={styles.emptyAction}>
-            Перейти в каталог
+            Каталог
           </Link>
         }
       />

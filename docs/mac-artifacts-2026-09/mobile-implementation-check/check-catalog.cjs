@@ -1,0 +1,91 @@
+const { chromium } = require('/Users/admin/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright');
+const assert = require('node:assert/strict');
+let browser;
+
+(async () => {
+  browser = await chromium.launch({ channel: 'chrome', headless: true });
+  const context = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
+  const page = await context.newPage();
+  const errors = [];
+  page.on('pageerror', error => errors.push(error.message));
+  // All mutation traffic is blocked. This check only browses public products.
+  await context.route('**/*', route => ['GET','HEAD','OPTIONS'].includes(route.request().method()) ? route.continue() : route.abort());
+  await page.goto('http://localhost:3000/catalog', { waitUntil: 'networkidle' });
+  await page.addStyleTag({ content: 'nextjs-portal { display: none !important; }' });
+  const nav = page.getByRole('navigation', { name: 'Навигация покупателя' });
+  await nav.waitFor();
+  assert.equal(await nav.getByRole('link').count(), 5);
+  assert.equal(await nav.locator('[aria-current="page"]').textContent(), 'Каталог');
+  assert.equal((await page.getByRole('heading', { name: 'Каталог', exact: true }).boundingBox()).width, 1);
+  assert.equal(await page.getByPlaceholder(/поиск/i).count(), 0);
+  const products = page.getByRole('region', { name: 'Товары', exact: true });
+  const firstCount = await products.locator('article').count();
+  assert.ok(firstCount > 0);
+  await page.screenshot({ path: __dirname + '/catalog-390.png' });
+  const trigger = page.getByRole('button', { name: 'Все товары', exact: true });
+  await trigger.click();
+  const sheet = page.getByRole('dialog', { name: 'Категории', exact: true });
+  await sheet.waitFor();
+  assert.equal(await page.evaluate(() => document.body.style.overflow), 'hidden');
+  assert.equal(await nav.evaluate(el => !!el.closest('[inert]')), true);
+  await page.screenshot({ path: __dirname + '/categories-390.png' });
+  await page.keyboard.press('Escape');
+  await sheet.waitFor({ state: 'hidden' });
+  assert.equal(await trigger.evaluate(el => el === document.activeElement), true);
+  assert.equal(await page.evaluate(() => document.body.style.overflow), '');
+  await page.getByRole('button', { name: 'Фильтры', exact: true }).click();
+  await page.getByRole('dialog').waitFor();
+  await page.screenshot({ path: __dirname + '/filters-390.png' });
+  await page.keyboard.press('Escape');
+  const more = page.getByRole('button', { name: 'Показать ещё', exact: true });
+  if (await more.count()) {
+    let failNextPage = true;
+    await page.route('**/api/products/page?**', route => {
+      if (failNextPage && new URL(route.request().url()).searchParams.get('page') === '1') {
+        failNextPage = false;
+        return route.fulfill({ status: 503, body: 'Test retry' });
+      }
+      return route.continue();
+    });
+    await more.click();
+    await page.getByRole('button', { name: 'Повторить', exact: true }).waitFor();
+    assert.equal(await products.locator('article').count(), firstCount);
+    await page.getByRole('button', { name: 'Повторить', exact: true }).click();
+    await page.waitForFunction(n => document.querySelectorAll('section[aria-label="Товары"] article').length > n, firstCount);
+    console.log('Append:', firstCount, '→', await products.locator('article').count());
+  }
+  await page.setViewportSize({ width: 320, height: 740 });
+  await page.evaluate(() => window.scrollTo(0,0));
+  assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
+  await page.screenshot({ path: __dirname + '/catalog-320.png' });
+  const firstLink = products.locator('article a').first();
+  await firstLink.click();
+  await page.waitForURL(url => url.pathname.startsWith('/p/') || url.pathname.startsWith('/product/'));
+  assert.equal(await nav.count(), 0);
+  await page.getByRole('link', { name: 'Назад', exact: true }).waitFor();
+  await page.goBack({ waitUntil: 'networkidle' });
+  assert.ok(await products.locator('article').count() >= firstCount);
+  console.log('Back:', await products.locator('article').count());
+  await trigger.click();
+  await sheet.getByRole('button', { name: 'Футболки', exact: true }).click();
+  await page.waitForURL(url => !!url.searchParams.get('category'));
+  await page.waitForLoadState('networkidle');
+  assert.equal(await page.getByRole('list', { name: 'Дополнительно загруженные товары' }).count(), 0);
+  await page.getByRole('button', { name: 'Фильтры', exact: true }).click();
+  await page.getByRole('dialog').getByRole('button', { name: 'Для неё', exact: true }).click();
+  await page.getByRole('button', { name: 'Показать товары', exact: true }).click();
+  await page.waitForURL(url => url.searchParams.get('audience') === 'women');
+  await nav.getByRole('link', { name: 'Каталог', exact: true }).click();
+  await page.waitForURL(url => url.pathname === '/catalog' && !url.search);
+  await page.waitForLoadState('networkidle');
+  console.log('Retry, category reset and audience filter passed');
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.evaluate(() => window.scrollTo(0,0));
+  assert.equal(await nav.isVisible(), false);
+  assert.equal(await page.getByRole('navigation', { name: 'Основные категории', exact: true }).isVisible(), true);
+  assert.equal(await products.locator('article:visible').count(), firstCount);
+  await page.screenshot({ path: __dirname + '/catalog-desktop.png' });
+  console.log('Page errors:', JSON.stringify(errors));
+  assert.deepEqual(errors, []);
+  await browser.close();
+})().catch(error => { console.error(error); process.exitCode = 1; }).finally(async () => { await browser?.close(); });

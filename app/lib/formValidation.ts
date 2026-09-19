@@ -34,7 +34,8 @@ export function scrollToFirstValidationError({
 
     if (!errorNode) return;
 
-    errorNode.scrollIntoView({ behavior, block });
+    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    errorNode.scrollIntoView({ behavior: reducedMotion ? "auto" : behavior, block });
 
     const focusTarget = errorNode.matches(FOCUSABLE_SELECTOR)
       ? errorNode

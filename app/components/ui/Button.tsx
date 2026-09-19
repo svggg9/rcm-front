@@ -1,4 +1,5 @@
 import type { ButtonHTMLAttributes, ReactNode } from "react";
+import styles from "./Button.module.css";
 
 type ButtonVariant =
   | "primary"
@@ -13,6 +14,7 @@ type Props = ButtonHTMLAttributes<HTMLButtonElement> & {
   children: ReactNode;
   loading?: boolean;
   success?: boolean;
+  reserveLabelSpace?: boolean;
 };
 
 export function Button({
@@ -21,6 +23,7 @@ export function Button({
   children,
   loading = false,
   success = false,
+  reserveLabelSpace = true,
   disabled,
   ...props
 }: Props) {
@@ -36,13 +39,16 @@ export function Button({
   return (
     <button
       className={`${variantClass} ${className}`.trim()}
-      disabled={disabled || loading}
+      disabled={disabled || loading || success}
       aria-busy={loading || undefined}
       data-loading={loading || undefined}
       data-success={success || undefined}
+      aria-label={reserveLabelSpace && (loading || success) && typeof children === "string" ? children : undefined}
       {...props}
     >
-      <span className="buttonContent">
+      <span className={`buttonContent ${reserveLabelSpace ? styles.stableContent : ""}`}>
+        {reserveLabelSpace && <span className={`${styles.label} ${loading || success ? styles.hidden : ""}`}
+          aria-hidden={loading || success || undefined}>{children}</span>}
         {loading ? (
           <span className="buttonLoader" aria-hidden="true" />
         ) : success ? (
@@ -50,7 +56,7 @@ export function Button({
             <path d="M4 10.5L8.1 14.5L16 5.8" />
           </svg>
         ) : (
-          children
+          reserveLabelSpace ? null : children
         )}
       </span>
     </button>

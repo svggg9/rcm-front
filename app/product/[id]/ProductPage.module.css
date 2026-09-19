@@ -637,49 +637,6 @@
   height: 18px;
 }
 
-.favoriteIconBtn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-
-  width: 34px;
-  height: 34px;
-
-  border: 0;
-  background: transparent;
-  color: var(--black);
-
-  cursor: pointer;
-  transition: background-color var(--transition-fast);
-}
-
-.favoriteIconBtn img {
-  display: block;
-  width: 24px;
-  height: 24px;
-  transition: filter var(--transition-fast), transform var(--transition-fast);
-}
-
-.favoriteIconBtn:hover img,
-.favoriteIconBtnActive img {
-  filter: brightness(0);
-}
-
-.favoriteIconBtn:hover img {
-  transform: scale(1.04);
-}
-
-.favoriteIconBtn:focus-visible {
-  outline: 1px solid var(--black);
-  outline-offset: 3px;
-}
-
-.favoriteIconBtn:disabled {
-  opacity: 0.55;
-  cursor: wait;
-}
-
 .delivery {
   display: flex;
   flex-direction: column;

@@ -20,27 +20,27 @@
 }
 
 .size-regular {
-  min-height: 22px;
+  min-height: 24px;
   padding: 0 8px;
-  font-size: 11px;
+  font-size: var(--font-xs);
 }
 
 .tone-default {
-  background: var(--surface-hover);
+  background: #ececea;
   color: var(--black);
 }
 
 .tone-success {
-  background: rgba(0, 128, 0, 0.06);
-  color: #1d6b36;
+  background: #d7f4df;
+  color: var(--black);
 }
 
 .tone-warning {
-  background: rgba(180, 120, 0, 0.06);
-  color: #8a5a00;
+  background: color-mix(in srgb, var(--gold) 30%, var(--white));
+  color: var(--black);
 }
 
 .tone-danger {
-  background: rgba(220, 38, 38, 0.06);
-  color: #b42318;
+  background: #ffd9d9;
+  color: var(--black);
 }

@@ -1,0 +1,27 @@
+.fields :global(.field),
+.fields div:has(> div > button[role="combobox"]) { gap: 4px; }
+
+.fields :global(.field) > :global(.label),
+.fields :global(.field) > small,
+.fields div:has(> div > button[role="combobox"]) > span:first-child { color: var(--black); }
+
+.fields :global(.field) > :global(.label),
+.fields div:has(> div > button[role="combobox"]) > span:first-child { font-weight: 400; }
+
+.fields :is(:global(.input), :global(.textarea), :global(.phoneInput), :global(.phoneInputPrefix), [role="combobox"], [role="option"]),
+.fields [role="combobox"] > span:first-child,
+.fields [role="option"] > span { font-family: inherit; font-size: 14px; line-height: 21px; font-weight: 400; letter-spacing: normal; color: var(--black); }
+
+.fields :global(.field) > :is(:global(.input), :global(.textarea), :global(.phoneInputShell)),
+.fields div:has(> button[role="combobox"]) { border: 1px solid var(--black); color: var(--black); }
+
+.fields [role="listbox"] { border-width: 1px; }
+.fields button[role="combobox"] { color: var(--black); }
+
+.fields :global(.field) > :global(.inputError) { border-color: var(--danger); }
+.fields :global(.fieldError) { margin: 0; color: var(--danger); font-size: 13px; line-height: 18px; }
+
+.fields :is(:global(.input), :global(.textarea)):focus-visible,
+.fields :global(.phoneInputShell):has(input:focus-visible),
+.fields div:has(> button[role="combobox"]:focus-visible) { outline: 1px solid var(--black); outline-offset: 2px; }
+.fields :global(.inputError):is(:focus-visible, :has(input:focus-visible)) { outline-color: var(--danger); }

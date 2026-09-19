@@ -73,6 +73,12 @@
   border-color: var(--black);
 }
 
+.mobileSummary,
+.editButton,
+.doneButton {
+  display: none;
+}
+
 @media (max-width: 760px) {
   .section {
     max-width: none;
@@ -81,5 +87,71 @@
 
   .contactGrid {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .section {
+    padding: 16px 0;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .header {
+    min-height: 44px;
+    margin-bottom: 10px;
+  }
+
+  .title {
+    font-size: 17px;
+  }
+
+  .mobileSummary {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    color: var(--black);
+    font-size: 14px;
+    line-height: 1.4;
+    overflow-wrap: anywhere;
+  }
+
+  .summaryMuted {
+    color: var(--muted);
+    font-size: 13px;
+  }
+
+  .bodyCompact {
+    display: none;
+  }
+
+  .editButton {
+    display: inline-flex;
+    flex: 0 0 44px;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    border: 0;
+    background: transparent;
+    color: var(--black);
+    cursor: pointer;
+  }
+
+  .doneButton {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    align-self: flex-start;
+    min-height: 44px;
+    padding: 0 16px;
+    border: 1px solid var(--black);
+    background: var(--white);
+    color: var(--black);
+    font-size: 13px;
+    cursor: pointer;
+  }
+
+  .body input {
+    font-size: 16px;
   }
 }

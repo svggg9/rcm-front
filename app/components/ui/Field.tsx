@@ -33,7 +33,7 @@ export function Field({
     .join(" ");
 
   return (
-    <label className={fieldClassName}>
+    <label className={fieldClassName} data-ui="field">
       <span className={labelClassName}>{label}</span>
       {children}
       {hint ? <small className="muted">{hint}</small> : null}

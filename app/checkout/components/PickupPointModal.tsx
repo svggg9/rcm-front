@@ -112,7 +112,8 @@ export function PickupPointModal({
                     className={styles.item}
                     onClick={() => onSelect(point.id)}
                   >
-                    <span className={styles.itemTitle}>СДЭК • {point.label}</span>
+                    <span className={styles.itemTitle}>СДЭК</span>
+                    <span className={styles.itemTitle}>{point.label}</span>
 
                     {deliveryPrice > 0 ? (
                       <span className={styles.itemMeta}>

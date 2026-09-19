@@ -1,9 +1,9 @@
 import { SellerApplyPageClient } from "./SellerApplyPageClient";
 
 export const metadata = {
-  title: "Стать продавцом — RCM",
+  title: "Стать продавцом — рцмаркет",
   description:
-    "Короткая заявка для российских марок, которые хотят продавать товары на RCM.",
+    "Короткая заявка для независимых брендов, которые хотят продавать товары на рцмаркет.",
 };
 
 export default function SellerApplyPage() {

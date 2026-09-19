@@ -1,11 +1,13 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useSearchParams } from "next/navigation";
 
 import { Button } from "../../components/ui/Button";
 import { CabinetSkeleton } from "../../components/ui/CabinetSkeleton";
 import { EmptyState } from "../../components/ui/EmptyState";
 import { StatusBadge } from "../../components/ui/StatusBadge";
+import { ReturnInspectionForm } from "./ReturnInspectionForm";
 import {
   getSellerReturns,
   inspectSellerReturn,
@@ -19,6 +21,9 @@ import styles from "./SellerReturnsTab.module.css";
 const PAGE_SIZE = 20;
 
 export function SellerReturnsTab() {
+  const searchParams = useSearchParams();
+  const targetReturnId = Number(searchParams.get("returnId")) || null;
+  const focusedReturnRef = useRef<number | null>(null);
   const [requests, setRequests] = useState<SellerReturnListItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -27,31 +32,37 @@ export function SellerReturnsTab() {
   const [totalItems, setTotalItems] = useState(0);
   const [busyId, setBusyId] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [comments, setComments] = useState<Record<number, string>>({});
-  const [amounts, setAmounts] = useState<Record<number, string>>({});
-  const [resellable, setResellable] = useState<Record<number, boolean>>({});
+  const [loadMoreFailed, setLoadMoreFailed] = useState(false);
+  const [attempt, setAttempt] = useState(0);
+  const [feedback, setFeedback] = useState<{ id: number; error: boolean; message: string } | null>(null);
+  const actionInFlightRef = useRef(false);
   const loadingMoreRef = useRef(false);
   const loadMoreControllerRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
     const controller = new AbortController();
-    void getSellerReturns({ size: PAGE_SIZE, signal: controller.signal })
+    async function loadInitial() {
+      let result = await getSellerReturns({ size: PAGE_SIZE, signal: controller.signal });
+      const items = [...result.items];
+      while (targetReturnId && !items.some(item => item.id === targetReturnId) && result.page + 1 < result.totalPages) {
+        result = await getSellerReturns({ page: result.page + 1, size: PAGE_SIZE, signal: controller.signal });
+        items.push(...result.items);
+      }
+      return { ...result, items };
+    }
+    void loadInitial()
       .then((result) => {
+        if (controller.signal.aborted) return;
+        setError(null);
         setRequests(result.items);
         setTotalItems(result.totalItems);
         setNextPage(result.page + 1);
         setHasMore(result.page + 1 < result.totalPages);
-        setAmounts(
-          Object.fromEntries(
-            result.items.map((item) => [
-              item.id,
-              String(item.approvedRefundAmount ?? item.requestedAmount ?? ""),
-            ])
-          )
-        );
       })
       .catch((loadError) => {
+        if (controller.signal.aborted) return;
         if (loadError instanceof DOMException && loadError.name === "AbortError") return;
+        setLoadMoreFailed(false);
         setError(
           loadError instanceof Error
             ? loadError.message
@@ -65,7 +76,16 @@ export function SellerReturnsTab() {
       controller.abort();
       loadMoreControllerRef.current?.abort();
     };
-  }, []);
+  }, [targetReturnId, attempt]);
+
+  useEffect(() => {
+    if (loading || !targetReturnId || focusedReturnRef.current === targetReturnId) return;
+    const card = document.getElementById(`return-${targetReturnId}`);
+    if (!card) return;
+    focusedReturnRef.current = targetReturnId;
+    card.scrollIntoView({ block: "center" });
+    card.focus({ preventScroll: true });
+  }, [loading, requests, targetReturnId]);
 
   async function loadMore() {
     if (!hasMore || loadingMoreRef.current) return;
@@ -80,6 +100,7 @@ export function SellerReturnsTab() {
         size: PAGE_SIZE,
         signal: controller.signal,
       });
+      if (controller.signal.aborted) return;
       setRequests((current) => {
         const existingIds = new Set(current.map((item) => item.id));
         return [
@@ -87,20 +108,12 @@ export function SellerReturnsTab() {
           ...result.items.filter((item) => !existingIds.has(item.id)),
         ];
       });
-      setAmounts((current) => ({
-        ...current,
-        ...Object.fromEntries(
-          result.items.map((item) => [
-            item.id,
-            String(item.approvedRefundAmount ?? item.requestedAmount ?? ""),
-          ])
-        ),
-      }));
       setTotalItems(result.totalItems);
       setNextPage(result.page + 1);
       setHasMore(result.page + 1 < result.totalPages);
     } catch (loadError) {
       if (loadError instanceof DOMException && loadError.name === "AbortError") return;
+      setLoadMoreFailed(true);
       setError(
         loadError instanceof Error
           ? loadError.message
@@ -122,47 +135,39 @@ export function SellerReturnsTab() {
   }
 
   async function markReceived(request: SellerReturnListItem) {
-    if (busyId !== null) return;
+    if (actionInFlightRef.current) return;
+    actionInFlightRef.current = true;
     setBusyId(request.id);
-    setError(null);
+    setFeedback(null);
     try {
       replaceRequest(await markSellerReturnReceived(request.id));
+      setFeedback({ id: request.id, error: false, message: "Получение товара подтверждено" });
     } catch (actionError) {
-      setError(
-        actionError instanceof Error
+      setFeedback({ id: request.id, error: true, message: actionError instanceof Error
           ? actionError.message
           : "Не удалось подтвердить получение"
-      );
+      });
     } finally {
+      actionInFlightRef.current = false;
       setBusyId(null);
     }
   }
 
-  async function inspect(request: SellerReturnListItem) {
-    if (busyId !== null) return;
-    const amount = Number(amounts[request.id]);
-    if (!Number.isFinite(amount) || amount < 0) {
-      setError("Укажите корректную сумму возврата");
-      return;
-    }
-
+  async function inspect(request: SellerReturnListItem, values: Parameters<typeof inspectSellerReturn>[1]) {
+    if (actionInFlightRef.current) return;
+    actionInFlightRef.current = true;
     setBusyId(request.id);
-    setError(null);
+    setFeedback(null);
     try {
-      replaceRequest(
-        await inspectSellerReturn(request.id, {
-          resellable: resellable[request.id] ?? true,
-          acceptedRefundAmount: amount,
-          comment: comments[request.id] ?? "",
-        })
-      );
+      replaceRequest(await inspectSellerReturn(request.id, values));
+      setFeedback({ id: request.id, error: false, message: "Результат проверки сохранён" });
     } catch (actionError) {
-      setError(
-        actionError instanceof Error
+      setFeedback({ id: request.id, error: true, message: actionError instanceof Error
           ? actionError.message
           : "Не удалось сохранить проверку"
-      );
+      });
     } finally {
+      actionInFlightRef.current = false;
       setBusyId(null);
     }
   }
@@ -173,9 +178,7 @@ export function SellerReturnsTab() {
       {!loading && !error && requests.length === 0 ? (
         <EmptyState
           icon="return-circle"
-          tone="gold"
           title="У вас пока нет возвратов"
-          text="Новые заявки покупателей появятся здесь."
         />
       ) : null}
 
@@ -185,12 +188,12 @@ export function SellerReturnsTab() {
 
       <div className={styles.list}>
         {requests.map((request) => (
-          <article className={styles.card} key={request.id}>
+          <article className={styles.card} key={request.id} id={`return-${request.id}`} tabIndex={-1}>
             <div className={styles.header}>
               <div>
                 <strong>Возврат №{request.id}</strong>
                 <span>
-                  Заказ №{request.orderId} · {request.productTitle}
+                  Заказ №{request.orderId}, {request.productTitle}
                 </span>
               </div>
               <StatusBadge
@@ -232,7 +235,8 @@ export function SellerReturnsTab() {
               <div className={styles.actions}>
                 <Button
                   variant="secondary"
-                  disabled={busyId === request.id}
+                  loading={busyId === request.id}
+                  disabled={busyId !== null}
                   onClick={() => void markReceived(request)}
                 >
                   Товар получен
@@ -241,58 +245,12 @@ export function SellerReturnsTab() {
             ) : null}
 
             {request.status === "RECEIVED" ? (
-              <div className={styles.inspection}>
-                <label>
-                  <span>Состояние товара</span>
-                  <select
-                    value={(resellable[request.id] ?? true) ? "yes" : "no"}
-                    onChange={(event) =>
-                      setResellable((current) => ({
-                        ...current,
-                        [request.id]: event.target.value === "yes",
-                      }))
-                    }
-                  >
-                    <option value="yes">Можно вернуть в продажу</option>
-                    <option value="no">Нельзя вернуть в продажу</option>
-                  </select>
-                </label>
-                <label>
-                  <span>Сумма к возврату</span>
-                  <input
-                    inputMode="decimal"
-                    value={amounts[request.id] ?? ""}
-                    onChange={(event) =>
-                      setAmounts((current) => ({
-                        ...current,
-                        [request.id]: event.target.value,
-                      }))
-                    }
-                  />
-                </label>
-                <label className={styles.fullWidth}>
-                  <span>Комментарий по проверке</span>
-                  <textarea
-                    maxLength={1000}
-                    value={comments[request.id] ?? ""}
-                    onChange={(event) =>
-                      setComments((current) => ({
-                        ...current,
-                        [request.id]: event.target.value,
-                      }))
-                    }
-                  />
-                </label>
-                <div className={`${styles.actions} ${styles.fullWidth}`}>
-                  <Button
-                    variant="primary"
-                    disabled={busyId === request.id}
-                    onClick={() => void inspect(request)}
-                  >
-                    Завершить проверку
-                  </Button>
-                </div>
-              </div>
+              <ReturnInspectionForm request={request} loading={busyId === request.id}
+                disabled={busyId !== null} onInspect={values => inspect(request, values)} />
+            ) : null}
+            {feedback?.id === request.id ? (
+              <div className={`${feedback.error ? "alertDanger" : "alertSuccess"} ${styles.feedback}`}
+                role={feedback.error ? "alert" : "status"}>{feedback.message}</div>
             ) : null}
           </article>
         ))}
@@ -302,15 +260,21 @@ export function SellerReturnsTab() {
         <div className={styles.loadMore}>
           <Button
             variant="secondary"
-            disabled={loadingMore}
+            loading={loadingMore}
             onClick={() => void loadMore()}
           >
-            {loadingMore ? "Загружаем…" : "Показать ещё"}
+            Показать ещё
           </Button>
         </div>
       ) : null}
 
-      {error ? <div className={styles.error}>{error}</div> : null}
+      {error ? <div className={`alertDanger ${styles.feedback}`} role="alert">
+        <p>{error}</p>
+        <Button onClick={() => {
+          if (loadMoreFailed) { void loadMore(); return; }
+          setError(null); setLoading(true); setAttempt(value => value + 1);
+        }}>Повторить</Button>
+      </div> : null}
     </section>
   );
 }

@@ -3,6 +3,7 @@
 import { useEffect, useId, useRef, useState } from "react";
 
 import type { DeliveryCityOption, DeliveryOption } from "../types";
+import { Icon } from "../../components/ui/Icon";
 import { SkeletonBlock } from "../../components/ui/SkeletonBlock";
 
 import { PickupPointModal } from "./PickupPointModal";
@@ -74,9 +75,13 @@ export function CheckoutDeliverySection({
   const citySuggestRef = useRef<HTMLDivElement | null>(null);
   const cityErrorId = useId();
   const pickupPointErrorId = useId();
+  const bodyId = useId();
+  const [editing, setEditing] = useState(false);
 
   const selectedPickupPoint =
     options.find((option) => option.id === selectedAddressId) ?? null;
+  const canCollapse = Boolean(selectedCity && selectedPickupPoint) && !cityError && !pickupPointError;
+  const compact = canCollapse && !editing;
 
   useEffect(() => {
     function onPointerDown(event: PointerEvent) {
@@ -100,11 +105,38 @@ export function CheckoutDeliverySection({
     <section className={styles.section}>
       <div className={styles.header}>
         <div className={styles.headerMain}>
-          <h2 className={styles.title}>Условия и способ получения</h2>
+          <h2 className={styles.title}>Доставка</h2>
         </div>
+        {compact ? (
+          <button
+            type="button"
+            className={styles.editButton}
+            aria-label="Изменить доставку"
+            aria-expanded={false}
+            aria-controls={bodyId}
+            onClick={() => setEditing(true)}
+            disabled={!enabled}
+          >
+            <Icon name="pencil" size={19} strokeWidth={1.5} />
+          </button>
+        ) : null}
       </div>
 
-      <div className={styles.deliveryContainer}>
+      {compact && selectedCity && selectedPickupPoint ? (
+        <div className={styles.mobileSummary}>
+          <span>Пункт выдачи СДЭК</span>
+          <span>{selectedPickupPoint.label}</span>
+          <span className={styles.summaryMuted}>{formatCityDisplayName(selectedCity.fullName)}</span>
+          {deliveryDateText ? <span className={styles.summaryMuted}>{deliveryDateText}</span> : null}
+          {comment.trim() ? <span className={styles.summaryMuted}>{comment.trim()}</span> : null}
+        </div>
+      ) : null}
+
+      <div
+        id={bodyId}
+        className={`${styles.deliveryContainer} ${compact ? styles.bodyCompact : ""}`}
+        onFocusCapture={() => setEditing(true)}
+      >
         <div className={styles.fieldWrap}>
           <span className={styles.flagBadge} aria-label="Флаг: Россия">
             <span className={styles.russiaFlag} aria-hidden="true" />
@@ -198,6 +230,7 @@ export function CheckoutDeliverySection({
             onClick={() => {
               if (!selectedCity) return;
 
+              setEditing(true);
               setPickupModalOpen(true);
               onPickupSearch();
             }}
@@ -207,7 +240,7 @@ export function CheckoutDeliverySection({
 
             <span className={styles.pickupSelectedValue}>
               {selectedPickupPoint
-                ? `СДЭК • ${selectedPickupPoint.label}`
+                ? <><span>СДЭК</span><span>{selectedPickupPoint.label}</span></>
                 : "Выберите пункт выдачи"}
             </span>
           </button>
@@ -249,6 +282,17 @@ export function CheckoutDeliverySection({
             disabled={!enabled}
           />
         </div>
+
+        {canCollapse ? (
+          <button
+            type="button"
+            className={styles.doneButton}
+            onClick={() => setEditing(false)}
+            disabled={!enabled}
+          >
+            Готово
+          </button>
+        ) : null}
       </div>
     </section>
   );

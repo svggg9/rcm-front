@@ -1,19 +1,22 @@
 /* ProductEditPage.module.css */
+.panelContent .page { padding: 0; margin: 0; }
+.panelContent .sellerLayout { margin: 0; }
+.panelContent .aside { order: 0; }
 
 .page {
   display: flex;
   flex-direction: column;
   gap: 16px;
   margin: 0 0 48px;
-  padding-top: 24px;
+  padding: 24px 0 84px;
   color: var(--black);
 }
 
 .sellerLayout {
   width: 100%;
-  margin: 24px 0 48px;
+  margin: 0 0 48px;
   display: grid;
-  grid-template-columns: 260px minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr);
   gap: 0;
   align-items: start;
 }
@@ -27,89 +30,42 @@
 } */
 
 
-.breadcrumbs {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-  flex-wrap: wrap;
+.backLink {
+  display: inline-block;
   margin-bottom: 24px;
-  color: var(--muted);
-}
-
-.breadcrumbs > span:last-child {
-  color: var(--content-primary);
-}
-
-.breadcrumbs a {
-  color: var(--muted);
-  text-decoration: none;
-}
-
-.breadcrumbs a:hover {
   color: var(--black);
+  font-size: var(--font-sm);
+  font-weight: 400;
   text-decoration: underline;
   text-underline-offset: 3px;
 }
 
-.productStatusBar {
-  min-height: 78px;
-  margin-bottom: 22px;
-  padding: 16px 18px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 20px;
-  background: var(--soft);
+.backLink:hover {
+  text-decoration-thickness: 2px;
 }
 
-.productStatusCopy {
-  min-width: 0;
-}
-
-.productStatusLabel {
-  display: block;
-  margin-bottom: 7px;
-  color: var(--muted);
-  font-size: var(--font-xs);
-  line-height: 1.2;
-}
-
-.productStatusTitle {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.productStatusTitle > span:last-child {
-  color: var(--muted);
-  font-size: var(--font-sm);
-  line-height: 1.4;
-}
-
-.productStatusActions {
-  display: flex;
-  flex: 0 0 auto;
-  align-items: center;
-  gap: 8px;
+.backLink:focus-visible {
+  outline: 2px solid var(--black);
+  outline-offset: 4px;
 }
 
 .publishSuccessModal {
   max-width: 560px;
 }
 
-.publishSuccessKicker {
-  margin-bottom: 6px;
+.publishSuccessIcon {
+  width: 24px;
+  height: 24px;
+  margin-bottom: 12px;
   color: var(--success);
-  font-size: var(--font-xs);
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
 }
 
 .publishSuccessText {
   margin: 0 0 16px;
-  color: var(--muted);
-  line-height: 1.55;
+  color: var(--black);
+  font-size: 15px;
+  line-height: 21px;
+  font-weight: 300;
 }
 
 .publishPreviewLink {
@@ -130,7 +86,7 @@
   width: 100%;
   margin: 0;
   display: grid;
-  grid-template-columns: minmax(0, 752px) minmax(240px, 1fr);
+  grid-template-columns: minmax(0, 1fr) minmax(380px, 40%);
   gap: 24px;
   align-items: start;
   justify-content: start;
@@ -151,20 +107,28 @@
 }
 
 .formActions {
+  position: fixed;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 150;
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(180px, 230px));
+  justify-content: end;
   gap: 10px;
+  padding: 12px max(24px, calc((100vw - 1440px) / 2 + 24px));
+  padding-bottom: max(12px, env(safe-area-inset-bottom));
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 -10px 28px rgba(0, 0, 0, 0.06);
+  backdrop-filter: blur(12px);
 }
 
-.formActions .primaryBtn,
-.formActions .secondaryBtn,
-.formActions .archiveBtn,
-.formActions .deleteProductBtn {
+.formActions > button {
   width: 100%;
 }
 
 .publishRequirementHint {
-  grid-column: 1 / -1;
+  margin-top: 24px;
   color: var(--muted);
   font-size: var(--font-xs);
   line-height: 1.45;
@@ -178,6 +142,7 @@
 
 .aside {
   min-width: 0;
+  align-self: stretch;
 }
 
 /* sections */
@@ -366,24 +331,24 @@
 }
 
 .priceField .input {
-  padding-right: 43px;
+  padding-right: 30px;
 }
 
 .priceInlineSuffix {
   position: absolute;
   left: auto;
   right: 15px;
-  top: auto;
-  bottom: 0;
+  top: 19px;
+  bottom: auto;
   z-index: 2;
   display: inline-flex;
   align-items: center;
   height: 44px;
   gap: 4px;
-  font-size: var(--font-lg);
+  font-size: 14px;
   line-height: 1.4;
-  font-weight: 300;
-  color: #8a6a2f;
+  font-weight: 400;
+  color: var(--black);
   transform: none;
   pointer-events: none;
 }
@@ -394,7 +359,7 @@
 
 .priceSuffix {
   flex: 0 0 auto;
-  color: #8a6a2f;
+  color: var(--black);
   font-size: inherit;
   font-weight: inherit;
 }
@@ -642,7 +607,7 @@
   min-width: 0;
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 8px;
 }
 
 .lockedBack {
@@ -1104,12 +1069,20 @@
   font-weight: 500;
 }
 
-.variantImageDropZone span {
+.variantImageDropZone > div:first-child > span {
   display: block;
   margin-top: 4px;
-  color: var(--muted);
-  font-size: var(--font-xs);
+  color: var(--black);
+  font-size: 15px;
+  line-height: 21px;
+  font-weight: 300;
 }
+
+.uploadAction { flex-shrink: 0; }
+.addSizeAction { align-self: flex-end; }
+.variantImageDropZone.dropZoneInvalid { outline: 1px solid var(--danger); }
+.imageDeleteBtn:focus-visible, .variantSizeDeleteBtn:focus-visible { outline: 2px solid var(--black); outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) { .uploadProgress span { animation: none; } }
 
 .variantImageDropZoneDisabled {
   background: var(--soft);
@@ -1132,6 +1105,13 @@
   grid-template-columns: minmax(120px, 1fr) minmax(120px, 1fr) minmax(138px, 0.9fr);
   gap: 10px;
   align-items: start;
+}
+
+@media (max-width: 480px) {
+  .variantSizeRow { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .variantSizeRow > * { min-width: 0; }
+  .variantImageDropZone { flex-direction: column; align-items: stretch; }
+  .uploadAction { align-self: flex-start; }
 }
 
 .variantSizeField {
@@ -1335,10 +1315,37 @@
   top: calc(var(--site-header-height) + 24px);
   display: flex;
   flex-direction: column;
-  gap: 14px;
-  padding: 16px;
+  gap: 12px;
+  padding: 0;
   border: 0;
   background: var(--white);
+}
+
+.previewMedia {
+  min-width: 0;
+  position: relative;
+}
+
+.previewCarousel button {
+  aspect-ratio: 1 / 1;
+}
+
+.previewStatus {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 4;
+}
+
+.previewActions {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 8px;
+  margin-top: 0;
+}
+
+.previewActions > button {
+  width: 100%;
 }
 
 .stickyCard h2 {
@@ -1416,12 +1423,17 @@
   }
 
   .aside {
-    display: none;
+    display: block;
+    order: -1;
   }
 
   .sidebar,
   .stickyCard {
     position: static;
+  }
+
+  .formActions {
+    left: 0;
   }
 
 }
@@ -1460,27 +1472,6 @@
 }
 
 @media (max-width: 768px) {
-  .productStatusBar {
-    align-items: stretch;
-    flex-direction: column;
-  }
-
-  .productStatusTitle {
-    align-items: flex-start;
-    flex-direction: column;
-    gap: 8px;
-  }
-
-  .productStatusActions {
-    width: 100%;
-    align-items: stretch;
-    flex-direction: column;
-  }
-
-  .productStatusActions > button {
-    width: 100%;
-  }
-
   .aside {
     display: block;
     order: -1;
@@ -1516,6 +1507,12 @@
   .primaryBtn,
   .secondaryBtn {
     width: 100%;
+  }
+
+  .formActions {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    padding: 10px 12px;
+    padding-bottom: max(10px, env(safe-area-inset-bottom));
   }
 
   .lockedProduct {
@@ -1838,9 +1835,12 @@
 .descriptionFieldShell {
   width: 100%;
   overflow: hidden;
-  border: 0.5px solid var(--black);
+  border: 1px solid var(--black);
   background: var(--white);
 }
+
+.descriptionFieldShell:focus-within { outline: 1px solid var(--black); outline-offset: 2px; }
+.descriptionFieldShell:has([aria-invalid="true"]) { border-color: var(--danger); outline-color: var(--danger); }
 
 .descriptionFieldShell .textarea {
   display: block;
@@ -1887,3 +1887,20 @@
   outline: 1px solid var(--black);
   outline-offset: 2px;
 }
+
+@media (max-width: 480px) {
+  .formActions { grid-template-columns: minmax(0, 1fr); }
+  .page { padding-bottom: calc(120px + env(safe-area-inset-bottom)); }
+}
+
+.titlePlaceholder {
+  color: var(--muted);
+}
+
+.photoEditor { min-width: 0; }
+.photoDropZone { flex-direction: column; align-items: flex-start; padding: 16px; }
+.photoDropZoneEmpty { min-height: 300px; justify-content: center; align-items: center; text-align: center; }
+.photoEditorGrid { order: -1; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.photoEditorGrid .imageCard:first-child { grid-column: 1 / -1; }
+.photoEditorStatus { margin-top: 12px; }
+.panelContent .stickyCard { top: 0; }

@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, type ReactNode } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 
-import { CabinetTabs, type CabinetTabItem } from "../../components/ui/CabinetTabs";
+import { CabinetSkeleton } from "../../components/ui/CabinetSkeleton";
 import { Icon } from "../../components/ui/Icon";
 import {
   StatusBadge,
@@ -20,50 +21,35 @@ import styles from "./SellerFinanceTab.module.css";
 
 type Props = {
   finance: SellerFinanceSummary | null;
+  loading?: boolean;
+  error?: ReactNode;
   onPrefetchOrder?: (orderId: number) => void;
 };
 
 type FinanceView = "overview" | "operations" | "payouts";
 
-const financeTabs: CabinetTabItem<FinanceView>[] = [
-  { value: "overview", label: "Обзор" },
-  { value: "operations", label: "Операции" },
-  { value: "payouts", label: "Выплаты" },
-];
-
-export function SellerFinanceTab({ finance, onPrefetchOrder }: Props) {
-  const [view, setView] = useState<FinanceView>("overview");
-
-  if (!finance) {
-    return (
-      <section className={styles.page}>
-        <div className={styles.empty}>Финансовая сводка временно недоступна</div>
-      </section>
-    );
-  }
-
+export function SellerFinanceTab({ finance, loading = false, error, onPrefetchOrder }: Props) {
+  const searchParams = useSearchParams();
+  const requestedView = searchParams.get("view");
+  const view: FinanceView = requestedView === "operations" || requestedView === "payouts" ? requestedView : "overview";
   return (
-    <section className={styles.page}>
-      <div className={styles.tabs}>
-        <CabinetTabs
-          items={financeTabs}
-          value={view}
-          onChange={setView}
-          ariaLabel="Разделы финансов"
-          appearance="segmented"
-        />
-      </div>
-
-      {view === "overview" ? (
+    <section aria-label="Разделы финансов">
+      {loading ? (
+        <CabinetSkeleton variant={view === "overview" ? "dashboard" : "list"} rows={3} compact />
+      ) : error ? (
+        error
+      ) : !finance ? (
+        <div className={styles.empty}>Финансовая сводка временно недоступна</div>
+      ) : view === "overview" ? (
         <Overview finance={finance} onPrefetchOrder={onPrefetchOrder} />
-      ) : null}
-      {view === "operations" ? (
+      ) : view === "operations" ? (
         <Operations
           operations={finance.operations}
           onPrefetchOrder={onPrefetchOrder}
         />
-      ) : null}
-      {view === "payouts" ? <Payouts payouts={finance.payouts} /> : null}
+      ) : (
+        <Payouts payouts={finance.payouts} />
+      )}
     </section>
   );
 }
@@ -93,7 +79,7 @@ function Overview({
         />
         <SummaryItem
           icon="money"
-          label={`Ближайшая выплата · ${formatShortDate(finance.nextPayoutDate)}`}
+          label={`Ближайшая выплата, ${formatShortDate(finance.nextPayoutDate)}`}
           value={finance.nextPayoutAmount}
           hint="Реестры формируются 10-го и 25-го"
         />
@@ -110,7 +96,7 @@ function Overview({
           <Icon name="alert" size={18} />
           <span>
             <strong>Заполните банковские реквизиты</strong>
-            Без них РЦМ не сможет сформировать реестр выплаты.
+            Без них рцмаркет не сможет сформировать реестр выплаты.
           </span>
           <Icon name="chevron-right" size={18} />
         </Link>
@@ -129,7 +115,7 @@ function Overview({
         <div className={styles.formula}>
           <FormulaItem label="Продажи" value={finance.salesAmount} />
           <span className={styles.formulaSign}>−</span>
-          <FormulaItem label="Комиссия РЦМ" value={finance.commissionAmount} />
+          <FormulaItem label="Комиссия рцмаркет" value={finance.commissionAmount} />
           <span className={styles.formulaSign}>−</span>
           <FormulaItem label="Возвраты и удержания" value={finance.adjustmentsAmount} />
           <span className={styles.formulaSign}>−</span>

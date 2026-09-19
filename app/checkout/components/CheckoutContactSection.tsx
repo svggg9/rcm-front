@@ -1,8 +1,11 @@
 "use client";
 
-import { useId } from "react";
+import { useId, useState } from "react";
 
+import { Icon } from "../../components/ui/Icon";
 import { PhoneInput } from "../../components/ui/PhoneInput";
+import { isValidPhone } from "../../lib/validation";
+import { formatRussianPhoneInput } from "../../lib/phone";
 import styles from "./CheckoutContactSection.module.css";
 
 type Props = {
@@ -23,6 +26,12 @@ export function CheckoutContactSection({
   onPhoneChange,
 }: Props) {
   const fullNameErrorId = useId();
+  const fullNameId = useId();
+  const bodyId = useId();
+  const [editing, setEditing] = useState(false);
+  const complete = Boolean(fullName.trim()) && isValidPhone(phone);
+  const canCollapse = complete && !fullNameError && !phoneError;
+  const compact = canCollapse && !editing;
 
   return (
     <section className={styles.section}>
@@ -30,9 +39,32 @@ export function CheckoutContactSection({
         <div className={styles.headerMain}>
           <h2 className={styles.title}>Получатель</h2>
         </div>
+        {compact ? (
+          <button
+            type="button"
+            className={styles.editButton}
+            aria-label="Изменить данные получателя"
+            aria-expanded={false}
+            aria-controls={bodyId}
+            onClick={() => setEditing(true)}
+          >
+            <Icon name="pencil" size={19} strokeWidth={1.5} />
+          </button>
+        ) : null}
       </div>
 
-      <div className={styles.body}>
+      {compact ? (
+        <div className={styles.mobileSummary}>
+          <span>{fullName.trim()}</span>
+          <span className={styles.summaryMuted}>+7 {formatRussianPhoneInput(phone)}</span>
+        </div>
+      ) : null}
+
+      <div
+        id={bodyId}
+        className={`${styles.body} ${compact ? styles.bodyCompact : ""}`}
+        onFocusCapture={() => setEditing(true)}
+      >
         <div className={styles.contactGrid}>
           <PhoneInput
             label="Телефон"
@@ -44,8 +76,9 @@ export function CheckoutContactSection({
           />
 
           <div className={styles.fieldWrap}>
-            <span className={styles.fieldLabel}>Имя и фамилия</span>
+            <label className={styles.fieldLabel} htmlFor={fullNameId}>Имя и фамилия</label>
             <input
+              id={fullNameId}
               className={styles.textField}
               value={fullName}
               aria-invalid={fullNameError ? "true" : undefined}
@@ -60,6 +93,15 @@ export function CheckoutContactSection({
             ) : null}
           </div>
         </div>
+        {canCollapse ? (
+          <button
+            type="button"
+            className={styles.doneButton}
+            onClick={() => setEditing(false)}
+          >
+            Готово
+          </button>
+        ) : null}
       </div>
     </section>
   );

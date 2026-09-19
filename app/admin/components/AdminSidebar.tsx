@@ -17,7 +17,7 @@ export function AdminSidebar({
     <CabinetSidebar
       ariaLabel="Меню администратора"
       mobileInline
-      subtitle="RCM"
+      subtitle="рцмаркет"
       title="Админка"
       onNavigate={onNavigate}
       items={[

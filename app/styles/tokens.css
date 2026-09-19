@@ -53,6 +53,8 @@
   --page-padding: 24px;
 
   --site-header-height: 117px;
+  --buyer-bottom-nav-height: calc(64px + env(safe-area-inset-bottom, 0px));
+  --mobile-buyer-header-height: calc(56px + env(safe-area-inset-top, 0px));
   --product-sticky-header-height: 96px;
 
   /* typography */
