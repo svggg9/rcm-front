@@ -2,7 +2,7 @@
 
 Состояние передачи: 19 сентября 2026. Основная работа переносится на Windows.
 
-**Дополнение после передачи:** по последующему запросу пользователя frontend/backend уже выложены на test и production, обе БД — V99. Backend 340 unit/web + 24 integration и сборки frontend прошли. Подробности и откат: [DEPLOYMENT_2026-09-19.md](DEPLOYMENT_2026-09-19.md). Полный бизнес-E2E остаётся открытым; указания об отложенной выкладке ниже относятся к состоянию до этого запроса.
+**Дополнение после передачи:** по последующему запросу пользователя frontend/backend уже выложены на test и production, обе БД — V99. Backend 340 unit/web + 24 integration и сборки frontend прошли. Подробности и откат: [DEPLOYMENT_2026-09-19.md](DEPLOYMENT_2026-09-19.md). Полный бизнес-E2E остаётся открытым. Начальная точка входа для новой задачи — README.md и AGENTS.md в каждом репозитории.
 
 ## Репозитории
 
@@ -67,8 +67,8 @@ Flyway содержит миграции до V99. Запуск приложен
 - TypeScript frontend: `npx tsc --noEmit` — пройдено 19 сентября.
 - Общий ESLint frontend: `npm run lint` — пройдено 19 сентября. При передаче исправлена обычная ссылка на Next Link в DesignSystemClient; архивные Mac-инструменты исключены из application lint.
 - `git diff --check` в обоих репозиториях — пройдено 19 сентября.
-- Полные backend-тесты, сборки и общий E2E при этом переносе не запускались: общий прогон ранее отложен до завершения frontend. Исторические проверки из задач 8–10 сентября не выдавать за свежий общий прогон.
-- После завершения frontend: `npm run build`, `npx tsc --noEmit`, `npm run lint`; backend `.\gradlew.bat test integrationTest bootJar`, gateway `npm test` из notification-gateway. IntegrationTest требует Docker. Сценарии scripts/check-*.cjs существуют, но актуальность их ожиданий после последних UI-правок нужно проверить.
+- При последующей выкладке 19 сентября пройдены 340 unit/web + 24 integration backend, обе frontend-сборки и smoke. Полный бизнес-E2E не выполнен; история 8–10 сентября не заменяет результаты этого релиза.
+- Для следующих изменений: `npm run build`, `npx tsc --noEmit`, `npm run lint`; backend `.\gradlew.bat test integrationTest bootJar` с временным `PAYMENT_PROVIDER=MOCK` по README, gateway `npm test` из notification-gateway. IntegrationTest требует Docker. Сценарии scripts/check-*.cjs существуют, но актуальность их ожиданий после последних UI-правок нужно проверить.
 
 ## Готовый промпт для новой задачи
 
