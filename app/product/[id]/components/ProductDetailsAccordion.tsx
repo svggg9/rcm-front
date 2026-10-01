@@ -20,7 +20,7 @@ type Props = {
 function ChevronIcon() {
   return (
     <span className={styles.accIcon} aria-hidden="true">
-      <Icon name="chevron-down" size={16} strokeWidth={1.35} />
+      <Icon name="chevron-down" size={20} strokeWidth={1.5} />
     </span>
   );
 }

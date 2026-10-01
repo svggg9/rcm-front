@@ -34,6 +34,7 @@ export function TextInput({
       <input
         className={`input ${error ? "inputError" : ""} ${className}`.trim()}
         aria-invalid={error ? "true" : undefined}
+        required={required}
         {...props}
         aria-required={required || undefined}
         aria-describedby={[props["aria-describedby"], visibleError ? errorId : null].filter(Boolean).join(" ") || undefined}

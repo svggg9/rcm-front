@@ -53,13 +53,17 @@ export function AccountOrderDetails({
   );
 
   const awaitingPayment = order.status === "NEW" && order.paymentStatus === "PENDING";
-  const canPay = awaitingPayment;
+  const [paymentDeadlineOpen, setPaymentDeadlineOpen] = useState(() =>
+    !order.paymentDueAt || new Date(order.paymentDueAt).getTime() > Date.now()
+  );
+  const canPay = awaitingPayment && order.paymentAllowed !== false && paymentDeadlineOpen
+    && !order.unpaidCancellationPending && !order.paymentReviewRequired;
   const canCancel =
     order.cancellationAllowed &&
     (awaitingPayment || cancellationWindowOpen) &&
-    !order.cancellationRequestedAt;
+    !order.cancellationRequestedAt && !order.unpaidCancellationPending;
   const cancellationPending =
-    Boolean(order.cancellationRequestedAt) &&
+    Boolean(order.cancellationRequestedAt || order.unpaidCancellationPending) &&
     order.paymentStatus !== "REFUNDED" &&
     order.status !== "CANCELED";
   const returnsAvailable =
@@ -95,6 +99,15 @@ export function AccountOrderDetails({
     );
     return () => window.clearTimeout(timeout);
   }, [order.cancellationAvailableUntil]);
+
+  useEffect(() => {
+    const deadline = order.paymentDueAt ? new Date(order.paymentDueAt).getTime() : Number.NaN;
+    const remaining = deadline - Date.now();
+    setPaymentDeadlineOpen(!order.paymentDueAt || Number.isFinite(deadline) && remaining > 0);
+    if (!Number.isFinite(deadline) || remaining <= 0) return;
+    const timer = window.setTimeout(() => setPaymentDeadlineOpen(false), Math.min(remaining, 2_147_483_647));
+    return () => window.clearTimeout(timer);
+  }, [order.paymentDueAt]);
 
   async function handlePay() {
     if (!canPay || paying) return;
@@ -265,7 +278,7 @@ export function AccountOrderDetails({
             <OrderDetailSummary summary={order} />
           </OrderDetailSection>
 
-          {canPay || canCancel || cancellationPending ? (
+          {canPay || canCancel || cancellationPending || order.paymentReviewRequired || awaitingPayment ? (
             <OrderDetailSection panel>
               <div className={orderDetailStyles.actions}>
                 {canPay ? (
@@ -281,8 +294,21 @@ export function AccountOrderDetails({
                 {cancellationPending ? (
                   <div className={orderDetailStyles.cancellationStatus}>
                     <strong>Отмена оформляется</strong>
-                    <span>Деньги вернутся тем же способом оплаты</span>
+                    <span>{order.unpaidCancellationPending ? "Проверяем результат оплаты. Товары остаются зарезервированы до завершения проверки" : "Деньги вернутся тем же способом оплаты"}</span>
                   </div>
+                ) : null}
+
+                {order.paymentReviewRequired && !cancellationPending ? (
+                  <div className={orderDetailStyles.cancellationStatus} role="status">
+                    <strong>Проверяем оплату</strong>
+                    <span>Повторная оплата недоступна. Если деньги списаны, мы проверим платёж и сообщим результат</span>
+                  </div>
+                ) : null}
+                {awaitingPayment && !paymentDeadlineOpen && !order.paymentReviewRequired && !cancellationPending ? (
+                  <div className={orderDetailStyles.cancellationStatus} role="status">Срок оплаты истёк. Проверяем завершение заказа</div>
+                ) : null}
+                {canPay && order.paymentDueAt ? (
+                  <div className={orderDetailStyles.cancellationStatus}>Оплатить до {new Date(order.paymentDueAt).toLocaleString("ru-RU")}</div>
                 ) : null}
 
                 {canCancel && !confirmCancellation ? (
@@ -301,7 +327,7 @@ export function AccountOrderDetails({
                     </strong>
                     <span>
                       {awaitingPayment
-                        ? "Все заказы этой покупки будут отменены, товары вернутся в продажу"
+                        ? "Отменим все заказы этой покупки. Если платёж уже начат, сначала проверим его результат"
                         : "Деньги вернутся тем же способом оплаты"}
                     </span>
                     <div className={orderDetailStyles.confirmActions}>

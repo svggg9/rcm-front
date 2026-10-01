@@ -56,7 +56,7 @@ export function SellerHomeProducts() {
     <header className={styles.heading}>
       <h2 id="seller-home-products-title">Товары</h2>
       <div className={styles.actions}>
-        <Link href="/seller?tab=products" prefetch={false} className={styles.all}>Все товары</Link>
+        <Link href="/seller/products" prefetch={false} className={styles.all}>Все товары</Link>
         {state.status === "ready" && state.products.length > 0 && <div className={styles.arrows}>
           <button type="button" className={styles.arrow} aria-label="Предыдущие товары" disabled={!scroll.previous} onClick={() => move(-1)}>
             <Icon name="chevron-left" role="utility" />

@@ -12,9 +12,10 @@ type Props = {
   loading: boolean;
   error: boolean;
   onRetry?: () => void;
+  compact?: boolean;
 };
 
-export function OrderProductsPreview({ order, details, loading, error, onRetry }: Props) {
+export function OrderProductsPreview({ order, details, loading, error, onRetry, compact = false }: Props) {
   const [showAll, setShowAll] = useState(false);
   const fallbackTitles = order.productTitles?.length ? order.productTitles : [order.firstProductTitle].filter((title): title is string => Boolean(title));
   const items = details ? details.items : fallbackTitles.map((productTitle, index) => ({
@@ -24,7 +25,7 @@ export function OrderProductsPreview({ order, details, loading, error, onRetry }
   const remaining = Math.max(0, items.length - 2);
   const listId = `seller-order-products-${order.id}`;
 
-  return <section className={styles.preview} aria-label={`Товары заказа ${order.id}`} aria-busy={loading || undefined}>
+  return <section className={`${styles.preview} ${compact ? styles.compact : ""}`} aria-label={`Товары заказа ${order.id}`} aria-busy={loading || undefined}>
     {items.length ? <ul id={listId} className={styles.list}>
       {(showAll ? items : items.slice(0, 2)).map((item, index) => <li className={styles.product} key={index}>
         <ProductImage src={item.imageUrl} />

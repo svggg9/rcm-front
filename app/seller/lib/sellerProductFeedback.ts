@@ -22,6 +22,6 @@ export function productFeedback(action: ProductAction, result: ProductActionResu
 export function productFailureDestination(failure: ProductActionFailure) {
   const legal = /юридические данные|реквизиты|адрес отправления|оферту продавца/i.test(failure.reason);
   return legal
-    ? { href: "/seller?tab=legal", label: "Данные и документы" }
+    ? { href: "/seller/legal", label: "Данные и документы" }
     : { href: `/seller/products/${failure.product.id}/edit`, label: "Открыть товар" };
 }

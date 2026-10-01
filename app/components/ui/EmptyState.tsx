@@ -4,7 +4,7 @@ import { Icon, type IconName } from "./Icon";
 
 type Props = {
   title: string;
-  text?: string;
+  text?: ReactNode;
   actions?: ReactNode;
   icon?: IconName;
   tone?: "default" | "gold" | "danger";

@@ -37,7 +37,7 @@ export function AccountSidebar({
         <div className={styles.actions}>
           {showSellerCabinet ? (
             <Link
-              href="/seller"
+              href="/seller/home"
               className={`buttonSecondary ${styles.action}`}
               prefetch={false}
               onClick={(event) => {

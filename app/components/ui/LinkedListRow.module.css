@@ -1,0 +1,10 @@
+.row { position: relative; isolation: isolate; }
+.row .link { position: static; overflow: visible; }
+.row .link:active:not(:disabled) { transform: none; }
+.link::after { content: ""; position: absolute; inset: 0; z-index: 1; cursor: pointer; }
+.row:has(.link:focus-visible) { outline: 2px solid var(--black); outline-offset: -2px; }
+.row:has(.link:hover) { background: var(--surface-hover, #f5f5f5); }
+/* Local actions stay above the stretched navigation link. */
+.row button, .row input, .row select, .row textarea, .row a:not(.link) {
+  position: relative; z-index: 2;
+}

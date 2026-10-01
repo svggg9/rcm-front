@@ -29,14 +29,14 @@ const STEPS: Step[] = [
     key: "legalCompleted",
     title: "Заполнить данные магазина",
     description: "Реквизиты, банк и пункт отправления",
-    href: "/seller?tab=legal",
+    href: "/seller/legal",
     icon: "file",
   },
   {
     key: "agreementAccepted",
     title: "Принять условия работы",
     description: "Оферта продавца",
-    href: "/seller?tab=legal",
+    href: "/seller/legal",
     icon: "check",
   },
 ];

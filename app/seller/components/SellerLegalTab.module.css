@@ -2,7 +2,7 @@
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: 20px;
   container-type: inline-size;
 }
 
@@ -13,14 +13,32 @@
   gap: 16px;
 }
 
+.pageHeader { padding: 20px; border: .5px solid #a8a8a8; background: var(--white); }
+.pageHeader h1 { margin: 0; font-size: 24px; line-height: 1.2; font-weight: 400; }
+.pageHeader p { margin: 10px 0 0; font-size: 13px; line-height: 20px; color: var(--black); }
+.page :global(.phoneInputShell) { border: .5px solid #a8a8a8; border-radius: 0; background: var(--white); }
+.page :global(.phoneInputShell):focus-within { border-color: var(--black); }
+.page :global(.label) { color: var(--black); font-size: 12px; font-weight: 400; }
+.page :global(.field) { gap: 4px; }
+.page :global(.phoneInputShell).inputError,
+.page :global(.phoneInputShell.inputError) { border-color: var(--danger); }
+.contactPhone { border: .5px solid #a8a8a8; }
+.typeOption:has(input:focus-visible), .checkbox:has(input:focus-visible) { outline: 1px solid var(--black); outline-offset: 4px; }
+.input:focus-visible, .textarea:focus-visible { outline: 1px solid var(--black); outline-offset: -1px; }
+
+@media (max-width: 640px) {
+  .pageHeader { padding: 16px; }
+  .pageHeader h1 { font-size: 22px; }
+}
+
 .card {
   min-width: 0;
   display: flex;
   flex-direction: column;
   gap: 20px;
-  padding: 24px;
-  border: 0;
-  background: var(--soft);
+  padding: 20px;
+  border: .5px solid #a8a8a8;
+  background: var(--white);
 }
 
 .cardHeader {
@@ -32,7 +50,7 @@
   color: var(--black);
   font-size: var(--font-lg);
   line-height: 1.25;
-  font-weight: 650;
+  font-weight: 500;
   letter-spacing: -0.01em;
 }
 
@@ -40,16 +58,16 @@
   max-width: 640px;
   margin: 0;
   color: var(--black);
-  font-size: 15px;
+  font-size: 13px;
   line-height: 1.4;
-  font-weight: 300;
+  font-weight: 400;
   letter-spacing: 0;
 }
 
 .grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 20px 16px;
+  gap: 16px;
 }
 
 .typeGrid {
@@ -63,8 +81,9 @@
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  padding: 0;
-  border: 0;
+  min-height: 42px;
+  padding: 10px 14px;
+  border: .5px solid #a8a8a8;
   background: transparent;
   color: var(--black);
   font-size: 14px;
@@ -75,7 +94,8 @@
 }
 
 .typeOptionActive {
-  font-weight: 700;
+  border-color: var(--black);
+  font-weight: 500;
 }
 
 .typeOption input {
@@ -92,8 +112,8 @@
 
 .contactsGrid {
   display: grid;
-  grid-template-columns: minmax(240px, 0.8fr) minmax(360px, 1.2fr);
-  gap: 12px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
   align-items: stretch;
 }
 
@@ -110,9 +130,9 @@
 .contactHint {
   margin: 0;
   color: var(--black);
-  font-size: 15px;
+  font-size: 13px;
   line-height: 1.4;
-  font-weight: 300;
+  font-weight: 400;
 }
 
 .typeOption > [data-appearance="outline-check"],
@@ -124,7 +144,7 @@
   position: relative;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 4px;
 }
 
 .phoneField {
@@ -145,9 +165,9 @@
   z-index: 10;
   max-height: 280px;
   overflow: auto;
-  border: 1px solid var(--black);
+  border: .5px solid #a8a8a8;
   background: var(--white);
-  box-shadow: 0 14px 30px rgba(0, 0, 0, 0.08);
+  box-shadow: none;
 }
 
 .suggestItem {
@@ -187,7 +207,7 @@
 .input,
 .textarea {
   width: 100%;
-  border: 1px solid var(--black);
+  border: .5px solid #a8a8a8;
   background: var(--white);
   color: var(--black);
   font-family: inherit;
@@ -222,12 +242,13 @@
 }
 
 .requiredEmpty {
-  border-color: var(--black);
+  border-color: #a8a8a8;
   background: var(--white);
 }
 
-.inputError {
+.inputError, .inputError:hover, .inputError:focus, .inputError:focus-visible {
   border-color: var(--danger);
+  outline-color: var(--danger);
 }
 
 .fieldValidIcon {
@@ -275,7 +296,7 @@
   color: var(--black);
   font-size: var(--font-sm);
   line-height: 1.4;
-  font-weight: 300;
+  font-weight: 400;
   letter-spacing: 0;
 }
 
@@ -304,13 +325,14 @@
   color: var(--danger);
   font-size: var(--font-sm);
   line-height: 1.4;
-  font-weight: 300;
+  font-weight: 400;
 }
 
 .actions {
   display: flex;
   justify-content: flex-end;
-  padding: 4px 0 0;
+  padding: 16px 0 0;
+  border-top: .5px solid #a8a8a8;
 }
 
 .actions button {

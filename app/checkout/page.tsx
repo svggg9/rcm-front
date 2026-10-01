@@ -8,15 +8,16 @@ import {
 } from "./lib/checkoutServerApi";
 
 export default async function CheckoutPage() {
-  const [session, initialMe, initialCart] = await Promise.all([
-    getServerSession(),
-    getCheckoutProfileServer(),
-    getCheckoutCartServer(),
-  ]);
+  const session = await getServerSession();
 
   if (!session) {
     redirect("/auth/login?next=/checkout");
   }
+
+  const [initialMe, initialCart] = await Promise.all([
+    getCheckoutProfileServer(),
+    getCheckoutCartServer(),
+  ]);
 
   return <CheckoutPageClient initialMe={initialMe} initialCart={initialCart} />;
 }

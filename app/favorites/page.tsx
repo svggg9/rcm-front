@@ -11,6 +11,7 @@ import { EmptyState } from "../components/ui/EmptyState";
 import { ProductTileSkeleton } from "../components/ui/CommerceSkeleton";
 import { ProductTile } from "../components/ProductTile/ProductTile";
 import { ProductShowcase } from "../components/ProductShowcase/ProductShowcase";
+import { RecommendationsShowcase } from "../components/Recommendations/RecommendationsShowcase";
 import type { CarouselProduct } from "../components/ProductCarousel/types";
 import { getStorefrontHome } from "../home/lib/getStorefrontHome";
 import { getHomePageData } from "../home/lib/getHomePageData";
@@ -329,6 +330,7 @@ export default function FavoritesPage() {
             </div>
           </section>
         ) : null}
+        {!loading ? <RecommendationsShowcase seedIds={products.map((product) => product.id)} /> : null}
       </div>
     </div>
   );

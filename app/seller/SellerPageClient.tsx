@@ -10,6 +10,8 @@ import { useSessionResourceCache } from "../lib/useSessionResourceCache";
 import { CabinetSkeleton } from "../components/ui/CabinetSkeleton";
 
 import { SellerSidebar } from "./components/SellerSidebar";
+import { SellerSectionPanel } from "./components/SellerSectionPanel";
+import { SellerEntityPage } from "./components/SellerEntityPage";
 import { SellerHomeTab } from "./components/SellerHomeTab";
 import { buildSellerStatusLabel } from "./lib/sellerOrderStatus";
 import {
@@ -128,6 +130,16 @@ function SellerPageContent({
 }: Props) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const [entityPanel, setEntityPanel] = useState<{ kind: "orders" | "returns"; id: number } | null>(null);
+  useEffect(() => {
+    const restorePanel = () => {
+      const panel = window.history.state?.sellerEntityPanel;
+      const match = window.location.pathname.match(/^\/seller\/(orders|returns)\/([1-9]\d*)$/);
+      setEntityPanel(panel && match && panel.kind === match[1] && panel.id === Number(match[2]) ? panel : null);
+    };
+    window.addEventListener("popstate", restorePanel);
+    return () => window.removeEventListener("popstate", restorePanel);
+  }, []);
   const [currentTab, setCurrentTab] = useState<SellerTab>(initialTab);
   const [selectedOrderId, setSelectedOrderId] = useState(initialOrderId);
   const [linkedOrder, setLinkedOrder] = useState<SellerOrderListItem | null>(null);
@@ -161,7 +173,6 @@ function SellerPageContent({
   const [productsSorting, setProductsSorting] = useState(false);
   const [ordersLoadingMore, setOrdersLoadingMore] = useState(false);
   const [financeLoading, setFinanceLoading] = useState(false);
-  const [dashboardLoading, setDashboardLoading] = useState(false);
   const [loadErrors, setLoadErrors] = useState<
     Partial<Record<SellerTab, string>>
   >({});
@@ -397,7 +408,6 @@ function SellerPageContent({
       return;
     }
 
-    setDashboardLoading(true);
     setLoadErrors((current) => ({ ...current, home: undefined }));
     const request = getSellerDashboardSummaryClient();
     dashboardRequestRef.current = request;
@@ -422,7 +432,6 @@ function SellerPageContent({
         dashboardRequestRef.current = null;
         if (mountedRef.current) {
           setDashboardLoaded(true);
-          setDashboardLoading(false);
         }
       });
   }, [currentTab, dashboardLoaded]);
@@ -474,8 +483,10 @@ function SellerPageContent({
 
   useEffect(() => {
     const syncFromHistory = () => {
+      // An intercepted detail changes the URL, not the underlying list/tab.
+      const nextTab = parseSellerPath(window.location.pathname);
+      if (!nextTab) return;
       const params = new URLSearchParams(window.location.search);
-      const nextTab = parseSellerTab(params.get("tab"));
 
       setCurrentTab(nextTab);
       setSelectedOrderId(params.get("orderId"));
@@ -492,7 +503,22 @@ function SellerPageContent({
 
   function navigateSeller(href: string) {
     const url = new URL(href, window.location.origin);
-    const nextTab = parseSellerTab(url.searchParams.get("tab"));
+    const orderId = url.searchParams.get("orderId");
+    const returnId = url.searchParams.get("returnId");
+    const detailPath = orderId ? `/seller/orders/${orderId}` : returnId ? `/seller/returns/${returnId}` : url.pathname;
+    const detail = detailPath.match(/^\/seller\/(orders|returns)\/([1-9]\d*)$/);
+    if (detail && Number.isSafeInteger(Number(detail[2]))) {
+      const panel = { kind: detail[1] as "orders" | "returns", id: Number(detail[2]) };
+      // Native history updates the address without fetching/replacing the Next route tree.
+      window.history.pushState({ sellerEntityPanel: panel }, "", detailPath);
+      setEntityPanel(panel);
+      return;
+    }
+    const nextTab = parseSellerPath(url.pathname);
+    if (!nextTab || orderId || returnId) {
+      router.push(orderId ? `/seller/orders/${orderId}` : returnId ? `/seller/returns/${returnId}` : href, { scroll: false });
+      return;
+    }
 
     window.history.pushState(null, "", `${url.pathname}${url.search}`);
     setCurrentTab(nextTab);
@@ -518,11 +544,11 @@ function SellerPageContent({
     const target = event.target;
     const anchor = target instanceof Element ? target.closest("a") : null;
 
-    if (!anchor) return;
+    if (!anchor || anchor.target === "_blank" || anchor.hasAttribute("download")) return;
 
     const url = new URL(anchor.href);
 
-    if (url.origin !== window.location.origin || url.pathname !== "/seller") {
+    if (url.origin !== window.location.origin || (!parseSellerPath(url.pathname) && !/^\/seller\/(orders|returns)\/[1-9]\d*$/.test(url.pathname))) {
       return;
     }
 
@@ -537,7 +563,7 @@ function SellerPageContent({
 
     try {
       if (initialBrands.length === 0) {
-        navigateSeller("/seller?tab=brand");
+        navigateSeller("/seller/store");
         return;
       }
 
@@ -679,13 +705,11 @@ function SellerPageContent({
           />
 
           <div className={styles.content}>
+            <SellerSectionPanel currentTab={currentTab}>
             {currentTab === "home" || currentTab === "brand" || currentTab === "legal" ? tabLoadError : null}
-            {currentTab === "home" ? (
-              <div>
-                {!dashboardLoaded || dashboardLoading ? (
-                  <CabinetSkeleton variant="dashboard" />
-                ) : !loadError ? (
+            <div hidden={currentTab !== "home"}>
               <SellerHomeTab
+                    active={currentTab === "home"}
                 onNavigate={navigateSeller}
                 onCreateProduct={() => { if (!creatingProduct) void createDraftProduct(); }}
                     brand={initialBrands[0] ?? null}
@@ -697,13 +721,12 @@ function SellerPageContent({
                       setOnboardingRequestVersion((current) => current + 1);
                     }}
                   />
-                ) : null}
               </div>
-            ) : null}
 
             {currentTab === "finance" ? (
               <SellerFinanceTab
                 finance={finance}
+                onRefresh={() => setFinanceLoaded(false)}
                 loading={!loadError && (!financeLoaded || financeLoading)}
                 error={tabLoadError}
                 onPrefetchOrder={prefetchOrderDetails}
@@ -756,7 +779,6 @@ function SellerPageContent({
                       <CabinetSkeleton variant="list" compact />
                     ) : (
                       <SellerOrdersTab
-                        key={selectedOrderId || "orders"}
                         orders={visibleOrders}
                         totalElements={ordersTotal}
                         loadingMore={ordersLoadingMore}
@@ -766,9 +788,7 @@ function SellerPageContent({
                             : () => void loadMoreOrders()
                         }
                         buildSellerStatusLabel={buildSellerStatusLabel}
-                        expandedOrderId={parseOrderId(selectedOrderId)}
-                        onLoadOrder={getOrderDetails}
-                        onPrefetchOrder={prefetchOrderDetails}
+                        onOpenOrder={id => navigateSeller(`/seller/orders/${id}`)}
                         showStageElapsed
                       />
                     )}
@@ -777,9 +797,12 @@ function SellerPageContent({
                 {currentTab === "returns" ? <SellerReturnsTab /> : null}
               </section>
             ) : null}
+            </SellerSectionPanel>
           </div>
         </div>
       </div>
+      {entityPanel && <SellerEntityPage key={`${entityPanel.kind}-${entityPanel.id}`}
+        id={entityPanel.id} kind={entityPanel.kind} intercepted onClose={() => window.history.back()} />}
     </div>
   );
 }
@@ -788,19 +811,11 @@ export function SellerPageClient(props: Props) {
   return <SellerPageContent {...props} />;
 }
 
-function parseSellerTab(value: string | null): SellerTab {
-  if (
-    value === "orders" ||
-    value === "returns" ||
-    value === "products" ||
-    value === "finance" ||
-    value === "brand" ||
-    value === "legal"
-  ) {
-    return value;
-  }
-
-  return "home";
+function parseSellerPath(pathname: string): SellerTab | null {
+  const section = pathname.match(/^\/seller\/(home|products|orders|returns|finance|store|legal)$/)?.[1];
+  if (section === "store") return "brand";
+  if (section === "home" || section === "products" || section === "orders" || section === "returns" || section === "finance" || section === "legal") return section;
+  return null;
 }
 
 function addVisitedTab(current: Set<SellerTab>, tab: SellerTab) {

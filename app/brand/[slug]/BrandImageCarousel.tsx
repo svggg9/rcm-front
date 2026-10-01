@@ -11,7 +11,7 @@ type BrandImage = {
   sortOrder: number;
 };
 
-export function BrandImageCarousel({ images }: { images: BrandImage[] }) {
+export function BrandImageCarousel({ images, contained = false }: { images: BrandImage[]; contained?: boolean }) {
   const [index, setIndex] = useState(0);
 
   useEffect(() => {
@@ -25,7 +25,7 @@ export function BrandImageCarousel({ images }: { images: BrandImage[] }) {
   if (!images.length) return null;
 
   return (
-    <section className={styles.brandCarousel} aria-label="Фотографии бренда">
+    <section className={`${styles.brandCarousel} ${contained ? styles.brandCarouselContained : ""}`} aria-label="Фотографии бренда">
       <div
         className={styles.brandCarouselTrack}
         style={{ transform: `translateX(-${index * 100}%)` }}

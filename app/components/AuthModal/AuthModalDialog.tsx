@@ -12,21 +12,23 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
-import { apiFetch, API_URL } from "../../lib/api";
+import {
+  completeEmailRegistration,
+  loginWithPassword,
+  startEmailRegistration,
+} from "../../lib/authRequests";
 import { startYandexAuth } from "../../lib/yandexAuth";
 import { safeReturnPath } from "../../lib/safeReturnPath";
 import {
   ensureGuestCartId,
   getGuestCartId,
-  setAuth,
 } from "../../lib/auth";
-import {
-  clearGuestFavoriteIds,
-  getGuestFavoriteIds,
-  syncFavoritesAfterLogin,
-} from "../../lib/favorites";
+import { completeAuth } from "../../lib/completeAuth";
+import { validateAuthFields } from "../../lib/authValidation";
+import { scrollToFirstValidationError } from "../../lib/formValidation";
 
 import { Button } from "../ui/Button";
+import { AuthTabs } from "./AuthTabs";
 import { Icon } from "../ui/Icon";
 import { TextInput } from "../ui/TextInput";
 import type { AuthModalMode, AuthModalOptions } from "./useAuthModal";
@@ -48,6 +50,7 @@ export default function AuthModalDialog({
   const router = useRouter();
   const modalRef = useRef<HTMLDivElement>(null);
   const codeInputRefs = useRef<Array<HTMLInputElement | null>>([]);
+  const submittingRef = useRef(false);
 
   const [mode, setMode] = useState<AuthModalMode>(initialMode);
 
@@ -57,8 +60,27 @@ export default function AuthModalDialog({
   const [password, setPassword] = useState("");
   const [passwordVisible, setPasswordVisible] = useState(false);
   const [registerStep, setRegisterStep] = useState<"email" | "code">("email");
-  const [loginStep, setLoginStep] = useState<"password" | "code">("password");
   const [submitting, setSubmitting] = useState(false);
+  const [resendAvailableAt, setResendAvailableAt] = useState(0);
+  const [now, setNow] = useState(0);
+  const [formError, setFormError] = useState<string | null>(null);
+  const [emailError, setEmailError] = useState<string | null>(null);
+  const [passwordError, setPasswordError] = useState<string | null>(null);
+  const resendSeconds = Math.max(0, Math.ceil((resendAvailableAt - now) / 1000));
+
+  useEffect(() => {
+    submittingRef.current = submitting;
+  }, [submitting]);
+
+  useEffect(() => {
+    if (registerStep !== "code" || !resendAvailableAt) return;
+    const timer = window.setInterval(() => {
+      const time = Date.now();
+      setNow(time);
+      if (time >= resendAvailableAt) window.clearInterval(timer);
+    }, 1000);
+    return () => window.clearInterval(timer);
+  }, [registerStep, resendAvailableAt]);
 
   useEffect(() => {
     const modal = modalRef.current;
@@ -79,11 +101,11 @@ export default function AuthModalDialog({
     }
 
     function onKeyDown(event: KeyboardEvent) {
-      if (event.key === "Escape") {
+      if (event.key === "Escape" && !submittingRef.current) {
         onClose();
       }
 
-      if (event.key !== "Tab" || placement !== "modal" || !modal) return;
+      if (event.key !== "Tab" || !modal) return;
 
       const focusableElements = getFocusableElements();
       const firstElement = focusableElements[0];
@@ -106,47 +128,36 @@ export default function AuthModalDialog({
     }
 
     window.addEventListener("keydown", onKeyDown);
-    if (placement === "modal") {
-      document.body.style.overflow = "hidden";
-      const focusableElements = getFocusableElements();
-      const initialFocus =
-        focusableElements.find((element) => element.matches("input")) ??
-        focusableElements[0] ??
-        modal;
-      initialFocus?.focus({ preventScroll: true });
-    }
+    document.body.style.overflow = "hidden";
+    const focusableElements = getFocusableElements();
+    const initialFocus =
+      focusableElements.find((element) => element.matches("input")) ??
+      focusableElements[0] ??
+      modal;
+    initialFocus?.focus({ preventScroll: true });
 
     return () => {
       window.removeEventListener("keydown", onKeyDown);
-      if (placement === "modal") {
-        document.body.style.overflow = previousOverflow;
-        if (trigger instanceof HTMLElement && trigger.isConnected) {
-          trigger.focus({ preventScroll: true });
-        }
+      document.body.style.overflow = previousOverflow;
+      if (trigger instanceof HTMLElement && trigger.isConnected) {
+        trigger.focus({ preventScroll: true });
       }
     };
-  }, [onClose, placement]);
-
-  const applyAuth = useCallback(async (cartId: string) => {
-    const guestFavoriteIds = getGuestFavoriteIds();
-
-    setAuth(cartId);
-
-    if (guestFavoriteIds.length > 0) {
-      const synced = await syncFavoritesAfterLogin(guestFavoriteIds);
-      if (synced) clearGuestFavoriteIds();
-    }
-
-  }, []);
+  }, [onClose]);
 
   const finishAuth = useCallback(
     async (cartId: string) => {
-      await applyAuth(cartId);
+      await completeAuth(cartId);
 
       onClose();
-      router.refresh();
+      if (returnPath !== "/") {
+        router.refresh();
+        router.push(safeReturnPath(returnPath));
+      } else {
+        router.refresh();
+      }
     },
-    [applyAuth, onClose, router]
+    [onClose, returnPath, router]
   );
 
   async function handleLogin(event: FormEvent<HTMLFormElement>) {
@@ -154,107 +165,27 @@ export default function AuthModalDialog({
 
     if (submitting) return;
 
+    setFormError(null);
+    const errors = validateAuthFields(email, password, false);
+    setEmailError(errors.emailError);
+    setPasswordError(errors.passwordError);
+    if (errors.emailError || errors.passwordError) {
+      scrollToFirstValidationError({ root: modalRef.current });
+      return;
+    }
     setSubmitting(true);
 
     try {
       const cartId = getGuestCartId() || await ensureGuestCartId();
 
-      const response = await apiFetch(`${API_URL}/api/auth/login`, {
-        method: "POST",
-        body: JSON.stringify({ username: email, password, cartId }),
-      });
-
-      if (!response.ok) {
-        throw new Error("Неверная почта или пароль");
-      }
-
-      const data: { cartId: string } = await response.json();
+      const data = await loginWithPassword(email, password, cartId);
       await finishAuth(data.cartId);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Ошибка входа");
+      setFormError(error instanceof Error ? error.message : "Ошибка входа");
     } finally {
       setSubmitting(false);
     }
   }
-
-  async function startCodeLogin() {
-    if (submitting) return;
-    if (!email.trim()) {
-      toast.error("Введите электронную почту");
-      return;
-    }
-
-    setSubmitting(true);
-    try {
-      const response = await apiFetch(`${API_URL}/api/auth/email/login/start`, {
-        method: "POST",
-        body: JSON.stringify({ email: email.trim() }),
-      });
-
-      if (!response.ok) {
-        const text = await response.text().catch(() => "");
-        throw new Error(text || "Не удалось отправить код");
-      }
-
-      setCode("");
-      setLoginStep("code");
-      window.setTimeout(() => codeInputRefs.current[0]?.focus(), 0);
-      toast.success("Код отправлен на почту");
-    } catch (error) {
-      toast.error(
-        error instanceof Error ? error.message : "Не удалось отправить код"
-      );
-    } finally {
-      setSubmitting(false);
-    }
-  }
-
-  const completeCodeLogin = useCallback(
-    async (value: string) => {
-      if (submitting || value.length !== 6) return;
-
-      setSubmitting(true);
-      try {
-        const cartId = getGuestCartId() || await ensureGuestCartId();
-        const response = await apiFetch(
-          `${API_URL}/api/auth/email/login/complete`,
-          {
-            method: "POST",
-            body: JSON.stringify({
-              email: email.trim(),
-              code: value,
-              cartId,
-            }),
-          }
-        );
-
-        if (!response.ok) {
-          const text = await response.text().catch(() => "");
-          throw new Error(text || "Неверный или просроченный код");
-        }
-
-        const data: { cartId: string } = await response.json();
-        setCode("");
-        setLoginStep("password");
-        await finishAuth(data.cartId);
-      } catch (error) {
-        setCode("");
-        codeInputRefs.current[0]?.focus();
-        toast.error(
-          error instanceof Error ? error.message : "Не удалось войти"
-        );
-      } finally {
-        setSubmitting(false);
-      }
-    },
-    [email, finishAuth, submitting]
-  );
-
-  useEffect(() => {
-    if (loginStep === "code" && code.length === 6) {
-      void completeCodeLogin(code);
-    }
-  }, [code, completeCodeLogin, loginStep]);
 
   async function handleYandexLogin() {
     if (submitting) return;
@@ -272,95 +203,75 @@ export default function AuthModalDialog({
     }
   }
 
-  async function handleRegisterStart(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+  async function handleRegisterStart(event?: FormEvent<HTMLFormElement>) {
+    event?.preventDefault();
 
-    if (submitting) return;
+    if (submitting || (registerStep === "code" && resendSeconds > 0)) return;
 
+    setFormError(null);
+    const errors = validateAuthFields(email, password, true);
+    setEmailError(errors.emailError);
+    setPasswordError(errors.passwordError);
+    if (errors.emailError || errors.passwordError) {
+      scrollToFirstValidationError({ root: modalRef.current });
+      return;
+    }
     setSubmitting(true);
 
     try {
-      if (!firstName.trim()) {
-        throw new Error("Введите имя");
-      }
-
-      if (!password.trim()) {
-        throw new Error("Введите пароль");
-      }
-
-      if (password.length < 8) {
-        throw new Error("Пароль должен быть от 8 символов");
-      }
-
-      const response = await apiFetch(`${API_URL}/api/auth/email/register/start`, {
-          method: "POST",
-          body: JSON.stringify({ email, password, firstName: firstName.trim() }),
-        });
-
-      if (!response.ok) {
-        const text = await response.text().catch(() => "");
-        throw new Error(text || "Не удалось отправить код");
-      }
-
-      await response.json().catch(() => null);
+      await startEmailRegistration(email, password, firstName);
       setCode("");
       setRegisterStep("code");
+      const time = Date.now();
+      setNow(time);
+      setResendAvailableAt(time + 60_000);
       window.setTimeout(() => codeInputRefs.current[0]?.focus(), 0);
       toast.success("Код подтверждения отправлен на почту");
     } catch (error) {
-      toast.error(
-        error instanceof Error ? error.message : "Ошибка регистрации"
-      );
+      setFormError(error instanceof Error ? error.message : "Ошибка регистрации");
     } finally {
       setSubmitting(false);
     }
   }
 
-  async function handleRegisterComplete(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-
-    if (submitting) return;
-    if (code.length !== 6) {
-      toast.error("Введите шестизначный код");
-      return;
-    }
-
+  const completeRegistration = useCallback(async (value: string) => {
+    if (submittingRef.current || value.length !== 6) return;
+    submittingRef.current = true;
+    setFormError(null);
     setSubmitting(true);
 
     try {
       const cartId = getGuestCartId() || await ensureGuestCartId();
 
-      const response = await apiFetch(`${API_URL}/api/auth/email/register/complete`, {
-        method: "POST",
-        body: JSON.stringify({
-          email,
-          code,
-          cartId,
-        }),
-      });
-
-      if (!response.ok) {
-        const text = await response.text().catch(() => "");
-        throw new Error(text || "Не удалось создать аккаунт");
-      }
-
-      const data: { cartId: string } = await response.json();
+      const data = await completeEmailRegistration(email, value, cartId);
       await finishAuth(data.cartId);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Ошибка регистрации");
+      setCode("");
+      window.setTimeout(() => codeInputRefs.current[0]?.focus(), 0);
+      setFormError(error instanceof Error ? error.message : "Ошибка регистрации");
     } finally {
+      submittingRef.current = false;
       setSubmitting(false);
     }
-  }
+  }, [email, finishAuth]);
+
+  useEffect(() => {
+    if (mode === "register" && registerStep === "code" && code.length === 6) {
+      void completeRegistration(code);
+    }
+  }, [code, completeRegistration, mode, registerStep]);
 
   function switchMode(nextMode: AuthModalMode) {
+    if (submitting) return;
     setMode(nextMode);
     setRegisterStep("email");
-    setLoginStep("password");
     setCode("");
     setPassword("");
     setFirstName("");
     setPasswordVisible(false);
+    setFormError(null);
+    setEmailError(null);
+    setPasswordError(null);
   }
 
   return (
@@ -369,7 +280,7 @@ export default function AuthModalDialog({
             placement === "anchored" ? styles.overlayAnchored : ""
           }`}
           role="presentation"
-          onMouseDown={onClose}
+          onMouseDown={() => { if (!submitting) onClose(); }}
         >
           <div
             ref={modalRef}
@@ -377,8 +288,8 @@ export default function AuthModalDialog({
               placement === "anchored" ? styles.modalAnchored : ""
             }`}
             role="dialog"
-            tabIndex={placement === "modal" ? -1 : undefined}
-            aria-modal={placement === "modal"}
+            tabIndex={-1}
+            aria-modal="true"
             aria-label="Вход или регистрация"
             onMouseDown={(event) => event.stopPropagation()}
           >
@@ -389,69 +300,53 @@ export default function AuthModalDialog({
                   type="button"
                   className={styles.closeButton}
                   onClick={onClose}
+                  disabled={submitting}
                   aria-label="Закрыть"
                 >
-                  <span aria-hidden="true">×</span>
+                  <Icon name="x" size={24} strokeWidth={1} aria-hidden={true} />
                 </button>
               </div>
 
-              <div className={styles.tabs} role="tablist">
-                <button
-                  type="button"
-                  role="tab"
-                  aria-selected={mode === "login"}
-                  className={`${styles.tab} ${
-                    mode === "login" ? styles.tabActive : ""
-                  }`}
-                  onClick={() => switchMode("login")}
-                >
-                  Войти
-                </button>
-
-                <button
-                  type="button"
-                  role="tab"
-                  aria-selected={mode === "register"}
-                  className={`${styles.tab} ${
-                    mode === "register" ? styles.tabActive : ""
-                  }`}
-                  onClick={() => switchMode("register")}
-                >
-                  Создать аккаунт
-                </button>
-              </div>
+                <AuthTabs
+                  value={mode}
+                  onChange={switchMode}
+                  disabled={submitting}
+                />
             </div>
 
-            <div className={styles.body}>
+            <div
+              className={styles.body}
+              role="tabpanel"
+              id="auth-dialog-panel"
+              aria-labelledby={`auth-dialog-tab-${mode}`}
+              tabIndex={0}
+            >
               {mode === "login" ? (
-                <form
-                  className={styles.form}
-                  onSubmit={
-                    loginStep === "password"
-                      ? handleLogin
-                      : (event) => event.preventDefault()
-                  }
-                >
+                <form className={`${styles.form} ${styles.loginForm}`} onSubmit={handleLogin} autoComplete="on" noValidate>
                   <TextInput
                     label="Электронная почта"
+                    name="email"
+                    id="auth-modal-login-email"
                     fieldVariant="boxed"
                     type="email"
                     value={email}
-                    onChange={(event) => setEmail(event.target.value)}
+                    onChange={(event) => { setEmail(event.target.value); setEmailError(null); setFormError(null); }}
+                    error={emailError}
                     required
                     autoComplete="email"
                   />
 
-                  {loginStep === "password" ? (
-                    <>
-                      <div className={styles.passwordLoginGroup}>
+                    <div className={styles.passwordLoginGroup}>
                         <div className={styles.passwordFieldWrap}>
                           <TextInput
                             label="Пароль"
+                            name="password"
+                            id="auth-modal-login-password"
                             fieldVariant="boxed"
                             type={passwordVisible ? "text" : "password"}
                             value={password}
-                            onChange={(event) => setPassword(event.target.value)}
+                            onChange={(event) => { setPassword(event.target.value); setPasswordError(null); setFormError(null); }}
+                            error={passwordError}
                             required
                             autoComplete="current-password"
                             className={styles.passwordInput}
@@ -482,6 +377,8 @@ export default function AuthModalDialog({
                         </div>
                       </div>
 
+                      {formError ? <p className="fieldError" role="alert">{formError}</p> : null}
+
                       <Link
                         href={`/auth/password/reset?next=${encodeURIComponent(safeReturnPath(returnPath))}`}
                         className={styles.forgotInline}
@@ -497,30 +394,14 @@ export default function AuthModalDialog({
                         Забыли пароль?
                       </Link>
 
-                      <div className={styles.authActions}>
-                        <Button
-                          type="submit"
-                          variant="primaryShimmer"
-                          className={styles.submit}
-                          disabled={submitting}
-                        >
-                          Войти
-                        </Button>
-
-                        <Button
-                          type="button"
-                          variant="secondary"
-                          className={`${styles.submit} ${styles.otpButton}`}
-                          onClick={() => void startCodeLogin()}
-                          disabled={submitting}
-                        >
-                          Продолжить с OTP
-                        </Button>
-                      </div>
-
-                      <div className={styles.oauthDivider}>
-                        <span>ИЛИ</span>
-                      </div>
+                      <Button
+                        type="submit"
+                        variant="primaryShimmer"
+                        className={styles.submit}
+                        disabled={submitting}
+                      >
+                        Войти
+                      </Button>
 
                       <button
                         type="button"
@@ -530,61 +411,42 @@ export default function AuthModalDialog({
                       >
                         Войти через Яндекс
                       </button>
-                    </>
-                  ) : (
-                    <>
-                      <p className={styles.codeHint}>
-                        Введите код, отправленный на {email}
-                      </p>
-                      <CodeInputs
-                        code={code}
-                        setCode={setCode}
-                        inputRefs={codeInputRefs}
-                        disabled={submitting}
-                      />
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        onClick={() => {
-                          setCode("");
-                          setLoginStep("password");
-                        }}
-                        disabled={submitting}
-                      >
-                        Войти другим способом
-                      </Button>
-                    </>
-                  )}
                 </form>
               ) : (
                 <form
                   key={registerStep}
                   className={styles.form}
+                  autoComplete="on"
+                  noValidate
                   onSubmit={
                     registerStep === "email"
                       ? handleRegisterStart
-                      : handleRegisterComplete
+                      : (event) => event.preventDefault()
                   }
                 >
                   {registerStep === "email" ? (
                     <>
                       <TextInput
                         label="Имя"
+                        name="given-name"
+                        id="auth-modal-register-first-name"
                         fieldVariant="boxed"
                         type="text"
                         value={firstName}
-                        onChange={(event) => setFirstName(event.target.value)}
-                        required
+                        onChange={(event) => { setFirstName(event.target.value); setFormError(null); }}
                         maxLength={120}
                         autoComplete="given-name"
                       />
 
                       <TextInput
                         label="Электронная почта"
+                        name="email"
+                        id="auth-modal-register-email"
                         fieldVariant="boxed"
                         type="email"
                         value={email}
-                        onChange={(event) => setEmail(event.target.value)}
+                        onChange={(event) => { setEmail(event.target.value); setEmailError(null); setFormError(null); }}
+                        error={emailError}
                         required
                         autoComplete="email"
                       />
@@ -592,10 +454,13 @@ export default function AuthModalDialog({
                       <div className={styles.passwordFieldWrap}>
                         <TextInput
                           label="Пароль"
+                          name="password"
+                          id="auth-modal-register-password"
                           fieldVariant="boxed"
                           type={passwordVisible ? "text" : "password"}
                           value={password}
-                          onChange={(event) => setPassword(event.target.value)}
+                          onChange={(event) => { setPassword(event.target.value); setPasswordError(null); setFormError(null); }}
+                          error={passwordError}
                           required
                           autoComplete="new-password"
                           className={styles.passwordInput}
@@ -610,8 +475,7 @@ export default function AuthModalDialog({
                           <Icon name={passwordVisible ? "eye-off" : "eye"} size={17} strokeWidth={1.6} />
                         </button>
                       </div>
-
-                      
+                      {formError ? <p className="fieldError" role="alert">{formError}</p> : null}
                     </>
                   ) : null}
 
@@ -622,47 +486,61 @@ export default function AuthModalDialog({
                       </p>
                       <CodeInputs
                         code={code}
-                        setCode={setCode}
+                        setCode={(value) => { setCode(value); setFormError(null); }}
                         inputRefs={codeInputRefs}
                         disabled={submitting}
                       />
+                      {formError ? <p className="fieldError" role="alert">{formError}</p> : null}
+                      {submitting ? <p className={styles.codeHint} role="status">Проверяем код…</p> : null}
+                      <div className={styles.codeActions}>
+                        <button
+                          type="button"
+                          className={styles.textAction}
+                          onClick={() => { setCode(""); setFormError(null); setRegisterStep("email"); }}
+                          disabled={submitting}
+                        >
+                          Изменить почту
+                        </button>
+                        <button
+                          type="button"
+                          className={styles.textAction}
+                          onClick={() => void handleRegisterStart()}
+                          disabled={submitting || resendSeconds > 0}
+                        >
+                          {resendSeconds > 0 ? `Повторить через ${resendSeconds} с` : "Отправить код ещё раз"}
+                        </button>
+                      </div>
                     </>
                   ) : null}
 
-                  <p className={styles.legal}>
-                    Регистрируясь, вы вступаете в программу лояльности и
-                    соглашаетесь с документами «
-                    <Link href="/legal/terms" target="_blank">
-                      Условия пользования
-                    </Link>
-                    » и «
-                    <Link href="/legal/privacy" target="_blank">
-                      Политика конфиденциальности
-                    </Link>
-                    ».
-                  </p>
-
-                  <Button
-                    type="submit"
-                    variant="primaryShimmer"
-                    className={styles.submit}
-                    disabled={submitting}
-                  >
-                    {registerStep === "email" ? "Получить код" : "Создать аккаунт"}
-                  </Button>
-
-                  <div className={styles.oauthDivider}>
-                    <span>ИЛИ</span>
-                  </div>
-
-                  <button
-                    type="button"
-                    className={styles.oauthButton}
-                    onClick={handleYandexLogin}
-                    disabled={submitting}
-                  >
-                    Войти через Яндекс
-                  </button>
+                  {registerStep === "email" ? (
+                    <>
+                      <p className={styles.legal}>
+                        Регистрируясь, вы вступаете в программу лояльности и
+                        соглашаетесь с документами «
+                        <Link href="/legal/terms" target="_blank">Условия пользования</Link>
+                        » и «
+                        <Link href="/legal/privacy" target="_blank">Политика конфиденциальности</Link>
+                        ».
+                      </p>
+                      <Button
+                        type="submit"
+                        variant="primaryShimmer"
+                        className={styles.submit}
+                        disabled={submitting}
+                      >
+                        Получить код
+                      </Button>
+                      <button
+                        type="button"
+                        className={styles.oauthButton}
+                        onClick={handleYandexLogin}
+                        disabled={submitting}
+                      >
+                        Войти через Яндекс
+                      </button>
+                    </>
+                  ) : null}
                 </form>
               )}
             </div>

@@ -108,6 +108,10 @@ export type Order = {
   cancellationRequestedAt: string | null;
   cancelledAt: string | null;
   cancellationAllowed: boolean;
+  paymentDueAt?: string | null;
+  paymentAllowed?: boolean;
+  unpaidCancellationPending?: boolean;
+  paymentReviewRequired?: boolean;
   items: OrderItem[];
   delivery: OrderDeliveryInfo | null;
 };

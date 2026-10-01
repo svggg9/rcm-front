@@ -1,15 +1,15 @@
-.page { display: flex; flex-direction: column; gap: 32px; min-width: 0; padding-top: 14px; color: var(--black); container-type: inline-size; }
+.page { display: flex; flex-direction: column; gap: 20px; min-width: 0; padding-top: 0; color: var(--black); container-type: inline-size; }
 .page h1, .page h2, .page h3, .page p { margin: 0; color: var(--black); letter-spacing: 0; }
-.page h1 { font-size: var(--font-3xl); line-height: 1.1; font-weight: 400; overflow-wrap: anywhere; }
-.page h2 { font-size: var(--font-2xl); line-height: 1.15; font-weight: 400; }
-.page p { font-size: 15px; line-height: 21px; font-weight: 300; }
-.pageHeader { display: flex; flex-direction: column; align-items: flex-start; gap: 20px; }
+.page h1 { font-size: 24px; line-height: 1.1; font-weight: 400; overflow-wrap: anywhere; }
+.page h2 { font-size: 18px; line-height: 1.15; font-weight: 400; }
+.page p { font-size: 13px; line-height: 20px; font-weight: 400; }
+.pageHeader { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 20px; padding: 20px; border: .5px solid #a8a8a8; background: var(--white); }
 .pageKicker { display: block; margin-bottom: 8px; font-size: 14px; line-height: 20px; font-weight: 400; }
 .pageHeader p { margin-top: 12px; }
 .headerActions { display: flex; flex-wrap: wrap; gap: 12px; }
 .page :is(:global(.buttonPrimary), :global(.buttonSecondary), :global(.buttonGhost)) {
   min-height: 42px; height: auto; padding: 10px 16px; border-radius: 0;
-  font-size: var(--font-button); line-height: 20px; font-weight: 600;
+  font-size: var(--font-button); line-height: 20px; font-weight: 400;
   text-decoration: none; white-space: nowrap; transition: transform var(--transition-fast);
 }
 .page :global(.buttonGhost) { border: 0; background: transparent; color: var(--black); }
@@ -23,43 +23,48 @@
 .page .error { background: color-mix(in srgb, var(--danger) 8%, var(--white)); font-weight: 400; }
 .success { background: color-mix(in srgb, var(--success) 8%, var(--white)); }
 .success svg { flex-shrink: 0; color: var(--success); }
-.profileSection, .gallerySection { display: flex; flex-direction: column; gap: 24px; min-width: 0; }
+.profileSection, .gallerySection { display: flex; flex-direction: column; gap: 20px; min-width: 0; padding: 20px; border: .5px solid #a8a8a8; background: var(--white); }
 .sectionHeadingRow { display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; }
 .sectionHeading { min-width: 0; }
 .sectionHeading p { margin-top: 8px; }
-.profileGrid { display: flex; flex-direction: column; gap: 28px; min-width: 0; }
+.profileGrid { display: grid; grid-template-columns: minmax(240px, 1fr) minmax(0, 2fr); align-items: start; gap: 24px; min-width: 0; }
 .wordmarkCard { display: flex; flex-direction: column; align-items: flex-start; gap: 12px; min-width: 0; }
-.wordmarkStage { width: 100%; min-height: 180px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 20px; padding: 24px; border: 0.5px solid #e7e7e4; background: var(--white); }
+.wordmarkStage { width: 100%; min-height: 180px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 20px; padding: 24px; border: 0.5px solid #a8a8a8; background: var(--white); }
 .summaryLabel { align-self: flex-start; font-size: 12px; line-height: 18px; font-weight: 400; }
-.brandProfileTitle { display: flex; align-items: center; justify-content: center; width: 100%; min-width: 0; min-height: 72px; font-size: var(--font-2xl); line-height: 1.15; font-weight: 400; text-align: center; overflow-wrap: anywhere; }
+.brandProfileTitle { display: flex; align-items: center; justify-content: center; width: 100%; min-width: 0; min-height: 72px; font-size: 18px; line-height: 1.15; font-weight: 400; text-align: center; overflow-wrap: anywhere; }
 .wordmarkPreview { position: relative; display: block; width: min(320px, 100%); height: 72px; }
 .wordmarkPreview img { object-fit: contain; }
 .wordmarkButton { max-width: 100%; }
-.page .wordmarkHint { font-size: 15px; line-height: 21px; }
+.page .wordmarkHint { font-size: 12px; line-height: 18px; }
 .logoInput { display: none; }
 .formSection { display: flex; flex-direction: column; gap: 20px; min-width: 0; width: 100%; margin: 0; padding: 0; border: 0; }
-.detailsGrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px 24px; }
+.detailsGrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
 .page :global(.field) { min-width: 0; gap: 4px; }
 .page :global(.label) { color: var(--black); font-size: 12px; line-height: 18px; font-weight: 400; letter-spacing: 0; }
-.page :global(.field) > small { color: var(--black); font-size: 15px; line-height: 21px; font-weight: 300; }
-.page :is(:global(.input), :global(.textarea)) { border: 1px solid var(--black); border-radius: 0; background: var(--white); font-family: inherit; font-size: 14px; line-height: 21px; font-weight: 400; letter-spacing: normal; color: var(--black); }
-.page :is(:global(.input), :global(.textarea)):focus-visible { outline: 1px solid var(--black); outline-offset: 2px; }
+.page :global(.field) > small { color: var(--black); font-size: 13px; line-height: 20px; font-weight: 400; }
+.page :is(:global(.input), :global(.textarea)) { border: .5px solid #a8a8a8; border-radius: 0; background: var(--white); font-family: inherit; font-size: 14px; line-height: 21px; font-weight: 400; letter-spacing: normal; color: var(--black); }
+.page :is(:global(.input), :global(.textarea)):focus-visible { border-color: var(--black); outline: 1px solid var(--black); outline-offset: -1px; }
 .page :global(.inputError), .page :global(.inputError):focus { border-color: var(--danger); outline-color: var(--danger); }
 .page :global(.fieldError) { margin: 0; font-size: 13px; line-height: 18px; color: var(--danger); }
-.page :global(.input).inputReadonly { border-color: #e7e7e4; }
+.page :global(.input).inputReadonly { border-color: #a8a8a8; }
 .page :global(.field):has([aria-invalid="true"]), .page [data-validation-error="true"] { scroll-margin-block: 140px; }
 .galleryAction { flex-shrink: 0; }
 .brandImageGrid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 20px; }
 .brandImageCard { min-width: 0; }
-.brandImageMedia { position: relative; width: 100%; aspect-ratio: 4 / 5; overflow: hidden; background: var(--white); border: 0.5px solid #e7e7e4; }
+.brandImageMedia { position: relative; width: 100%; aspect-ratio: 4 / 5; overflow: hidden; background: var(--white); border: 0.5px solid #a8a8a8; }
 .brandImageMedia img { object-fit: cover; }
 .brandImageActions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 4px; padding-top: 8px; }
 .brandImageActions button { display: inline-flex; align-items: center; justify-content: center; width: 40px; height: 40px; padding: 0; border: 0; border-radius: 0; background: transparent; color: var(--black); cursor: pointer; }
 .brandImageActions button:disabled { opacity: 0.3; cursor: default; }
-.galleryEmpty, .emptyState { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; min-height: 150px; padding: 24px; text-align: center; border: 0.5px solid #e7e7e4; background: var(--white); }
+.galleryEmpty, .emptyState { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; min-height: 150px; padding: 24px; text-align: center; border: 0.5px solid #a8a8a8; background: var(--white); }
 .galleryEmpty strong, .emptyState strong { font-size: 15px; line-height: 21px; font-weight: 400; }
-.emptyState span { font-size: 15px; line-height: 21px; font-weight: 300; }
+.emptyState span { font-size: 13px; line-height: 20px; font-weight: 400; }
 .loading { display: grid; place-items: center; min-height: 150px; }
+.settingsForm { display: flex; flex-direction: column; gap: 20px; min-width: 0; }
+.appearanceLayout { max-width: 480px; width: 100%; min-width: 0; }
+.galleryEmbedded { display: flex; flex-direction: column; gap: 20px; min-width: 0; border-top: .5px solid #a8a8a8; padding-top: 20px; }
+.galleryEmbedded h3 { font-size: 16px; line-height: 1.4; font-weight: 400; }
+.page .publicationHint { font-size: 12px; line-height: 18px; max-width: 720px; }
 @media (hover: hover) and (pointer: fine) {
   .page :global(.buttonSecondary):hover { background: var(--surface-hover); border-color: var(--black); color: var(--black); }
   .page :global(.buttonGhost):hover:not(:disabled), .brandImageActions button:hover:not(:disabled) { background: var(--surface-hover); }
@@ -69,14 +74,17 @@
   .page :is(:global(.buttonPrimary), :global(.buttonSecondary), :global(.buttonGhost)):active:not(:disabled) { transform: none; }
 }
 @container (max-width: 780px) {
+  .profileGrid { grid-template-columns: minmax(0, 1fr); }
+  .wordmarkStage { min-height: 150px; }
   .brandImageGrid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
 @media (max-width: 760px) {
-  .page { padding-top: 20px; }
-  .page h1 { font-size: 32px; }
-  .page h2 { font-size: 24px; }
+  .page { padding-top: 0; }
+  .page h1 { font-size: 22px; }
+  .page h2 { font-size: 18px; }
 }
 @media (max-width: 640px) {
+  .pageHeader, .profileSection, .gallerySection { padding: 16px; }
   .sectionHeadingRow { align-items: flex-start; flex-direction: column; gap: 16px; }
   .detailsGrid { grid-template-columns: minmax(0, 1fr); }
   .brandImageGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }

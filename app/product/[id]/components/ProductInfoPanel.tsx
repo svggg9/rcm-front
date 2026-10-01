@@ -7,7 +7,6 @@ import { LikeButton } from "../../../components/ui/LikeButton";
 import { Price } from "../../../components/ui/Price";
 import { ProductDetailsAccordion } from "./ProductDetailsAccordion";
 import { ProductVariantSelect } from "./ProductVariantSelect";
-import { ProductDeliveryPreview } from "./ProductDeliveryPreview";
 import styles from "../ProductPage.module.css";
 
 import type { Product, Variant } from "../lib/types";
@@ -210,8 +209,6 @@ export function ProductInfoPanel({
           )}
         </div>
       </div>
-
-      <ProductDeliveryPreview productId={product.id} />
 
       <ProductDetailsAccordion
         product={product}

@@ -1,18 +1,16 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
-import { API_URL, apiFetch } from "../lib/api";
 import { loadResolvedCart } from "../lib/cartAuthority";
 import { emitCartChanged } from "../lib/cartEvents";
 import { AUTH_EVENT } from "../lib/authEvents";
 import { useCurrentUser } from "../lib/useCurrentUser";
-import { mapProductToCarouselProduct } from "../lib/productMappers";
-
-import { ProductShowcase } from "../components/ProductShowcase/ProductShowcase";
+import { useAuthModal } from "../components/AuthModal/useAuthModal";
+import { RecommendationsShowcase } from "../components/Recommendations/RecommendationsShowcase";
 
 import type { CartItem } from "./lib/types";
 import { removeItem, updateQuantity } from "./lib/cartApi";
@@ -24,18 +22,6 @@ import { CartContentSkeleton } from "../components/ui/CommerceSkeleton";
 import { SkeletonBlock } from "../components/ui/SkeletonBlock";
 
 import styles from "./Cart.module.css";
-
-type Product = {
-  id: number;
-  publicId?: string | null;
-  title: string;
-  brand: string | null;
-  category: string | null;
-  audience?: "MEN" | "WOMEN" | "UNISEX";
-  coverImage?: string | null;
-  hoverImage?: string | null;
-  minPrice?: number | null;
-};
 
 function formatCartCount(count: number): string {
   const lastTwo = count % 100;
@@ -49,10 +35,10 @@ function formatCartCount(count: number): string {
 
 export default function CartPage() {
   const router = useRouter();
+  const { openAuth } = useAuthModal();
   const { isAuthenticated: isAuth, loading: authLoading } = useCurrentUser();
 
   const [items, setItems] = useState<CartItem[]>([]);
-  const [recommendations, setRecommendations] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [cartId, setCartId] = useState("");
   const [cartError, setCartError] = useState<string | null>(null);
@@ -60,6 +46,13 @@ export default function CartPage() {
   const [pendingVariantIds, setPendingVariantIds] = useState<Set<number>>(
     () => new Set()
   );
+  const guestPromptShown = useRef(false);
+
+  useEffect(() => {
+    if (authLoading || isAuth || guestPromptShown.current) return;
+    guestPromptShown.current = true;
+    openAuth("login", "/cart");
+  }, [authLoading, isAuth, openAuth]);
 
   useEffect(() => {
     const reload = () => setReloadToken((current) => current + 1);
@@ -69,6 +62,8 @@ export default function CartPage() {
 
   useEffect(() => {
     let active = true;
+
+    if (authLoading) return;
 
     async function loadCart() {
       try {
@@ -93,34 +88,7 @@ export default function CartPage() {
     return () => {
       active = false;
     };
-  }, [reloadToken]);
-
-  useEffect(() => {
-    let active = true;
-
-    async function loadRecommendations() {
-      try {
-        const res = await apiFetch(
-          `${API_URL}/api/products/page?page=0&size=12&sort=newest`
-        );
-        if (!res.ok) throw new Error("Failed to load recommendations");
-
-        const data: { content?: Product[] } = await res.json();
-        if (!active) return;
-
-        setRecommendations(Array.isArray(data.content) ? data.content : []);
-      } catch {
-        if (!active) return;
-        setRecommendations([]);
-      }
-    }
-
-    void loadRecommendations();
-
-    return () => {
-      active = false;
-    };
-  }, []);
+  }, [authLoading, isAuth, reloadToken]);
 
   function setVariantPending(variantId: number, pending: boolean) {
     setPendingVariantIds((current) => {
@@ -170,24 +138,22 @@ export default function CartPage() {
     }
   }
 
+  const visibleItems = items;
+  const cartLoading = authLoading || loading;
+
   const subtotal = useMemo(() => {
-    return items.reduce((sum, item) => sum + item.price * item.quantity, 0);
-  }, [items]);
+    return visibleItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  }, [visibleItems]);
 
   const totalQuantity = useMemo(() => {
-    return items.reduce((sum, item) => sum + item.quantity, 0);
-  }, [items]);
-
-  const visibleRecommendations = useMemo(() => {
-    const cartProductIds = new Set(items.map((item) => item.productId));
-    return recommendations.filter((product) => !cartProductIds.has(product.id));
-  }, [items, recommendations]);
+    return visibleItems.reduce((sum, item) => sum + item.quantity, 0);
+  }, [visibleItems]);
 
   function goCheckout() {
-    if (!items.length || authLoading || pendingVariantIds.size > 0) return;
+    if (!visibleItems.length || authLoading || pendingVariantIds.size > 0) return;
 
     if (!isAuth) {
-      router.push("/auth/login?next=/checkout");
+      openAuth("login", "/checkout");
       return;
     }
 
@@ -203,18 +169,18 @@ export default function CartPage() {
   return (
     <div className="pageContainer">
       <div className={styles.page}>
-        <div className={styles.top}>
+        {cartLoading || visibleItems.length > 0 ? <div className={styles.top}>
           <h1 className={styles.title}>Корзина</h1>
           <p className={styles.count} aria-live="polite">
-            {loading ? (
+            {cartLoading ? (
               <SkeletonBlock as="span" className={styles.countSkeleton} />
             ) : (
               formatCartCount(totalQuantity)
             )}
           </p>
-        </div>
+        </div> : null}
 
-        {loading ? (
+        {cartLoading ? (
           <CartContentSkeleton />
         ) : cartError ? (
           <div className={styles.errorState} role="alert">
@@ -229,12 +195,12 @@ export default function CartPage() {
               </Link>
             </div>
           </div>
-        ) : items.length === 0 ? (
-          <EmptyCart />
+        ) : visibleItems.length === 0 ? (
+          <EmptyCart isAuthenticated={isAuth} />
         ) : (
           <div className={styles.grid}>
             <div className={styles.items}>
-              {items.map((item) => (
+              {visibleItems.map((item) => (
                 <CartItemRow
                   key={item.variantId}
                   item={item}
@@ -250,19 +216,15 @@ export default function CartPage() {
               itemCount={totalQuantity}
               onCheckout={goCheckout}
               disabled={
-                !items.length || authLoading || pendingVariantIds.size > 0
+                !visibleItems.length || authLoading || pendingVariantIds.size > 0
               }
             />
           </div>
         )}
 
-        {!loading ? (
-          <ProductShowcase
-            variant="carousel"
-            title="Возможно, вам понравится"
-            products={visibleRecommendations.map(mapProductToCarouselProduct)}
-            href="/catalog"
-            actionLabel="Смотреть всё"
+        {!cartLoading ? (
+          <RecommendationsShowcase
+            seedIds={visibleItems.map((item) => item.productId)}
             className={styles.recommendations}
           />
         ) : null}

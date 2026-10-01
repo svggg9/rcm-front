@@ -10,7 +10,7 @@ for (const extension of [".ts", ".tsx"]) require.extensions[extension] = (module
     compilerOptions: { target: ts.ScriptTarget.ES2020, module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX, esModuleInterop: true },
   }).outputText, filename);
 };
-const { orderTask, returnTask, productTask, shippingDeadline, getSellerTasks } = require("../app/seller/lib/sellerTasks.ts");
+const { shippingDeadline, getSellerTasks } = require("../app/seller/lib/sellerTasks.ts");
 const { SellerTaskRow } = require("../app/seller/components/SellerHomeTasks.tsx");
 const { OrderDetailsPanel } = require("../app/seller/components/OrderDetailsPanel.tsx");
 const { TextInput } = require("../app/components/ui/TextInput.tsx");
@@ -21,19 +21,10 @@ const order = { id: 10, status: "PROCESSING", paymentStatus: "PAID", deliverySta
 assert.equal(shippingDeadline(order.paidAt), "2026-09-12T07:00:00.000Z");
 assert.equal(shippingDeadline(null), undefined);
 assert.equal(shippingDeadline("bad"), undefined);
-assert.equal(orderTask({ ...order, paidAt: null }).dueAt, undefined); // Never use createdAt as payment time.
-for (const status of ["CANCELED", "COMPLETED", "SHIPPED"]) assert.equal(orderTask({ ...order, status }), null);
-for (const deliveryStatus of ["CANCELLED", "RETURNED", "IN_TRANSIT", "DELIVERED", "READY_FOR_PICKUP"]) assert.equal(orderTask({ ...order, deliveryStatus }), null);
-for (const paymentStatus of ["PENDING", "FAILED", "REFUNDED", "CANCELED"]) assert.equal(orderTask({ ...order, paymentStatus }), null);
-assert.equal(orderTask({ ...order, status: "CONFIRMED", deliveryStatus: "PENDING" }), null);
-const task = orderTask(order);
+const task = { id: "order-10", title: "Новый заказ", object: "Заказ №10", description: "Рубашка", action: "Открыть", href: "/seller/orders?orderId=10", icon: "shopping-bag", tone: "neutral", dueAt: shippingDeadline(order.paidAt) };
 assert.match(render(SellerTaskRow, { task, now: Date.parse("2026-09-13T00:00:00Z") }), /Срок отправки истёк/);
 assert.doesNotMatch(render(SellerTaskRow, { task, now: Date.parse("2026-09-10T00:00:00Z") }), /Срок отправки истёк/);
-assert.match(render(SellerTaskRow, { task: orderTask({ ...order, paidAt: null }), now: 1 }), /срок не рассчитан/);
-assert.match(returnTask({ id: 2, status: "RECEIVED", productTitle: "Рубашка" }).href, /returnId=2#return-2/);
-for (const status of ["CLOSED", "REFUNDED", "REFUND_PENDING", "INSPECTED", "REJECTED"]) assert.equal(returnTask({ status }), null);
-assert.equal(productTask({ id: 3, status: "NEEDS_REVISION", title: "Рубашка" }).title, "Товар на доработке");
-for (const status of ["ACTIVE", "DRAFT", "ARCHIVED", "DELETED", "MODERATION"]) assert.equal(productTask({ status }), null);
+assert.match(render(SellerTaskRow, { task: { ...task, dueAt: null }, now: 1 }), /срок не рассчитан/);
 const details = { ...order, subtotalAmount: 990.25, deliveryAmount: 50, discountAmount: 0, deliveryAddress: "Тестовый адрес", recipientPhone: "+79000000000", deliveryMethod: "PICKUP_POINT", delivery: { cdekNumber: "TEST", trackingUrl: "https://example.com/tracking" } };
 const props = { order, details, loading: false, error: false, onRetry() {}, audience: "seller", showDeliveryLabel: true, openButtonLabel: "Открыть заказ" };
 const html = render(OrderDetailsPanel, props);
@@ -66,21 +57,22 @@ async function checkQueue() {
     assert.ok(parsed.pathname.startsWith("/api/seller/"));
     const page = Number(parsed.searchParams.get("page"));
     requests.push(`${parsed.pathname}:${page}`);
-    let content;
-    if (parsed.pathname === "/api/seller/orders") content = [order, { ...order, id: 11, status: "CANCELED" }];
-    else if (parsed.pathname.includes("returns")) content = page ? [{ id: 2, status: "RECEIVED", productTitle: "Рубашка" }] : [{ id: 1, status: "CLOSED" }];
-    else content = [{ id: 3, status: "BLOCKED", title: "Рубашка" }, { id: 4, status: "ACTIVE" }];
-    return { ok: !forbidden, status: forbidden ? 403 : 200, json: async () => ({ content, totalPages: parsed.pathname.includes("returns") ? 2 : 1 }) };
+    assert.equal(parsed.pathname, "/api/seller/dashboard/tasks");
+    assert.equal(parsed.searchParams.get("category"), "product");
+    assert.equal(parsed.searchParams.get("size"), "20");
+    assert.equal(page, 2);
+    return { ok: !forbidden, status: forbidden ? 403 : 200, json: async () => ({ content: [task], number: 2, hasNext: false }) };
   };
   try {
-    const tasks = await getSellerTasks(new AbortController().signal);
-    assert.deepEqual(tasks.map(task => task.id), ["order-10", "return-2", "product-3"]);
-    assert.ok(requests.includes("/api/seller/returns/list:1"));
+    const result = await getSellerTasks(new AbortController().signal, "product", 2);
+    assert.deepEqual(result.content.map(task => task.id), ["order-10"]);
+    assert.equal(requests.length, 1);
+
     forbidden = true;
-    await assert.rejects(getSellerTasks(new AbortController().signal), /Не удалось загрузить задачи/);
+    await assert.rejects(getSellerTasks(new AbortController().signal, "product", 2), /Не удалось загрузить задачи/);
     const controller = new AbortController(); controller.abort();
     await assert.rejects(getSellerTasks(controller.signal), { name: "AbortError" });
   } finally { global.fetch = originalFetch; }
 }
-checkQueue().then(() => console.log("PASS: paidAt + 72h, task eligibility, pagination/auth/cancellation, detail rows/quantities/money/roles, fields and icons"))
+checkQueue().then(() => console.log("PASS: paidAt + 72h, server task pagination/auth/cancellation, detail rows/quantities/money/roles, fields and icons"))
   .catch(error => { console.error(error); process.exitCode = 1; });

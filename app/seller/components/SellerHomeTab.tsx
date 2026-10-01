@@ -5,7 +5,6 @@ import Link from "next/link";
 import { Button } from "../../components/ui/Button";
 import type { IconName } from "../../components/ui/Icon";
 import { DesignSystemIcon as Icon } from "../../components/ui/DesignSystemIcon";
-import { StatusBadge } from "../../components/ui/StatusBadge";
 import type { SellerOnboardingStatus } from "../lib/sellerOnboardingApi";
 import type { SellerBrand, SellerDashboardSummary } from "../types";
 
@@ -13,6 +12,7 @@ import styles from "./SellerHomeTab.module.css";
 import { SellerOverview } from "./SellerOverview";
 
 type Props = {
+  active?: boolean;
   brand: SellerBrand | null;
   summary: SellerDashboardSummary | null;
   onboardingStatus: SellerOnboardingStatus | null;
@@ -34,6 +34,7 @@ type StoreTask = {
 };
 
 export function SellerHomeTab({
+  active = true,
   brand,
   summary,
   onboardingStatus,
@@ -56,18 +57,6 @@ export function SellerHomeTab({
 
   return (
     <section className={styles.page} aria-label="Обзор магазина">
-      <header className={styles.pageHeader}>
-        <div>
-          <div className={styles.titleRow}>
-            <h1>{brand?.name || "Магазин"}</h1>
-            <StatusBadge size="regular" tone={!onboardingStatus ? "default" : setupRequired ? "warning" : "success"}>
-              {!onboardingStatus ? (onboardingLoading ? "Проверка" : "Статус недоступен") : setupRequired ? "Подготовка" : "Активен"}
-            </StatusBadge>
-          </div>
-        </div>
-
-      </header>
-
       {onboardingStatus === null ? (
         onboardingLoading ? (
           <div className={styles.statusLoading} role="status" aria-busy="true" aria-label="Проверяем готовность магазина">
@@ -97,7 +86,7 @@ export function SellerHomeTab({
           applicationReady={applicationReady}
         />
       ) : null}
-      <SellerOverview brand={brand} summary={summary} onboarding={onboardingStatus} onNavigate={onNavigate} onCreateProduct={onCreateProduct} />
+      <SellerOverview active={active} brand={brand} summary={summary} onboarding={onboardingStatus} onNavigate={onNavigate} onCreateProduct={onCreateProduct} />
     </section>
   );
 }
@@ -129,7 +118,7 @@ function SetupDashboard({
     {
       title: "Заполнить данные магазина",
       description: "Реквизиты, банк и пункт отправления",
-      href: status.legalCompleted ? undefined : "/seller?tab=legal",
+      href: status.legalCompleted ? undefined : "/seller/legal",
       action: status.legalCompleted ? undefined : "Заполнить",
       icon: status.legalCompleted ? "check-circle" : "file",
       tone: status.legalCompleted ? "success" : "neutral",
@@ -138,7 +127,7 @@ function SetupDashboard({
     {
       title: "Принять условия работы",
       description: "Ознакомьтесь и примите оферту продавца",
-      href: status.agreementAccepted ? undefined : "/seller?tab=legal",
+      href: status.agreementAccepted ? undefined : "/seller/legal",
       action: status.agreementAccepted ? undefined : "Перейти к оферте",
       icon: status.agreementAccepted ? "check-circle" : "info",
       tone: status.agreementAccepted ? "success" : "neutral",

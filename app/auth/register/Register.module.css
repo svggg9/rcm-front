@@ -111,6 +111,31 @@
   font-size: var(--font-sm);
 }
 
+.codeActions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 8px 16px;
+}
+
+.textAction {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--black);
+  font: inherit;
+  font-size: var(--font-xs);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+
+.textAction:disabled {
+  color: var(--muted);
+  text-decoration: none;
+  cursor: default;
+}
+
 .link {
   color: var(--black);
   text-decoration: underline;

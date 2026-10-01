@@ -131,6 +131,13 @@ export const returnStatusLabels: Record<ReturnRequestStatus, string> = {
   CLOSED: "Возврат закрыт",
 };
 
+export async function getSellerReturn(id: number, signal?: AbortSignal): Promise<ReturnRequest> {
+  const response = await apiFetch(`${API_URL}/api/seller/returns/${id}`, { signal });
+  if (!response.ok) throw new Error(response.status === 403 || response.status === 404
+    ? "Возврат не найден или недоступен" : "Не удалось загрузить возврат");
+  return response.json();
+}
+
 export async function getOrderReturns(orderId: number): Promise<ReturnRequest[]> {
   const response = await apiFetch(`${API_URL}/api/orders/${orderId}/returns`);
   if (response.status === 404) return [];

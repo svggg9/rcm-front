@@ -67,7 +67,7 @@ export function ProductStickyHeader({
     <header className={styles.lockedHeader}>
       <div className={styles.lockedHeaderInner}>
         <div className={styles.lockedProduct}>
-          <Link href="/seller?tab=products" className={styles.lockedBack}>
+          <Link href="/seller/products" className={styles.lockedBack}>
             ←
           </Link>
 

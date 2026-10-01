@@ -1,4 +1,5 @@
 "use client";
+import { PRODUCT_PHOTO_COUNT_ERROR, validProductPhotoCount, validateProductPhotoUpload } from "../../../../lib/productPhotos";
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -432,9 +433,9 @@ export function ProductEditPageClient({
     messages.push("Выберите бренд или производителя");
   }
 
-  if (images.length === 0) {
+  if (!validProductPhotoCount(images.length)) {
     nextErrors.images = true;
-    messages.push("Добавьте хотя бы одно фото");
+    messages.push(PRODUCT_PHOTO_COUNT_ERROR);
   }
 
   if (!packageWidthCm) nextErrors.packageWidthCm = true;
@@ -683,6 +684,7 @@ export function ProductEditPageClient({
     setUploadProgress({ done: 0, total: filesToUpload.length });
 
     try {
+      await validateProductPhotoUpload(filesToUpload, images.length);
       const formData = new FormData();
       filesToUpload.forEach((file) => formData.append("files", file));
       if (colorwayId) {
@@ -867,7 +869,7 @@ export function ProductEditPageClient({
         toast.error("Сначала заполните реквизиты и примите оферту продавца", {
           action: {
             label: "Заполнить",
-            onClick: () => router.push("/seller?tab=legal"),
+            onClick: () => router.push("/seller/legal"),
           },
         });
       }
@@ -1128,7 +1130,7 @@ export function ProductEditPageClient({
       }
 
       toast.success("Товар удалён");
-      router.push("/seller?tab=products");
+      router.push("/seller/products");
     } catch (error) {
       setConfirmationError(
         error instanceof Error ? error.message : "Не удалось удалить товар"
@@ -1168,7 +1170,7 @@ export function ProductEditPageClient({
     <EditorSurface title={<span className={!title.trim() ? styles.titlePlaceholder : undefined}>{title.trim() || "Название товара"}</span>}
       toastId="product-editor"
       dirty={dirty} busy={productMutationBusy || creatingNextProduct}
-      onClose={() => { if (intercepted) router.back(); else router.replace("/seller?tab=products"); }}
+      onClose={() => { if (intercepted) router.back(); else router.replace("/seller/products"); }}
       actions={<>
         <Button onClick={() => void saveProduct()} disabled={productMutationBusy || saveSucceeded || !operationalEditingAllowed} loading={saving} success={saveSucceeded} variant="secondary">Сохранить</Button>
         <Button onClick={() => void publishProduct()} disabled={productMutationBusy} loading={publishing} variant="primary">Отправить на модерацию</Button>
@@ -1202,7 +1204,7 @@ export function ProductEditPageClient({
               Заполните юридические данные и примите оферту продавца, чтобы отправлять
               товары на модерацию.
             </p>
-            <Link href="/seller?tab=legal">Перейти к реквизитам</Link>
+            <Link href="/seller/legal">Перейти к реквизитам</Link>
           </div>
         ) : null}
 
@@ -1315,7 +1317,7 @@ export function ProductEditPageClient({
             ) : onboardingRequirementsPending ? (
               <div className={styles.publishRequirementHint}>
                 Для публикации сначала заполните реквизиты и примите оферту.{" "}
-                <Link href="/seller?tab=legal">Перейти к реквизитам</Link>
+                <Link href="/seller/legal">Перейти к реквизитам</Link>
               </div>
             ) : onboardingError ? (
               <div className={styles.publishRequirementHint}>
@@ -1465,7 +1467,7 @@ export function ProductEditPageClient({
                 type="button"
                 variant="secondary"
                 disabled={creatingNextProduct}
-                onClick={() => router.push("/seller?tab=products")}
+                onClick={() => router.push("/seller/products")}
               >
                 К товарам
               </Button>

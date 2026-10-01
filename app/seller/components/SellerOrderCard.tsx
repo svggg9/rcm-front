@@ -1,6 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import Link from "next/link";
+import linkedRow from "../../components/ui/LinkedListRow.module.css";
 
 import { Icon, type IconName } from "../../components/ui/Icon";
 import { StatusBadge } from "../../components/ui/StatusBadge";
@@ -185,7 +187,7 @@ export function SellerOrderCard({
     <article
       ref={articleRef}
       tabIndex={-1}
-      className={`${styles.orderRow} ${expanded ? styles.orderRowExpanded : ""} ${tableLayout ? styles.tableRow : ""} ${compact ? `${styles.compact} ${listItemStyles.item}` : ""}`}
+      className={`${styles.orderRow} ${tableLayout && navigateOnOpen && audience === "seller" ? linkedRow.row : ""} ${expanded ? styles.orderRowExpanded : ""} ${tableLayout ? styles.tableRow : ""} ${compact ? `${styles.compact} ${listItemStyles.item}` : ""}`}
       onMouseEnter={schedulePrefetch}
       onMouseLeave={cancelPrefetch}
     >
@@ -210,7 +212,7 @@ export function SellerOrderCard({
 
         {tableLayout && <div className={styles.productsCell}>
           <OrderProductsPreview order={order} details={details} loading={detailsLoading}
-            error={detailsError} onRetry={onLoadDetails ? () => void loadDetails() : undefined} />
+            error={detailsError} onRetry={onLoadDetails ? () => void loadDetails() : undefined} compact={compact} />
         </div>}
 
         <span className={styles.orderField}>
@@ -242,7 +244,10 @@ export function SellerOrderCard({
           <strong>{new Intl.NumberFormat("ru-RU", { style: "currency", currency: order.currency || "RUB", minimumFractionDigits: 0, maximumFractionDigits: 2 }).format(order.totalAmount)}</strong>
         </span>}
 
-        {tableLayout ? <button type="button" className={styles.expandIcon}
+        {tableLayout && navigateOnOpen && audience === "seller" ? <Link href={`/seller/orders/${order.id}`} scroll={false} prefetch={false}
+          className={`${styles.expandIcon} ${linkedRow.link}`} aria-label={`Открыть заказ ${formatOrderCode(order)}`}>
+          <Icon name="arrow-up-right" size={20} strokeWidth={1.5} />
+        </Link> : tableLayout ? <button type="button" className={styles.expandIcon}
           aria-label={`${expanded ? "Свернуть" : "Открыть"} заказ ${formatOrderCode(order)}`}
           aria-expanded={navigateOnOpen ? undefined : expanded} aria-controls={navigateOnOpen ? undefined : `${detailsIdPrefix}-${order.id}`}
           onClick={toggleExpanded}>

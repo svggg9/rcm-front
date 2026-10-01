@@ -47,7 +47,7 @@ export function ProductImagesCard({
   const [dragActive, setDragActive] = useState(false);
 
   function uploadFiles(files: File[]) {
-    const imageFiles = files.filter((file) => file.type.startsWith("image/"));
+    const imageFiles = files;
 
     if (imageFiles.length === 0 || uploading) {
       return;
@@ -61,7 +61,7 @@ export function ProductImagesCard({
     <section className={styles.card}>
       <SectionHeader
         title="Изображения"
-        hint="Первое фото будет главным. Можно выбрать несколько файлов или перетащить их в область загрузки."
+        hint="Для модерации — 3–10 фото. Главное — товар целиком на белом фоне, мягкая тень допустима. Дополнительные — любые фото товара, включая фотосессии. Без рекламных надписей, водяных знаков, рамок и коллажей; права на фото должны быть у вас. Черновик можно сохранить без полного комплекта."
       />
 
       <div
@@ -91,14 +91,14 @@ export function ProductImagesCard({
           <span>
             {uploading
               ? `${uploadProgress.done} из ${uploadProgress.total}`
-              : "JPG, PNG, WEBP. Можно выбрать сразу несколько файлов."}
+              : "JPEG, PNG, WebP. До 8 МБ, от 1200 px по короткой стороне. Первое фото — главное."}
           </span>
         </div>
 
         <label className={`${styles.filePicker} buttonPrimary`}>
           <input
             type="file"
-            accept="image/*"
+            accept="image/jpeg,image/png,image/webp"
             multiple
             disabled={uploading}
             onChange={(event) => {
@@ -122,9 +122,9 @@ export function ProductImagesCard({
         </div>
       ) : null}
 
-      {invalid && images.length === 0 ? (
+      {invalid && (images.length < 3 || images.length > 10) ? (
         <div className={styles.fieldErrorText}>
-          Добавьте хотя бы одно фото товара.
+          Для модерации нужно от 3 до 10 фото товара.
         </div>
       ) : null}
 

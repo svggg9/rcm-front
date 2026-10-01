@@ -21,6 +21,7 @@ import {
 
 import styles from "./SellerBrandTab.module.css";
 import { SellerBrandImages } from "./SellerBrandImages";
+import { SellerBrandPreview } from "./SellerBrandPreview";
 
 type FormState = {
   name: string;
@@ -80,6 +81,7 @@ export function SellerBrandTab({ initialBrands }: Props) {
   );
 
   const [saving, setSaving] = useState(false);
+  const [previewOpen, setPreviewOpen] = useState(false);
   const [uploadingWordmark, setUploadingWordmark] = useState(false);
   const wordmarkInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -184,6 +186,8 @@ export function SellerBrandTab({ initialBrands }: Props) {
           </div>
 
           <div className={styles.headerActions}>
+            <Button type="button" variant="secondary" disabled={saving || uploadingWordmark}
+              onClick={() => setPreviewOpen(true)}>Предпросмотр</Button>
             {selectedBrand.slug ? (
               <a
                 href={`/brand/${selectedBrand.slug}`}
@@ -209,18 +213,51 @@ export function SellerBrandTab({ initialBrands }: Props) {
         </header>
         {error ? <div className={styles.error} role="alert" data-validation-error="true" tabIndex={-1}>{error}</div> : null}
         {saved ? <div className={styles.success} role="status"><DesignSystemIcon name="check-circle" /><span>Изменения сохранены</span></div> : null}
-        {dirty ? <p className={styles.saveState} role="status">Есть несохранённые изменения</p> : null}
+        {dirty ? <p className={styles.saveState} role="status">Есть несохранённые изменения в данных магазина или ссылках. Нажмите «Сохранить».</p> : null}
 
-        <form id="seller-brand-profile" className={styles.profileSection}
+        <form id="seller-brand-profile" className={styles.settingsForm}
           onSubmit={(event) => { event.preventDefault(); void save(); }}>
-          <div className={styles.sectionHeading}>
-            <div>
-              <h2>Профиль бренда</h2>
-              <p>Название, описание и контакты для покупателей</p>
+          <section className={styles.profileSection} aria-labelledby="brand-about-title">
+            <div className={styles.sectionHeading}>
+              <h2 id="brand-about-title">О магазине</h2>
+              <p>Представьте свой бренд покупателям на публичной странице</p>
             </div>
-          </div>
+            <fieldset className={styles.formSection} disabled={saving}>
+              <TextInput label="Название" value={form.name} readOnly className={styles.inputReadonly} hint="Название нельзя изменить в этой форме. Для изменения обратитесь к администратору площадки." />
+              <Textarea label="Описание"
+                  value={form.description}
+                  onChange={(event) =>
+                    updateField("description", event.target.value)
+                  }
+                  rows={5}
+                  maxLength={1000}
+                  hint="Расскажите о стиле, истории и идее бренда"
+              />
 
-          <div className={styles.profileGrid}>
+              <div className={styles.detailsGrid}>
+                  <TextInput label="Страна"
+                    value={form.country}
+                    onChange={(event) => updateField("country", event.target.value)}
+                  />
+                  <TextInput label="Год основания"
+                    value={form.foundationYear}
+                    onChange={(event) =>
+                      updateField("foundationYear", event.target.value.replace(/\D/g, ""))
+                    }
+                    inputMode="numeric"
+                    maxLength={4}
+                  />
+
+              </div>
+            </fieldset>
+          </section>
+
+          <section className={styles.profileSection} aria-labelledby="brand-appearance-title">
+            <div className={styles.sectionHeading}>
+              <h2 id="brand-appearance-title">Оформление витрины</h2>
+              <p>Логотип и фотографии помогают покупателям познакомиться с брендом</p>
+            </div>
+            <div className={styles.appearanceLayout}>
             <div className={styles.wordmarkCard}>
               <div className={styles.wordmarkStage}>
                 <span className={styles.summaryLabel}>Текстовый логотип</span>
@@ -252,8 +289,9 @@ export function SellerBrandTab({ initialBrands }: Props) {
                 Загрузить текстовый логотип
               </Button>
               <p className={styles.wordmarkHint}>
-                SVG или WebP до 2 МБ — для шапки публичной страницы
+                Название бренда в вашем фирменном начертании. SVG или WebP до 2 МБ.
               </p>
+              <p className={styles.wordmarkHint}>Логотип появится в шапке витрины. Без файла показываем название обычным текстом.</p>
               <input
                 ref={wordmarkInputRef}
                 type="file"
@@ -265,31 +303,19 @@ export function SellerBrandTab({ initialBrands }: Props) {
               />
             </div>
 
-            <fieldset className={styles.formSection} disabled={saving}>
-              <TextInput label="Название" value={form.name} readOnly className={styles.inputReadonly} />
-              <Textarea label="Описание"
-                  value={form.description}
-                  onChange={(event) =>
-                    updateField("description", event.target.value)
-                  }
-                  rows={5}
-                  maxLength={1000}
-                  hint="Расскажите о стиле, истории и идее бренда"
-              />
 
+            </div>
+            <p className={styles.publicationHint}>Логотип и фотографии обновляются на витрине сразу после загрузки. Изменение порядка и удаление фотографий тоже сохраняются сразу.</p>
+            <SellerBrandImages brandId={selectedBrand.id} embedded />
+          </section>
+
+          <section className={styles.profileSection} aria-labelledby="brand-links-title">
+            <div className={styles.sectionHeading}>
+              <h2 id="brand-links-title">Ссылки</h2>
+              <p>Необязательно. Укажите сайт и страницы бренда в социальных сетях.</p>
+            </div>
+            <fieldset className={styles.formSection} disabled={saving}>
               <div className={styles.detailsGrid}>
-                  <TextInput label="Страна"
-                    value={form.country}
-                    onChange={(event) => updateField("country", event.target.value)}
-                  />
-                  <TextInput label="Год основания"
-                    value={form.foundationYear}
-                    onChange={(event) =>
-                      updateField("foundationYear", event.target.value.replace(/\D/g, ""))
-                    }
-                    inputMode="numeric"
-                    maxLength={4}
-                  />
                   <TextInput label="Сайт"
                     value={form.website}
                     onChange={(event) => updateField("website", event.target.value)}
@@ -305,12 +331,14 @@ export function SellerBrandTab({ initialBrands }: Props) {
                     onChange={(event) => updateField("vk", event.target.value)}
                     placeholder="vk.com/brand"
                   />
+
               </div>
             </fieldset>
-          </div>
+          </section>
         </form>
-
-        <SellerBrandImages brandId={selectedBrand.id} />
+        {previewOpen && <SellerBrandPreview brandId={selectedBrand.id} name={form.name}
+          country={form.country} foundationYear={form.foundationYear}
+          description={form.description} wordmarkUrl={form.wordmarkUrl} onClose={() => setPreviewOpen(false)} />}
     </section>
   );
 }

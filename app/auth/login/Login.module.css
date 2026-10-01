@@ -29,6 +29,14 @@
   gap: 12px;
 }
 
+.form :global(.fieldBoxed > .input:not(.inputError)) {
+  border: 1px solid #888888;
+}
+
+.form :global(.fieldBoxed > .input:not(.inputError):focus) {
+  border-color: var(--black);
+}
+
 .label {
   display: flex;
   flex-direction: column;
@@ -97,7 +105,7 @@
 .passwordVisibilityButton {
   position: absolute;
   right: 10px;
-  top: 50%;
+  top: 42px;
   transform: translateY(-50%);
   border: 0;
   background: transparent;

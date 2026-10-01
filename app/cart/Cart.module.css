@@ -328,9 +328,27 @@
 }
 
 .emptyState :global(.emptyStateText) {
-  max-width: 420px;
+  max-width: none;
   margin-top: 9px;
-  font-size: 12px;
+  color: var(--black);
+  font-size: 15px;
+  font-weight: 300;
+  line-height: 21px;
+  white-space: nowrap;
+}
+
+.emptyTextCompact {
+  display: none;
+}
+
+@media (max-width: 640px) {
+  .emptyTextFull {
+    display: none;
+  }
+
+  .emptyTextCompact {
+    display: inline;
+  }
 }
 
 .emptyAction,
@@ -342,7 +360,9 @@
   justify-content: center;
   padding: 0 22px;
   font-size: 12px;
+  font-family: inherit;
   font-weight: 600;
+  cursor: pointer;
   text-decoration: none;
 }
 

@@ -80,7 +80,7 @@ export function SellerProductsTab({
   function setFilter(value: ProductFilter | "") {
     const params = new URLSearchParams(searchParams.toString());
     if (value) params.set("status", value); else params.delete("status");
-    router.replace(`/seller?${params.toString()}`, { scroll: false });
+    router.replace(`/seller/products?${params.toString()}`, { scroll: false });
   }
   const [categoryFilter, setCategoryFilter] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
@@ -284,7 +284,10 @@ export function SellerProductsTab({
             />
           ) : (
             <div className={styles.productsList}>
-              <ProductListHeader sort={sort} onSort={onSort} disabled={controlsDisabled}
+              <ProductListHeader sort={sort} onSort={key => {
+                setSelected(new Set());
+                onSort(key);
+              }} disabled={controlsDisabled}
                 leadingControl={<label className={styles.checkboxTarget}>
                   <input ref={selectAllRef} type="checkbox" className={styles.checkbox}
                     aria-label={`Выбрать все показанные товары (${filteredProducts.length})`}
@@ -362,7 +365,7 @@ function ProductRow({
         items={([product.status === "ARCHIVED" ? "draft" : "archive", "delete"] as ProductAction[])
           .map(action => ({ action, reason: productActionBlockedReason(action, product.status) }))}
         collectionReason={product.status === "ACTIVE" ? null : "В подборку можно добавить только активный товар"}
-        onCreateCollection={() => router.push(`/seller?tab=products&section=collections&collectionProductId=${product.id}&collectionProductTitle=${encodeURIComponent(product.title.trim() || "Без названия")}`)}
+        onCreateCollection={() => router.push(`/seller/products?section=collections&collectionProductId=${product.id}&collectionProductTitle=${encodeURIComponent(product.title.trim() || "Без названия")}`)}
         onAction={onAction} />}
       onOpen={openProductEdit}
     />

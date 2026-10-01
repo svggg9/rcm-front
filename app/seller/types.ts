@@ -213,6 +213,8 @@ export type SellerDashboardSummary = {
   salesAmount: number;
   commissionAmount: number;
   availablePayout: number;
+  processingPayout: number;
+  inPayoutAmount: number;
   failedPayouts: number;
   telegramLinked: boolean;
   supportTelegramUrl: string | null;
@@ -267,12 +269,17 @@ export type SellerBrandProfileRequest = {
 };
 
 export type SellerFinanceOperation = {
+  id: string;
+  payoutId: number | null;
+  grossAmount: number | null;
+  commissionAmount: number | null;
+  estimatedDate: boolean;
   type: "SALE" | "SELLER_DEBIT" | "SELLER_PAYOUT";
   direction: "CREDIT" | "DEBIT";
   amount: number;
   currency: string;
   orderId: number | null;
-  description: string | null;
+  description?: string | null;
   createdAt: string;
 };
 
@@ -304,6 +311,18 @@ export type SellerPayout = {
   orderCount: number;
 };
 
+export type SellerPayoutDetail = Omit<SellerPayout, "orderCount"> & {
+  currency: string;
+  grossSalesAmount: number;
+  commissionAmount: number;
+  adjustmentsAmount: number;
+  bankName: string;
+  createdAt: string;
+  sentAt: string | null;
+  paidAt: string | null;
+  items: SellerPayoutItem[];
+};
+
 export type SellerStorefrontProduct = {
   id: number;
   title: string;
@@ -325,6 +344,10 @@ export type SellerFinanceSummary = {
   paidThisMonthAmount: number;
   nextPayoutDate: string;
   bankDetailsReady: boolean;
+  inPayoutAmount: number;
+  failedPayoutAmount: number;
+  reconciliationDifference: number;
+  nextPayout: SellerPayout | null;
   payouts: SellerPayout[];
   operations: SellerFinanceOperation[];
 };

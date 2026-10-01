@@ -2,6 +2,11 @@ import { apiFetch, API_URL } from "./api";
 import { getClientSession } from "./client-session";
 
 const GUEST_FAVORITES_KEY = "guest_favorite_ids";
+export const FAVORITES_EVENT = "favorites-changed";
+
+function emitFavoritesChanged(): void {
+  if (typeof window !== "undefined") window.dispatchEvent(new Event(FAVORITES_EVENT));
+}
 
 export function getGuestFavoriteIds(): number[] {
   if (typeof window === "undefined") return [];
@@ -23,12 +28,14 @@ export function setGuestFavoriteIds(ids: number[]): void {
   if (typeof window === "undefined") return;
 
   localStorage.setItem(GUEST_FAVORITES_KEY, JSON.stringify(ids));
+  emitFavoritesChanged();
 }
 
 export function clearGuestFavoriteIds(): void {
   if (typeof window === "undefined") return;
 
   localStorage.removeItem(GUEST_FAVORITES_KEY);
+  emitFavoritesChanged();
 }
 
 export function isGuestFavorite(productId: number): boolean {
@@ -86,6 +93,7 @@ export async function addFavorite(productId: number): Promise<void> {
   if (!response.ok) {
     throw new Error("favorites add failed");
   }
+  emitFavoritesChanged();
 }
 
 export async function removeFavorite(productId: number): Promise<void> {
@@ -103,6 +111,7 @@ export async function removeFavorite(productId: number): Promise<void> {
   if (!response.ok) {
     throw new Error("favorites remove failed");
   }
+  emitFavoritesChanged();
 }
 
 export async function toggleFavorite(
@@ -141,6 +150,7 @@ export async function syncFavoritesAfterLogin(ids: number[]): Promise<boolean> {
       method: "POST",
       body: JSON.stringify({ ids: uniqueIds }),
     });
+    if (response.ok) emitFavoritesChanged();
     return response.ok;
   } catch {
     return false;

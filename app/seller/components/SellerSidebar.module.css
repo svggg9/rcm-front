@@ -9,13 +9,60 @@
   gap: 0;
   min-width: 0;
   max-width: none;
-  background: var(--soft);
+  background: var(--white);
 }
 .secondary { display: flex; flex-basis: 100%; min-width: 0; overflow-x: auto; gap: 4px; padding-block: 6px; }
 .secondaryLink { display: inline-flex; align-items: center; padding: 8px 16px; min-height: 38px; color: var(--muted); font-size: 14px; text-decoration: none; white-space: nowrap; }
 .secondaryLink:hover { background: var(--white); color: var(--black); }
 .secondaryActive { color: var(--black); background: var(--white); font-weight: 500; }
 .secondaryLink:focus-visible { outline: 2px solid var(--black); outline-offset: -2px; }
+.contentTabs {
+  flex-basis: auto;
+  width: 100%;
+  gap: 0;
+  padding: 0;
+  border-bottom: 0.5px solid var(--black);
+}
+.contentTabs .secondaryLink {
+  position: relative;
+  flex: 0 0 min(180px, 50%);
+  min-height: 50px;
+  justify-content: center;
+  padding: 12px 10px;
+  border: 0.5px solid #a8a8a8;
+  border-bottom: 0;
+  background: transparent;
+  color: #888888;
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 20px;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+.contentTabs .secondaryLink + .secondaryLink { border-left: 0; }
+.contentTabs .secondaryLink:has(+ .secondaryActive) { border-right: 0; }
+.contentTabs .secondaryLink:hover { background: transparent; color: var(--black); }
+.contentTabs .secondaryActive {
+  border-color: var(--black);
+  background: var(--white);
+  color: var(--black);
+}
+.contentTabs .secondaryLink + .secondaryActive { border-left: 0.5px solid var(--black); }
+.contentTabs .secondaryActive::after {
+  content: "";
+  position: absolute;
+  right: 0;
+  bottom: -0.5px;
+  left: 0;
+  height: 0.5px;
+  background: var(--white);
+  pointer-events: none;
+}
+.contentTabs .secondaryLink:focus-visible {
+  border-color: var(--black);
+  outline: 2px solid var(--black);
+  outline-offset: -5px;
+}
 .navigation {
   display: flex;
   align-items: stretch;
@@ -23,30 +70,48 @@
   flex: 1 0 100%;
   overflow-x: auto;
   scrollbar-width: thin;
+  border-bottom: 0.5px solid var(--black);
 }
 .actions { flex-shrink: 0; display: flex; align-items: center; justify-content: flex-end; padding-left: 16px; }
 
 .navigationLink {
+  position: relative;
   display: inline-flex;
   flex: 0 0 auto;
   align-items: center;
   justify-content: center;
-  min-height: 56px;
-  padding: 0 20px;
-  border: 0;
+  min-height: 50px;
+  padding: 12px 20px;
+  border: 0.5px solid #a8a8a8;
+  border-bottom: 0;
   background: transparent;
-  color: var(--muted);
-  font-size: 17px;
-  line-height: 24px;
+  color: #888888;
+  font-size: 13px;
+  line-height: 20px;
   font-weight: 400;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
   text-decoration: none;
   white-space: nowrap;
 }
+.navigationLink + .navigationLink { border-left: 0; }
+.navigationLink:has(+ .navigationLinkActive) { border-right: 0; }
 
 .navigationLinkActive {
+  border-color: var(--black);
   background: var(--white);
   color: var(--black);
-  font-weight: 500;
+}
+.navigationLink + .navigationLinkActive { border-left: 0.5px solid var(--black); }
+.navigationLinkActive::after {
+  content: "";
+  position: absolute;
+  right: 0;
+  bottom: -0.5px;
+  left: 0;
+  height: 0.5px;
+  background: var(--white);
+  pointer-events: none;
 }
 
 .navigationLink:hover {
@@ -56,8 +121,9 @@
 }
 
 .navigationLink:focus-visible {
+  border-color: var(--black);
   outline: 2px solid var(--black);
-  outline-offset: -4px;
+  outline-offset: -5px;
 }
 
 @media (max-width: 760px) {
