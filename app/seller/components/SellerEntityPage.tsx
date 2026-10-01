@@ -43,6 +43,19 @@ export function SellerEntityPage({ id, kind, intercepted = false, onClose }: {
     return () => controller.abort();
   }, [id, kind, attempt]);
   useEffect(() => {
+    if (kind !== "returns" || request?.status !== "REFUND_PENDING" || dirty || busy) return;
+    const controller = new AbortController();
+    let pending = false;
+    const timer = setInterval(async () => {
+      if (document.hidden || pending) return;
+      pending = true;
+      try { const updated = await getSellerReturn(id, controller.signal); if (!controller.signal.aborted) setRequest(updated); }
+      catch { /* Keep the last confirmed state if polling fails. */ }
+      finally { pending = false; }
+    }, 15000);
+    return () => { clearInterval(timer); controller.abort(); };
+  }, [id, kind, request?.status, dirty, busy]);
+  useEffect(() => {
     if (!dirty && !busy) return;
     const guard = (event: BeforeUnloadEvent) => { event.preventDefault(); event.returnValue = ""; };
     window.addEventListener("beforeunload", guard);

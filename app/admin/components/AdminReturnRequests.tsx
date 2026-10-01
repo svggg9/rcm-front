@@ -50,6 +50,21 @@ export function AdminReturnRequests({ orderId }: Props) {
     };
   }, [orderId]);
 
+  useEffect(() => {
+    let active = true;
+    let pending = false;
+    const refresh = async () => {
+      if (document.hidden || busyId !== null || pending) return;
+      pending = true;
+      try { const items = await getAdminOrderReturns(orderId); if (active) setRequests(items); }
+      catch { /* Keep loaded requests on a temporary polling failure. */ }
+      finally { pending = false; }
+    };
+    const timer = setInterval(() => void refresh(), 15000);
+    window.addEventListener("refund-operations-changed", refresh);
+    return () => { active = false; clearInterval(timer); window.removeEventListener("refund-operations-changed", refresh); };
+  }, [orderId, busyId]);
+
   async function review(
     request: ReturnRequest,
     decision: "approve" | "reject"
@@ -98,6 +113,7 @@ export function AdminReturnRequests({ orderId }: Props) {
     setError(null);
     try {
       const updated = await refundAdminReturn(request.id, amount);
+      window.dispatchEvent(new Event("refund-operations-changed"));
       setRequests((current) =>
         current.map((item) => (item.id === updated.id ? updated : item))
       );
@@ -196,8 +212,7 @@ export function AdminReturnRequests({ orderId }: Props) {
             </div>
           ) : null}
 
-          {request.status === "INSPECTED" ||
-          request.status === "REFUND_PENDING" ? (
+          {request.status === "INSPECTED" && !request.refundId ? (
             <div className={styles.review}>
               <label data-ui="field">
                 <span>Сумма возврата</span>
@@ -232,11 +247,12 @@ export function AdminReturnRequests({ orderId }: Props) {
                   onClick={() => void refund(request)}
                   disabled={busyId === request.id}
                 >
-                  Вернуть деньги
+                  Создать запрос возврата
                 </Button>
               </div>
             </div>
           ) : null}
+          {request.status === "REFUND_PENDING" ? <p role="status">Запрос возврата создан. Проверьте отправку и подтверждение в очереди возвратов{request.refundId ? `: №${request.refundId}` : ""}</p> : null}
         </article>
         ))}
         {error ? <div className={styles.error}>{error}</div> : null}

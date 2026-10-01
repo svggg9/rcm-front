@@ -1,79 +1,6 @@
 import styles from "../ProductPage.module.css";
 
-type TextBlock =
-  | { type: "paragraph"; text: string }
-  | { type: "ul" | "ol" | "dash"; items: string[] };
-
-function parseDescription(value: string): TextBlock[] {
-  const blocks: TextBlock[] = [];
-  let paragraph: string[] = [];
-  let listType: "ul" | "ol" | "dash" | null = null;
-  let listItems: string[] = [];
-
-  function flushParagraph() {
-    const text = paragraph.join(" ").trim();
-
-    if (text) {
-      blocks.push({ type: "paragraph", text });
-    }
-
-    paragraph = [];
-  }
-
-  function flushList() {
-    if (listType && listItems.length > 0) {
-      blocks.push({ type: listType, items: listItems });
-    }
-
-    listType = null;
-    listItems = [];
-  }
-
-  const normalizedValue = value.replace(/\s+•\s*/g, "\n• ");
-
-  for (const rawLine of normalizedValue.split(/\r?\n/)) {
-    const line = rawLine.trim();
-
-    if (!line) {
-      flushParagraph();
-      flushList();
-      continue;
-    }
-
-    const bulletMatch = line.match(/^[-*•]\s*(.+)$/);
-    const dashMatch = line.match(/^—\s*(.+)$/);
-    const orderedMatch = line.match(/^\d+[.)]\s+(.+)$/);
-
-    if (bulletMatch || dashMatch || orderedMatch) {
-      flushParagraph();
-
-      const nextType = bulletMatch ? "ul" : dashMatch ? "dash" : "ol";
-      const itemText = (
-        bulletMatch?.[1] ?? dashMatch?.[1] ?? orderedMatch?.[1] ?? ""
-      ).trim();
-
-      if (listType && listType !== nextType) {
-        flushList();
-      }
-
-      listType = nextType;
-
-      if (itemText) {
-        listItems.push(itemText);
-      }
-
-      continue;
-    }
-
-    flushList();
-    paragraph.push(line);
-  }
-
-  flushParagraph();
-  flushList();
-
-  return blocks;
-}
+import { parseDescription } from "../../../lib/productDescription";
 
 type Props = {
   text: string;
@@ -103,8 +30,9 @@ export function ProductDescriptionText({ text, fallback }: Props) {
         return (
           <ListTag
             key={index}
+            style={block.type === "square" ? { gridTemplateRows: `repeat(${Math.ceil(block.items.length / 2)}, auto)` } : undefined}
             className={`${styles.list} ${
-              block.type === "dash" ? styles.dashList : ""
+              block.type === "dash" ? styles.dashList : block.type === "square" ? styles.squareList : ""
             }`.trim()}
           >
             {block.items.map((item, itemIndex) => (

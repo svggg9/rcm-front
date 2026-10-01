@@ -468,6 +468,8 @@ export function parsePositiveId(value?: CatalogSearchParamValue): number | undef
 }
 
 export function buildCatalogQuery(params: {
+  basePath?: string;
+  omitBrands?: boolean;
   audience?: string;
   category?: string;
   categories?: string[];
@@ -490,7 +492,7 @@ export function buildCatalogQuery(params: {
   const categories = params.categories ?? (params.category ? [params.category] : []);
   Array.from(new Set(categories)).filter(Boolean).forEach((category) => searchParams.append("category", category));
 
-  params.brands?.forEach((brand) => searchParams.append("brands", brand));
+  if (!params.omitBrands) params.brands?.forEach((brand) => searchParams.append("brands", brand));
   params.sizes?.forEach((size) => searchParams.append("sizes", size));
 
   if (params.minPrice !== undefined) {
@@ -522,7 +524,7 @@ export function buildCatalogQuery(params: {
   }
 
   const query = searchParams.toString();
-  return query ? `/catalog?${query}` : "/catalog";
+  return query ? `${params.basePath ?? "/catalog"}?${query}` : params.basePath ?? "/catalog";
 }
 
 export function normalizeCatalogView(value?: string): CatalogView {

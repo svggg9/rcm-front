@@ -38,6 +38,8 @@ import {
 import { Icon } from "../ui/Icon";
 
 type Props = {
+  basePath?: string;
+  lockedBrand?: string;
   products: CatalogProduct[];
   categoryGroups: CatalogCategoryGroup[];
   mobileAvailableCategories: string[] | null;
@@ -201,6 +203,7 @@ function ScrollableSubcategoryNav({
 }
 
 export function CatalogClient({
+  basePath = "/catalog", lockedBrand,
   products,
   categoryGroups,
   mobileAvailableCategories,
@@ -263,7 +266,7 @@ export function CatalogClient({
   );
 
   const activeFilterCount =
-    selectedBrands.length +
+    (lockedBrand ? 0 : selectedBrands.length) +
     selectedSizes.length +
     (minPrice !== undefined || maxPrice !== undefined ? 1 : 0);
   const displayedSort: SortValue =
@@ -283,11 +286,13 @@ export function CatalogClient({
       } = {}
     ) =>
       buildCatalogQuery({
+        basePath,
+        omitBrands: Boolean(lockedBrand),
         audience: selectedAudience,
         categories: overrides.category !== undefined
           ? (overrides.category ? [overrides.category] : [])
           : overrides.categories ?? selectedCategories,
-        brands: overrides.brands ?? selectedBrands,
+        brands: lockedBrand ? [lockedBrand] : overrides.brands ?? selectedBrands,
         sizes: overrides.sizes ?? selectedSizes,
         minPrice: Object.prototype.hasOwnProperty.call(overrides, "minPrice")
           ? overrides.minPrice
@@ -308,6 +313,8 @@ export function CatalogClient({
           : selectedCollectionId,
       }),
     [
+      basePath,
+      lockedBrand,
       initialSort,
       maxPrice,
       minPrice,
@@ -360,9 +367,11 @@ export function CatalogClient({
     startTransition(() => {
       router.push(
         buildCatalogQuery({
+          basePath,
+          omitBrands: Boolean(lockedBrand),
           audience: filters.audience ?? selectedAudience,
           categories: filters.categories,
-          brands: filters.brands,
+          brands: lockedBrand ? [lockedBrand] : filters.brands,
           sizes: filters.sizes,
           minPrice: filters.minPrice,
           maxPrice: filters.maxPrice,
@@ -388,7 +397,7 @@ export function CatalogClient({
             : audienceLabels[selectedAudience];
 
   const activeChips = [
-    ...selectedBrands.map((brand) => ({
+    ...(lockedBrand ? [] : selectedBrands).map((brand) => ({
       key: `brand-${brand}`,
       label: brand,
       href: queryFor({ brands: selectedBrands.filter((item) => item !== brand) }),
@@ -416,7 +425,7 @@ export function CatalogClient({
 
   return (
     <div className={styles.catalogPage} aria-busy={isPending}>
-      <h1 className={styles.visuallyHidden}>{title}</h1>
+      {!lockedBrand && <h1 className={styles.visuallyHidden}>{title}</h1>}
 
       {categoryGroups.length > 0 ? (
         <nav className={styles.primaryCategories} aria-label="Основные категории">
@@ -646,9 +655,9 @@ export function CatalogClient({
           key={queryFor({ page: currentPage })}
           open
           categoryGroups={categoryGroups}
-          brands={brands}
+          brands={lockedBrand ? [] : brands}
           sizes={sizes}
-          initialFilters={currentFilters}
+          initialFilters={lockedBrand ? { ...currentFilters, brands: [] } : currentFilters}
           pending={isPending}
           onApply={applyFilters}
           onClose={closeFilters}

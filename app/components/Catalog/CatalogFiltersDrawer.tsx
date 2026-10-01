@@ -348,6 +348,7 @@ export function CatalogFiltersDrawer({
             </div>
           </section>
 
+          {brands.length > 0 && (
           <section className={styles.filterSection} data-mobile-hidden={brands.length <= 1 && selectedBrands.length === 0}>
             <h3>Бренд</h3>
             <label className={styles.brandSearch} data-ui="field">
@@ -382,6 +383,8 @@ export function CatalogFiltersDrawer({
               ) : null}
             </div>
           </section>
+          )}
+
 
           <section className={styles.filterSection} data-mobile-hidden={sizes.length <= 1 && selectedSizes.length === 0}>
             <h3>Размер</h3>

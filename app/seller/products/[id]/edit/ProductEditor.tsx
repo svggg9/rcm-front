@@ -20,7 +20,7 @@ export default async function ProductEditor({ params, intercepted = false }: Pro
   const { id } = await params;
   const productId = Number(id);
 
-  if (!Number.isFinite(productId)) {
+  if (!/^[1-9]\d*$/.test(id) || !Number.isSafeInteger(productId)) {
     return (
       <div className="pageContainer">
         <div>Некорректный ID товара</div>

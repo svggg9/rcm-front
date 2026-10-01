@@ -45,7 +45,8 @@ export function AdminOrderDetails({
 }: Props) {
   const [refundError, setRefundError] = useState<string | null>(null);
   const [deliveryError, setDeliveryError] = useState<string | null>(null);
-  const canRefund = order.paymentStatus === "PAID";
+  const [queuedOrderId, setQueuedOrderId] = useState<number | null>(null);
+  const canRefund = order.paymentStatus === "PAID" && queuedOrderId !== order.id;
   const deliveryCancellationFinished = ["NOT_DELIVERED", "CANCELLED"].includes(
     order.delivery?.shipmentStatus ?? ""
   );
@@ -62,7 +63,7 @@ export function AdminOrderDetails({
     if (!canRefund || refunding) return;
 
     const confirmed = window.confirm(
-      "Вернуть оплату по этому заказу? Это действие отправит возврат в платежный провайдер."
+      "Вернуть оплату по этому заказу? Будет создан запрос в очереди возвратов. Это ещё не подтверждение возврата денег."
     );
 
     if (!confirmed) return;
@@ -71,6 +72,8 @@ export function AdminOrderDetails({
 
     try {
       await onRefund();
+      setQueuedOrderId(order.id);
+      window.dispatchEvent(new Event("refund-operations-changed"));
     } catch (e) {
       setRefundError(e instanceof Error ? e.message : "Не удалось вернуть оплату");
     }
@@ -195,6 +198,7 @@ export function AdminOrderDetails({
                 <div className={orderDetailStyles.actionLink}>Оплата возвращена</div>
               ) : null}
 
+              {queuedOrderId === order.id && order.paymentStatus !== "REFUNDED" ? <p role="status">Запрос возврата создан. Проверьте отправку и подтверждение в очереди возвратов</p> : null}
               {refundError ? <div className={orderDetailStyles.payError}>{refundError}</div> : null}
               {deliveryError ? <div className={orderDetailStyles.payError}>{deliveryError}</div> : null}
             </div>

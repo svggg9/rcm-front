@@ -8,7 +8,7 @@ import styles from "./AdminPaymentReview.module.css";
 type Review = {
   orderId: number; orderGroupId: string; status: string; paymentStatus: string;
   paymentDueAt: string | null; reservationReleasedAt: string | null;
-  initializationPending: boolean; latePaymentId: number | null;
+  initializationPending: boolean; latePaymentId: number | null; initializationRecoverable?: boolean;
 };
 type Page = { content: Review[]; number: number; totalPages: number; totalElements: number };
 
@@ -36,16 +36,22 @@ export function AdminPaymentReview({ onOpenOrder }: { onOpenOrder: (id: number) 
     return () => controller.abort();
   }, [page, revision]);
 
-  async function act(row: Review, refund: boolean) {
+  useEffect(() => {
+    const refresh = () => { if (!document.hidden) reload(); };
+    const timer = setInterval(refresh, 15000);
+    window.addEventListener("refund-operations-changed", refresh);
+    return () => { clearInterval(timer); window.removeEventListener("refund-operations-changed", refresh); };
+  }, [reload]);
+
+  async function act(row: Review, recover = false) {
     if (busy) return;
-    if (refund && !window.confirm(`Вернуть позднюю оплату по заказу №${row.orderId}?`)) return;
+    if (recover && !window.confirm("Найти платёж в банке? Найденная неоплаченная попытка будет отменена. Если оплата прошла, она будет учтена в заказах.")) return;
     setBusy(true); setError(""); setMessage("");
     try {
-      const path = refund ? `${row.orderId}/late-refund` : `${encodeURIComponent(row.orderGroupId)}/reconcile`;
-      const response = await apiFetch(`${API_URL}/api/admin/payment-review/${path}`, { method: "POST" });
-      if (!response.ok) throw new Error(refund ? "Не удалось создать возврат. Проверьте текущие платежи и возвраты заказа" : "Не удалось проверить оплату");
-      setMessage(refund ? "Запрос возврата создан. Дождитесь подтверждения провайдера" : "Сверка выполнена. Неразрешённые случаи остаются в очереди");
-      reload();
+      const path = encodeURIComponent(row.orderGroupId) + "/" + (recover ? "recover-initialization" : "reconcile");
+      const response = await apiFetch(API_URL + "/api/admin/payment-review/" + path, { method: "POST" });
+      if (!response.ok) throw new Error(recover ? "Не удалось однозначно восстановить платёж. Резерв сохранён; нужна сверка с банком" : "Не удалось проверить оплату");
+      setMessage("Сверка выполнена. Неразрешённые случаи остаются в очереди"); reload();
     } catch (reason) { setError(reason instanceof Error ? reason.message : "Ошибка операции"); }
     finally { setBusy(false); }
   }
@@ -62,7 +68,8 @@ export function AdminPaymentReview({ onOpenOrder }: { onOpenOrder: (id: number) 
       <span>{row.reservationReleasedAt ? "Резерв освобождён" : "Резерв требует проверки"}</span>
       <div className={styles.actions}>
         <Button variant="ghost" onClick={() => void act(row, false)} disabled={busy}>Проверить</Button>
-        {row.latePaymentId && <Button variant="secondary" onClick={() => void act(row, true)} disabled={busy}>Вернуть оплату</Button>}
+        {row.initializationRecoverable && <Button variant="secondary" onClick={() => void act(row, true)} disabled={busy}>Восстановить платёж</Button>}
+        {row.latePaymentId && <span>Выберите платёж в блоке «Поздние платежи»</span>}
       </div>
     </div>)}
     {data && !data.content.length && !loading && <p>Нет оплат, требующих проверки</p>}

@@ -42,6 +42,7 @@ export type ReturnRequest = {
   trackingUrl: string | null;
   requestedAmount: number | null;
   approvedRefundAmount: number | null;
+  refundId?: number | null;
   sellerComment?: string | null;
   resellable?: boolean | null;
   createdAt: string;

@@ -9,6 +9,7 @@ import styles from "./ProductPhotoEditor.module.css";
 
 export type ProductPhotoEditorProps = {
   images: ProductImageItem[];
+  colorways?: { id:number; color:string }[];
   invalidImages?: boolean;
   uploading: boolean;
   reordering: boolean;
@@ -25,11 +26,12 @@ export type ProductPhotoEditorProps = {
   onMoveImageByIndex: (fromIndex: number, toIndex: number) => void;
 };
 
-export function ProductPhotoEditor({ images, invalidImages = false, uploading, reordering, mediaDisabled,
+export function ProductPhotoEditor({ images, colorways = [], invalidImages = false, uploading, reordering, mediaDisabled,
   mediaDisabledHint, dragImageId, uploadProgress, onFilesChange, onUploadImages,
   onDragImageStart, onDragImageEnd, onMoveImage, onDeleteImage, onMoveImageByIndex }: ProductPhotoEditorProps) {
   const fieldId = useId();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [uploadColorwayId, setUploadColorwayId] = useState<number | null>(null);
   const [dragActive, setDragActive] = useState(false);
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const selected = images.find(image => image.id === selectedId) ?? images[0];
@@ -43,10 +45,10 @@ export function ProductPhotoEditor({ images, invalidImages = false, uploading, r
     const imageFiles = files;
     if (!imageFiles.length) return;
     onFilesChange(imageFiles);
-    onUploadImages(imageFiles);
+    onUploadImages(imageFiles, uploadColorwayId);
   }
 
-  return <section className={styles.editor} aria-label="Фото товара" aria-busy={uploading || undefined}>
+  return <section id="product-photos" className={styles.editor} aria-label="Фото товара" aria-busy={uploading || undefined}>
     <div className={styles.heading}><h2>Фото товара</h2><span>{images.length ? `${selectedIndex + 1} / ${images.length}` : ""}</span></div>
     <div className={`${styles.media} ${dragActive ? styles.dragActive : ""} ${invalid ? styles.invalid : ""}`}
       data-validation-error={invalid || undefined}
@@ -87,12 +89,15 @@ export function ProductPhotoEditor({ images, invalidImages = false, uploading, r
           aria-label="Удалить выбранное фото" onConfirm={() => onDeleteImage(selected.id)}><DesignSystemIcon name="trash" role="utility" /></ConfirmActionButton>
       </div>
     </>}
+    {colorways.length > 0 && <label>Фото для цвета<select value={uploadColorwayId ?? ""} disabled={locked} onChange={event=>setUploadColorwayId(event.target.value ? Number(event.target.value) : null)}><option value="">Общие фотографии</option>{colorways.map(c=><option key={c.id} value={c.id}>{c.color || "Без цвета"}</option>)}</select></label>}
+    <p className={styles.hint}>Для нового цвета сначала сохраните товар, затем выберите цвет при загрузке фото.</p>
     <input ref={fileInputRef} hidden type="file" accept="image/jpeg,image/png,image/webp" multiple disabled={locked} aria-label="Файлы фотографий товара"
       onChange={event => { uploadFiles(Array.from(event.target.files ?? [])); event.target.value = ""; }} />
     <Button type="button" variant="secondary" className={styles.uploadButton} loading={uploading} disabled={locked}
       aria-describedby={invalid ? `${fieldId}-images-error` : undefined} onClick={() => fileInputRef.current?.click()}>Выбрать фото</Button>
     {invalid && <span className="fieldError" id={`${fieldId}-images-error`}>Для модерации нужно от 3 до 10 фото товара</span>}
     <p className={styles.hint}>{mediaDisabled && mediaDisabledHint ? mediaDisabledHint : "Для модерации — 3–10 фото. JPEG, PNG или WebP, до 8 МБ каждое, от 1200 px по короткой стороне. Главное фото — товар целиком на белом фоне; мягкая тень допустима. Дополнительные — любые фотографии товара, в том числе с фотосессий, на модели или в интерьере."}</p>
+    <p className={styles.hint}>Загрузка, удаление и порядок фотографий сохраняются сразу. Закрытие без сохранения их не отменяет.</p>
     <p className={styles.hint}>Без рекламных надписей, водяных знаков, рамок и коллажей. Используйте фотографии, на которые у вас есть права. Первое фото — главное; порядок можно изменить перетаскиванием миниатюр. Черновик можно сохранить без полного комплекта фото.</p>
     {uploading && <div className={styles.progress} role="status" aria-label={`Загружено фото: ${uploadProgress.done} из ${uploadProgress.total}`}>
       <span style={{width: `${uploadProgress.total ? uploadProgress.done / uploadProgress.total * 100 : 0}%`}} />

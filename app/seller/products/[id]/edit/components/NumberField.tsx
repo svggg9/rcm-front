@@ -10,23 +10,6 @@ type Props = {
   onChange: (value: number | "") => void;
 };
 
-function digitsOnly(value: string) {
-  return value.replace(/\D/g, "");
-}
-
-function decimalOnly(value: string) {
-  const normalized = value.replace(",", ".");
-  const [integer = "", ...rest] = normalized.split(".");
-  const decimal = rest.join("").replace(/\D/g, "");
-  const cleanInteger = integer.replace(/\D/g, "");
-
-  if (normalized.includes(".")) {
-    return `${cleanInteger}.${decimal}`;
-  }
-
-  return cleanInteger;
-}
-
 export function NumberField({
   label,
   value,
@@ -34,6 +17,7 @@ export function NumberField({
   decimal = false,
   onChange,
 }: Props) {
+  invalid = invalid || Number.isNaN(value) || (value !== "" && value <= 0);
   const errorId = useId();
   const [inputState, setInputState] = useState({
     value,
@@ -42,7 +26,7 @@ export function NumberField({
 
   let displayValue = inputState.displayValue;
 
-  if (inputState.value !== value) {
+  if (!Object.is(inputState.value, value)) {
     displayValue = value === "" ? "" : String(value);
     setInputState({ value, displayValue });
   }
@@ -60,17 +44,16 @@ export function NumberField({
         pattern={decimal ? "[0-9]*[.,]?[0-9]*" : "[0-9]*"}
         value={displayValue}
         onChange={(event) => {
-          const nextValue = decimal
-            ? decimalOnly(event.target.value)
-            : digitsOnly(event.target.value);
+          const nextValue = event.target.value;
 
-          if (nextValue === "" || nextValue === ".") {
+          if (nextValue.trim() === "") {
             setInputState({ value: "", displayValue: nextValue });
             onChange("");
             return;
           }
 
-          const parsedValue = Number(nextValue);
+          const normalized = nextValue.replace(/\s/g, "").replace(",", ".");
+          const parsedValue = (decimal ? /^\d+(?:\.\d*)?$/ : /^\d+$/).test(normalized) ? Number(normalized) : NaN;
 
           setInputState({ value: parsedValue, displayValue: nextValue });
           onChange(parsedValue);
