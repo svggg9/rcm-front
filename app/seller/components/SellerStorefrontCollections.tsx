@@ -53,6 +53,7 @@ export function SellerStorefrontCollections({ brandId, renderPanel }: Props) {
   const [productsHasMore, setProductsHasMore] = useState(false);
   const productsRequestIdRef = useRef(0);
   const selectedIdsRef = useRef(selectedIds);
+  const initialDraftRef = useRef({ title: "", description: "", productIds: [] as number[] });
   const [error, setError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<{ title?: string; products?: string }>({});
   const [removingId, setRemovingId] = useState<number | null>(null);
@@ -145,6 +146,7 @@ export function SellerStorefrontCollections({ brandId, renderPanel }: Props) {
     }
 
     setEditingId(null);
+    initialDraftRef.current = { title: "", description: "", productIds: [] };
     setTitle("");
     setDescription("");
     selectedIdsRef.current = [];
@@ -159,6 +161,11 @@ export function SellerStorefrontCollections({ brandId, renderPanel }: Props) {
   function editCollection(collection: SellerStorefrontCollection) {
     if (saving || editing) return;
     const productIds = collection.products.map(product => product.id);
+    initialDraftRef.current = {
+      title: collection.title,
+      description: collection.description ?? "",
+      productIds,
+    };
     setEditingId(collection.id);
     setTitle(collection.title);
     setDescription(collection.description ?? "");
@@ -209,7 +216,7 @@ export function SellerStorefrontCollections({ brandId, renderPanel }: Props) {
       const payload = {
         title: title.trim(),
         description: description.trim(),
-        active: true,
+        active: editingId === null ? true : collections.find(collection => collection.id === editingId)?.active ?? true,
         productIds: selectedIds,
       };
       const saved = editingId === null
@@ -254,7 +261,7 @@ export function SellerStorefrontCollections({ brandId, renderPanel }: Props) {
     setBulkBusy(true);
     setError(null);
     try {
-      const updated = await Promise.all(selectedCollections.map(collection =>
+      const results = await Promise.allSettled(selectedCollections.map(collection =>
         updateSellerStorefrontCollection(brandId, collection.id, {
           title: collection.title,
           description: collection.description ?? "",
@@ -262,10 +269,13 @@ export function SellerStorefrontCollections({ brandId, renderPanel }: Props) {
           productIds: collection.products.map(product => product.id),
         })
       ));
+      const updated = results.flatMap(result => result.status === "fulfilled" ? [result.value] : []);
+      const failedIds = selectedCollections.filter((_, index) => results[index].status === "rejected").map(collection => collection.id);
       const byId = new Map(updated.map(collection => [collection.id, collection]));
       setCollections(current => current.map(collection => byId.get(collection.id) ?? collection));
-      setSelectedCollectionIds(new Set());
-      toast.success(active ? "Подборки опубликованы" : "Подборки скрыты");
+      setSelectedCollectionIds(new Set(failedIds));
+      if (failedIds.length) setError(`Не удалось обновить ${failedIds.length} из ${selectedCollections.length} подборок. Повторите действие для оставшихся выбранных.`);
+      else toast.success(active ? "Подборки опубликованы" : "Подборки скрыты");
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "Не удалось обновить подборки");
     } finally {
@@ -279,10 +289,13 @@ export function SellerStorefrontCollections({ brandId, renderPanel }: Props) {
     setBulkBusy(true);
     setError(null);
     try {
-      await Promise.all(ids.map(id => deleteSellerStorefrontCollection(brandId, id)));
-      setCollections(current => current.filter(collection => !selectedCollectionIds.has(collection.id)));
-      setSelectedCollectionIds(new Set());
-      toast.success("Подборки удалены");
+      const results = await Promise.allSettled(ids.map(id => deleteSellerStorefrontCollection(brandId, id)));
+      const deletedIds = new Set(ids.filter((_, index) => results[index].status === "fulfilled"));
+      const failedIds = ids.filter(id => !deletedIds.has(id));
+      setCollections(current => current.filter(collection => !deletedIds.has(collection.id)));
+      setSelectedCollectionIds(new Set(failedIds));
+      if (failedIds.length) setError(`Не удалось удалить ${failedIds.length} из ${ids.length} подборок. Повторите действие для оставшихся выбранных.`);
+      else toast.success("Подборки удалены");
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "Не удалось удалить подборки");
     } finally {
@@ -296,12 +309,16 @@ export function SellerStorefrontCollections({ brandId, renderPanel }: Props) {
           onClick={() => void openEditor()}
         ><span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}><DesignSystemIcon name="plus" role="utility" />Добавить подборку</span></Button>
   );
+  const initialDraft = initialDraftRef.current;
+  const draftDirty = title !== initialDraft.title || description !== initialDraft.description
+    || selectedIds.length !== initialDraft.productIds.length
+    || selectedIds.some((id, index) => id !== initialDraft.productIds[index]);
   return renderPanel(null,
     <section className={`${styles.section} ${selectedCollectionIds.size ? styles.hasSelection : ""}`}>
       {error ? <div className={pageStyles.error} role="alert">{error}</div> : null}
       {editing ? (
         <EditorSurface compact title={editingId === null ? "Создание подборки" : "Редактирование подборки"} busy={saving}
-          dirty={Boolean(title.trim() || description.trim() || selectedIds.length)}
+          dirty={draftDirty}
           onClose={() => { setEditing(false); setEditingId(null); setTitle(""); setDescription(""); selectedIdsRef.current = []; setSelectedIds([]); setError(null); }}
           actions={<Button type="button" variant="primary"
             disabled={collectionsLoading || (editingId === null && collections.length >= 12)}

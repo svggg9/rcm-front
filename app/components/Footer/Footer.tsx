@@ -21,7 +21,7 @@ const footerGroups = [
       { href: "/about", label: "О проекте" },
       { href: "/catalog", label: "Независимые бренды" },
       { href: "/seller/apply", label: "Стать продавцом" },
-      { href: "/seller", label: "Кабинет продавца" },
+      { href: "/seller/home", label: "Кабинет продавца" },
       { href: "/contacts", label: "Связаться с нами" },
     ],
   },

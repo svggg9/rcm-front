@@ -10,9 +10,9 @@ import { toastIcons } from "./toastIcons";
 import { lockModalScroll } from "./modalScrollLock";
 
 /** Full editor surface; mount only while open. */
-export function EditorSurface({ title, children, actions, dirty = false, busy = false, compact = false, toastId, onClose }: {
+export function EditorSurface({ title, children, actions, dirty = false, busy = false, compact = false, toastId, closeLabel = "Закрыть редактор", onClose }: {
   title: ReactNode; children: ReactNode; actions?: ReactNode;
-  dirty?: boolean; busy?: boolean; compact?: boolean; toastId?: string; onClose: () => void;
+  dirty?: boolean; busy?: boolean; compact?: boolean; toastId?: string; closeLabel?: string; onClose: () => void;
 }) {
   const ref = useRef<HTMLDialogElement>(null);
   const titleId = useId();
@@ -50,7 +50,7 @@ export function EditorSurface({ title, children, actions, dirty = false, busy = 
       }}>
       <header className={styles.header}>
         <h1 id={titleId}>{title}</h1>
-        <Button variant="ghost" className={styles.close} aria-label="Закрыть редактор" disabled={busy} onClick={requestClose}><Icon name="x" /></Button>
+        <Button variant="ghost" className={styles.close} aria-label={closeLabel} disabled={busy} onClick={requestClose}><Icon name="x" /></Button>
       </header>
       <div className={styles.body}>{children}</div>
       {actions ? <footer className={styles.footer}>{actions}</footer> : null}

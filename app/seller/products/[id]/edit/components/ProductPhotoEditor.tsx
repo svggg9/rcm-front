@@ -35,12 +35,12 @@ export function ProductPhotoEditor({ images, invalidImages = false, uploading, r
   const selected = images.find(image => image.id === selectedId) ?? images[0];
   const selectedIndex = selected ? images.indexOf(selected) : -1;
   const locked = mediaDisabled || uploading || reordering;
-  const invalid = invalidImages && images.length === 0;
+  const invalid = invalidImages && (images.length < 3 || images.length > 10);
 
   function uploadFiles(files: File[]) {
     setDragActive(false);
     if (locked) return;
-    const imageFiles = files.filter(file => file.type.startsWith("image/"));
+    const imageFiles = files;
     if (!imageFiles.length) return;
     onFilesChange(imageFiles);
     onUploadImages(imageFiles);
@@ -87,12 +87,13 @@ export function ProductPhotoEditor({ images, invalidImages = false, uploading, r
           aria-label="Удалить выбранное фото" onConfirm={() => onDeleteImage(selected.id)}><DesignSystemIcon name="trash" role="utility" /></ConfirmActionButton>
       </div>
     </>}
-    <input ref={fileInputRef} hidden type="file" accept="image/*" multiple disabled={locked} aria-label="Файлы фотографий товара"
+    <input ref={fileInputRef} hidden type="file" accept="image/jpeg,image/png,image/webp" multiple disabled={locked} aria-label="Файлы фотографий товара"
       onChange={event => { uploadFiles(Array.from(event.target.files ?? [])); event.target.value = ""; }} />
     <Button type="button" variant="secondary" className={styles.uploadButton} loading={uploading} disabled={locked}
       aria-describedby={invalid ? `${fieldId}-images-error` : undefined} onClick={() => fileInputRef.current?.click()}>Выбрать фото</Button>
-    {invalid && <span className="fieldError" id={`${fieldId}-images-error`}>Добавьте хотя бы одно фото товара</span>}
-    <p className={styles.hint}>{mediaDisabled && mediaDisabledHint ? mediaDisabledHint : "JPG, PNG, WEBP. Первое фото — главное. Перетащите миниатюры, чтобы изменить порядок."}</p>
+    {invalid && <span className="fieldError" id={`${fieldId}-images-error`}>Для модерации нужно от 3 до 10 фото товара</span>}
+    <p className={styles.hint}>{mediaDisabled && mediaDisabledHint ? mediaDisabledHint : "Для модерации — 3–10 фото. JPEG, PNG или WebP, до 8 МБ каждое, от 1200 px по короткой стороне. Главное фото — товар целиком на белом фоне; мягкая тень допустима. Дополнительные — любые фотографии товара, в том числе с фотосессий, на модели или в интерьере."}</p>
+    <p className={styles.hint}>Без рекламных надписей, водяных знаков, рамок и коллажей. Используйте фотографии, на которые у вас есть права. Первое фото — главное; порядок можно изменить перетаскиванием миниатюр. Черновик можно сохранить без полного комплекта фото.</p>
     {uploading && <div className={styles.progress} role="status" aria-label={`Загружено фото: ${uploadProgress.done} из ${uploadProgress.total}`}>
       <span style={{width: `${uploadProgress.total ? uploadProgress.done / uploadProgress.total * 100 : 0}%`}} />
     </div>}

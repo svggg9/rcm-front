@@ -4,6 +4,7 @@ import { cache } from "react";
 
 import { API_URL } from "../lib/api";
 import { CatalogClient } from "../components/Catalog/CatalogClient";
+import { RecommendationsShowcase } from "../components/Recommendations/RecommendationsShowcase";
 import {
   buildCatalogProductsQuery,
   canonicalCategoryName,
@@ -431,6 +432,7 @@ export default async function CatalogPage({
         selectedCollectionId={selectedCollectionId}
         hasError={hasError}
       />
+      <RecommendationsShowcase audience={normalized.selectedAudience} />
     </div>
   );
 }

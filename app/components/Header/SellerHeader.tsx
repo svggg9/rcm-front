@@ -11,7 +11,7 @@ import type { SellerBrand, SellerDashboardSummary } from "../../seller/types";
 import styles from "./SellerHeader.module.css";
 
 export function isSellerCabinetPath(pathname: string | null) {
-  return pathname === "/seller" || pathname?.startsWith("/seller/products/") === true;
+  return pathname === "/seller" || /^\/seller\/(home|products|orders|returns|finance|store|legal)(\/|$)/.test(pathname ?? "");
 }
 
 export function SellerHeader() {
@@ -64,7 +64,7 @@ export function SellerHeader() {
               </Link>)}
           </section>}
         </div>
-        <Link href="/seller?tab=brand" className={styles.account} aria-label={brand ? `Магазин ${brand.name}` : "Магазин"}>
+        <Link href="/seller/store" className={styles.account} aria-label={brand ? `Магазин ${brand.name}` : "Магазин"}>
           {brand?.wordmarkUrl && !imageFailed
             ? <Image className={styles.brandWordmark} src={brand.wordmarkUrl} alt={brand.name} width={120} height={36} onError={() => setImageFailed(true)} />
             : <span className={styles.brandName}>{brand?.name || "Магазин"}</span>}

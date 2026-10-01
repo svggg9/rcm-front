@@ -8,15 +8,11 @@ import { toast } from "sonner";
 import {
   ensureGuestCartId,
   getGuestCartId,
-  setAuth,
 } from "../../lib/auth";
-import { apiFetch, API_URL } from "../../lib/api";
+import { loginWithPassword } from "../../lib/authRequests";
 import { startYandexAuth } from "../../lib/yandexAuth";
-import {
-  getGuestFavoriteIds,
-  syncFavoritesAfterLogin,
-  clearGuestFavoriteIds,
-} from "../../lib/favorites";
+import { completeAuth } from "../../lib/completeAuth";
+import { AuthPageSwitch } from "../../components/Auth/AuthPageSwitch";
 import { Button } from "../../components/ui/Button";
 import { TextInput } from "../../components/ui/TextInput";
 import { useAutoFocusFirstField } from "../../lib/useAutoFocusFirstField";
@@ -34,23 +30,22 @@ function LoginPageContent() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [passwordVisible, setPasswordVisible] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
+  const [emailError, setEmailError] = useState<string | null>(null);
+  const [passwordError, setPasswordError] = useState<string | null>(null);
 
   useAutoFocusFirstField(formRef, []);
 
   async function finishAuth(cartId: string) {
-    const guestFavoriteIds = getGuestFavoriteIds();
-
-    setAuth(cartId);
-
-    if (guestFavoriteIds.length > 0) {
-      const synced = await syncFavoritesAfterLogin(guestFavoriteIds);
-      if (synced) clearGuestFavoriteIds();
-    }
-
+    await completeAuth(cartId);
+    router.refresh();
     router.replace(next);
   }
 
   async function handleYandexLogin() {
+    if (submitting) return;
+    setSubmitting(true);
     try {
       await startYandexAuth(next);
     } catch (error) {
@@ -59,28 +54,38 @@ function LoginPageContent() {
           ? error.message
           : "Не удалось открыть вход через Яндекс"
       );
+      setSubmitting(false);
     }
   }
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
+    if (submitting) return;
+    setFormError(null);
+    setEmailError(null);
+    setPasswordError(null);
+    if (!email.trim()) {
+      setEmailError("Введите электронную почту");
+      return;
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+      setEmailError("Проверьте адрес электронной почты");
+      return;
+    }
+    if (!password) {
+      setPasswordError("Введите пароль");
+      return;
+    }
+    setSubmitting(true);
 
     try {
       const cartId = getGuestCartId() || await ensureGuestCartId();
-
-      const response = await apiFetch(`${API_URL}/api/auth/login`, {
-        method: "POST",
-        body: JSON.stringify({ username: email, password, cartId }),
-      });
-
-      if (!response.ok) {
-        throw new Error("Неверная почта или пароль");
-      }
-
-      const data: { cartId: string } = await response.json();
+      const data = await loginWithPassword(email, password, cartId);
       await finishAuth(data.cartId);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Ошибка входа");
+      setFormError(error instanceof Error ? error.message : "Ошибка входа");
+    } finally {
+      setSubmitting(false);
     }
   }
 
@@ -90,21 +95,25 @@ function LoginPageContent() {
         <div className={styles.card}>
           <h1 className={styles.title}>Вход</h1>
 
-          <form ref={formRef} onSubmit={handleSubmit} className={styles.form}>
+          <form ref={formRef} onSubmit={handleSubmit} className={styles.form} autoComplete="on" noValidate>
             <button
               type="button"
               className={styles.oauthButton}
               onClick={handleYandexLogin}
+              disabled={submitting}
             >
               Войти с Яндекс ID
             </button>
 
             <TextInput
               label="Электронная почта"
+              name="email"
+              id="login-email"
               fieldVariant="boxed"
               type="email"
               value={email}
-              onChange={(event) => setEmail(event.target.value)}
+              onChange={(event) => { setEmail(event.target.value); setEmailError(null); setFormError(null); }}
+              error={emailError}
               required
               autoComplete="email"
             />
@@ -112,10 +121,13 @@ function LoginPageContent() {
             <div className={styles.passwordFieldWrap}>
               <TextInput
                 label="Пароль"
+                name="password"
+                id="login-password"
                 fieldVariant="boxed"
                 type={passwordVisible ? "text" : "password"}
                 value={password}
-                onChange={(event) => setPassword(event.target.value)}
+                onChange={(event) => { setPassword(event.target.value); setPasswordError(null); setFormError(null); }}
+                error={passwordError}
                 required
                 autoComplete="current-password"
                 className={styles.passwordInput}
@@ -124,22 +136,29 @@ function LoginPageContent() {
                 type="button"
                 className={styles.passwordVisibilityButton}
                 onClick={() => setPasswordVisible((visible) => !visible)}
+                aria-label={passwordVisible ? "Скрыть пароль" : "Показать пароль"}
+                disabled={submitting}
               >
                 {passwordVisible ? "Скрыть" : "Показать"}
               </button>
             </div>
 
+            {formError ? <p className="fieldError" role="alert">{formError}</p> : null}
+
             <Link
               href={`/auth/password/reset?next=${encodeURIComponent(next)}`}
               className={styles.forgot}
+              aria-disabled={submitting || undefined}
+              onClick={(event) => { if (submitting) event.preventDefault(); }}
             >
               Забыли пароль?
             </Link>
 
-            <Button type="submit" variant="primaryShimmer" className={styles.button}>
+            <Button type="submit" variant="primaryShimmer" className={styles.button} disabled={submitting}>
               Войти
             </Button>
           </form>
+          <AuthPageSwitch mode="login" next={next} disabled={submitting} />
         </div>
       </div>
     </div>

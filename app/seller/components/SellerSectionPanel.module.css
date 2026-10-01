@@ -1,0 +1,23 @@
+.panel {
+  min-width: 0;
+  border: 0.5px solid #a8a8a8;
+  background: var(--white);
+}
+
+.panelBody,
+.plainBody {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+}
+
+.panelBody { padding: 20px; }
+.plainBody { padding: 0; }
+
+.panelBody > [hidden],
+.plainBody > [hidden] { display: none; }
+
+@media (max-width: 640px) {
+  .panelBody { padding: 12px; }
+}

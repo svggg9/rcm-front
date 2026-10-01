@@ -474,6 +474,10 @@ export function SellerLegalTab() {
 
   return (
     <section className={styles.page}>
+      <header className={styles.pageHeader}>
+        <h1>Данные и документы</h1>
+        <p>Реквизиты, контакты и настройки отправки заказов</p>
+      </header>
       <form ref={formRef} className={styles.form} noValidate onSubmit={submit}>
         {error ? <div className={styles.error}>{error}</div> : null}
 

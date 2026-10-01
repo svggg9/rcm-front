@@ -36,8 +36,6 @@ function HeaderContent({ initialCategories }: HeaderProps) {
   const searchParams = useSearchParams();
   const headerRef = useRef<HTMLElement | null>(null);
   const menuDialogRef = useRef<HTMLDialogElement | null>(null);
-  const searchInputRef = useRef<HTMLInputElement | null>(null);
-  const searchButtonRef = useRef<HTMLButtonElement | null>(null);
 
   const activeCategory = searchParams.get("category");
   const activeAudience = searchParams.get("audience") || "all";
@@ -49,10 +47,8 @@ function HeaderContent({ initialCategories }: HeaderProps) {
   const [categoriesError, setCategoriesError] = useState(false);
   const [categoryLoadAttempt, setCategoryLoadAttempt] = useState(0);
   const [menuOpen, setMenuOpen] = useState(false);
-  const [searchOpen, setSearchOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState(activeSearch);
 
-  const { user, isAuthenticated: isAuth } = useCurrentUser();
+  const { user, isAuthenticated: isAuth, loading: authLoading } = useCurrentUser();
   const cartCount = useCartCount();
   const role = user?.role ?? null;
   const { count: favoritesCount } = useFavorites();
@@ -70,9 +66,6 @@ function HeaderContent({ initialCategories }: HeaderProps) {
     };
   }, [menuOpen]);
 
-  useEffect(() => {
-    if (searchOpen) searchInputRef.current?.focus();
-  }, [searchOpen]);
 
   useEffect(() => {
     if (initialCategories !== null && categoryLoadAttempt === 0) {
@@ -162,7 +155,6 @@ function HeaderContent({ initialCategories }: HeaderProps) {
   }
 
   function openMobileMenu() {
-    setSearchOpen(false);
     setMenuOpen(true);
   }
 
@@ -242,20 +234,16 @@ function HeaderContent({ initialCategories }: HeaderProps) {
           </Link>
 
           <div className={styles.actions}>
-            <button
-              type="button"
-              ref={searchButtonRef}
-              className={styles.iconBtn}
-              aria-label="Поиск"
-              aria-expanded={searchOpen}
-              aria-controls="site-search"
-              onClick={() => {
-                setSearchQuery(activeSearch);
-                setSearchOpen(!searchOpen);
-              }}
-            >
-              <HeaderIcon name="search" />
-            </button>
+            {isAuth ? (
+              <Link href="/account" className={styles.iconBtn} aria-label="Личный кабинет">
+                <HeaderIcon name="user" />
+              </Link>
+            ) : (
+              <button type="button" className={styles.iconBtn} aria-label="Войти в аккаунт"
+                disabled={authLoading} onClick={() => openAuth("login", "/account")}>
+                <HeaderIcon name="user" />
+              </button>
+            )}
 
             <Link
               href="/cart"
@@ -274,25 +262,6 @@ function HeaderContent({ initialCategories }: HeaderProps) {
 
       )}
 
-      {searchOpen && !isSellerCabinetPath(pathname) ? (
-        <form id="site-search" role="search" className={styles.searchPanel} onSubmit={(event) => {
-          event.preventDefault();
-          setSearchOpen(false);
-          router.push(buildCatalogUrl({ q: searchQuery.trim() }));
-        }} onKeyDown={(event) => {
-          if (event.key === "Escape") {
-            setSearchOpen(false);
-            searchButtonRef.current?.focus();
-          }
-        }}>
-          <label htmlFor="site-search-query">Поиск по каталогу</label>
-          <div className={styles.searchRow}>
-            <input id="site-search-query" ref={searchInputRef} value={searchQuery} onChange={(event) => setSearchQuery(event.target.value)} type="search" placeholder="Товар или бренд" />
-            <button type="submit">Найти</button>
-            <button type="button" className={styles.searchClose} aria-label="Закрыть поиск" onClick={() => { setSearchOpen(false); searchButtonRef.current?.focus(); }}><Icon name="x" size={24} /></button>
-          </div>
-        </form>
-      ) : null}
 
       {menuOpen ? (
         <dialog
@@ -326,7 +295,7 @@ function HeaderContent({ initialCategories }: HeaderProps) {
             aria-label="Закрыть меню"
             onClick={() => setMenuOpen(false)}
           >
-            <Icon name="x" size={36} strokeWidth={1.25} />
+            <Icon name="x" size={24} strokeWidth={1.25} />
           </button>
 
           <div className={styles.mobileDrawer}>
@@ -373,7 +342,7 @@ function HeaderContent({ initialCategories }: HeaderProps) {
               ) : null}
 
               {isAuth === true && isSellerRole(role) ? (
-                <Link href="/seller" className={`${styles.mobileProfileLink} ${styles.mobileMenuEmphasis}`} onClick={() => setMenuOpen(false)}>
+                <Link href="/seller/home" className={`${styles.mobileProfileLink} ${styles.mobileMenuEmphasis}`} onClick={() => setMenuOpen(false)}>
                   <span>Кабинет продавца</span>
                   <span className={styles.mobileChevron} aria-hidden="true" />
                 </Link>

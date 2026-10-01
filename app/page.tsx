@@ -7,6 +7,7 @@ import {
 } from "./home/lib/getStorefrontHome";
 import { HeroSection } from "./home/sections/HeroSection";
 import { ProductRailSection } from "./home/sections/ProductRailSection";
+import { RecommendationsShowcase } from "./components/Recommendations/RecommendationsShowcase";
 import type { ProductShowcaseData } from "./home/types";
 
 type HomePageProps = {
@@ -85,6 +86,8 @@ export default async function HomePage({ searchParams }: HomePageProps) {
         {productBlocks.slice(1).map((block, index) => (
           <ProductRailSection key={`${block.title}-${index}`} block={block} />
         ))}
+
+        <RecommendationsShowcase audience={audience} />
 
         <section className={styles.serviceStrip} aria-label="Преимущества магазина">
           <div>

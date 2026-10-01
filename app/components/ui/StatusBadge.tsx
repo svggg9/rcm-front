@@ -16,6 +16,7 @@ export function StatusBadge({
 }: Props) {
   return (
     <span
+      data-ui="status-badge"
       className={`${styles.badge} ${styles[`tone-${tone}`]} ${
         styles[`size-${size}`]
       }`}

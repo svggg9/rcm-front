@@ -1,17 +1,15 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import Link from "next/link";
+import linkedRow from "../../components/ui/LinkedListRow.module.css";
 
 import { Button } from "../../components/ui/Button";
 import { CabinetSkeleton } from "../../components/ui/CabinetSkeleton";
 import { EmptyState } from "../../components/ui/EmptyState";
 import { StatusBadge } from "../../components/ui/StatusBadge";
-import { ReturnInspectionForm } from "./ReturnInspectionForm";
 import {
   getSellerReturns,
-  inspectSellerReturn,
-  markSellerReturnReceived,
   returnReasonLabels,
   returnStatusLabels,
   type SellerReturnListItem,
@@ -21,36 +19,21 @@ import styles from "./SellerReturnsTab.module.css";
 const PAGE_SIZE = 20;
 
 export function SellerReturnsTab() {
-  const searchParams = useSearchParams();
-  const targetReturnId = Number(searchParams.get("returnId")) || null;
-  const focusedReturnRef = useRef<number | null>(null);
   const [requests, setRequests] = useState<SellerReturnListItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [nextPage, setNextPage] = useState(1);
   const [hasMore, setHasMore] = useState(false);
   const [totalItems, setTotalItems] = useState(0);
-  const [busyId, setBusyId] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loadMoreFailed, setLoadMoreFailed] = useState(false);
   const [attempt, setAttempt] = useState(0);
-  const [feedback, setFeedback] = useState<{ id: number; error: boolean; message: string } | null>(null);
-  const actionInFlightRef = useRef(false);
   const loadingMoreRef = useRef(false);
   const loadMoreControllerRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
     const controller = new AbortController();
-    async function loadInitial() {
-      let result = await getSellerReturns({ size: PAGE_SIZE, signal: controller.signal });
-      const items = [...result.items];
-      while (targetReturnId && !items.some(item => item.id === targetReturnId) && result.page + 1 < result.totalPages) {
-        result = await getSellerReturns({ page: result.page + 1, size: PAGE_SIZE, signal: controller.signal });
-        items.push(...result.items);
-      }
-      return { ...result, items };
-    }
-    void loadInitial()
+    void getSellerReturns({ size: PAGE_SIZE, signal: controller.signal })
       .then((result) => {
         if (controller.signal.aborted) return;
         setError(null);
@@ -76,16 +59,16 @@ export function SellerReturnsTab() {
       controller.abort();
       loadMoreControllerRef.current?.abort();
     };
-  }, [targetReturnId, attempt]);
+  }, [attempt]);
 
   useEffect(() => {
-    if (loading || !targetReturnId || focusedReturnRef.current === targetReturnId) return;
-    const card = document.getElementById(`return-${targetReturnId}`);
-    if (!card) return;
-    focusedReturnRef.current = targetReturnId;
-    card.scrollIntoView({ block: "center" });
-    card.focus({ preventScroll: true });
-  }, [loading, requests, targetReturnId]);
+    const changed = (event: Event) => {
+      const updated = (event as CustomEvent<SellerReturnListItem>).detail;
+      setRequests(current => current.map(item => item.id === updated.id ? updated : item));
+    };
+    window.addEventListener("seller-return-updated", changed);
+    return () => window.removeEventListener("seller-return-updated", changed);
+  }, []);
 
   async function loadMore() {
     if (!hasMore || loadingMoreRef.current) return;
@@ -128,50 +111,6 @@ export function SellerReturnsTab() {
     }
   }
 
-  function replaceRequest(updated: SellerReturnListItem) {
-    setRequests((current) =>
-      current.map((item) => (item.id === updated.id ? updated : item))
-    );
-  }
-
-  async function markReceived(request: SellerReturnListItem) {
-    if (actionInFlightRef.current) return;
-    actionInFlightRef.current = true;
-    setBusyId(request.id);
-    setFeedback(null);
-    try {
-      replaceRequest(await markSellerReturnReceived(request.id));
-      setFeedback({ id: request.id, error: false, message: "Получение товара подтверждено" });
-    } catch (actionError) {
-      setFeedback({ id: request.id, error: true, message: actionError instanceof Error
-          ? actionError.message
-          : "Не удалось подтвердить получение"
-      });
-    } finally {
-      actionInFlightRef.current = false;
-      setBusyId(null);
-    }
-  }
-
-  async function inspect(request: SellerReturnListItem, values: Parameters<typeof inspectSellerReturn>[1]) {
-    if (actionInFlightRef.current) return;
-    actionInFlightRef.current = true;
-    setBusyId(request.id);
-    setFeedback(null);
-    try {
-      replaceRequest(await inspectSellerReturn(request.id, values));
-      setFeedback({ id: request.id, error: false, message: "Результат проверки сохранён" });
-    } catch (actionError) {
-      setFeedback({ id: request.id, error: true, message: actionError instanceof Error
-          ? actionError.message
-          : "Не удалось сохранить проверку"
-      });
-    } finally {
-      actionInFlightRef.current = false;
-      setBusyId(null);
-    }
-  }
-
   return (
     <section className={styles.page}>
       {loading ? <CabinetSkeleton variant="list" rows={3} compact /> : null}
@@ -188,7 +127,7 @@ export function SellerReturnsTab() {
 
       <div className={styles.list}>
         {requests.map((request) => (
-          <article className={styles.card} key={request.id} id={`return-${request.id}`} tabIndex={-1}>
+          <article className={`${styles.card} ${linkedRow.row}`} key={request.id} id={`return-${request.id}`} tabIndex={-1}>
             <div className={styles.header}>
               <div>
                 <strong>Возврат №{request.id}</strong>
@@ -227,31 +166,8 @@ export function SellerReturnsTab() {
               ) : null}
             </dl>
 
-            {request.comment ? <p className={styles.comment}>{request.comment}</p> : null}
-
-            {["APPROVED", "AWAITING_SHIPMENT", "WAITING_FOR_ITEM", "IN_TRANSIT"].includes(
-              request.status
-            ) ? (
-              <div className={styles.actions}>
-                <Button
-                  variant="secondary"
-                  loading={busyId === request.id}
-                  disabled={busyId !== null}
-                  onClick={() => void markReceived(request)}
-                >
-                  Товар получен
-                </Button>
-              </div>
-            ) : null}
-
-            {request.status === "RECEIVED" ? (
-              <ReturnInspectionForm request={request} loading={busyId === request.id}
-                disabled={busyId !== null} onInspect={values => inspect(request, values)} />
-            ) : null}
-            {feedback?.id === request.id ? (
-              <div className={`${feedback.error ? "alertDanger" : "alertSuccess"} ${styles.feedback}`}
-                role={feedback.error ? "alert" : "status"}>{feedback.message}</div>
-            ) : null}
+            <Link href={`/seller/returns/${request.id}`} scroll={false} prefetch={false} className={`buttonSecondary ${styles.openLink} ${linkedRow.link}`}
+              aria-label={`Открыть возврат №${request.id}`}>Открыть возврат</Link>
           </article>
         ))}
       </div>

@@ -16,7 +16,7 @@ import type { SellerBrandImage } from "../types";
 
 import styles from "./SellerBrandTab.module.css";
 
-export function SellerBrandImages({ brandId }: { brandId: number }) {
+export function SellerBrandImages({ brandId, embedded = false }: { brandId: number; embedded?: boolean }) {
   const [images, setImages] = useState<SellerBrandImage[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
@@ -94,12 +94,13 @@ export function SellerBrandImages({ brandId }: { brandId: number }) {
   }
 
   return (
-    <section className={styles.gallerySection}>
+    <section className={embedded ? styles.galleryEmbedded : styles.gallerySection}>
       <div className={styles.sectionHeadingRow}>
         <div className={styles.sectionHeading}>
           <div>
-            <h2>Фотографии бренда</h2>
-            <p>До 8 фотографий — JPEG или WebP, до 8 МБ каждая</p>
+            {embedded ? <h3>Фотографии бренда</h3> : <h2>Фотографии бренда</h2>}
+            <p>Показываются в галерее на витрине. Добавьте съёмки коллекций, детали или фотографии мастерской.</p>
+            <p>До 8 фотографий — JPEG или WebP, до 8 МБ каждая. Стрелками можно изменить порядок показа.</p>
           </div>
         </div>
         <Button

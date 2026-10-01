@@ -8,7 +8,7 @@ export default function SellerLayout({ children, editor }: { children: ReactNode
   const router = useRouter();
   const previousPath = useRef(pathname);
   useEffect(() => {
-    const closedEditor = /\/products\/\d+\/edit$/.test(previousPath.current) && pathname === "/seller";
+    const closedEditor = /\/products\/\d+\/edit$/.test(previousPath.current) && pathname === "/seller/products";
     previousPath.current = pathname;
     if (closedEditor) router.refresh();
   }, [pathname, router]);

@@ -1,4 +1,4 @@
-type Props = { name: "menu" | "heart" | "search" | "bag" };
+type Props = { name: "menu" | "heart" | "search" | "bag" | "user" };
 
 // Original contours from the public-header reference approved by the user.
 const paths = {
@@ -9,6 +9,13 @@ const paths = {
 };
 
 export function HeaderIcon({ name }: Props) {
+  if (name === "user") return (
+    <svg viewBox="0 0 16 16" width="32" height="32" aria-hidden="true" focusable="false"
+      fill="none" stroke="currentColor" strokeWidth="1">
+      <circle cx="8" cy="4.5" r="3" />
+      <path d="M2 15v-1a6 6 0 0 1 12 0v1" />
+    </svg>
+  );
   return (
     <svg viewBox="0 0 16 16" width="32" height="32" aria-hidden="true" focusable="false">
       <path d={paths[name]} fill="currentColor" fillRule="evenodd" />

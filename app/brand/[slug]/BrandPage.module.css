@@ -4,6 +4,7 @@
 
 .catalogTop {
   border-bottom: 0;
+  container-type: inline-size;
 }
 
 .headingWrap {
@@ -100,6 +101,13 @@
   background: var(--white);
 }
 
+.brandCarousel.brandCarouselContained { width: 100%; margin-left: 0; aspect-ratio: 16 / 7; }
+@container storefront-preview (max-width: 560px) {
+  .brandCarousel.brandCarouselContained { aspect-ratio: 4 / 5; }
+  .heading { font-size: 28px; }
+  .brandDescription { font-size: 13px; }
+}
+
 .storefrontCollections {
   display: flex;
   flex-direction: column;
@@ -138,7 +146,7 @@
 }
 
 .results {
-  padding-top: 44px;
+  padding-top: 24px;
   scroll-margin-top: calc(var(--site-header-height) + 20px);
 }
 
@@ -162,27 +170,9 @@
   font-size: var(--font-sm);
 }
 
-.grid {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 32px 16px;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
 
-@media (max-width: 1200px) {
-  .grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-
-}
 
 @media (max-width: 900px) {
-  .grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
   .collectionGrid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -207,10 +197,6 @@
     aspect-ratio: 4 / 5;
   }
 
-  .grid {
-    grid-template-columns: 1fr;
-  }
-
   .collectionGrid {
     display: flex;
     gap: 10px;
@@ -222,4 +208,28 @@
   .collectionGrid > li {
     flex: 0 0 72vw;
   }
+}
+
+.shortDescription { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.aboutLink { color: var(--black); font-size: 13px; text-underline-offset: 3px; }
+/* Controls and product grid share Catalog.module.css. */
+.filterBar { display: flex; align-items: end; flex-wrap: wrap; gap: 16px; margin: 0 0 24px; }
+.filterBar > div { flex: 0 1 320px; }
+.filterBar > button { min-height: 44px; padding-inline: 20px; }
+.filterBar > details { margin-left: auto; }
+.brandPagination { display: flex; }
+.collectionDescription { margin: 0 0 20px; font-size: 13px; line-height: 1.5; }
+.catalogEmpty { padding: 40px 16px; text-align: center; border-block: .5px solid #a8a8a8; font-size: 14px; }
+.catalogEmpty a { color: #111; text-underline-offset: 3px; }
+
+.about { margin-top: 40px; border-top: .5px solid #a8a8a8; padding-top: 20px; scroll-margin-top: calc(var(--site-header-height) + 20px); container: storefront-preview / inline-size; }
+.about summary { cursor: pointer; font-size: 18px; }
+.aboutDescription { max-width: 720px; white-space: pre-line; font-size: 14px; line-height: 1.6; margin: 20px 0; }
+.brandFacts { font-size: 13px; margin: 20px 0; }
+@media (max-width: 640px) {
+  .filterBar { gap: 12px; }
+  .filterBar > div { flex: 1 1 100%; }
+  .filterBar > details { display: block; }
+  .brandPagination { display: flex; }
+  .catalogHeader h2 { font-size: 20px; }
 }

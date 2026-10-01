@@ -68,7 +68,7 @@ export function AddProductsToCollectionDialog({ products, onClose, onSuccess }: 
   return <Dialog title="Добавить в подборку" busy={saving} onClose={onClose} actions={<>
     <Button variant="secondary" disabled={saving} onClick={onClose}>Отмена</Button>
     {options.length > 0 ? <Button variant="primary" loading={saving} disabled={loading} onClick={() => void add()}>Добавить</Button>
-      : !loading ? <Button variant="secondary" onClick={() => router.push("/seller?tab=products&section=collections")}>Создать подборку</Button> : null}
+      : !loading ? <Button variant="secondary" onClick={() => router.push("/seller/products?section=collections")}>Создать подборку</Button> : null}
   </>}>
     {loading ? <div role="status" aria-label="Загрузка подборок"><span className="buttonLoader" style={{ display: "inline-block" }} aria-hidden="true" /></div>
       : options.length ? <FormMultiSelect<string> label="Подборки" placeholder="Выберите подборки" required

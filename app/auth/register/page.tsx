@@ -1,20 +1,16 @@
 "use client";
 
-import { Suspense, useRef, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 
-import { apiFetch, API_URL } from "../../lib/api";
+import { completeEmailRegistration, startEmailRegistration } from "../../lib/authRequests";
 import {
   ensureGuestCartId,
   getGuestCartId,
-  setAuth,
 } from "../../lib/auth";
-import {
-  getGuestFavoriteIds,
-  syncFavoritesAfterLogin,
-  clearGuestFavoriteIds,
-} from "../../lib/favorites";
+import { completeAuth } from "../../lib/completeAuth";
+import { AuthPageSwitch } from "../../components/Auth/AuthPageSwitch";
 import { Button } from "../../components/ui/Button";
 import { TextInput } from "../../components/ui/TextInput";
 import { useAutoFocusFirstField } from "../../lib/useAutoFocusFirstField";
@@ -26,6 +22,7 @@ function RegisterPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const formRef = useRef<HTMLFormElement>(null);
+  const submittingRef = useRef(false);
 
   const next = safeReturnPath(searchParams.get("next"));
 
@@ -35,76 +32,91 @@ function RegisterPageContent() {
   const [password, setPassword] = useState("");
   const [passwordVisible, setPasswordVisible] = useState(false);
   const [step, setStep] = useState<"email" | "code">("email");
+  const [submitting, setSubmitting] = useState(false);
+  const [resendAvailableAt, setResendAvailableAt] = useState(0);
+  const [now, setNow] = useState(0);
+  const [formError, setFormError] = useState<string | null>(null);
+  const resendSeconds = Math.max(0, Math.ceil((resendAvailableAt - now) / 1000));
+
+  useEffect(() => {
+    if (step !== "code" || !resendAvailableAt) return;
+    const timer = window.setInterval(() => {
+      const time = Date.now();
+      setNow(time);
+      if (time >= resendAvailableAt) window.clearInterval(timer);
+    }, 1000);
+    return () => window.clearInterval(timer);
+  }, [step, resendAvailableAt]);
 
   useAutoFocusFirstField(formRef, [step]);
 
-  async function finishAuth(cartId: string) {
-    const guestFavoriteIds = getGuestFavoriteIds();
+  useEffect(() => {
+    if (step !== "code" || code.length !== 6 || submittingRef.current) return;
+    submittingRef.current = true;
+    setFormError(null);
+    setSubmitting(true);
 
-    setAuth(cartId);
-
-    if (guestFavoriteIds.length > 0) {
-      const synced = await syncFavoritesAfterLogin(guestFavoriteIds);
-      if (synced) clearGuestFavoriteIds();
+    async function verifyCode() {
+      try {
+        const cartId = getGuestCartId() || await ensureGuestCartId();
+        const data = await completeEmailRegistration(email, code, cartId);
+        await completeAuth(data.cartId);
+        router.refresh();
+        router.replace(next);
+      } catch (error) {
+        setCode("");
+        formRef.current?.querySelector<HTMLInputElement>('input[autocomplete="one-time-code"]')?.focus();
+        setFormError(error instanceof Error ? error.message : "Ошибка регистрации");
+      } finally {
+        submittingRef.current = false;
+        setSubmitting(false);
+      }
     }
 
-    router.refresh();
-    router.replace(next);
-  }
+    void verifyCode();
+  }, [code, email, next, router, step]);
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
+    if (submitting || step !== "email") return;
+    setFormError(null);
+    setSubmitting(true);
 
     try {
-      if (step === "email") {
-        if (!firstName.trim()) {
-          throw new Error("Введите имя");
-        }
-
-        if (!password.trim()) {
-          throw new Error("Введите пароль");
-        }
-
-        if (password.length < 8) {
-          throw new Error("Пароль должен быть от 8 символов");
-        }
-
-        const response = await apiFetch(`${API_URL}/api/auth/email/register/start`, {
-          method: "POST",
-          body: JSON.stringify({
-            email,
-            password,
-            firstName: firstName.trim(),
-          }),
-        });
-
-        if (!response.ok) {
-          const text = await response.text().catch(() => "");
-          throw new Error(text || "Не удалось отправить код");
-        }
-
-        await response.json().catch(() => null);
-        setCode("");
-        setStep("code");
-        return;
-      }
-
-      const cartId = getGuestCartId() || await ensureGuestCartId();
-
-      const response = await apiFetch(`${API_URL}/api/auth/email/register/complete`, {
-        method: "POST",
-        body: JSON.stringify({ email, code, cartId }),
-      });
-
-      if (!response.ok) {
-        const text = await response.text().catch(() => "");
-        throw new Error(text || "Не удалось создать аккаунт");
-      }
-
-      const data: { cartId: string } = await response.json();
-      await finishAuth(data.cartId);
+      await requestCode();
+      setCode("");
+      setStep("code");
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Ошибка регистрации");
+      setFormError(error instanceof Error ? error.message : "Ошибка регистрации");
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  async function requestCode() {
+    if (!firstName.trim()) throw new Error("Введите имя");
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+      throw new Error("Проверьте адрес электронной почты");
+    }
+    if (password.length < 8) throw new Error("Пароль должен быть от 8 символов");
+    await startEmailRegistration(email, password, firstName);
+    const time = Date.now();
+    setNow(time);
+    setResendAvailableAt(time + 60_000);
+  }
+
+  async function resendCode() {
+    if (submitting || resendSeconds > 0) return;
+    setFormError(null);
+    setSubmitting(true);
+    try {
+      await requestCode();
+      setCode("");
+      toast.success("Новый код отправлен на почту");
+    } catch (error) {
+      setFormError(error instanceof Error ? error.message : "Не удалось отправить код");
+    } finally {
+      setSubmitting(false);
     }
   }
 
@@ -114,15 +126,17 @@ function RegisterPageContent() {
         <div className={styles.card}>
           <h1 className={styles.title}>Регистрация</h1>
 
-          <form ref={formRef} onSubmit={handleSubmit} className={styles.form}>
+          <form ref={formRef} onSubmit={handleSubmit} className={styles.form} autoComplete="on" noValidate>
             {step === "email" ? (
               <>
                 <TextInput
                   label="Имя"
+                  name="given-name"
+                  id="register-first-name"
                   fieldVariant="boxed"
                   type="text"
                   value={firstName}
-                  onChange={(event) => setFirstName(event.target.value)}
+                  onChange={(event) => { setFirstName(event.target.value); setFormError(null); }}
                   required
                   maxLength={120}
                   autoComplete="given-name"
@@ -130,10 +144,12 @@ function RegisterPageContent() {
 
                 <TextInput
                   label="Электронная почта"
+                  name="email"
+                  id="register-email"
                   fieldVariant="boxed"
                   type="email"
                   value={email}
-                  onChange={(event) => setEmail(event.target.value)}
+                  onChange={(event) => { setEmail(event.target.value); setFormError(null); }}
                   required
                   autoComplete="email"
                 />
@@ -141,10 +157,12 @@ function RegisterPageContent() {
                 <div className={styles.passwordFieldWrap}>
                   <TextInput
                     label="Пароль"
+                    name="password"
+                    id="register-password"
                     fieldVariant="boxed"
                     type={passwordVisible ? "text" : "password"}
                     value={password}
-                    onChange={(event) => setPassword(event.target.value)}
+                    onChange={(event) => { setPassword(event.target.value); setFormError(null); }}
                     required
                     autoComplete="new-password"
                     className={styles.passwordInput}
@@ -153,32 +171,67 @@ function RegisterPageContent() {
                     type="button"
                     className={styles.passwordVisibilityButton}
                     onClick={() => setPasswordVisible((visible) => !visible)}
+                    aria-label={passwordVisible ? "Скрыть пароль" : "Показать пароль"}
+                    disabled={submitting}
                   >
                     {passwordVisible ? "Скрыть" : "Показать"}
                   </button>
                 </div>
 
-                
+                {formError ? <p className="fieldError" role="alert">{formError}</p> : null}
+
               </>
             ) : null}
 
             {step === "code" ? (
-              <TextInput
-                label="Код из письма"
-                fieldVariant="boxed"
-                value={code}
-                onChange={(event) =>
-                  setCode(event.target.value.replace(/\D/g, "").slice(0, 6))
-                }
-                inputMode="numeric"
-                required
-              />
+              <>
+                <p className={styles.hint}>Код отправлен на {email.trim()}.</p>
+                <TextInput
+                  label="Код из письма"
+                  name="one-time-code"
+                  id="register-code"
+                  fieldVariant="boxed"
+                  value={code}
+                  onChange={(event) => {
+                    setCode(event.target.value.replace(/\D/g, "").slice(0, 6));
+                    setFormError(null);
+                  }}
+                  inputMode="numeric"
+                  autoComplete="one-time-code"
+                  maxLength={6}
+                  required
+                  disabled={submitting}
+                />
+                {formError ? <p className="fieldError" role="alert">{formError}</p> : null}
+                {submitting ? <p className={styles.hint} role="status">Проверяем код…</p> : null}
+                <div className={styles.codeActions}>
+                  <button
+                    type="button"
+                    className={styles.textAction}
+                    onClick={() => { setStep("email"); setCode(""); setFormError(null); }}
+                    disabled={submitting}
+                  >
+                    Изменить почту
+                  </button>
+                  <button
+                    type="button"
+                    className={styles.textAction}
+                    onClick={() => void resendCode()}
+                    disabled={submitting || resendSeconds > 0}
+                  >
+                    {resendSeconds > 0 ? `Повторить через ${resendSeconds} с` : "Отправить код ещё раз"}
+                  </button>
+                </div>
+              </>
             ) : null}
 
-            <Button type="submit" variant="primaryShimmer" className={styles.button}>
-              {step === "email" ? "Получить код" : "Создать аккаунт"}
-            </Button>
+            {step === "email" ? (
+              <Button type="submit" variant="primaryShimmer" className={styles.button} disabled={submitting}>
+                Получить код
+              </Button>
+            ) : null}
           </form>
+          <AuthPageSwitch mode="register" next={next} disabled={submitting} />
         </div>
       </div>
     </div>

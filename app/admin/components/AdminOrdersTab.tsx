@@ -1,6 +1,7 @@
 "use client";
 
 import { SellerOrdersTab } from "../../seller/components/SellerOrdersTab";
+import { AdminPaymentReview } from "./AdminPaymentReview";
 
 import type { AdminOrder, AdminOrderListItem } from "../types";
 
@@ -26,6 +27,8 @@ export function AdminOrdersTab({
   onPrefetchOrder,
 }: Props) {
   return (
+    <>
+    <AdminPaymentReview onOpenOrder={onOpenOrder} />
     <SellerOrdersTab
       orders={orders}
       totalElements={totalElements}
@@ -36,5 +39,6 @@ export function AdminOrdersTab({
       onLoadOrder={onLoadOrder}
       onPrefetchOrder={onPrefetchOrder}
     />
+    </>
   );
 }

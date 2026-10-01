@@ -1,0 +1,23 @@
+.switch {
+  margin: 18px 0 0;
+  color: var(--black);
+  font-size: var(--font-sm);
+  line-height: 1.5;
+  text-align: center;
+}
+
+.link {
+  color: var(--black);
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.link:hover {
+  color: var(--gold);
+}
+
+.link[aria-disabled="true"] {
+  opacity: 0.45;
+  pointer-events: none;
+}

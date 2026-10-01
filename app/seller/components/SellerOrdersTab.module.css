@@ -4,6 +4,16 @@
   gap: 0;
 }
 
+.page :global([data-ui="field"] > input:not([aria-invalid="true"])),
+.page :global([data-ui="field"]:not([data-validation-error="true"]) > div:has(> [role="combobox"])) {
+  border: 1px solid #888888;
+}
+
+.page :global([data-ui="field"] > input:not([aria-invalid="true"]):focus),
+.page :global([data-ui="field"] > div:has(> [role="combobox"]:focus-visible)) {
+  border-color: var(--black);
+}
+
 .ordersToolbar {
   min-width: 0;
   margin-bottom: 24px;
@@ -39,17 +49,18 @@
 }
 
 .tableList {
+  --order-list-line: #a8a8a8;
   --order-columns: minmax(95px, .65fr) minmax(100px, .65fr) minmax(220px, 2fr) minmax(150px, 1fr) minmax(105px, .7fr) 44px;
   container-type: inline-size;
   gap: 0;
-  border: 1px solid var(--line);
+  border: 0.5px solid var(--order-list-line);
 }
 
 .tableHeader {
   display: grid;
   grid-template-columns: var(--order-columns);
-  border-bottom: 1px solid var(--line);
-  background: var(--soft);
+  border-bottom: 0.5px solid var(--order-list-line);
+  background: var(--white);
   color: var(--black);
   font-size: var(--font-xs);
   line-height: 1.3;
@@ -57,7 +68,7 @@
 }
 
 .tableHeader > span { display: flex; align-items: center; min-height: 44px; padding: 10px 12px; }
-.tableHeader > span + span { border-left: 1px solid var(--line); }
+.tableHeader > span + span { border-left: 0.5px solid var(--order-list-line); }
 
 @container (max-width: 900px) {
   .tableHeader { display: none; }

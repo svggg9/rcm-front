@@ -155,6 +155,7 @@ export function SellerOrdersTab<
                   statusLabel={buildSellerStatusLabel(order)}
                   autoExpand={order.id === expandedOrderId}
                   onOpenOrder={onOpenOrder}
+                  navigateOnOpen={audience === "seller" && !!onOpenOrder}
                   onLoadDetails={onLoadOrder}
                   onPrefetch={onPrefetchOrder}
                   showStageElapsed={showStageElapsed}

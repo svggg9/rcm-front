@@ -23,18 +23,6 @@ export function SellerSidebar({
   actions,
 }: Props) {
   const navigationRef = useRef<HTMLElement>(null);
-  const searchParams = useSearchParams();
-  const secondaryItems = currentTab === "products" ? [
-    { label: "Товары", href: "/seller?tab=products", active: searchParams.get("section") !== "collections" },
-    { label: "Подборки", href: "/seller?tab=products&section=collections", active: searchParams.get("section") === "collections" },
-  ] : currentTab === "orders" || currentTab === "returns" ? [
-    { label: "Заказы", href: "/seller?tab=orders", active: currentTab === "orders" },
-    { label: "Возвраты", href: "/seller?tab=returns", active: currentTab === "returns" },
-  ] : currentTab === "finance" ? [
-    { label: "Обзор", href: "/seller?tab=finance", active: !["operations", "payouts"].includes(searchParams.get("view") || "") },
-    { label: "Операции", href: "/seller?tab=finance&view=operations", active: searchParams.get("view") === "operations" },
-    { label: "Выплаты", href: "/seller?tab=finance&view=payouts", active: searchParams.get("view") === "payouts" },
-  ] : [];
   const activeTab = currentTab === "returns" ? "orders" : currentTab;
 
   useEffect(() => {
@@ -53,32 +41,32 @@ export function SellerSidebar({
 
   const primaryItems: NavigationItem[] = [
     {
-      href: "/seller",
+      href: "/seller/home",
       label: "Обзор",
       tab: "home",
     },
     {
-      href: "/seller?tab=products",
+      href: "/seller/products",
       label: "Каталог",
       tab: "products",
     },
     {
-      href: "/seller?tab=orders",
+      href: "/seller/orders",
       label: "Заказы",
       tab: "orders",
     },
     {
-      href: "/seller?tab=finance",
+      href: "/seller/finance",
       label: "Финансы",
       tab: "finance",
     },
     {
-      href: "/seller?tab=brand",
+      href: "/seller/store",
       label: "Магазин",
       tab: "brand",
     },
     {
-      href: "/seller?tab=legal",
+      href: "/seller/legal",
       label: "Данные и документы",
       tab: "legal",
     },
@@ -96,12 +84,32 @@ export function SellerSidebar({
       ))}
     </nav>
     {actions && <div className={styles.actions}>{actions}</div>}
-    {secondaryItems.length > 0 && <nav className={styles.secondary} aria-label="Подразделы кабинета">
-      {secondaryItems.map(item => <Link key={item.href} href={item.href} prefetch={false} aria-current={item.active ? "page" : undefined}
-        className={`${styles.secondaryLink} ${item.active ? styles.secondaryActive : ""}`}>{item.label}</Link>)}
-    </nav>}
     </div>
   );
+}
+
+export function SellerSectionTabs({ currentTab }: { currentTab: SellerTab }) {
+  const searchParams = useSearchParams();
+  const collectionsActive = searchParams.get("section") === "collections";
+  const financeView = searchParams.get("view");
+  const items = currentTab === "products" ? [
+    { label: "Товары", href: "/seller/products", active: !collectionsActive },
+    { label: "Подборки", href: "/seller/products?section=collections", active: collectionsActive },
+  ] : currentTab === "orders" || currentTab === "returns" ? [
+    { label: "Заказы", href: "/seller/orders", active: currentTab === "orders" },
+    { label: "Возвраты", href: "/seller/returns", active: currentTab === "returns" },
+  ] : currentTab === "finance" ? [
+    { label: "Обзор", href: "/seller/finance", active: financeView !== "operations" && financeView !== "payouts" },
+    { label: "Операции", href: "/seller/finance?view=operations", active: financeView === "operations" },
+    { label: "Выплаты", href: "/seller/finance?view=payouts", active: financeView === "payouts" },
+  ] : [];
+
+  if (items.length === 0) return null;
+
+  return <nav className={`${styles.secondary} ${styles.contentTabs}`} aria-label="Подразделы кабинета">
+    {items.map(item => <Link key={item.href} href={item.href} prefetch={false} aria-current={item.active ? "page" : undefined}
+      className={`${styles.secondaryLink} ${item.active ? styles.secondaryActive : ""}`}>{item.label}</Link>)}
+  </nav>;
 }
 
 function NavigationLink({

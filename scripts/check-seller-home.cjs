@@ -26,13 +26,16 @@ const { SellerHeader, isSellerCabinetPath } = require("../app/components/Header/
 const { Button } = require("../app/components/ui/Button.tsx");
 const { Price } = require("../app/components/ui/Price.tsx");
 assert.equal(isSellerCabinetPath("/seller"), true);
+for (const pathname of ["/seller/home", "/seller/products", "/seller/orders", "/seller/returns", "/seller/finance", "/seller/store", "/seller/legal"]) {
+  assert.equal(isSellerCabinetPath(pathname), true);
+}
 assert.equal(isSellerCabinetPath("/seller/products/390/edit"), true);
 for (const pathname of [null, "/", "/catalog", "/account", "/seller/apply", "/seller-other"]) {
   assert.equal(isSellerCabinetPath(pathname), false);
 }
 const header = renderToStaticMarkup(React.createElement(SellerHeader));
 assert.match(header, /href="\/"/);
-assert.match(header, /href="\/account"/);
+assert.match(header, /href="\/seller\/store"/);
 assert.match(header, /Для продавцов/);
 assert.doesNotMatch(header, /\/cart|\/favorites|RCM/);
 for (const currentTab of ["home", "products", "orders", "returns", "finance", "brand", "legal"]) {
@@ -41,10 +44,12 @@ for (const currentTab of ["home", "products", "orders", "returns", "finance", "b
   assert.equal((menu.match(/<a /g) || []).length, 6);
   assert.equal((menu.match(/aria-current="page"/g) || []).length, 1);
   const activeTab = currentTab === "returns" ? "orders" : currentTab;
-  assert.match(menu, new RegExp(`aria-current="page"[^>]*href="${activeTab === "home" ? "/seller" : `/seller\\?tab=${activeTab}`}"`));
+  const paths = { home: "/seller/home", products: "/seller/products", orders: "/seller/orders",
+    finance: "/seller/finance", brand: "/seller/store", legal: "/seller/legal" };
+  assert.match(menu, new RegExp(`aria-current="page"[^>]*href="${paths[activeTab]}"`));
   assert.match(menu, /Данные и документы/);
-  assert.doesNotMatch(menu, /<aside|<svg|Обзор|Возвраты|tab=returns/);
-  assert.equal((menu.match(/class="navigationCount"/g) || []).length, 2);
+  assert.doesNotMatch(menu, /<aside|<svg|Возвраты|tab=returns/);
+  assert.equal((menu.match(/class="navigationCount"/g) || []).length, 0);
 }
 assert.doesNotMatch(renderToStaticMarkup(React.createElement(SellerSidebar, { currentTab: "products", productCount: 0 })), /class="navigationCount"/);
 const brand = { id: 1, name: "Тестовый магазин", description: "Описание", wordmarkUrl: "/test.svg" };
@@ -52,7 +57,7 @@ const summary = {
   activeProducts: 43, attentionProducts: 6, readyOrders: 42, salesAmount: 629410,
   availablePayout: 139731.5, failedPayouts: 0, telegramLinked: false,
   supportTelegramUrl: "https://t.me/example", recentEvents: [
-    { type: "ORDER_CREATED", title: "Новый заказ", description: "Рубашка · S · 2 шт.", occurredAt: "2026-09-09T12:00:00Z", href: "/seller?tab=orders&orderId=1" },
+    { type: "ORDER_CREATED", title: "Новый заказ", description: "Рубашка · S · 2 шт.", occurredAt: "2026-09-09T12:00:00Z", href: "/seller/orders?orderId=1" },
   ],
 };
 const ready = { applicationCompleted: true, legalCompleted: true, agreementAccepted: true };
@@ -67,7 +72,7 @@ assert.match(active, /lucide-receipt-text/);
 assert.match(active, /139 732/);
 assert.doesNotMatch(active, /[·•]/);
 assert.equal((active.match(/<button/g) || []).length, 1);
-assert.match(active, /href="\/seller\?tab=orders/);
+assert.match(active, /href="\/seller\/orders/);
 
 const setup = render({ onboardingStatus: { ...ready, applicationCompleted: false, legalCompleted: false, agreementAccepted: false } });
 assert.match(setup, /Подготовка магазина/);
