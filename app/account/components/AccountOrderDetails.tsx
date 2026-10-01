@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { Button } from "../../components/ui/Button";
 import { StatusBadge } from "../../components/ui/StatusBadge";
@@ -48,6 +48,8 @@ export function AccountOrderDetails({
   const [confirmCancellation, setConfirmCancellation] = useState(false);
   const [cancellationError, setCancellationError] = useState<string | null>(null);
   const [returns, setReturns] = useState<ReturnRequest[]>([]);
+  const latestOrder = useRef({ order, onOrderUpdated });
+  useEffect(() => { latestOrder.current = { order, onOrderUpdated }; }, [order, onOrderUpdated]);
   const [cancellationWindowOpen, setCancellationWindowOpen] = useState(() =>
     isCancellationWindowOpen(order.cancellationAvailableUntil)
   );
@@ -72,16 +74,30 @@ export function AccountOrderDetails({
 
   useEffect(() => {
     let cancelled = false;
-    void getOrderReturns(order.id)
-      .then((items) => {
-        if (!cancelled) setReturns(items);
+    let pending = false;
+    const load = () => {
+      if (pending) return Promise.resolve();
+      pending = true;
+      return getOrderReturns(order.id)
+      .then(async (items) => {
+        if (cancelled) return;
+        setReturns(items);
+        if (items.some(item => ["REFUND_PENDING", "PARTIALLY_REFUNDED", "REFUNDED"].includes(item.status))) {
+          const response = await apiFetch(`${API_URL}/api/orders/${order.id}`);
+          if (!response.ok || cancelled) return;
+          const updated = await response.json() as Order;
+          if (!cancelled && updated.id === latestOrder.current.order.id && JSON.stringify(updated) !== JSON.stringify(latestOrder.current.order)) {
+            latestOrder.current.onOrderUpdated(updated);
+          }
+        }
       })
       .catch(() => {
-        if (!cancelled) setReturns([]);
-      });
-    return () => {
-      cancelled = true;
+        // Retain loaded return states on a temporary polling failure.
+      }).finally(() => { pending = false; });
     };
+    void load();
+    const timer = setInterval(() => { if (!document.hidden) void load(); }, 15000);
+    return () => { cancelled = true; clearInterval(timer); };
   }, [order.id]);
 
   useEffect(() => {

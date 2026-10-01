@@ -3,6 +3,7 @@ import { useId, useRef } from "react";
 import { FormCombobox } from "../../../../../components/ui/FormCombobox";
 import { FormSelect } from "../../../../../components/ui/FormSelect";
 import { Icon } from "../../../../../components/ui/Icon";
+import { ProductDescriptionEditor } from "./ProductDescriptionEditor";
 import { SectionHeader } from "./SectionHeader";
 import type { Audience, Option } from "../types";
 import styles from "../ProductEditPage.module.css";
@@ -53,7 +54,6 @@ export function ProductGeneralCard({
   onAudienceChange,
 }: Props) {
   const fieldId = useId();
-  const descriptionRef = useRef<HTMLTextAreaElement | null>(null);
   const compositionRef = useRef<HTMLTextAreaElement | null>(null);
 
   function applyTextList(
@@ -98,7 +98,7 @@ export function ProductGeneralCard({
 
   return (
     <>
-      <section className={styles.card}>
+      <section id="product-general" className={styles.card}>
         <SectionHeader
           title="Основные данные"
           hint="Название, категория и аудитория товара."
@@ -166,61 +166,23 @@ export function ProductGeneralCard({
         </div>
       </section>
 
-      <section className={styles.card}>
+      <section id="product-description" className={styles.card}>
         <SectionHeader
           title="Описание"
           hint="Материалы, особенности и комплектация товара."
         />
 
         <div className={styles.formGrid}>
-          <label className={styles.fieldFull} data-ui="field">
+          <div className={styles.fieldFull} data-ui="field">
             <span className={styles.required}>Описание товара</span>
-
-            <div className={styles.descriptionFieldShell}>
-              <div className={styles.descriptionToolbar} aria-label="Инструменты описания">
-              <button
-                type="button"
-                className={styles.descriptionToolButton}
-                title="Маркированный список"
-                aria-label="Маркированный список"
-                onClick={() =>
-                  applyTextList(description, onDescriptionChange, descriptionRef.current, "•")
-                }
-              >
-                <Icon name="list" size={20} strokeWidth={1.5} />
-              </button>
-              <button
-                type="button"
-                className={styles.descriptionToolButton}
-                title="Список с длинным тире"
-                aria-label="Список с длинным тире"
-                onClick={() =>
-                  applyTextList(description, onDescriptionChange, descriptionRef.current, "—")
-                }
-              >
-                <Icon name="minus" size={20} strokeWidth={1.5} />
-              </button>
-            </div>
-
-
-              <textarea
-                ref={descriptionRef}
-                value={description}
-                aria-invalid={validationErrors.description ? "true" : undefined}
-                aria-describedby={validationErrors.description ? `${fieldId}-description-error` : undefined}
-                onChange={(event) => onDescriptionChange(event.target.value)}
-                className={styles.textarea}
-                rows={5}
-                maxLength={2000}
-              />
-            </div>
+            <ProductDescriptionEditor value={description} onChange={onDescriptionChange} invalid={validationErrors.description} errorId={validationErrors.description ? `${fieldId}-description-error` : undefined} />
 
             {validationErrors.description ? (
               <span className="fieldError" id={`${fieldId}-description-error`}>
                 Введите описание товара
               </span>
             ) : null}
-          </label>
+          </div>
 
           <label className={styles.fieldFull} data-ui="field">
             <span>Состав</span>

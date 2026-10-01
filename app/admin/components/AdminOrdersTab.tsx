@@ -2,6 +2,8 @@
 
 import { SellerOrdersTab } from "../../seller/components/SellerOrdersTab";
 import { AdminPaymentReview } from "./AdminPaymentReview";
+import { AdminRefundOperations } from "./AdminRefundOperations";
+import { AdminLatePayments } from "./AdminLatePayments";
 
 import type { AdminOrder, AdminOrderListItem } from "../types";
 
@@ -29,6 +31,8 @@ export function AdminOrdersTab({
   return (
     <>
     <AdminPaymentReview onOpenOrder={onOpenOrder} />
+    <AdminLatePayments />
+    <AdminRefundOperations onOpenOrder={onOpenOrder} />
     <SellerOrdersTab
       orders={orders}
       totalElements={totalElements}

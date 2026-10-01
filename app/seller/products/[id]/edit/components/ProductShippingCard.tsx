@@ -55,7 +55,7 @@ export function ProductShippingCard({
     volumetricWeightKg !== null && volumetricWeightKg > actualWeightKg;
 
   return (
-    <section className={styles.card}>
+    <section id="product-shipping" className={styles.card}>
       <SectionHeader
         title="Вес и габариты с упаковкой"
         hint="Укажите размер и вес окончательно упакованной посылки"

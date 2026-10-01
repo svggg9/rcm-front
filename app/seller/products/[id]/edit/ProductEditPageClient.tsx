@@ -1,6 +1,7 @@
 "use client";
 import { PRODUCT_PHOTO_COUNT_ERROR, validProductPhotoCount, validateProductPhotoUpload } from "../../../../lib/productPhotos";
 
+import { hasDescriptionContent } from "../../../../lib/productDescription";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
@@ -13,11 +14,12 @@ import {
   scrollToFirstValidationError as scrollToFirstValidationErrorShared,
 } from "../../../../lib/formValidation";
 
+import { ProductDraftPreview } from "./components/ProductDraftPreview";
 import { ProductGeneralCard } from "./components/ProductGeneralCard";
 import { ProductVariantsCard } from "./components/ProductVariantsCard";
 import { ProductShippingCard } from "./components/ProductShippingCard";
 import { ProductPreviewAside } from "./components/ProductPreviewAside";
-import { EditorSurface } from "../../../../components/ui/EditorSurface";
+import { EditorSurface, requestEditorNavigation } from "../../../../components/ui/EditorSurface";
 import {
   getSellerOnboardingStatus,
   type SellerOnboardingStatus,
@@ -143,6 +145,7 @@ export function ProductEditPageClient({
 }: Props) {
   const router = useRouter();
   const [dirty, setDirty] = useState(false);
+  const [draftPreviewOpen, setDraftPreviewOpen] = useState(false);
   const saveRequestRef = useRef(false);
   const publishRequestRef = useRef(false);
 
@@ -418,7 +421,7 @@ export function ProductEditPageClient({
     messages.push("Заполните название товара");
   }
 
-  if (!description.trim()) {
+  if (!hasDescriptionContent(description) || description.length > 2000) {
     nextErrors.description = true;
     messages.push("Заполните описание");
   }
@@ -438,12 +441,12 @@ export function ProductEditPageClient({
     messages.push(PRODUCT_PHOTO_COUNT_ERROR);
   }
 
-  if (!packageWidthCm) nextErrors.packageWidthCm = true;
-  if (!packageHeightCm) nextErrors.packageHeightCm = true;
-  if (!packageLengthCm) nextErrors.packageLengthCm = true;
-  if (!packageWeightKg) nextErrors.packageWeightKg = true;
+  if ((packageWidthCm === "" || !Number.isFinite(packageWidthCm) || packageWidthCm <= 0)) nextErrors.packageWidthCm = true;
+  if ((packageHeightCm === "" || !Number.isFinite(packageHeightCm) || packageHeightCm <= 0)) nextErrors.packageHeightCm = true;
+  if ((packageLengthCm === "" || !Number.isFinite(packageLengthCm) || packageLengthCm <= 0)) nextErrors.packageLengthCm = true;
+  if ((packageWeightKg === "" || !Number.isFinite(packageWeightKg) || packageWeightKg <= 0)) nextErrors.packageWeightKg = true;
 
-  if (!packageWidthCm || !packageHeightCm || !packageLengthCm || !packageWeightKg) {
+  if ((packageWidthCm === "" || !Number.isFinite(packageWidthCm) || packageWidthCm <= 0) || (packageHeightCm === "" || !Number.isFinite(packageHeightCm) || packageHeightCm <= 0) || (packageLengthCm === "" || !Number.isFinite(packageLengthCm) || packageLengthCm <= 0) || (packageWeightKg === "" || !Number.isFinite(packageWeightKg) || packageWeightKg <= 0)) {
     messages.push("Заполните вес и габариты с упаковкой");
   }
 
@@ -458,7 +461,7 @@ export function ProductEditPageClient({
 
   variants.forEach((variant, index) => {
     const current: NonNullable<ValidationErrors["variants"]>[number] = {};
-    if (variant.price <= 0) current.price = true;
+    if (!Number.isFinite(variant.price) || variant.price <= 0) current.price = true;
 
     const groupKey =
       variant.groupKey ||
@@ -510,7 +513,7 @@ export function ProductEditPageClient({
       sizeKeysByGroup.set(groupKey, groupSizeKeys);
     }
 
-    if (variant.availableQuantity !== null && variant.availableQuantity < 0) {
+    if (variant.availableQuantity !== null && (!Number.isSafeInteger(variant.availableQuantity) || variant.availableQuantity < 0)) {
       current.availableQuantity = true;
     }
 
@@ -551,6 +554,10 @@ export function ProductEditPageClient({
       return false;
     }
 
+    if ([packageWidthCm,packageHeightCm,packageLengthCm,packageWeightKg].some(n=>n !== "" && (!Number.isFinite(n) || n <= 0)) || description.length > 2000 || variants.some(v=>!Number.isFinite(v.price) || v.price < 0 || (v.availableQuantity !== null && (!Number.isSafeInteger(v.availableQuantity) || v.availableQuantity < 0)))) {
+      scrollToFirstValidationError();
+      toast.error("Проверьте цену, остатки, габариты и длину описания"); return false;
+    }
     setValidationErrors({});
     saveRequestRef.current = true;
     setSaveSucceeded(false);
@@ -869,7 +876,7 @@ export function ProductEditPageClient({
         toast.error("Сначала заполните реквизиты и примите оферту продавца", {
           action: {
             label: "Заполнить",
-            onClick: () => router.push("/seller/legal"),
+            onClick: () => requestEditorNavigation(() => router.push("/seller/legal")),
           },
         });
       }
@@ -1168,13 +1175,19 @@ export function ProductEditPageClient({
 
   return (
     <EditorSurface title={<span className={!title.trim() ? styles.titlePlaceholder : undefined}>{title.trim() || "Название товара"}</span>}
+      guardNavigation
+      discardHint="Изменения фотографий уже сохранены и не будут отменены."
       toastId="product-editor"
       dirty={dirty} busy={productMutationBusy || creatingNextProduct}
       onClose={() => { if (intercepted) router.back(); else router.replace("/seller/products"); }}
       actions={<>
+        <Button variant="ghost" disabled={productMutationBusy} onClick={()=>setDraftPreviewOpen(true)}>Предпросмотр</Button>
         <Button onClick={() => void saveProduct()} disabled={productMutationBusy || saveSucceeded || !operationalEditingAllowed} loading={saving} success={saveSucceeded} variant="secondary">Сохранить</Button>
         <Button onClick={() => void publishProduct()} disabled={productMutationBusy} loading={publishing} variant="primary">Отправить на модерацию</Button>
       </>}>
+    <nav className={styles.editorSectionNav} aria-label="Разделы редактора товара">
+      {[["product-general","Основное"],["product-description","Описание"],["product-variants","Варианты"],["product-shipping","Упаковка"],["product-photos","Фото"]].map(([id,label])=><button type="button" key={id} aria-controls={id} onClick={()=>document.getElementById(id)?.scrollIntoView({behavior:window.matchMedia('(prefers-reduced-motion: reduce)').matches ? "auto" : "smooth",block:"start"})}>{label}</button>)}
+    </nav>
     <div className={styles.panelContent}>
       <div className={styles.sellerLayout}>
 
@@ -1333,6 +1346,7 @@ export function ProductEditPageClient({
             brands={brands}
             product={product}
             photoEditor={{
+              colorways: product?.colorways ?? [],
               images, invalidImages: validationErrors.images, uploadProgress, uploading, reordering,
               mediaDisabled: productMutationBusy || !contentEditingAllowed, mediaDisabledHint, dragImageId,
               onFilesChange: setSelectedFiles,
@@ -1390,6 +1404,9 @@ export function ProductEditPageClient({
         </div>
       </div>
 
+      {draftPreviewOpen && <Dialog title="Предпросмотр товара" onClose={()=>setDraftPreviewOpen(false)} actions={<Button onClick={()=>setDraftPreviewOpen(false)}>Вернуться к редактированию</Button>}>
+        <ProductDraftPreview title={title} brand={brands.find(b=>b.id === brandId)?.name ?? product?.brand ?? ""} description={description} composition={composition} variants={variants} images={images} />
+      </Dialog>}
       {confirmation ? (
         <Dialog title={confirmation === "delete" ? "Удалить товар?" : product?.status === "ACTIVE" ? "Снять товар с витрины?" : "Перенести товар в архив?"}
           busy={archiving || deleting} onClose={() => setConfirmation(null)}

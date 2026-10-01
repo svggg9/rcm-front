@@ -25,3 +25,7 @@
 .editor .hint { margin: 0; font-size: 12px; line-height: 18px; color: var(--muted); }
 .progress { height: 3px; background: var(--line); }
 .progress span { display: block; height: 100%; background: var(--black); }
+
+.editor .hint, .editor .empty, .editor .mainBadge { text-transform: none; letter-spacing: normal; font-weight: 400; }
+.editor label { display: grid; gap: 8px; font-size: var(--font-sm); }
+.editor select { width: 100%; min-height: 42px; border: .5px solid var(--line); background: var(--white); color: var(--black); padding: 8px; font: inherit; }

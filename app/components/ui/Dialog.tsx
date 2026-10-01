@@ -34,7 +34,7 @@ export function Dialog({ title, children, actions, busy = false, success = false
   return (
     <dialog ref={ref} className={styles.dialog} aria-labelledby={titleId}
       aria-busy={busy || undefined}
-      onCancel={(event) => { event.preventDefault(); if (!busy) onClose(); }}>
+      onCancel={(event) => { event.preventDefault(); event.stopPropagation(); if (!busy) onClose(); }}>
       <header className={styles.header}>
         {success ? <Icon name="check-circle" className={styles.success} /> : null}
         <h2 id={titleId}>{title}</h2>

@@ -6,4 +6,11 @@
 .row { display: grid; grid-template-columns: 130px 1fr 1fr auto; align-items: center; gap: 12px; border-top: .5px solid var(--line); padding: 12px 0; font-size: 13px; }
 .order { border: 0; padding: 0; background: transparent; color: var(--black); text-align: left; text-decoration: underline; cursor: pointer; font: inherit; }
 .error { color: var(--danger, #c62828); }
+.operation { border-top: .5px solid var(--line); padding: 16px 0; font-size: 13px; min-width: 0; }
+.facts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 24px; margin: 12px 0; }
+.facts dt { font-size: 12px; margin-bottom: 4px; }
+.facts dd { margin: 0; overflow-wrap: anywhere; }
+.reference, .operation p { overflow-wrap: anywhere; }
+.operation strong { font-weight: 500; }
+@media (max-width: 480px) { .facts { grid-template-columns: 1fr; } .operation .actions { align-items: stretch; flex-direction: column; } }
 @media (max-width: 768px) { .panel { padding: 16px; } .row { grid-template-columns: 1fr; } }

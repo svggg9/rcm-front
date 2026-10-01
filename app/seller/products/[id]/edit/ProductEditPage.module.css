@@ -1904,3 +1904,35 @@
 .photoEditorGrid .imageCard:first-child { grid-column: 1 / -1; }
 .photoEditorStatus { margin-top: 12px; }
 .panelContent .stickyCard { top: 0; }
+
+.descriptionEditor { min-width: 0; border: 0.5px solid var(--line); }
+.descriptionEditorToolbar, .descriptionBlockHeading { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.descriptionEditorToolbar { padding: 8px; border-bottom: 0.5px solid var(--line); }
+.descriptionEditor button { min-height: 36px; border: 0; background: var(--white); color: var(--black); font: inherit; cursor: pointer; padding: 6px 8px; }
+.descriptionEditor button:hover { background: var(--surface-hover); }
+.descriptionEditor button:focus-visible { outline: 1px solid var(--black); }
+.descriptionEditor button:disabled { color: var(--muted); cursor: not-allowed; }
+.descriptionEditorBlock { padding: 12px; border-bottom: 0.5px solid var(--line); }
+.descriptionBlockHeading { justify-content: space-between; margin-bottom: 8px; }
+.descriptionItems { display: grid; gap: 8px; }
+.descriptionItemRow { display: grid; grid-template-columns: 8px minmax(0, 1fr) 36px 36px; align-items: center; gap: 4px; }
+.descriptionEditorBlock .textarea { min-height: 100px; }
+.descriptionAddItem { margin-top: 8px; }
+.descriptionPreview { padding: 12px; }
+.descriptionPreview summary { cursor: pointer; margin-bottom: 12px; }
+
+.descriptionCharacterCount { display: block; padding: 8px 12px; font-size: var(--font-xs); color: var(--muted); }
+
+.variantColorGroup { display: grid; gap: 12px; border-bottom: .5px solid var(--line); padding-bottom: 16px; }
+.descriptionItemRow { grid-template-columns: 8px minmax(0,1fr) 32px 32px 32px; }
+
+.draftPreview { display: grid; gap: 12px; min-width: 0; }
+.draftPreviewImage { position: relative; width: 100%; aspect-ratio: 3 / 4; max-height: 420px; }
+.draftPreview button { border: .5px solid var(--line); background: var(--white); padding: 8px; font: inherit; }
+.draftPreview button[aria-pressed="true"] { background: var(--black); color: var(--white); }
+
+.editorSectionNav { display: flex; gap: 4px; overflow-x: auto; position: sticky; top: -24px; z-index: 5; background: var(--white); border-bottom: .5px solid var(--line); margin-bottom: 20px; padding: 4px 0; }
+.editorSectionNav button { flex: 0 0 auto; min-height: 42px; padding: 8px 12px; border: 0; background: var(--white); color: var(--black); font: inherit; cursor: pointer; }
+.editorSectionNav button:hover { background: var(--surface-hover); }
+.editorSectionNav button:focus-visible { outline: 1px solid var(--black); outline-offset: -1px; }
+.panelContent section[id] { scroll-margin-top: 64px; }

@@ -233,3 +233,8 @@
   .brandPagination { display: flex; }
   .catalogHeader h2 { font-size: 20px; }
 }
+
+.catalogHeaderBrand { padding-top: 24px; }
+
+.catalogHeaderBrand .about { margin-top: 0; border-top: 0; padding-top: 0; }
+.catalogHeaderBrand .about summary { font-size: var(--font-sm); line-height: 1.4; }

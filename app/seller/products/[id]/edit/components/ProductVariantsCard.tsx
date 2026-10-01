@@ -1,3 +1,4 @@
+import { VariantNumberInput } from "./VariantNumberInput";
 import { useId } from "react";
 import { ConfirmActionButton } from "../../../../../components/ui/ConfirmActionButton";
 import { Button } from "../../../../../components/ui/Button";
@@ -28,16 +29,6 @@ type Props = {
   onRemoveVariant: (index: number) => void;
 };
 
-function digitsOnly(value: string) {
-  return value.replace(/\D/g, "");
-}
-
-function formatPrice(value: number) {
-  if (!value) return "";
-
-  return String(value).replace(/\B(?=(\d{3})+(?!\d))/g, " ");
-}
-
 export function ProductVariantsCard({
   variants,
   validationErrors,
@@ -49,19 +40,9 @@ export function ProductVariantsCard({
 }: Props) {
   const fieldId = useId();
   const baseVariant = variants[0] ?? null;
-
-  function addSizeRow() {
-    onAddVariant({
-      groupKey: baseVariant?.groupKey ?? "simple-product",
-      colorwayId: baseVariant?.colorwayId ?? null,
-      colorId: "",
-      color: "",
-      price: baseVariant?.price ?? 0,
-      availableQuantity: baseVariant?.availableQuantity ?? null,
-      sellerArticle: baseVariant?.sellerArticle ?? "",
-      stockTrackingEnabled: true,
-    });
-  }
+  const groups = Array.from(new Set(variants.map(v=>v.groupKey || String(v.colorwayId ?? v.colorId ?? v.color)))).map(key=>({
+    key, rows:variants.map((variant,index)=>({variant,index})).filter(({variant:v})=>(v.groupKey || String(v.colorwayId ?? v.colorId ?? v.color)) === key)
+  }));
 
   function removeSizeRow(index: number) {
     onRemoveVariant(index);
@@ -75,7 +56,7 @@ export function ProductVariantsCard({
 
   return (
     <>
-      <section className={styles.card}>
+      <section id="product-variants" className={styles.card}>
         <SectionHeader
           title="Параметры товара"
           hint="Размер, цена и остатки."
@@ -96,42 +77,26 @@ export function ProductVariantsCard({
         ) : null}
 
         <div className={styles.variantSizeList}>
-          {variants.map((variant, index) => {
+          {groups.map(group=><section key={group.key} className={styles.variantColorGroup}>
+            <label className={styles.field}><span>Цвет</span><input className={styles.input} disabled={variantStructureDisabled}
+              aria-invalid={group.rows.some(({index})=>validationErrors[index]?.colorId) || undefined}
+              value={group.rows[0].variant.color} placeholder="Без цвета"
+              onChange={event=>group.rows.forEach(({index})=>onUpdateVariant(index,{color:event.target.value,colorId:""}))} />
+              {group.rows.some(({index})=>validationErrors[index]?.colorId) && <span className="fieldError">Проверьте цвет: одинаковые цвета должны быть в одной группе</span>}
+            </label>
+            {group.rows.map(({variant, index}) => {
             const errors = validationErrors[index] ?? {};
 
             return (
               <div key={variant.id ?? variant.clientKey ?? `new-${index}`} className={styles.variantSizeRow}>
                 <label className={`${styles.field} ${styles.priceField}`} data-ui="field">
                   <span className={styles.required}>Цена</span>
-                  <input
-                    type="text"
-                    aria-invalid={errors.price ? "true" : undefined}
-                    aria-describedby={errors.price ? `${fieldId}-${index}-price-error` : undefined}
-                    inputMode="numeric"
-                    pattern="[0-9]*"
-                    disabled={operationalDisabled}
-                    value={formatPrice(variant.price)}
-                    onChange={(event) =>
-                      onUpdateVariant(index, {
-                        price:
-                          digitsOnly(event.target.value) === ""
-                            ? 0
-                            : Number(digitsOnly(event.target.value)),
-                      })
-                    }
-                    className={`${styles.input} ${
-                      errors.price ? "inputError" : ""
-                    } ${variant.price > 0 ? "" : styles.requiredEmpty}`}
-                  />
-                  <span className={styles.priceInlineSuffix} aria-hidden="true">
-                    <span className={styles.priceMirror}>
-                      {formatPrice(variant.price)}
-                    </span>
-                    {variant.price > 0 ? (
-                      <span className={styles.priceSuffix}>₽</span>
-                    ) : null}
-                  </span>
-                  {errors.price ? <span className="fieldError" id={`${fieldId}-${index}-price-error`}>
+                  <VariantNumberInput value={variant.price} disabled={operationalDisabled}
+                    aria-label={`Цена варианта ${index + 1}`} aria-describedby={`${fieldId}-${index}-price-error`}
+                    className={styles.input} onValue={price=>onUpdateVariant(index,{price:price ?? 0})} />
+                  <span>₽</span>
+                  {Number.isNaN(variant.price) && <span className="fieldError" id={`${fieldId}-${index}-price-error`}>Введите неотрицательную цену, до двух знаков после запятой</span>}
+                  {errors.price && !Number.isNaN(variant.price) ? <span className="fieldError" id={`${fieldId}-${index}-price-error`}>
                     Укажите цену больше нуля
                   </span> : null}
                 </label>
@@ -173,29 +138,13 @@ export function ProductVariantsCard({
                   >
                     <Icon name="x" size={20} strokeWidth={1.5} />
                   </ConfirmActionButton>
-                  <input
-                    type="text"
-                    id={`${fieldId}-${index}-quantity`}
-                    aria-invalid={errors.availableQuantity ? "true" : undefined}
-                    aria-describedby={errors.availableQuantity ? `${fieldId}-${index}-quantity-error` : undefined}
-                    inputMode="numeric"
-                    pattern="[0-9]*"
-                    disabled={operationalDisabled}
-                    value={variant.availableQuantity ?? ""}
-                    onChange={(event) =>
-                      onUpdateVariant(index, {
-                        availableQuantity:
-                          digitsOnly(event.target.value) === ""
-                            ? null
-                            : Number(digitsOnly(event.target.value)),
-                        stockTrackingEnabled: digitsOnly(event.target.value) !== "",
-                      })
-                    }
-                    className={`${styles.input} ${
-                      errors.availableQuantity ? "inputError" : ""
-                    }`}
-                  />
-                  {errors.availableQuantity ? <span className="fieldError" id={`${fieldId}-${index}-quantity-error`}>
+                  <VariantNumberInput integer value={variant.availableQuantity} disabled={operationalDisabled}
+                    id={`${fieldId}-${index}-quantity`} className={styles.input}
+                    aria-describedby={`${fieldId}-${index}-quantity-error`}
+                    onValue={availableQuantity=>onUpdateVariant(index,{availableQuantity,stockTrackingEnabled:availableQuantity !== null})} />
+                  {Number.isNaN(variant.availableQuantity) && <span className="fieldError" id={`${fieldId}-${index}-quantity-error`}>Введите целое неотрицательное количество</span>}
+                  <span className={styles.fieldHint}>Пусто — без учёта остатков; 0 — нет в наличии</span>
+                  {errors.availableQuantity && !Number.isNaN(variant.availableQuantity) ? <span className="fieldError" id={`${fieldId}-${index}-quantity-error`}>
                     Количество не может быть отрицательным
                   </span> : null}
                 </div>
@@ -203,15 +152,17 @@ export function ProductVariantsCard({
               </div>
             );
           })}
+          <Button variant="ghost" disabled={variantStructureDisabled} onClick={()=>onAddVariant({...group.rows[0].variant,id:null,clientKey:crypto.randomUUID(),sku:"",size:"",sizeId:""})}>Добавить размер этого цвета</Button>
+          </section>)}
 
           <Button
             type="button"
             variant="ghost"
             disabled={variantStructureDisabled}
-            onClick={addSizeRow}
+            onClick={()=>onAddVariant({groupKey:crypto.randomUUID(),colorwayId:null,colorId:"",color:"",price:baseVariant?.price ?? 0})}
             className={styles.addSizeAction}
           >
-            Добавить размер
+            Добавить цвет / вариант
           </Button>
         </div>
       </div>
