@@ -109,7 +109,7 @@ export function SellerEntityPage({ id, kind, intercepted = false, onClose }: {
       {request.comment && <section><h3>Комментарий покупателя</h3><p className={styles.comment}>{request.comment}</p></section>}
       {request.photoUrls?.length > 0 && <div className={styles.photos}>{request.photoUrls.map((url, index) =>
         <a key={url} href={url} target="_blank" rel="noreferrer" aria-label={`Фото возврата ${index + 1}, открыть оригинал`}>
-          <Image src={url} alt={`Фото возврата ${index + 1}`} width={160} height={160} />
+          <Image src={url} alt={`Фото возврата ${index + 1}`} width={160} height={160} unoptimized />
         </a>)}</div>}
       {request.adminComment && <section><h3>Комментарий администратора</h3><p className={styles.comment}>{request.adminComment}</p></section>}
       {request.sellerComment && <section><h3>Результат проверки</h3><p className={styles.comment}>{request.sellerComment}</p></section>}
