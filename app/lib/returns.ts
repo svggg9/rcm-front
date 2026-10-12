@@ -1,4 +1,5 @@
 import { API_URL, apiFetch } from "./api";
+import { resolveReturnPhotoUrl } from "./returnPhotoUrls";
 
 export type ReturnReason =
   | "DEFECT"
@@ -48,6 +49,15 @@ export type ReturnRequest = {
   createdAt: string;
   updatedAt: string;
 };
+
+function normalizeReturnPhotos(request: ReturnRequest): ReturnRequest {
+  return {
+    ...request,
+    photoUrls: (request.photoUrls ?? [])
+      .map((url) => resolveReturnPhotoUrl(url, API_URL))
+      .filter((url): url is string => url !== null),
+  };
+}
 
 export type SellerReturnListItem = Pick<
   ReturnRequest,
@@ -136,7 +146,7 @@ export async function getSellerReturn(id: number, signal?: AbortSignal): Promise
   const response = await apiFetch(`${API_URL}/api/seller/returns/${id}`, { signal });
   if (!response.ok) throw new Error(response.status === 403 || response.status === 404
     ? "Возврат не найден или недоступен" : "Не удалось загрузить возврат");
-  return response.json();
+  return normalizeReturnPhotos(await response.json());
 }
 
 export async function getOrderReturns(orderId: number): Promise<ReturnRequest[]> {
@@ -144,7 +154,7 @@ export async function getOrderReturns(orderId: number): Promise<ReturnRequest[]>
   if (response.status === 404) return [];
   if (!response.ok) throw new Error("Не удалось загрузить заявки на возврат");
   const data: unknown = await response.json();
-  return Array.isArray(data) ? (data as ReturnRequest[]) : [];
+  return Array.isArray(data) ? (data as ReturnRequest[]).map(normalizeReturnPhotos) : [];
 }
 
 export async function getAccountReturns(params: {
@@ -205,7 +215,7 @@ export async function createOrderReturn(params: {
     const text = await response.text().catch(() => "");
     throw new Error(text || "Не удалось создать заявку на возврат");
   }
-  return response.json();
+  return normalizeReturnPhotos(await response.json());
 }
 
 export async function getAdminOrderReturns(
@@ -217,7 +227,7 @@ export async function getAdminOrderReturns(
   if (response.status === 404) return [];
   if (!response.ok) throw new Error("Не удалось загрузить заявки на возврат");
   const data: unknown = await response.json();
-  return Array.isArray(data) ? (data as ReturnRequest[]) : [];
+  return Array.isArray(data) ? (data as ReturnRequest[]).map(normalizeReturnPhotos) : [];
 }
 
 export async function reviewAdminReturn(
@@ -236,7 +246,7 @@ export async function reviewAdminReturn(
     const text = await response.text().catch(() => "");
     throw new Error(text || "Не удалось рассмотреть заявку");
   }
-  return response.json();
+  return normalizeReturnPhotos(await response.json());
 }
 
 export async function getSellerReturns(params: {
@@ -285,7 +295,7 @@ export async function markSellerReturnReceived(
     const text = await response.text().catch(() => "");
     throw new Error(text || "Не удалось подтвердить получение товара");
   }
-  return response.json();
+  return normalizeReturnPhotos(await response.json());
 }
 
 export async function inspectSellerReturn(
@@ -311,7 +321,7 @@ export async function inspectSellerReturn(
     const text = await response.text().catch(() => "");
     throw new Error(text || "Не удалось сохранить результат проверки");
   }
-  return response.json();
+  return normalizeReturnPhotos(await response.json());
 }
 
 export async function refundAdminReturn(
@@ -329,5 +339,5 @@ export async function refundAdminReturn(
     const text = await response.text().catch(() => "");
     throw new Error(text || "Не удалось провести возврат денег");
   }
-  return response.json();
+  return normalizeReturnPhotos(await response.json());
 }
