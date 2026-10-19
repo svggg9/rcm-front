@@ -2,8 +2,9 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { toast } from "sonner";
+import { toast } from "@/app/components/ui/toast";
 
+import { AccountSkeleton } from "./AccountSkeleton";
 import { EmptyState } from "../../components/ui/EmptyState";
 import { LikeButton } from "../../components/ui/LikeButton";
 import { useFavoriteBrands } from "../../lib/favoriteBrands";
@@ -25,19 +26,15 @@ export function AccountBrandsTab() {
     }
   }
 
+  if (loading) return <AccountSkeleton variant="brands" />;
+
   return (
     <section className={styles.page}>
-      <header className={styles.header}>
-        <h2>Мои бренды</h2>
-        {!loading ? <span>{brands.length}</span> : null}
-      </header>
-
-      {!loading && brands.length === 0 ? (
+      {brands.length === 0 ? (
         <EmptyState
-          icon="heart"
-          tone="gold"
           title="Сохранённых брендов пока нет"
-          text="Нажимайте на сердце на странице бренда, чтобы добавить его сюда."
+          text="Нажмите на сердце на странице бренда"
+          actions={<Link href="/catalog" className="buttonPrimary">Перейти в каталог</Link>}
         />
       ) : (
         <ul className={styles.grid}>

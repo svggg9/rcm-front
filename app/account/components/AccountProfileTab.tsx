@@ -1,635 +1,165 @@
 "use client";
 
-import {
-  useId,
-  useRef,
-  useState,
-  type FormEvent,
-  type InputHTMLAttributes,
-  type Ref,
-} from "react";
-import { toast } from "sonner";
-
+import { useId, useRef, useState, type FormEvent } from "react";
+import { toast } from "@/app/components/ui/toast";
+import { requestEditorNavigation } from "../../components/ui/EditorSurface";
+import { InlineEditorGuard } from "../../components/ui/InlineEditorGuard";
 import { Button } from "../../components/ui/Button";
-import { FormSelect } from "../../components/ui/FormSelect";
+import { TextInput } from "../../components/ui/TextInput";
 import { Icon } from "../../components/ui/Icon";
 import { PhoneInput } from "../../components/ui/PhoneInput";
-import { apiFetch, API_URL } from "../../lib/api";
+import { requestPasswordResetCode } from "../../lib/passwordReset";
+import { useFieldValidation } from "../../lib/useFieldValidation";
 import { scrollToFirstValidationError } from "../../lib/formValidation";
-import { formatRussianPhone, getRussianPhoneDigits } from "../../lib/phone";
-
+import { getRussianPhoneDigits } from "../../lib/phone";
+import { AccountEmailChange } from "./AccountEmailChange";
 import styles from "./AccountProfileTab.module.css";
 
 export type AccountProfileUpdate = {
   firstName: string;
   lastName: string;
   phone: string;
-  birthDate: string;
-  gender: "men" | "women" | null;
 };
 
-type Props = {
+type Props = AccountProfileUpdate & {
   email: string;
-  firstName: string;
-  lastName: string;
-  phone: string;
-  birthDate: string;
-  gender: "men" | "women" | null;
+  emailVerified?: boolean;
   saving: boolean;
-  initialEditing?: boolean;
+  onEmailChanged: (email: string) => void;
   onSave: (values: AccountProfileUpdate) => Promise<boolean>;
   onEditingChange?: (editing: boolean) => void;
 };
 
-type ProfileFieldProps = {
-  label: string;
-  inputRef?: Ref<HTMLInputElement>;
-  error?: string | null;
-};
+type ProfileDraft = AccountProfileUpdate;
+type ProfileErrors = Partial<Record<keyof ProfileDraft, string>>;
 
-type ProfileErrors = Partial<
-  Record<"firstName" | "lastName" | "phone", string>
->;
-
-type BirthParts = {
-  day: string;
-  month: string;
-  year: string;
-};
-
-type ProfileDraft = BirthParts & {
-  firstName: string;
-  lastName: string;
-  phone: string;
-  gender: "" | "men" | "women";
-};
-
-const DAY_OPTIONS = Array.from({ length: 31 }, (_, index) => {
-  const day = String(index + 1).padStart(2, "0");
-  return { value: day, label: String(index + 1) };
-});
-
-const MONTH_OPTIONS = [
-  { value: "01", label: "Январь" },
-  { value: "02", label: "Февраль" },
-  { value: "03", label: "Март" },
-  { value: "04", label: "Апрель" },
-  { value: "05", label: "Май" },
-  { value: "06", label: "Июнь" },
-  { value: "07", label: "Июль" },
-  { value: "08", label: "Август" },
-  { value: "09", label: "Сентябрь" },
-  { value: "10", label: "Октябрь" },
-  { value: "11", label: "Ноябрь" },
-  { value: "12", label: "Декабрь" },
-];
-
-const CURRENT_YEAR = new Date().getFullYear();
-const YEAR_OPTIONS = Array.from({ length: 101 }, (_, index) => {
-  const year = String(CURRENT_YEAR - index);
-  return { value: year, label: year };
-});
-
-const GENDER_OPTIONS = [
-  { value: "men", label: "Мужской" },
-  { value: "women", label: "Женский" },
-];
-
-function ProfileTextField({
-  label,
-  inputRef,
-  error,
-  className = "",
-  required = false,
-  "aria-describedby": ariaDescribedBy,
-  ...props
-}: ProfileFieldProps & InputHTMLAttributes<HTMLInputElement>) {
-  const errorId = useId();
-  const describedBy = [ariaDescribedBy, error ? errorId : null]
-    .filter(Boolean)
-    .join(" ") || undefined;
-
-  return (
-    <label className={styles.fieldWrap} data-ui="field">
-      <span className={styles.fieldLabel}>
-        {label}
-        {required ? <span className={styles.requiredMark}> *</span> : null}
-      </span>
-      <input
-        ref={inputRef}
-        className={[styles.input, className].filter(Boolean).join(" ")}
-        required={required}
-        aria-describedby={describedBy}
-        aria-invalid={error ? "true" : undefined}
-        {...props}
-      />
-      {error ? (
-        <span id={errorId} className={styles.fieldError}>
-          {error}
-        </span>
-      ) : null}
-    </label>
-  );
-}
-
-function splitBirthDate(value: string): BirthParts {
-  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value.trim());
-
-  if (!match) {
-    return { day: "", month: "", year: "" };
-  }
-
-  return {
-    day: match[3],
-    month: match[2],
-    year: match[1],
-  };
-}
-
-function createDraft({
-  firstName,
-  lastName,
-  phone,
-  birthDate,
-  gender,
-}: Pick<
-  Props,
-  "firstName" | "lastName" | "phone" | "birthDate" | "gender"
->): ProfileDraft {
-  return {
-    firstName,
-    lastName,
-    phone,
-    gender: gender ?? "",
-    ...splitBirthDate(birthDate),
-  };
-}
-
-function formatBirthDate(value: string): string {
-  const { day, month, year } = splitBirthDate(value);
-  return day && month && year ? `${day}.${month}.${year}` : "Не указана";
-}
-
-function formatGender(value: Props["gender"]): string {
-  if (value === "men") return "Мужской";
-  if (value === "women") return "Женский";
-  return "Не указан";
-}
-
-function buildBirthDate(parts: BirthParts): {
-  value: string;
-  error: string | null;
-} {
-  const values = [parts.day, parts.month, parts.year];
-
-  if (values.every((value) => !value)) {
-    return { value: "", error: null };
-  }
-
-  if (values.some((value) => !value)) {
-    return { value: "", error: "Укажите день, месяц и год" };
-  }
-
-  const day = Number(parts.day);
-  const month = Number(parts.month);
-  const year = Number(parts.year);
-  const parsed = new Date(Date.UTC(year, month - 1, day));
-  const today = new Date();
-
-  if (
-    parsed.getUTCFullYear() !== year ||
-    parsed.getUTCMonth() !== month - 1 ||
-    parsed.getUTCDate() !== day
-  ) {
-    return { value: "", error: "Проверьте дату рождения" };
-  }
-
-  const todayUtc = Date.UTC(
-    today.getFullYear(),
-    today.getMonth(),
-    today.getDate(),
-  );
-
-  if (parsed.getTime() > todayUtc) {
-    return { value: "", error: "Дата рождения не может быть в будущем" };
-  }
-
-  return {
-    value: `${parts.year}-${parts.month}-${parts.day}`,
-    error: null,
-  };
+function createDraft(values: AccountProfileUpdate): ProfileDraft {
+  return { ...values };
 }
 
 function validateProfileDraft(draft: ProfileDraft): ProfileErrors {
   const errors: ProfileErrors = {};
-
-  if (!draft.firstName.trim()) {
-    errors.firstName = "Укажите имя";
-  }
-
-  if (!draft.lastName.trim()) {
-    errors.lastName = "Укажите фамилию";
-  }
-
-  if (
-    draft.phone.trim() &&
-    getRussianPhoneDigits(draft.phone).length !== 10
-  ) {
-    errors.phone = "Укажите номер телефона полностью";
-  }
-
+  if (draft.phone.trim() && getRussianPhoneDigits(draft.phone).length !== 10) errors.phone = "Укажите номер телефона полностью";
   return errors;
 }
 
-export function AccountProfileTab({
-  email,
-  firstName,
-  lastName,
-  phone,
-  birthDate,
-  gender,
-  saving,
-  initialEditing = false,
-  onSave,
-  onEditingChange,
-}: Props) {
-  const [editing, setEditing] = useState(initialEditing);
-  const [draft, setDraft] = useState<ProfileDraft>(() =>
-    createDraft({ firstName, lastName, phone, birthDate, gender }),
-  );
-  const [profileErrors, setProfileErrors] = useState<ProfileErrors>({});
-  const [dateError, setDateError] = useState<string | null>(null);
+export function AccountProfileTab({ email, emailVerified = false, firstName, lastName, phone, saving, onSave, onEmailChanged, onEditingChange }: Props) {
+  const [editing, setEditing] = useState(false);
+  const [emailChanging, setEmailChanging] = useState(false);
+  const [emailBusy, setEmailBusy] = useState(false);
+  const [draft, setDraft] = useState<ProfileDraft>(() => createDraft({ firstName, lastName, phone }));
+  const validation = useFieldValidation(draft, validateProfileDraft);
+  const profileErrors = validation.errors;
   const [passwordResetSending, setPasswordResetSending] = useState(false);
   const [passwordResetSent, setPasswordResetSent] = useState(false);
-  const formRef = useRef<HTMLFormElement | null>(null);
-  const firstNameRef = useRef<HTMLInputElement | null>(null);
-  const dateErrorId = useId();
+  const busy = saving || emailBusy || passwordResetSending;
+  const formRef = useRef<HTMLFormElement>(null);
+  const firstNameRef = useRef<HTMLInputElement>(null);
+  const passwordLabelId = useId();
+  const savedDraft = createDraft({ firstName, lastName, phone });
+  const values = editing ? draft : savedDraft;
+  const dirty = editing && JSON.stringify(draft) !== JSON.stringify(savedDraft);
 
-  const savedDraft = createDraft({
-    firstName,
-    lastName,
-    phone,
-    birthDate,
-    gender,
-  });
-  function beginEditing() {
-    setDraft(savedDraft);
-    setProfileErrors({});
-    setDateError(null);
-    setEditing(true);
-    onEditingChange?.(true);
-    window.requestAnimationFrame(() => firstNameRef.current?.focus());
+  function changeField<TKey extends keyof ProfileDraft>(key: TKey, value: ProfileDraft[TKey]) {
+    setDraft(current => ({ ...current, [key]: value }));
+    validation.changed(key);
   }
 
-  function cancelEditing() {
-    if (saving) return;
-
+  function beginEditing() {
     setDraft(savedDraft);
-    setProfileErrors({});
-    setDateError(null);
+    validation.reset();
+    setEditing(true);
+    onEditingChange?.(true);
+    window.requestAnimationFrame(() => firstNameRef.current?.focus({ preventScroll: true }));
+  }
+
+  function resetEditing() {
+    setEmailChanging(false);
+    setDraft(savedDraft);
+    validation.reset();
     setEditing(false);
     onEditingChange?.(false);
   }
 
+  function cancelEditing() {
+    if (!busy) requestEditorNavigation(resetEditing, { completed: true });
+  }
+
   async function handleProfileSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (saving) return;
-
-    const nextProfileErrors = validateProfileDraft(draft);
-    const nextBirthDate = buildBirthDate(draft);
-
-    setProfileErrors(nextProfileErrors);
-    setDateError(nextBirthDate.error);
-
-    if (Object.keys(nextProfileErrors).length > 0 || nextBirthDate.error) {
+    if (!editing || busy || emailChanging) return;
+    const errors = validation.validate();
+    if (Object.keys(errors).length) {
       scrollToFirstValidationError({ root: formRef.current });
       return;
     }
-
     const saved = await onSave({
       firstName: draft.firstName.trim(),
       lastName: draft.lastName.trim(),
       phone: draft.phone,
-      birthDate: nextBirthDate.value,
-      gender: draft.gender || null,
     });
-
     if (saved) {
-      setProfileErrors({});
-      setDateError(null);
-      setEditing(false);
-      onEditingChange?.(false);
+      validation.reset();
+      requestEditorNavigation(() => { setEditing(false); onEditingChange?.(false); }, { completed: true });
     }
   }
 
   async function requestPasswordReset() {
-    if (passwordResetSending) return;
+    if (!editing || passwordResetSending || saving || emailChanging) return;
     if (!email.trim()) {
-      toast.error("К аккаунту не привязана электронная почта");
+      toast.warning("К аккаунту не привязана электронная почта");
       return;
     }
-
     try {
       setPasswordResetSending(true);
-
-      const response = await apiFetch(
-        `${API_URL}/api/auth/password/reset/start`,
-        {
-          method: "POST",
-          body: JSON.stringify({ email: email.trim() }),
-        },
-      );
-
-      if (!response.ok) {
-        const data = await response.json().catch(() => null);
-        throw new Error(
-          data?.message || "Не удалось отправить письмо для смены пароля",
-        );
-      }
-
+      await requestPasswordResetCode(email);
       setPasswordResetSent(true);
     } catch (error) {
-      toast.error(
-        error instanceof Error
-          ? error.message
-          : "Не удалось отправить письмо для смены пароля",
-      );
+      toast.error(error instanceof Error ? error.message : "Не удалось отправить письмо для смены пароля");
     } finally {
       setPasswordResetSending(false);
     }
   }
 
-  if (editing) {
-    return (
-      <section
-        className={styles.editorPanel}
-        aria-labelledby="account-profile-editor-title"
-      >
-        <header className={styles.editorHeader}>
-          <h2 id="account-profile-editor-title">Данные и безопасность</h2>
-          <h3>Личные данные</h3>
-          <p>
-            <span className={styles.requiredMark}>*</span> Обязательные поля
-          </p>
-        </header>
-
-        <form
-          ref={formRef}
-          className={styles.editorForm}
-          noValidate
-          onSubmit={handleProfileSubmit}
-        >
-          <ProfileTextField
-            label="Имя"
-            inputRef={firstNameRef}
-            value={draft.firstName}
-            error={profileErrors.firstName}
-            onChange={(event) => {
-              setProfileErrors((current) => {
-                if (!current.firstName) return current;
-                const next = { ...current };
-                delete next.firstName;
-                return next;
-              });
-              setDraft((current) => ({
-                ...current,
-                firstName: event.target.value,
-              }));
-            }}
-            autoComplete="given-name"
-            required
-          />
-
-          <ProfileTextField
-            label="Фамилия"
-            value={draft.lastName}
-            error={profileErrors.lastName}
-            onChange={(event) => {
-              setProfileErrors((current) => {
-                if (!current.lastName) return current;
-                const next = { ...current };
-                delete next.lastName;
-                return next;
-              });
-              setDraft((current) => ({
-                ...current,
-                lastName: event.target.value,
-              }));
-            }}
-            autoComplete="family-name"
-            required
-          />
-
-          <ProfileTextField
-            label="Электронная почта"
-            type="email"
-            value={email}
-            autoComplete="email"
-            readOnly
-            required
-          />
-
-          <ProfileTextField
-            label="Подтвердите электронную почту"
-            type="email"
-            value={email}
-            autoComplete="email"
-            readOnly
-            required
-          />
-
-          <div className={styles.phoneField}>
-            <PhoneInput
-              label="Телефон"
-              fieldVariant="boxed"
-              value={draft.phone}
-              error={profileErrors.phone}
-              onChange={(event) => {
-                setProfileErrors((current) => {
-                  if (!current.phone) return current;
-                  const next = { ...current };
-                  delete next.phone;
-                  return next;
-                });
-                setDraft((current) => ({
-                  ...current,
-                  phone: event.target.value,
-                }));
-              }}
-            />
-            <p className={styles.fieldHint}>
-              Номер нужен только для связи по вашему заказу
-            </p>
-          </div>
-
-          <fieldset className={styles.dateFieldset}>
-            <legend>Дата рождения</legend>
-            <div className={styles.dateSelects}>
-              <FormSelect<string>
-                label="День"
-                value={draft.day}
-                options={DAY_OPTIONS}
-                placeholder="День"
-                invalid={Boolean(dateError)}
-                errorId={dateError ? dateErrorId : undefined}
-                onChange={(value) => {
-                  setDateError(null);
-                  setDraft((current) => ({ ...current, day: value }));
-                }}
-              />
-              <FormSelect<string>
-                label="Месяц"
-                value={draft.month}
-                options={MONTH_OPTIONS}
-                placeholder="Месяц"
-                invalid={Boolean(dateError)}
-                errorId={dateError ? dateErrorId : undefined}
-                onChange={(value) => {
-                  setDateError(null);
-                  setDraft((current) => ({ ...current, month: value }));
-                }}
-              />
-              <FormSelect<string>
-                label="Год"
-                value={draft.year}
-                options={YEAR_OPTIONS}
-                placeholder="Год"
-                invalid={Boolean(dateError)}
-                errorId={dateError ? dateErrorId : undefined}
-                onChange={(value) => {
-                  setDateError(null);
-                  setDraft((current) => ({ ...current, year: value }));
-                }}
-              />
-            </div>
-            {dateError ? (
-              <p id={dateErrorId} className={styles.fieldError}>
-                {dateError}
-              </p>
-            ) : null}
-            <p className={styles.fieldHint}>
-              Добавьте дату и получите подарок ко дню рождения по программе
-              лояльности
-            </p>
-          </fieldset>
-
-          <FormSelect<"men" | "women">
-            label="Пол"
-            value={draft.gender}
-            options={GENDER_OPTIONS}
-            placeholder="Не указан"
-            onChange={(value) =>
-              setDraft((current) => ({ ...current, gender: value }))
-            }
-          />
-
-          <div className={styles.editorActions}>
-            <Button
-              type="button"
-              variant="secondary"
-              className={styles.cancelButton}
-              onClick={cancelEditing}
-              disabled={saving}
-            >
-              Отменить
-            </Button>
-            <Button
-              type="submit"
-              variant="primary"
-              loading={saving}
-            >
-              Сохранить
-            </Button>
-          </div>
-        </form>
-      </section>
-    );
-  }
-
   return (
-    <section
-      className={styles.detailsPanel}
-      aria-labelledby="account-profile-title"
-    >
-      <h2 id="account-profile-title">Данные и безопасность</h2>
-
-      <dl className={styles.detailsList}>
-        <div className={styles.detailItem}>
-          <dt>Имя</dt>
-          <dd>{firstName.trim() || "—"}</dd>
+    <section className={styles.detailsPanel} aria-label="Личные данные">
+      {editing ? <InlineEditorGuard dirty={dirty || emailChanging} busy={busy} onDiscard={resetEditing} /> : null}
+      <form ref={formRef} className={styles.profileForm} noValidate onSubmit={handleProfileSubmit} aria-label="Личные данные" aria-busy={saving}>
+        <div className={styles.detailsList}>
+          <TextInput label="Имя" fieldVariant="inline" ref={firstNameRef} value={values.firstName} placeholder="" readOnly={!editing} disabled={saving} tabIndex={editing ? undefined : -1} error={profileErrors.firstName} onBlur={() => validation.touch("firstName")} autoComplete="given-name" enterKeyHint="next" onChange={event => changeField("firstName", event.target.value)} />
+          <TextInput label="Фамилия" fieldVariant="inline" value={values.lastName} placeholder="" readOnly={!editing} disabled={saving} tabIndex={editing ? undefined : -1} error={profileErrors.lastName} onBlur={() => validation.touch("lastName")} autoComplete="family-name" enterKeyHint="next" onChange={event => changeField("lastName", event.target.value)} />
+          <div className={styles.emailField}>
+            <TextInput label="Электронная почта" fieldVariant="inline" type="email" value={email} placeholder="" readOnly tabIndex={-1} autoComplete="email" />
+            {email && emailVerified ? <span className={styles.emailVerified} role="img" aria-label="Почта подтверждена" title="Почта подтверждена"><Icon name="check" size={18} strokeWidth={1.6} /></span> : null}
+          </div>
+          {editing && !emailChanging ? <button className={styles.emailChangeLink} type="button" disabled={busy} onClick={() => setEmailChanging(true)}>Изменить почту</button> : null}
+          {editing && emailChanging ? <AccountEmailChange email={email} onBusyChange={setEmailBusy} onCancel={() => setEmailChanging(false)} onChanged={newEmail => {
+            onEmailChanged(newEmail); setEmailChanging(false); setPasswordResetSent(false); toast.success("Почта изменена");
+          }} /> : null}
+          <div className={styles.phoneField} data-empty={!editing && !getRussianPhoneDigits(values.phone).length || undefined}>
+            <PhoneInput label="Телефон" fieldVariant="inline" value={values.phone} placeholder="" readOnly={!editing} disabled={saving} tabIndex={editing ? undefined : -1} error={profileErrors.phone} onBlur={() => validation.touch("phone")} enterKeyHint="done" onChange={event => changeField("phone", event.target.value)} />
+          </div>
+          <div className={styles.detailItem}>
+            <span id={passwordLabelId} className={styles.fieldLabel}>Пароль</span>
+            <div className={styles.passwordValue} aria-labelledby={passwordLabelId}>
+              <span aria-label="Пароль скрыт">••••••••</span>
+              {editing ? <button type="button" onClick={() => void requestPasswordReset()} disabled={busy || emailChanging} aria-label={passwordResetSending ? "Отправка письма для смены пароля" : undefined}>
+                {passwordResetSending ? <span className="buttonLoader" aria-hidden="true" /> : passwordResetSent ? "Отправить ещё раз" : "Изменить пароль"}
+              </button> : null}
+            </div>
+          </div>
         </div>
-        <div className={styles.detailItem}>
-          <dt>Фамилия</dt>
-          <dd>{lastName.trim() || "—"}</dd>
-        </div>
-        <div className={styles.detailItem}>
-          <dt>Электронная почта</dt>
-          <dd>{email.trim() || "—"}</dd>
-        </div>
-        <div className={styles.detailItem}>
-          <dt>Телефон</dt>
-          <dd>{formatRussianPhone(phone) || "Не указан"}</dd>
-        </div>
-        <div className={styles.detailItem}>
-          <dt>Дата рождения</dt>
-          <dd>{formatBirthDate(birthDate)}</dd>
-          {!birthDate ? (
-            <p className={styles.detailHint}>
-              Добавьте дату и получите подарок ко дню рождения по программе
-              лояльности
-            </p>
-          ) : null}
-        </div>
-        <div className={styles.detailItem}>
-          <dt>Пол</dt>
-          <dd>{formatGender(gender)}</dd>
-        </div>
-        <div className={styles.detailItem}>
-          <dt>Пароль</dt>
-          <dd className={styles.passwordValue}>
-            <span aria-label="Пароль скрыт">••••••••</span>
-            <button
-              type="button"
-              onClick={() => void requestPasswordReset()}
-              disabled={passwordResetSending}
-            >
-              {passwordResetSending ? (
-                <span className="buttonLoader" aria-hidden="true" />
-              ) : passwordResetSent ? (
-                "Отправить ещё раз"
-              ) : (
-                "Изменить пароль"
-              )}
-            </button>
-          </dd>
-        </div>
-      </dl>
-
-      {passwordResetSent ? (
-        <div
-          className={styles.passwordInfo}
-          role="status"
-          aria-live="polite"
-        >
+        {editing && passwordResetSent ? <div className={styles.passwordInfo} role="status" aria-live="polite">
           <Icon name="check-circle" size={20} strokeWidth={1.6} />
-          <p>
-            Мы отправили письмо на указанный адрес. Если его нет во входящих,
-            проверьте папку «Спам».
-          </p>
+          <p>Мы отправили письмо на указанный адрес. Если его нет во входящих, проверьте папку «Спам».</p>
+        </div> : null}
+        <div className={`${styles.detailsActions} ${editing ? styles.editingActions : ""}`}>
+          {editing ? <>
+            <Button type="button" variant="secondary" className={styles.cancelButton} disabled={busy} onClick={cancelEditing}>Отменить</Button>
+            <Button type="submit" variant="primary" loading={saving} disabled={emailChanging || emailBusy || passwordResetSending}>Сохранить</Button>
+          </> : <Button type="button" variant="primary" className={styles.editButton} onClick={beginEditing}>Редактировать</Button>}
         </div>
-      ) : null}
-
-      <div className={styles.detailsActions}>
-        <Button
-          type="button"
-          variant="secondary"
-          className={styles.editButton}
-          onClick={beginEditing}
-        >
-          Изменить
-        </Button>
-      </div>
-
+      </form>
     </section>
   );
 }

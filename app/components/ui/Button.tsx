@@ -7,6 +7,7 @@ type ButtonVariant =
   | "secondary"
   | "tertiary"
   | "ghost"
+  | "utility"
   | "danger";
 
 type Props = ButtonHTMLAttributes<HTMLButtonElement> & {
@@ -33,6 +34,7 @@ export function Button({
     secondary: "buttonSecondary",
     tertiary: "buttonTertiary",
     ghost: "buttonGhost",
+    utility: "buttonUtility",
     danger: "buttonDanger",
   }[variant];
 

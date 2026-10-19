@@ -206,7 +206,7 @@
 .appShell [data-ui="field"] > :is(.label, span:first-child) { color: var(--black); font-size: 12px; line-height: 15px; font-weight: 400; }
 .appShell [data-ui="field"] > small { color: var(--black); font-size: 15px; line-height: 21px; font-weight: 300; }
 .appShell [data-ui="field"] > :is(input, textarea, select, .phoneInputShell),
-.appShell [data-ui="field"] > div:has(> [role="combobox"]) { border: 1px solid var(--black); border-radius: 0; background: var(--white); }
+.appShell [data-ui="field"] > div:has(> [role="combobox"]) { border: 1px solid var(--select-border-color, var(--black)); border-radius: 0; background: var(--white); }
 .appShell [data-ui="field"] > :is(input, textarea, select, .phoneInputShell):not(:disabled):not(.inputError):hover,
 .appShell [data-ui="field"] > div:has(> [role="combobox"]:not(:disabled):not([aria-invalid="true"])):hover { background: var(--surface-hover); }
 .appShell [data-ui="field"] :is(input, textarea, select, [role="combobox"], [role="option"], .phoneInputPrefix),
@@ -218,5 +218,35 @@
 .appShell [data-ui="field"] > .fieldError,
 .fieldError { display: block; margin: 0; color: var(--danger); font-size: 13px; line-height: 18px; font-weight: 400; }
 .phoneInputShell { height: 44px; padding: 0 15px; border: 1px solid var(--black); }
+
+/* Profile-style fields share the same underline in read and edit modes. */
+.appShell [data-ui="field"][data-field-variant="inline"] { gap: 7px; }
+.appShell [data-ui="field"][data-field-variant="inline"] > :is(.label, span:first-child) { color: var(--muted); }
+.appShell [data-ui="field"][data-field-variant="inline"] > :is(input, .phoneInputShell) {
+  min-width: 0;
+  height: 29px;
+  padding: 0 0 4px;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  background: var(--white);
+}
+.appShell [data-ui="field"][data-field-variant="inline"] :is(input, .phoneInputPrefix, [role="combobox"] > span:first-child) {
+  color: var(--black);
+  font-size: 16px;
+  line-height: 24px;
+  font-weight: 400;
+}
+.appShell [data-ui="field"][data-field-variant="inline"] > div:has(> [role="combobox"]:not([aria-expanded="true"]):not([aria-invalid="true"])) {
+  border-color: transparent transparent var(--line);
+  background: var(--white);
+}
+.appShell [data-ui="field"][data-field-variant="inline"] > :is(input, .phoneInputShell):not(:disabled):not(.inputError):hover,
+.appShell [data-ui="field"][data-field-variant="inline"] > div:has(> [role="combobox"]:not(:disabled):not([aria-invalid="true"])):hover { background: var(--white); }
+.appShell [data-ui="field"][data-field-variant="inline"] > :is(input, .phoneInputShell):focus-within { border-bottom-color: var(--black); }
+.appShell [data-ui="field"][data-field-variant="inline"] > input:focus-visible,
+.appShell [data-ui="field"][data-field-variant="inline"] > .phoneInputShell:has(> input:focus-visible) { outline: none; }
+.appShell [data-ui="field"][data-field-variant="inline"] > input:read-only { cursor: text; }
+.appShell [data-ui="field"][data-field-variant="inline"] > input:read-only::placeholder { color: var(--black); font-size: 16px; }
+.appShell [data-ui="field"][data-field-variant="inline"] .phoneInput:read-only::placeholder { color: var(--black); font-size: 16px; }
 .formError { padding: 16px; border: 0; background: color-mix(in srgb, var(--danger) 8%, var(--white)); color: var(--black); font-size: 15px; line-height: 21px; }
 :is(.input, .textarea, .select).inputError:focus { border-color: var(--danger); }

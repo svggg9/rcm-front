@@ -26,6 +26,7 @@ export function ProductImageViewer({
   onPrev,
   onNext,
 }: Props) {
+  const dialogRef = useRef<HTMLDialogElement | null>(null);
   const touchStartRef = useRef<{ x: number; y: number } | null>(null);
   const closeButtonRef = useRef<HTMLButtonElement | null>(null);
   const previousFocusRef = useRef<HTMLElement | null>(null);
@@ -34,10 +35,13 @@ export function ProductImageViewer({
     if (!open) return;
 
     previousFocusRef.current = document.activeElement as HTMLElement | null;
+    const dialog = dialogRef.current;
+    dialog?.showModal();
     closeButtonRef.current?.focus();
 
     return () => {
-      previousFocusRef.current?.focus();
+      dialog?.close();
+      previousFocusRef.current?.focus({ preventScroll: true });
     };
   }, [open]);
 
@@ -73,8 +77,10 @@ export function ProductImageViewer({
   }
 
   return (
-    <div
+    <dialog
+      ref={dialogRef}
       className={styles.viewer}
+      onCancel={(event) => { event.preventDefault(); onClose(); }}
       onClick={onClose}
       role="dialog"
       aria-modal="true"
@@ -165,6 +171,6 @@ export function ProductImageViewer({
           </div>
         </div>
       </div>
-    </div>
+    </dialog>
   );
 }

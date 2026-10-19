@@ -1,5 +1,6 @@
 "use client";
 
+import { Loader } from "../ui/Loader";
 import Image from "next/image";
 import Link from "next/link";
 import { Suspense, useEffect, useRef, useState } from "react";
@@ -11,11 +12,14 @@ import { useCurrentUser } from "../../lib/useCurrentUser";
 import { useFavorites } from "../../lib/FavoritesContext";
 import { useAuthModal } from "../AuthModal/useAuthModal";
 import { Icon } from "../ui/Icon";
+import { FavoritesNavigationIcon } from "../BuyerNavigation/FavoritesNavigationIcon";
 import { BuyerBottomNavigation } from "../BuyerNavigation/BuyerBottomNavigation";
 import { getBuyerMobilePage } from "../../lib/buyerNavigation";
 import { HeaderIcon } from "./HeaderIcon";
 import { isSellerCabinetPath, SellerHeader } from "./SellerHeader";
+import { Dialog } from "../ui/Dialog";
 import { Button } from "../ui/Button";
+import { TextInput } from "../ui/TextInput";
 import { loadMenuCategories, type MenuCategory } from "./menuCategories";
 
 type HeaderProps = {
@@ -47,6 +51,7 @@ function HeaderContent({ initialCategories }: HeaderProps) {
   const [categoriesError, setCategoriesError] = useState(false);
   const [categoryLoadAttempt, setCategoryLoadAttempt] = useState(0);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
 
   const { user, isAuthenticated: isAuth, loading: authLoading } = useCurrentUser();
   const cartCount = useCartCount();
@@ -172,34 +177,18 @@ function HeaderContent({ initialCategories }: HeaderProps) {
 
   return (
     <>
-    <header className={styles.header} ref={headerRef} data-buyer-mobile={buyerMobilePage ? "true" : undefined}>
-      {buyerMobilePage ? (
+    <header className={styles.header} ref={headerRef} data-buyer-mobile={buyerMobilePage ? "true" : undefined} data-buyer-account={pathname === "/account" ? "true" : undefined} data-buyer-home={pathname === "/" || pathname === "/catalog" ? "true" : undefined}>
+      {buyerMobilePage && pathname !== "/" && pathname !== "/catalog" && pathname !== "/account" ? (
         <div className={styles.buyerBar}>
           <div className={styles.buyerLeading}>
             {buyerMobilePage.backHref ? (
               <Link href={buyerMobilePage.backHref} className={styles.buyerUtility} aria-label="Назад">
                 <Icon name="chevron-left" size={22} />
               </Link>
-            ) : (
-              <button type="button" className={styles.buyerUtility} aria-label="Открыть меню" aria-expanded={menuOpen} aria-controls="site-menu" onClick={openMobileMenu}>
-                <HeaderIcon name="menu" />
-              </button>
-            )}
-          </div>
-          {buyerMobilePage.title ? (
-            <span className={styles.buyerTitle}>{buyerMobilePage.title}</span>
-          ) : (
-            <Link href="/" className={styles.buyerLogo} aria-label="рцмаркет — главная">
-              <Image src="/brand/wordmark-gold-white.svg" alt="рцмаркет" width={794} height={100} priority />
-            </Link>
-          )}
-          <div className={styles.buyerTrailing}>
-            {buyerMobilePage.backHref ? (
-              <button type="button" className={styles.buyerUtility} aria-label="Открыть меню" aria-expanded={menuOpen} aria-controls="site-menu" onClick={openMobileMenu}>
-                <HeaderIcon name="menu" />
-              </button>
             ) : null}
           </div>
+          <span className={styles.buyerTitle}>{buyerMobilePage.title || (pathname === "/catalog" ? "Каталог" : pathname === "/favorites" ? "Избранное" : pathname === "/cart" ? "Корзина" : pathname === "/account" ? "Профиль" : "")}</span>
+          <div className={styles.buyerTrailing} />
         </div>
       ) : null}
       {isSellerCabinetPath(pathname) ? <SellerHeader /> : (
@@ -217,8 +206,12 @@ function HeaderContent({ initialCategories }: HeaderProps) {
             <HeaderIcon name="menu" />
           </button>
 
+          <button type="button" className={styles.iconBtn} aria-label="Поиск" onClick={() => setSearchOpen(true)}>
+            <HeaderIcon name="search" />
+          </button>
+
           <Link href="/favorites" className={`${styles.iconBtn} ${favoritesCount > 0 ? styles.iconBtnActive : ""}`} aria-label={favoritesCount > 0 ? `Избранное: ${favoritesCount}` : "Избранное"}>
-            <HeaderIcon name="heart" />
+            <FavoritesNavigationIcon count={favoritesCount} />
           </Link>
           </div>
 
@@ -310,9 +303,7 @@ function HeaderContent({ initialCategories }: HeaderProps) {
               </button>
 
               {loadingCategories ? (
-                <div className={styles.mobileMenuMessage} role="status">
-                  Загрузка категорий
-                </div>
+                <div className={styles.mobileMenuMessage}><Loader inline label="Загрузка категорий" /></div>
               ) : categoriesError ? (
                 <div className={styles.mobileMenuMessage} role="status">
                   <p>Не удалось загрузить категории</p>
@@ -348,41 +339,47 @@ function HeaderContent({ initialCategories }: HeaderProps) {
                 </Link>
               ) : null}
 
-              <div className={styles.mobileAuthActions}>
-                {isAuth === true ? (
-                  <Link href="/account" className={`buttonPrimary ${styles.mobileAction}`} onClick={() => setMenuOpen(false)}>
-                    Личный кабинет
-                  </Link>
-                ) : (
-                  <>
-                    <Button variant="primary" className={styles.mobileAction} onClick={() => {
-                      setMenuOpen(false);
-                      openAuth("login", "/account");
-                    }}>
-                      Войти
-                    </Button>
-                    <Button className={styles.mobileAction} onClick={() => {
-                      setMenuOpen(false);
-                      openAuth("register", "/account");
-                    }}>
-                      Зарегистрироваться
-                    </Button>
-                  </>
-                )}
-              </div>
+              {isAuth === true ? (
+                <Link href="/account" className={styles.mobileProfileLink} onClick={() => setMenuOpen(false)}>
+                  <HeaderIcon name="user" /><span>Профиль</span>
+                </Link>
+              ) : (
+                <button type="button" className={styles.mobileProfileLink} disabled={authLoading} onClick={() => {
+                  setMenuOpen(false);
+                  openAuth("login", "/account");
+                }}>
+                  <HeaderIcon name="user" /><span>Профиль</span>
+                </button>
+              )}
             </div>
           </div>
         </dialog>
       ) : null}
     </header>
-    {buyerMobilePage?.tab ? (
+    {buyerMobilePage && !pathname.startsWith("/checkout") && !searchParams.get("orderId") ? (
       <BuyerBottomNavigation
         activeTab={buyerMobilePage.tab}
         cartCount={cartCount}
         favoritesCount={favoritesCount}
-        isAuthenticated={isAuth === true}
-        onSignIn={() => openAuth("login", "/account")}
+        menuOpen={menuOpen}
+        onMenu={openMobileMenu}
+        onSearch={() => setSearchOpen(true)}
       />
+    ) : null}
+    {searchOpen ? (
+      <Dialog title="Поиск" onClose={() => setSearchOpen(false)}
+        actions={<Button type="submit" form="buyer-search-form">Найти</Button>}>
+        <form id="buyer-search-form" role="search" onSubmit={event => {
+          event.preventDefault();
+          const q = String(new FormData(event.currentTarget).get("q") ?? "").trim();
+          if (!q) return;
+          setSearchOpen(false);
+          router.push(`/catalog?${new URLSearchParams({ q }).toString()}`);
+        }}>
+          <TextInput label="Название или артикул" type="search" name="q" required maxLength={120}
+            defaultValue={activeSearch} autoFocus />
+        </form>
+      </Dialog>
     ) : null}
     </>
   );

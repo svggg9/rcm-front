@@ -1,98 +1,25 @@
-﻿"use client";
-
+"use client";
 import Link from "next/link";
-import { CabinetSidebar } from "../../components/ui/CabinetSidebar";
-import { Button } from "../../components/ui/Button";
+import type { MouseEvent } from "react";
 import styles from "./AccountSidebar.module.css";
-
-type AccountTab =
-  "home" | "orders" | "returns" | "favorites" | "brands" | "info";
-
-type Props = {
-  currentTab: AccountTab;
-  ordersCount: number;
-  showSellerCabinet?: boolean;
-  userName?: string;
-  onNavigate?: (href: string) => void;
-  onLogout: () => void;
-};
-
-export function AccountSidebar({
-  currentTab,
-  ordersCount,
-  showSellerCabinet = false,
-  userName,
-  onNavigate,
-  onLogout,
-}: Props) {
-  return (
-    <CabinetSidebar
-      ariaLabel="Меню аккаунта"
-      subtitle="Личный кабинет"
-      title={userName}
-      titleIcon="user"
-      mobileInline
-      onNavigate={onNavigate}
-      footer={
-        <div className={styles.actions}>
-          {showSellerCabinet ? (
-            <Link
-              href="/seller/home"
-              className={`buttonSecondary ${styles.action}`}
-              prefetch={false}
-              onClick={(event) => {
-                if (onNavigate && !event.metaKey && !event.ctrlKey && !event.shiftKey && !event.altKey) {
-                  event.preventDefault();
-                  onNavigate("/seller");
-                }
-              }}
-            >
-              Кабинет продавца
-            </Link>
-          ) : null}
-          <Button
-            type="button"
-            variant="secondary"
-            className={styles.action}
-            onClick={onLogout}
-          >
-            Выйти
-          </Button>
-        </div>
-      }
-      items={[
-        {
-          href: "/account",
-          label: "Главная",
-          icon: "user",
-          active: currentTab === "home",
-        },
-        {
-          href: "/account?tab=orders",
-          label: "Заказы и возвраты",
-          icon: "shopping-bag",
-          active: currentTab === "orders" || currentTab === "returns",
-          count: ordersCount,
-        },
-        {
-          href: "/account?tab=favorites",
-          label: "Избранное",
-          icon: "heart",
-          active: currentTab === "favorites",
-        },
-        {
-          href: "/account?tab=brands",
-          label: "Мои бренды",
-          icon: "heart",
-          active: currentTab === "brands",
-        },
-        {
-          href: "/account?tab=info",
-          label: "Информация",
-          icon: "info",
-          active: currentTab === "info",
-        },
-      ]}
-    />
-  );
+export type AccountTab = "home" | "profile" | "orders" | "returns" | "favorites" | "brands" | "info";
+export const accountTabTitles: Record<AccountTab, string> = { home: "Профиль", profile: "Личные данные", orders: "Заказы", returns: "Возвраты", favorites: "Избранное", brands: "Мои бренды", info: "Помощь" };
+export function AccountSidebar({ currentTab, showSellerCabinet = false, onNavigate, onLogout }: {
+  currentTab: AccountTab; ordersCount?: number; showSellerCabinet?: boolean; onNavigate?: (href: string) => void; onLogout: () => void;
+}) {
+  const items = (["profile","orders","returns","favorites","brands"] as const).map(tab=>({tab,label:accountTabTitles[tab]}));
+  function click(event: MouseEvent<HTMLAnchorElement>, href: string) {
+    if (onNavigate && !event.metaKey && !event.ctrlKey && !event.shiftKey && !event.altKey) { event.preventDefault(); onNavigate(href); }
+  }
+  return <aside className={`${styles.sidebar} ${currentTab === "home" ? styles.root : ""}`}>
+    <h1 className={styles.heading}>Профиль</h1>
+    <nav aria-label="Меню аккаунта" className={styles.menu}>
+      {items.map(({tab,label})=><Link key={tab} href={`/account?tab=${tab}`} className={styles.item} aria-current={currentTab === tab || currentTab === "home" && tab === "profile" ? "page" : undefined} onClick={event=>click(event,`/account?tab=${tab}`)}><span>{label}</span><span aria-hidden="true">↗</span></Link>)}
+    </nav>
+    <div className={styles.secondary}>
+      <Link href="/account?tab=info" onClick={event=>click(event,"/account?tab=info")}>Помощь и контакты</Link>
+      {showSellerCabinet ? <Link href="/seller/home" prefetch={false}>Кабинет продавца ↗</Link> : null}
+      <button type="button" onClick={onLogout}>Выйти</button>
+    </div>
+  </aside>;
 }

@@ -2,13 +2,16 @@
 
 import { useEffect, useId, useRef, useState, type KeyboardEvent } from "react";
 import { Ellipsis } from "lucide-react";
+import Link from "next/link";
 import { Button } from "../../components/ui/Button";
+import { Banner } from "../../components/ui/Banner";
 import { Dialog } from "../../components/ui/Dialog";
 import { Icon } from "../../components/ui/Icon";
 import type { SellerProductListItem } from "../types";
 import {
-  formatSelectedProducts, productActionBlockedReason, productActionLabels, type ProductAction,
+  formatSelectedProducts, getProductActionSelection, productActionBlockedReason, productActionLabels, type ProductAction,
 } from "../lib/sellerProductActions";
+import { ProductFailureGroups } from "./ProductFailureGroups";
 import styles from "./SellerProductsTab.module.css";
 
 type ActionItem = { action: ProductAction; reason?: string | null };
@@ -60,7 +63,7 @@ export function ProductActionsMenu({
     const height = element.offsetHeight;
     element.style.left = `${Math.max(8, Math.min(rect.right - width, window.innerWidth - width - 8))}px`;
     element.style.top = `${Math.max(8, rect.bottom + height + 8 < window.innerHeight ? rect.bottom + 8 : rect.top - height - 8)}px`;
-    element.querySelector<HTMLButtonElement>("button")?.focus({ preventScroll: true });
+    element.querySelector<HTMLElement>('[role="menuitem"]')?.focus({ preventScroll: true });
   }
 
   function navigate(event: KeyboardEvent<HTMLDivElement>) {
@@ -68,8 +71,8 @@ export function ProductActionsMenu({
     if (event.key === "Tab") { close(); return; }
     if (!["ArrowDown", "ArrowUp", "Home", "End"].includes(event.key)) return;
     event.preventDefault();
-    const buttons = [...event.currentTarget.querySelectorAll<HTMLButtonElement>("button")];
-    const index = buttons.indexOf(document.activeElement as HTMLButtonElement);
+    const buttons = [...event.currentTarget.querySelectorAll<HTMLElement>('[role="menuitem"]')];
+    const index = buttons.indexOf(document.activeElement as HTMLElement);
     const next = event.key === "Home" ? 0 : event.key === "End" ? buttons.length - 1
       : (index + (event.key === "ArrowDown" ? 1 : -1) + buttons.length) % buttons.length;
     buttons[next]?.focus();
@@ -94,6 +97,8 @@ export function ProductActionsMenu({
         <span>{productActionLabels[action]}</span>
         {reason ? <small>{reason}</small> : null}
       </button>)}
+      {items.some(({ reason }) => /заблокирован|поддержк/i.test(reason ?? "")) ?
+        <Link href="/contacts" role="menuitem" onClick={close}>Поддержка</Link> : null}
     </div>
   </>;
 }
@@ -115,6 +120,7 @@ export function ProductSelectionBar({ products, busy, onAction, onSelectAll, onC
   return <section className={styles.selectionBar} aria-label="Действия с выбранными товарами">
     <div className={styles.selectionSummary}>
       <strong aria-live="polite">{formatSelectedProducts(products.length)}</strong>
+      {products.some(product => product.status !== "ACTIVE") ? <small className={styles.selectionHint}>В подборку — только активные товары</small> : products.length > 12 ? <small className={styles.selectionHint}>В подборку — до 12 товаров</small> : null}
       <button type="button" className={styles.selectAllLink} onClick={onSelectAll} disabled={busy || allSelected}>
         {allSelected ? "Все показанные выбраны" : "Выбрать все показанные"}
       </button>
@@ -122,7 +128,8 @@ export function ProductSelectionBar({ products, busy, onAction, onSelectAll, onC
     <div className={styles.selectionActions}>
       <Button variant="secondary" disabled={busy || products.some(product => product.status !== "ACTIVE") || products.length > 12}
         title={products.some(product => product.status !== "ACTIVE") ? "Выберите только активные товары" : products.length > 12 ? "В подборке может быть не более 12 товаров" : undefined}
-        onClick={onAddToCollection}>Добавить в подборку</Button>
+        onClick={onAddToCollection}>В подборку</Button>
+      {primary === "publish" && !reason("publish") ? <Button variant="primary" disabled={busy} onClick={() => onAction("publish")}>На модерацию</Button> : null}
       {primary === "draft" ? <Button variant="tertiary" disabled={busy || !!reason("draft")} onClick={() => onAction("draft")}>{productActionLabels.draft}</Button> : null}
       {primary !== "draft" ? <Button variant="tertiary" disabled={busy || !!reason("archive")} title={reason("archive") || undefined}
         onClick={() => onAction("archive")}>В архив</Button> : null}
@@ -146,13 +153,12 @@ export function ProductActionDialog({ action, products, busy, completed, onConfi
   onConfirm: () => void;
   onClose: () => void;
 }) {
-  const allowed = products.filter(product => !productActionBlockedReason(action, product.status));
-  const blocked = products.filter(product => productActionBlockedReason(action, product.status));
+  const { allowed, blocked } = getProductActionSelection(action, products);
   const explanation: Record<ProductAction, string> = {
     publish: "Карточки пройдут проверку перед публикацией. Если обязательных данных не хватает, покажем, какие товары нужно исправить",
     archive: "Товары исчезнут с витрины. Карточки сохранятся в архиве, существующие заказы не изменятся",
     draft: "Товары вернутся в черновики. Чтобы снова появились на витрине, отправьте их на модерацию",
-    delete: "Товары будут удалены из вашего списка. Вернуть их самостоятельно не получится. Если планируете продавать их позже, используйте архив",
+    delete: "Товары исчезнут с витрины и из вашего списка. Заказы и история сохранятся. Самостоятельное восстановление недоступно. Если планируете продавать их позже, используйте архив",
   };
   return <Dialog title={`${productActionLabels[action]}?`} busy={busy} onClose={onClose} actions={<>
     <Button variant="secondary" disabled={busy} onClick={onClose}>Отмена</Button>
@@ -166,12 +172,9 @@ export function ProductActionDialog({ action, products, busy, completed, onConfi
       {allowed.slice(0, 5).map(product => <li key={product.id}>{product.title.trim() || "Без названия"}</li>)}
       {allowed.length > 5 ? <li>И ещё {allowed.length - 5}</li> : null}
     </ul> : null}
-    {blocked.length ? <div className="alertDanger">
-      <strong>Не будут обработаны</strong>
-      <ul className={styles.confirmList}>{blocked.map(product => <li key={product.id}>
-        {product.title.trim() || "Без названия"}: {productActionBlockedReason(action, product.status)}
-      </li>)}</ul>
-    </div> : null}
-    {busy ? <p role="status" aria-live="polite">Обработано {completed} из {products.length}</p> : null}
+    {blocked.length ? <Banner tone="warning" title="Не будут обработаны">
+      <ProductFailureGroups failures={blocked} disabled={busy} onNavigate={onClose} />
+    </Banner> : null}
+    {busy ? <p role="status" aria-live="polite">Обработано {completed} из {allowed.length}</p> : null}
   </Dialog>;
 }

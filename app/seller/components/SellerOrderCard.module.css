@@ -593,3 +593,30 @@
 .tableRow.compact .productsCell { grid-column: 3; grid-row: 1; border: 0; }
 .tableRow.compact button.expandIcon { grid-column: 6; grid-row: 1; border: 1px solid var(--black); background: var(--white); height: 32px; align-self: center; }
 .tableRow.compact button.expandIcon:hover { background: var(--black); color: var(--white); border-color: var(--black); }
+
+/* Seller work queue only: buyer cards and overview stay unchanged. */
+.worklist { border: 0; }
+.worklist + .worklist { border-top: 1px solid var(--line); }
+.worklistSummary { display: grid; grid-template-columns: var(--order-columns); align-items: center; gap: 20px; padding: 20px 16px; min-width: 0; }
+.identity { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.identity strong { font-size: 15px; font-weight: 500; overflow-wrap: anywhere; }
+.identity > span { color: var(--muted); font-size: 12px; line-height: 18px; }
+.worklistProducts { min-width: 0; }
+.worklistProducts > section { padding: 0; }
+.worklistStatus { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; min-width: 0; }
+.worklistAmount { min-width: 0; font-size: 15px; font-weight: 500; line-height: 22px; text-align: right; overflow-wrap: anywhere; }
+.worklistAction { display: inline-flex; align-items: center; justify-content: flex-end; gap: 8px; min-height: 44px; padding: 8px 12px; color: var(--black); font-size: 14px; font-weight: 500; text-decoration: none; }
+.worklistAction svg { flex-shrink: 0; }
+.shipmentAction { background: var(--black); color: var(--white); justify-content: center; }
+@container (max-width: 960px) {
+  .worklistSummary { grid-template-columns: minmax(0, 1fr) auto; gap: 16px; padding: 20px 0; }
+  .worklistStatus { grid-column: 2; grid-row: 1; align-items: flex-end; }
+  .worklistProducts { grid-column: 1 / -1; grid-row: 2; }
+  .worklistAmount { grid-column: 1; grid-row: 3; text-align: left; }
+  .worklistAction { grid-column: 2; grid-row: 3; }
+}
+@container (max-width: 360px) {
+  .worklistSummary { column-gap: 8px; }
+  .worklistStatus { max-width: 155px; }
+  .worklistStatus > * { max-width: 100%; }
+}

@@ -1,5 +1,7 @@
-import { useId, useState } from "react";
-
+import { useId } from "react";
+import { useFieldValidation } from "../../../../../lib/useFieldValidation";
+import { NumericInput } from "../../../../../components/ui/NumericInput";
+import { INTEGER_RULES, WEIGHT_RULES } from "../../../../../lib/numericInput";
 import styles from "../ProductEditPage.module.css";
 
 type Props = {
@@ -10,59 +12,18 @@ type Props = {
   onChange: (value: number | "") => void;
 };
 
-export function NumberField({
-  label,
-  value,
-  invalid = false,
-  decimal = false,
-  onChange,
-}: Props) {
-  invalid = invalid || Number.isNaN(value) || (value !== "" && value <= 0);
+export function NumberField({ label, value, invalid = false, decimal = false, onChange }: Props) {
+  const validation = useFieldValidation({ value }, values => values.value === "" || !Number.isFinite(values.value) || values.value <= 0 ? { value: "Укажите значение больше нуля" } : {});
+  const externalInvalid = invalid;
+  invalid = invalid || !!validation.errors.value;
   const errorId = useId();
-  const [inputState, setInputState] = useState({
-    value,
-    displayValue: value === "" ? "" : String(value),
-  });
-
-  let displayValue = inputState.displayValue;
-
-  if (!Object.is(inputState.value, value)) {
-    displayValue = value === "" ? "" : String(value);
-    setInputState({ value, displayValue });
-  }
-
-  return (
-    <label className={styles.field} data-ui="field">
-      <span className={styles.required}>{label}</span>
-
-      <input
-        type="text"
-        aria-invalid={invalid ? "true" : undefined}
-        aria-required="true"
-        aria-describedby={invalid ? errorId : undefined}
-        inputMode={decimal ? "decimal" : "numeric"}
-        pattern={decimal ? "[0-9]*[.,]?[0-9]*" : "[0-9]*"}
-        value={displayValue}
-        onChange={(event) => {
-          const nextValue = event.target.value;
-
-          if (nextValue.trim() === "") {
-            setInputState({ value: "", displayValue: nextValue });
-            onChange("");
-            return;
-          }
-
-          const normalized = nextValue.replace(/\s/g, "").replace(",", ".");
-          const parsedValue = (decimal ? /^\d+(?:\.\d*)?$/ : /^\d+$/).test(normalized) ? Number(normalized) : NaN;
-
-          setInputState({ value: parsedValue, displayValue: nextValue });
-          onChange(parsedValue);
-        }}
-        className={`${styles.input} ${
-          invalid ? "inputError" : ""
-        } ${value === "" ? styles.requiredEmpty : ""}`}
-      />
-      {invalid ? <span className="fieldError" id={errorId}>Укажите значение больше нуля</span> : null}
-    </label>
-  );
+  return <label className={styles.field} data-ui="field">
+    <span className={styles.required}>{label}</span>
+    <NumericInput {...(decimal ? WEIGHT_RULES : { ...INTEGER_RULES, min: 1 })}
+      value={value === "" ? null : value} onBlur={() => validation.touch("value")}
+      onValueChange={next => { if (externalInvalid) validation.touch("value"); onChange(next ?? ""); }}
+      aria-invalid={invalid || undefined} aria-required="true" aria-describedby={invalid ? errorId : undefined}
+      className={[styles.input, invalid ? "inputError" : "", value === "" ? styles.requiredEmpty : ""].join(" ")} />
+    {invalid ? <span className="fieldError" id={errorId}>Укажите значение больше нуля</span> : null}
+  </label>;
 }

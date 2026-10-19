@@ -20,9 +20,7 @@ export default async function AccountPage({ searchParams: rawSearchParams }: Pro
   const initialOrderId = searchParams?.orderId ?? null;
   const parsedOrderId = initialOrderId ? Number(initialOrderId) : NaN;
   const shouldLoadOrders =
-    !searchParams?.tab ||
-    searchParams.tab === "home" ||
-    searchParams.tab === "orders";
+    searchParams?.tab === "orders";
   const shouldLoadOrder =
     searchParams?.tab === "orders" && Number.isFinite(parsedOrderId);
 
@@ -44,7 +42,8 @@ export default async function AccountPage({ searchParams: rawSearchParams }: Pro
   ]);
 
   if (!session || !initialMe) {
-    redirect("/auth/login?next=/account");
+    const next = shouldLoadOrder ? `/account?tab=orders&orderId=${parsedOrderId}` : "/account";
+    redirect(`/auth/login?next=${encodeURIComponent(next)}`);
   }
 
   return (

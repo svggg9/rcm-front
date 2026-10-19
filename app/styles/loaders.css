@@ -26,6 +26,20 @@
   height: 18px;
 }
 
+.loaderInline {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  vertical-align: middle;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .loaderMark span { animation: none; }
+}
+
 .loaderMark span {
   width: 4px;
   height: 18px;

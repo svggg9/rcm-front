@@ -1,5 +1,6 @@
 "use client";
 
+import { Button } from "../ui/Button";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
 
@@ -100,31 +101,31 @@ export function CatalogResults({
     <section className={styles.results} aria-label="Товары">
       {products.length > 0 ? (
         <ul className={styles.grid}>
-          {products.map((product) => <ProductTile key={product.id} product={product} />)}
+          {products.map((product) => <ProductTile key={product.id} product={product} compact />)}
         </ul>
       ) : (
         <EmptyState
           icon={hasError ? "alert" : "search"}
           tone={hasError ? "danger" : "default"}
           title={hasError ? "Не удалось загрузить каталог" : "Ничего не найдено"}
-          text={hasError ? "Попробуйте обновить страницу немного позже." : "Попробуйте изменить категорию или фильтры."}
+          text={hasError ? "Попробуйте обновить страницу немного позже" : "Попробуйте изменить категорию или фильтры"}
         />
       )}
       {addedProducts.length > 0 ? (
         <ul className={`${styles.grid} ${styles.mobileAddedProducts}`} aria-label="Дополнительно загруженные товары">
-          {addedProducts.map((product) => <ProductTile key={product.id} product={product} />)}
+          {addedProducts.map((product) => <ProductTile key={product.id} product={product} compact />)}
         </ul>
       ) : null}
       {products.length > 0 && (totalPages > 1 || addedProducts.length > 0) ? (
         <div className={styles.mobileLoadMore}>
           {query.page > 1 ? <Link href={firstPageHref} className={styles.loadMoreStart}>К началу списка</Link> : null}
           <p className={styles.loadMoreStatus} role="status">
-            {loadError ? "Не удалось загрузить товары. Попробуйте ещё раз." : `Показано ${products.length + addedProducts.length} из ${totalProducts}`}
+            {loadError ? "Не удалось загрузить товары. Попробуйте ещё раз" : `Показано ${products.length + addedProducts.length} из ${totalProducts}`}
           </p>
           {hasMore ? (
-            <button type="button" className={styles.loadMoreButton} disabled={loading} aria-busy={loading} onClick={loadMore}>
-              {loading ? "Загружаем…" : loadError ? "Повторить" : "Показать ещё"}
-            </button>
+            <Button type="button" className={styles.loadMoreButton} loading={loading} onClick={loadMore}>
+              {loadError ? "Повторить" : "Показать ещё"}
+            </Button>
           ) : null}
         </div>
       ) : null}

@@ -119,7 +119,7 @@ function DictionaryPanel({
         <EmptyState
           icon="list"
           title="Справочник пуст"
-          text="Добавьте первое значение через форму выше."
+          text="Добавьте первое значение через форму выше"
         />
       ) : kind === "categories" ? (
         <CategoryDictionary

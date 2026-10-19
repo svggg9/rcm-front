@@ -1,8 +1,10 @@
 "use client";
 
+import { Loader } from "../../components/ui/Loader";
 import { useCallback, useEffect, useState } from "react";
 import { API_URL, apiFetch } from "../../lib/api";
 import { Button } from "../../components/ui/Button";
+import { toast } from "../../components/ui/toast";
 import styles from "./AdminPaymentReview.module.css";
 
 type Review = {
@@ -18,7 +20,6 @@ export function AdminPaymentReview({ onOpenOrder }: { onOpenOrder: (id: number) 
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [message, setMessage] = useState("");
   const [revision, setRevision] = useState(0);
   const reload = useCallback(() => setRevision(value => value + 1), []);
 
@@ -46,13 +47,14 @@ export function AdminPaymentReview({ onOpenOrder }: { onOpenOrder: (id: number) 
   async function act(row: Review, recover = false) {
     if (busy) return;
     if (recover && !window.confirm("Найти платёж в банке? Найденная неоплаченная попытка будет отменена. Если оплата прошла, она будет учтена в заказах.")) return;
-    setBusy(true); setError(""); setMessage("");
+    setBusy(true); setError("");
+    const toastId = `admin-payment-review-${row.orderGroupId}`;
     try {
       const path = encodeURIComponent(row.orderGroupId) + "/" + (recover ? "recover-initialization" : "reconcile");
       const response = await apiFetch(API_URL + "/api/admin/payment-review/" + path, { method: "POST" });
       if (!response.ok) throw new Error(recover ? "Не удалось однозначно восстановить платёж. Резерв сохранён; нужна сверка с банком" : "Не удалось проверить оплату");
-      setMessage("Сверка выполнена. Неразрешённые случаи остаются в очереди"); reload();
-    } catch (reason) { setError(reason instanceof Error ? reason.message : "Ошибка операции"); }
+      toast.success("Сверка выполнена. Неразрешённые случаи остаются в очереди", { id: toastId, description: undefined, action: undefined }); reload();
+    } catch (reason) { toast.error(reason instanceof Error ? reason.message : "Ошибка операции", { id: toastId }); }
     finally { setBusy(false); }
   }
 
@@ -60,8 +62,7 @@ export function AdminPaymentReview({ onOpenOrder }: { onOpenOrder: (id: number) 
     <div className={styles.heading}><h2>Оплаты, требующие проверки{data ? ` · ${data.totalElements}` : ""}</h2>
       <Button variant="ghost" onClick={reload} disabled={loading || busy}>Обновить</Button></div>
     {error && <p className={styles.error} role="alert">{error}</p>}
-    {message && <p role="status">{message}</p>}
-    {loading && <p role="status">Загрузка…</p>}
+    {loading && <Loader label="Загрузка данных" />}
     {data?.content.map(row => <div className={styles.row} key={row.orderId}>
       <button className={styles.order} onClick={() => onOpenOrder(row.orderId)}>Заказ №{row.orderId}</button>
       <span>{row.latePaymentId ? "Поздняя оплата" : row.initializationPending ? "Не подтверждено создание платежа" : !row.paymentDueAt ? "Проверка старого резерва" : "Сверка оплаты или отмены"}</span>

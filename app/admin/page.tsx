@@ -43,6 +43,7 @@ function normalizeTab(raw?: string): AdminTab {
   if (raw === "sellers") return "sellers";
   if (raw === "dictionaries") return "dictionaries";
   if (raw === "finance") return "finance";
+  if (raw === "contact-messages" || raw === "contacts") return "contact-messages";
   if (raw === "delivery") return "delivery";
   return "products";
 }
@@ -154,6 +155,10 @@ async function getInitialData(params: Awaited<Props["searchParams"]>) {
   };
 
   try {
+    if (tab === "contact-messages") {
+      initialData.tabDataLoaded = true;
+    }
+
     if (tab === "storefront") {
       initialData.storefrontHome = await getAdminStorefrontHomeServer();
       initialData.tabDataLoaded = initialData.storefrontHome !== null;

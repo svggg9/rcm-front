@@ -3,9 +3,11 @@ import { useId, useRef, useState } from "react";
 import Image from "next/image";
 import { ConfirmActionButton } from "../../../../../components/ui/ConfirmActionButton";
 import { Button } from "../../../../../components/ui/Button";
+import { Banner } from "../../../../../components/ui/Banner";
 import { DesignSystemIcon } from "../../../../../components/ui/DesignSystemIcon";
 import type { ProductImageItem } from "../types";
 import styles from "./ProductPhotoEditor.module.css";
+import { hasLowResolutionPhoto, PRODUCT_PHOTO_RESOLUTION_ERROR } from "../../../../../lib/productPhotos";
 
 export type ProductPhotoEditorProps = {
   images: ProductImageItem[];
@@ -37,7 +39,9 @@ export function ProductPhotoEditor({ images, colorways = [], invalidImages = fal
   const selected = images.find(image => image.id === selectedId) ?? images[0];
   const selectedIndex = selected ? images.indexOf(selected) : -1;
   const locked = mediaDisabled || uploading || reordering;
-  const invalid = invalidImages && (images.length < 3 || images.length > 10);
+  const lowResolutionCount = images.filter(hasLowResolutionPhoto).length;
+  const invalidCount = images.length < 3 || images.length > 10;
+  const invalid = invalidImages && (invalidCount || lowResolutionCount > 0);
 
   function uploadFiles(files: File[]) {
     setDragActive(false);
@@ -49,19 +53,23 @@ export function ProductPhotoEditor({ images, colorways = [], invalidImages = fal
   }
 
   return <section id="product-photos" className={styles.editor} aria-label="Фото товара" aria-busy={uploading || undefined}>
-    <div className={styles.heading}><h2>Фото товара</h2><span>{images.length ? `${selectedIndex + 1} / ${images.length}` : ""}</span></div>
+    <h2 className={styles.title}>Фото товара</h2>
+    <p className={styles.hint}>Главное фото — товар целиком на белом фоне, остальные — в свободном формате</p>
     <div className={`${styles.media} ${dragActive ? styles.dragActive : ""} ${invalid ? styles.invalid : ""}`}
       data-validation-error={invalid || undefined}
       onDragOver={event => { event.preventDefault(); if (!locked && event.dataTransfer.types.includes("Files")) setDragActive(true); }}
       onDragLeave={() => setDragActive(false)}
       onDrop={event => { event.preventDefault(); uploadFiles(Array.from(event.dataTransfer.files)); }}>
-      {selected ? <Image src={selected.url} alt={`Фото товара ${selectedIndex + 1}`} fill sizes="(max-width: 1100px) 90vw, 420px" className={styles.image} />
-        : <div className={styles.empty}>
+      {selected ? <Image src={selected.url} alt={`Фото товара ${selectedIndex + 1}`} fill sizes="(max-width: 700px) 100vw, 560px" className={styles.image} />
+        : <button type="button" className={styles.empty} disabled={locked}
+          aria-label="Добавить фотографии товара"
+          onClick={() => fileInputRef.current?.click()}>
           <DesignSystemIcon name="package" role="empty" />
-          <p>Добавьте фотографии товара</p>
+          <span className={styles.emptyTitle}>Добавьте фотографии товара</span>
           <span>Перетащите сюда или выберите файлы</span>
-        </div>}
+        </button>}
       {selectedIndex === 0 && <span className={styles.mainBadge}>Главное фото</span>}
+      {images.length > 0 && <span className={styles.photoCount} aria-label={`Фото ${selectedIndex + 1} из ${images.length}`}>{selectedIndex + 1} / {images.length}</span>}
     </div>
     {images.length > 0 && <>
       <div className={styles.thumbnails} aria-label="Фотографии товара">
@@ -89,16 +97,31 @@ export function ProductPhotoEditor({ images, colorways = [], invalidImages = fal
           aria-label="Удалить выбранное фото" onConfirm={() => onDeleteImage(selected.id)}><DesignSystemIcon name="trash" role="utility" /></ConfirmActionButton>
       </div>
     </>}
-    {colorways.length > 0 && <label>Фото для цвета<select value={uploadColorwayId ?? ""} disabled={locked} onChange={event=>setUploadColorwayId(event.target.value ? Number(event.target.value) : null)}><option value="">Общие фотографии</option>{colorways.map(c=><option key={c.id} value={c.id}>{c.color || "Без цвета"}</option>)}</select></label>}
-    <p className={styles.hint}>Для нового цвета сначала сохраните товар, затем выберите цвет при загрузке фото.</p>
+    {colorways.length > 0 && <>
+      <label>Фото для цвета (необязательно)<select value={uploadColorwayId ?? ""} disabled={locked} onChange={event=>setUploadColorwayId(event.target.value ? Number(event.target.value) : null)}><option value="">Общие фотографии</option>{colorways.map(c=><option key={c.id} value={c.id}>{c.color || "Без цвета"}</option>)}</select></label>
+      <p className={styles.hint}>Нового цвета нет в списке? Сохраните товар, чтобы он появился</p>
+    </>}
     <input ref={fileInputRef} hidden type="file" accept="image/jpeg,image/png,image/webp" multiple disabled={locked} aria-label="Файлы фотографий товара"
       onChange={event => { uploadFiles(Array.from(event.target.files ?? [])); event.target.value = ""; }} />
     <Button type="button" variant="secondary" className={styles.uploadButton} loading={uploading} disabled={locked}
       aria-describedby={invalid ? `${fieldId}-images-error` : undefined} onClick={() => fileInputRef.current?.click()}>Выбрать фото</Button>
-    {invalid && <span className="fieldError" id={`${fieldId}-images-error`}>Для модерации нужно от 3 до 10 фото товара</span>}
-    <p className={styles.hint}>{mediaDisabled && mediaDisabledHint ? mediaDisabledHint : "Для модерации — 3–10 фото. JPEG, PNG или WebP, до 8 МБ каждое, от 1200 px по короткой стороне. Главное фото — товар целиком на белом фоне; мягкая тень допустима. Дополнительные — любые фотографии товара, в том числе с фотосессий, на модели или в интерьере."}</p>
-    <p className={styles.hint}>Загрузка, удаление и порядок фотографий сохраняются сразу. Закрытие без сохранения их не отменяет.</p>
-    <p className={styles.hint}>Без рекламных надписей, водяных знаков, рамок и коллажей. Используйте фотографии, на которые у вас есть права. Первое фото — главное; порядок можно изменить перетаскиванием миниатюр. Черновик можно сохранить без полного комплекта фото.</p>
+    <p className={styles.hint}>JPEG, PNG или WebP · до 8 МБ на файл · до 10 фото</p>
+    <p className={styles.hint}>Для модерации — 3–10 фото от 1200 px по короткой стороне</p>
+    {mediaDisabled && mediaDisabledHint && <Banner tone="warning" role="status">{mediaDisabledHint}</Banner>}
+    {invalid && <span className="fieldError" id={`${fieldId}-images-error`}>{invalidCount ? "Для модерации нужно от 3 до 10 фото товара" : PRODUCT_PHOTO_RESOLUTION_ERROR}</span>}
+    {lowResolutionCount > 0 && <Banner tone="warning" role="status">Фото с низким разрешением: {lowResolutionCount}. В черновике они сохранены, но при увеличении могут выглядеть нечётко. Перед модерацией замените их на фото от 1200 px по короткой стороне.</Banner>}
+    {selected?.width != null && selected.height != null && <p className={styles.hint}>Размер выбранного фото: {selected.width} × {selected.height} px</p>}
+    <details className={styles.photoRequirements}>
+      <summary>Требования к фотографиям</summary>
+      <ul>
+        <li>Черновик можно сохранить без фото или с фото меньшего размера. Перед модерацией добавьте полный комплект нужного разрешения.</li>
+        <li>На главном фото — белый фон, товар по центру с небольшими полями. Мягкая естественная тень допустима.</li>
+        <li>Фото должны точно передавать цвет и комплектацию товара, без рекламных надписей, водяных знаков, рамок и коллажей.</li>
+        <li>Используйте фотографии, на которые у вас есть права.</li>
+      </ul>
+      {images.length > 1 && <p>Первое фото — главное. Перетащите миниатюры или используйте стрелки, чтобы изменить порядок.</p>}
+    </details>
+    <p className={styles.hint}>Фото сохраняются сразу и не отменяются при закрытии редактора</p>
     {uploading && <div className={styles.progress} role="status" aria-label={`Загружено фото: ${uploadProgress.done} из ${uploadProgress.total}`}>
       <span style={{width: `${uploadProgress.total ? uploadProgress.done / uploadProgress.total * 100 : 0}%`}} />
     </div>}

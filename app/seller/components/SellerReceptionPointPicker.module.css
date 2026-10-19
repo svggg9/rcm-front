@@ -1,0 +1,30 @@
+.content { display: grid; gap: 16px; min-width: 0; font-weight: 400; }
+.intro { font-size: 14px; line-height: 21px; }
+.layout { min-width: 0; display: grid; grid-template-columns: minmax(0, 1fr) 300px; height: min(52dvh, 480px); min-height: 300px; border: 1px solid var(--line); }
+.map { min-width: 0; min-height: 0; background: var(--soft); }
+.map :global(.pickup-point-map) { width: 100%; height: 100%; position: relative; }
+.map :global(.pickup-point-map__canvas) { width: 100%; height: 100%; }
+.panel { display: flex; flex-direction: column; min-width: 0; min-height: 0; gap: 12px; border-left: 1px solid var(--line); padding: 12px; }
+.list { min-height: 0; overflow-y: auto; }
+.point { display: grid; gap: 5px; width: 100%; padding: 12px 10px; text-align: left; border: 1px solid transparent; border-bottom-color: var(--line); cursor: pointer; }
+.point strong { font-size: 13px; line-height: 19px; font-weight: 400; overflow-wrap: anywhere; }
+.point span { font-size: 12px; line-height: 18px; color: var(--muted); overflow-wrap: anywhere; }
+.point:hover { background: var(--surface-hover); }
+.point:focus-visible { outline: 1px solid var(--black); outline-offset: -2px; }
+.point.selected { border-color: var(--gold-deep); background: color-mix(in srgb, var(--gold-deep) 7%, var(--white)); }
+.details { display: grid; gap: 6px; padding: 12px 14px; border-left: 2px solid var(--gold-deep); background: var(--soft); font-size: 13px; line-height: 20px; overflow-wrap: anywhere; }
+.details strong { font-weight: 500; }
+.hint { color: var(--muted); font-size: 12px; line-height: 18px; }
+.empty { padding: 16px 8px; font-size: 14px; line-height: 21px; }
+.loader { display: grid; place-items: center; }
+.loader > * { grid-area: 1 / 1; }
+.loader > :global(.loaderInline) { z-index: 1; }
+.skeleton { height: 300px; width: 100%; }
+@media (max-width: 700px) {
+  .layout { height: auto; min-height: 0; grid-template-columns: minmax(0, 1fr); }
+  .map { height: 240px; }
+  .skeleton { height: 240px; }
+  .panel { border-left: 0; border-top: 1px solid var(--line); }
+  .list { max-height: 180px; }
+  .intro { font-size: 13px; }
+}

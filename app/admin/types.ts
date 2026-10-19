@@ -5,6 +5,7 @@ export type AdminTab =
   | "sellers"
   | "dictionaries"
   | "finance"
+  | "contact-messages"
   | "delivery";
 
 export type AdminStorefrontHome = {
@@ -73,6 +74,7 @@ export type AdminProductVariant = {
 };
 
 export type AdminProduct = {
+  revisionSourceId?: number | null;
   id: number;
   title: string;
   description: string;

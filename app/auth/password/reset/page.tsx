@@ -4,8 +4,11 @@ import { Suspense, useEffect, useRef, useState, type FormEvent } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 
+import { useFieldValidation } from "../../../lib/useFieldValidation";
+import { scrollToFirstValidationError } from "../../../lib/formValidation";
 import { Button } from "../../../components/ui/Button";
 import { TextInput } from "../../../components/ui/TextInput";
+import { OneTimeCodeInput } from "../../../components/ui/OneTimeCodeInput";
 import { clearStoredUserCartId } from "../../../lib/auth";
 import { emitAuthChanged } from "../../../lib/authEvents";
 import { emitCartChanged } from "../../../lib/cartEvents";
@@ -28,6 +31,7 @@ function PasswordResetContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const loginHref = "/auth/login?next=" + encodeURIComponent(safeReturnPath(searchParams.get("next")));
+  const formRef = useRef<HTMLFormElement>(null);
   const headingRef = useRef<HTMLHeadingElement>(null);
   const pendingRequest = useRef<AbortController | null>(null);
 
@@ -44,6 +48,18 @@ function PasswordResetContent() {
   const [resendAt, setResendAt] = useState(0);
   const [now, setNow] = useState(0);
 
+  const validation = useFieldValidation({ email, code, newPassword, confirmPassword }, values => {
+    const errors: Partial<Record<"email" | "code" | "newPassword" | "confirmPassword", string>> = {};
+    if (!isValidResetEmail(values.email)) errors.email = "Введите корректный адрес электронной почты";
+    if (step === "code") {
+      if (!/^[0-9]{6}$/.test(values.code.trim())) errors.code = "Введите 6 цифр из последнего письма";
+      const passwordError = passwordResetValidationError(values.newPassword, values.newPassword);
+      if (passwordError) errors.newPassword = passwordError;
+      if (!values.confirmPassword) errors.confirmPassword = "Повторите новый пароль";
+      else if (values.newPassword !== values.confirmPassword) errors.confirmPassword = "Пароли не совпадают";
+    }
+    return errors;
+  });
   const submitting = pendingAction !== null;
   const secondsUntilResend = cooldownEmail === normalizeResetEmail(email)
     ? Math.max(0, Math.ceil((resendAt - now) / 1000))
@@ -67,7 +83,8 @@ function PasswordResetContent() {
 
   function validateEmail(): boolean {
     if (isValidResetEmail(email)) return true;
-    setError("Введите корректный адрес электронной почты.");
+    validation.touch("email");
+    scrollToFirstValidationError({ root: formRef.current });
     return false;
   }
 
@@ -124,19 +141,15 @@ function PasswordResetContent() {
     setConfirmPassword("");
     setError(null);
     setNotice("");
+    validation.reset();
     setStep("email");
   }
 
   async function handleComplete(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (pendingRequest.current) return;
-    if (!/^[0-9]{6}$/.test(code.trim())) {
-      setError("Введите 6 цифр из последнего письма.");
-      return;
-    }
-    const passwordError = passwordResetValidationError(newPassword, confirmPassword);
-    if (passwordError) {
-      setError(passwordError);
+    if (Object.keys(validation.validate()).length) {
+      scrollToFirstValidationError({ root: formRef.current });
       return;
     }
 
@@ -180,15 +193,15 @@ function PasswordResetContent() {
           <h1 id="password-reset-title" ref={headingRef} tabIndex={-1}>
             {step === "success" ? "Пароль изменён" : "Восстановление пароля"}
           </h1>
-          {step === "email" ? <p>Укажите почту, которую вы подтвердили при регистрации.</p> : null}
-          {step === "code" ? <p>Введите код из письма и придумайте новый пароль.</p> : null}
+          {step === "email" ? <p>Укажите почту, которую вы подтвердили при регистрации</p> : null}
+          {step === "code" ? <p>Введите код из письма и придумайте новый пароль</p> : null}
         </header>
 
         {error ? <p className={styles.error} role="alert">{error}</p> : null}
 
         {step === "email" ? (
           <form
-            className={styles.form}
+            className={styles.form} ref={formRef} noValidate
             onSubmit={(event) => {
               event.preventDefault();
               void sendCode();
@@ -199,13 +212,14 @@ function PasswordResetContent() {
               fieldVariant="boxed"
               type="email"
               name="email"
-              value={email}
+              value={email} error={validation.errors.email} onBlur={() => validation.touch("email")}
               onChange={(event) => {
-                setEmail(event.target.value);
+                setEmail(event.target.value); validation.changed("email");
                 setError(null);
               }}
               autoComplete="email"
               autoCapitalize="none"
+              enterKeyHint="next"
               spellCheck={false}
               maxLength={254}
               disabled={submitting}
@@ -223,7 +237,7 @@ function PasswordResetContent() {
             <Button type="button" variant="secondary" onClick={handleExistingCode} disabled={submitting}>
               У меня уже есть код
             </Button>
-            <p className={styles.hint}>Если вы регистрировались через Яндекс, можно вернуться ко входу и использовать Яндекс ID.</p>
+            <p className={styles.hint}>Если вы регистрировались через Яндекс, можно вернуться ко входу и использовать Яндекс ID</p>
           </form>
         ) : null}
 
@@ -234,21 +248,15 @@ function PasswordResetContent() {
               <button type="button" className={styles.textButton} onClick={changeEmail} disabled={submitting}>Изменить почту</button>
             </div>
             {notice ? <p className={styles.notice} role="status">{notice}</p> : null}
-            <form className={styles.form} onSubmit={handleComplete}>
-              <TextInput
+            <form className={styles.form} ref={formRef} noValidate onSubmit={handleComplete}>
+              <OneTimeCodeInput
                 label="Код из письма"
-                fieldVariant="boxed"
-                name="code"
-                type="text"
-                inputMode="numeric"
-                autoComplete="one-time-code"
-                spellCheck={false}
-                pattern="[0-9]{6}"
-                maxLength={8}
                 value={code}
-                onChange={(event) => setCode(event.target.value.trim())}
+                error={validation.errors.code}
                 disabled={submitting}
-                required
+                enterKeyHint="next"
+                onBlur={() => validation.touch("code")}
+                onChange={value => { setCode(value); validation.changed("code"); setError(null); }}
                 hint={"Код действует " + Math.ceil(ttlSeconds / 60) + " минут. После 5 неверных попыток потребуется новый код."}
               />
               <TextInput
@@ -256,9 +264,10 @@ function PasswordResetContent() {
                 fieldVariant="boxed"
                 type="password"
                 name="newPassword"
-                value={newPassword}
-                onChange={(event) => setNewPassword(event.target.value)}
+                value={newPassword} error={validation.errors.newPassword} onBlur={() => validation.touch("newPassword")}
+                onChange={(event) => { setNewPassword(event.target.value); validation.changed("newPassword"); setError(null); }}
                 autoComplete="new-password"
+                enterKeyHint="next"
                 minLength={8}
                 disabled={submitting}
                 required
@@ -269,9 +278,10 @@ function PasswordResetContent() {
                 fieldVariant="boxed"
                 type="password"
                 name="confirmPassword"
-                value={confirmPassword}
-                onChange={(event) => setConfirmPassword(event.target.value)}
+                value={confirmPassword} error={validation.errors.confirmPassword} onBlur={() => validation.touch("confirmPassword")}
+                onChange={(event) => { setConfirmPassword(event.target.value); validation.changed("confirmPassword"); setError(null); }}
                 autoComplete="new-password"
+                enterKeyHint="done"
                 minLength={8}
                 disabled={submitting}
                 required

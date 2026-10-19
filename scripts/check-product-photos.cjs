@@ -5,7 +5,7 @@ const ts = require("typescript");
 require.extensions[".ts"] = (module, filename) => module._compile(ts.transpileModule(fs.readFileSync(filename, "utf8"), {
   compilerOptions: { target: ts.ScriptTarget.ES2020, module: ts.ModuleKind.CommonJS },
 }).outputText, filename);
-const { validProductPhotoCount, validateProductPhotoUpload } = require("../app/lib/productPhotos.ts");
+const { validProductPhotoCount, validateProductPhotoUpload, hasLowResolutionPhoto } = require("../app/lib/productPhotos.ts");
 let dimensions = [1200, 1600];
 let broken = false;
 let allocated = 0;
@@ -28,7 +28,13 @@ const file = (type = "image/jpeg", size = 100) => ({ type, size });
   await assert.rejects(validateProductPhotoUpload([file("image/png", 0)], 0), /8 МБ/);
   await assert.rejects(validateProductPhotoUpload([file("image/png", 8 * 1024 * 1024 + 1)], 0), /8 МБ/);
   dimensions = [1600, 1199];
-  await assert.rejects(validateProductPhotoUpload([file()], 0), /1200/);
+  await validateProductPhotoUpload([file()], 0);
+  dimensions = [600, 866];
+  await validateProductPhotoUpload([file("image/webp")], 0);
+  assert.equal(hasLowResolutionPhoto({width: 600, height: 866}), true);
+  assert.equal(hasLowResolutionPhoto({width: 1600, height: 1199}), true);
+  assert.equal(hasLowResolutionPhoto({width: 1200, height: 1600}), false);
+  assert.equal(hasLowResolutionPhoto({width: null, height: null}), false);
   broken = true;
   await assert.rejects(validateProductPhotoUpload([file()], 0), /прочитать/);
   assert.equal(allocated, revoked, "Object URLs must be released on success and error");

@@ -1,21 +1,21 @@
-import { useId, useRef } from "react";
+import { useId } from "react";
 
 import { FormCombobox } from "../../../../../components/ui/FormCombobox";
 import { FormSelect } from "../../../../../components/ui/FormSelect";
-import { Icon } from "../../../../../components/ui/Icon";
 import { ProductDescriptionEditor } from "./ProductDescriptionEditor";
-import { SectionHeader } from "./SectionHeader";
 import type { Audience, Option } from "../types";
 import styles from "../ProductEditPage.module.css";
 
 type ValidationErrors = {
   title?: boolean;
   description?: boolean;
+  composition?: boolean;
   categoryId?: boolean;
   brandId?: boolean;
 };
 
 type Props = {
+  activeSection?: "general" | "description";
   validationErrors: ValidationErrors;
 
   title: string;
@@ -38,6 +38,7 @@ type Props = {
 };
 
 export function ProductGeneralCard({
+  activeSection,
   validationErrors,
   title,
   description,
@@ -54,56 +55,12 @@ export function ProductGeneralCard({
   onAudienceChange,
 }: Props) {
   const fieldId = useId();
-  const compositionRef = useRef<HTMLTextAreaElement | null>(null);
-
-  function applyTextList(
-    value: string,
-    onChange: (value: string) => void,
-    textarea: HTMLTextAreaElement | null,
-    marker: "•" | "—",
-  ) {
-    const start = textarea?.selectionStart ?? value.length;
-    const end = textarea?.selectionEnd ?? value.length;
-    const before = value.slice(0, start);
-    const selected = value.slice(start, end);
-    const after = value.slice(end);
-    let nextText = "";
-
-    if (selected.trim()) {
-      nextText = selected
-        .split(/\r?\n/)
-        .map((line) => {
-          const cleanLine = line
-            .replace(/^\s*(?:[•*—-]\s+|\d+[.)]\s+)/, "")
-            .trim();
-
-          if (!cleanLine) return "";
-
-          return `${marker} ${cleanLine}`;
-        })
-        .join("\n");
-    } else {
-      const needsLeadingBreak = before.length > 0 && !before.endsWith("\n");
-      nextText = `${needsLeadingBreak ? "\n" : ""}${marker} `;
-    }
-
-    onChange(before + nextText + after);
-
-    window.requestAnimationFrame(() => {
-      const nextCaret = start + nextText.length;
-      textarea?.focus();
-      textarea?.setSelectionRange(nextCaret, nextCaret);
-    });
-  }
-
   return (
     <>
-      <section id="product-general" className={styles.card}>
-        <SectionHeader
-          title="Основные данные"
-          hint="Название, категория и аудитория товара."
-        />
-
+      <section id="product-general" className={`${styles.card} ${styles.stepPanel}`} aria-label="Основные данные товара"
+        hidden={activeSection !== undefined && activeSection !== "general"} role={activeSection ? "tabpanel" : undefined}
+        aria-labelledby={activeSection ? "editor-tab-general" : undefined} data-editor-step="general" tabIndex={-1}>
+        {!activeSection && <h2 className={styles.sectionTitle}>Основные данные</h2>}
         <div className={styles.formGrid}>
           <label className={styles.fieldFull} data-ui="field">
             <span className={styles.required}>Название</span>
@@ -133,11 +90,11 @@ export function ProductGeneralCard({
             required
             invalid={validationErrors.categoryId}
             errorId={`${fieldId}-category-error`}
-            placeholder="Ввести свою категорию"
+            suggestionsOnInput
             showModerationBadge={false}
             options={categories.map((category) => ({
               value: category.id,
-              label: category.name,
+              label: category.name.split(/\s+\/\s+/).at(-1)?.trim() || category.name,
             }))}
             onChange={(value, customValue) => {
               onCategoryIdChange(value);
@@ -166,16 +123,14 @@ export function ProductGeneralCard({
         </div>
       </section>
 
-      <section id="product-description" className={styles.card}>
-        <SectionHeader
-          title="Описание"
-          hint="Материалы, особенности и комплектация товара."
-        />
-
+      <section id="product-description" className={`${styles.card} ${styles.stepPanel}`} aria-label="Описание товара"
+        hidden={activeSection !== undefined && activeSection !== "description"} role={activeSection ? "tabpanel" : undefined}
+        aria-labelledby={activeSection ? "editor-tab-description" : undefined} data-editor-step="description" tabIndex={-1}>
+        {!activeSection && <h2 className={styles.sectionTitle}>Описание</h2>}
         <div className={styles.formGrid}>
           <div className={styles.fieldFull} data-ui="field">
             <span className={styles.required}>Описание товара</span>
-            <ProductDescriptionEditor value={description} onChange={onDescriptionChange} invalid={validationErrors.description} errorId={validationErrors.description ? `${fieldId}-description-error` : undefined} />
+            <ProductDescriptionEditor value={description} onChange={onDescriptionChange} fieldName="Описание товара" invalid={validationErrors.description} errorId={validationErrors.description ? `${fieldId}-description-error` : undefined} />
 
             {validationErrors.description ? (
               <span className="fieldError" id={`${fieldId}-description-error`}>
@@ -184,45 +139,17 @@ export function ProductGeneralCard({
             ) : null}
           </div>
 
-          <label className={styles.fieldFull} data-ui="field">
-            <span>Состав</span>
-
-            <div className={`${styles.descriptionFieldShell} ${styles.compositionFieldShell}`}>
-              <div className={styles.descriptionToolbar} aria-label="Инструменты состава">
-                <button
-                  type="button"
-                  className={styles.descriptionToolButton}
-                  title="Маркированный список"
-                  aria-label="Маркированный список"
-                  onClick={() =>
-                    applyTextList(composition, onCompositionChange, compositionRef.current, "•")
-                  }
-                >
-                  <Icon name="list" size={20} strokeWidth={1.5} />
-                </button>
-                <button
-                  type="button"
-                  className={styles.descriptionToolButton}
-                  title="Список с длинным тире"
-                  aria-label="Список с длинным тире"
-                  onClick={() =>
-                    applyTextList(composition, onCompositionChange, compositionRef.current, "—")
-                  }
-                >
-                  <Icon name="minus" size={20} strokeWidth={1.5} />
-                </button>
-              </div>
-
-              <textarea
-                ref={compositionRef}
-                value={composition}
-                onChange={(event) => onCompositionChange(event.target.value)}
-                className={styles.textarea}
-                rows={3}
-                maxLength={1000}
-              />
-            </div>
-          </label>
+          <div className={styles.fieldFull} data-ui="field">
+            <span>Состав (необязательно)</span>
+            <ProductDescriptionEditor
+              value={composition}
+              onChange={onCompositionChange}
+              fieldName="Состав"
+              maxLength={1000}
+              emptyText="Состав пока пустой"
+              invalid={validationErrors.composition}
+            />
+          </div>
         </div>
       </section>
     </>

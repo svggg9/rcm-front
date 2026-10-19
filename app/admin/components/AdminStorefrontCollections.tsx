@@ -1,10 +1,13 @@
 "use client";
+import { Loader } from "../../components/ui/Loader";
+import { Button } from "../../components/ui/Button";
 import { ConfirmActionButton } from "../../components/ui/ConfirmActionButton";
 
 import Image from "next/image";
 import { memo, useEffect, useRef, useState } from "react";
 
 import { Icon } from "../../components/ui/Icon";
+import { toast } from "../../components/ui/toast";
 import {
   createAdminStorefrontCollection,
   deleteAdminStorefrontCollection,
@@ -136,6 +139,7 @@ export const AdminStorefrontCollections = memo(function AdminStorefrontCollectio
     if (!draft || !draft.title.trim() || draft.productIds.length === 0 || saving) return;
     setSaving(true);
     setError(null);
+    const toastId = `admin-storefront-collection-${draft.id ?? "new"}`;
     try {
       const payload = {
         title: draft.title.trim(),
@@ -153,14 +157,16 @@ export const AdminStorefrontCollections = memo(function AdminStorefrontCollectio
       );
       onMutationComplete?.();
       setDraft(null);
+      toast.success(draft.id ? "Подборка сохранена" : "Подборка создана", { id: toastId, description: undefined, action: undefined });
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : "Не удалось сохранить подборку");
+      toast.error(reason instanceof Error ? reason.message : "Не удалось сохранить подборку", { id: toastId });
     } finally {
       setSaving(false);
     }
   }
 
   async function toggleActive(collection: AdminStorefrontCollection) {
+    const toastId = `admin-storefront-collection-${collection.id}`;
     try {
       const updated = await updateAdminStorefrontCollection(collection.id, {
         title: collection.title,
@@ -172,19 +178,22 @@ export const AdminStorefrontCollections = memo(function AdminStorefrontCollectio
         current.map((item) => (item.id === updated.id ? updated : item))
       );
       onMutationComplete?.();
+      toast.success(updated.active ? "Подборка показана на главной" : "Подборка скрыта с главной", { id: toastId, description: undefined, action: undefined });
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : "Не удалось изменить статус");
+      toast.error(reason instanceof Error ? reason.message : "Не удалось изменить статус", { id: toastId });
     }
   }
 
   async function remove(id: number) {
+    const toastId = `admin-storefront-collection-${id}`;
     try {
       await deleteAdminStorefrontCollection(id);
       setCollections((current) => current.filter((item) => item.id !== id));
       onMutationComplete?.();
       if (draft?.id === id) setDraft(null);
+      toast.success("Подборка удалена", { id: toastId, description: undefined, action: undefined });
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : "Не удалось удалить подборку");
+      toast.error(reason instanceof Error ? reason.message : "Не удалось удалить подборку", { id: toastId });
     }
   }
 
@@ -198,9 +207,10 @@ export const AdminStorefrontCollections = memo(function AdminStorefrontCollectio
     try {
       setCollections(await reorderAdminStorefrontCollections(next.map((item) => item.id)));
       onMutationComplete?.();
+      toast.success("Порядок подборок сохранён", { id: "admin-storefront-collections-order", description: undefined, action: undefined });
     } catch (reason) {
       setCollections(collections);
-      setError(reason instanceof Error ? reason.message : "Не удалось изменить порядок");
+      toast.error(reason instanceof Error ? reason.message : "Не удалось изменить порядок", { id: "admin-storefront-collections-order" });
     }
   }
 
@@ -286,7 +296,7 @@ export const AdminStorefrontCollections = memo(function AdminStorefrontCollectio
           </form>
           <div className={styles.productGrid} aria-busy={productsLoading}>
             {productsLoading && products.length === 0 ? (
-              <p>Загружаем товары…</p>
+              <Loader label="Загрузка товаров" />
             ) : products.map((product) => {
               const selected = draft.productIds.includes(product.id);
               return (
@@ -311,26 +321,27 @@ export const AdminStorefrontCollections = memo(function AdminStorefrontCollectio
             })}
           </div>
           {productsHasMore ? (
-            <button
+            <Button
               type="button"
               className={styles.loadMore}
-              disabled={productsLoading}
+              loading={productsLoading}
               onClick={() =>
                 void loadProducts(productsPage + 1, appliedProductQuery, false)
               }
             >
-              {productsLoading ? "Загрузка…" : "Показать ещё"}
-            </button>
+              Показать ещё
+            </Button>
           ) : null}
           <div className={styles.editorActions}>
             <button type="button" onClick={() => setDraft(null)}>Отмена</button>
-            <button
+            <Button
               type="button"
+              loading={saving}
               disabled={!draft.title.trim() || draft.productIds.length === 0 || saving}
               onClick={() => void save()}
             >
-              {saving ? "Сохранение…" : "Сохранить подборку"}
-            </button>
+              Сохранить подборку
+            </Button>
           </div>
         </div>
       ) : null}

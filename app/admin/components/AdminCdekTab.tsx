@@ -1,5 +1,7 @@
 "use client";
 
+import { Loader } from "../../components/ui/Loader";
+import { Button } from "../../components/ui/Button";
 import { useState } from "react";
 
 import { EmptyState } from "../../components/ui/EmptyState";
@@ -111,7 +113,7 @@ function RawPayloadDetails({ eventId }: { eventId: number }) {
       }}
     >
       <summary>Показать JSON</summary>
-      {loading ? <span>Загрузка…</span> : null}
+      {loading ? <Loader inline label="Загрузка события СДЭК" /> : null}
       {error ? <span className={styles.cdekError}>{error}</span> : null}
       {formattedPayload !== null ? (
         <pre className={styles.rawPayload}>{formattedPayload}</pre>
@@ -138,14 +140,15 @@ export function AdminCdekTab({
           </div>
         </div>
 
-        <button
+        <Button
+          variant="ghost"
           type="button"
           className={`${styles.refreshBtn} textButton`}
           onClick={onRefresh}
-          disabled={refreshing}
+          loading={refreshing}
         >
-          {refreshing ? "Обновляем..." : "Обновить"}
-        </button>
+          Обновить
+        </Button>
       </div>
 
       {events.length === 0 ? (
@@ -153,7 +156,7 @@ export function AdminCdekTab({
           icon="truck"
           tone="gold"
           title="Событий пока нет"
-          text="Когда СДЭК пришлет webhook, он появится здесь вместе со статусом обработки."
+          text="Когда СДЭК пришлет webhook, он появится здесь вместе со статусом обработки"
         />
       ) : (
         <>

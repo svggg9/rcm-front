@@ -10,6 +10,8 @@ export type Me = {
   username: string;
   email: string | null;
   displayName: string | null;
+  firstName?: string | null;
+  lastName?: string | null;
   role: string;
   sellerApproved: boolean;
   phone: string | null;
@@ -40,7 +42,6 @@ export type CheckoutPrefill = {
   floor: string;
   intercom: string;
   fittingMode: FittingMode;
-  comment: string;
 };
 
 function normalizeCountryCode(value?: string | null): CountryCode {
@@ -81,23 +82,20 @@ export function buildCheckoutPrefill(params: {
   const existingEmail = (existing.email ?? "").trim();
   const profileEmail = me?.email?.trim() ?? "";
   const existingFullName = (existing.fullName ?? "").trim();
-  const profileDisplayName = me?.displayName?.trim() ?? "";
+  const profileFullName = me && ("firstName" in me || "lastName" in me)
+    ? [me.firstName?.trim(), me.lastName?.trim()].filter(Boolean).join(" ")
+    : me?.displayName?.trim() ?? "";
 
   return {
-    email:
-      (isEmailLike(existingEmail) ? existingEmail : "") ||
-      (isEmailLike(profileEmail) ? profileEmail : "") ||
-      "",
+    email: me
+      ? (isEmailLike(profileEmail) ? profileEmail : "")
+      : (isEmailLike(existingEmail) ? existingEmail : ""),
 
-    fullName:
-      (!isPhoneLike(existingFullName) ? existingFullName : "") ||
-      (!isPhoneLike(profileDisplayName) ? profileDisplayName : "") ||
-      "",
+    fullName: me
+      ? (!isPhoneLike(profileFullName) ? profileFullName : "")
+      : (!isPhoneLike(existingFullName) ? existingFullName : ""),
 
-    phone:
-      (existing.phone ?? "").trim() ||
-      me?.phone?.trim() ||
-      "",
+    phone: me ? me.phone?.trim() ?? "" : (existing.phone ?? "").trim(),
 
     deliveryMethod: "PICKUP",
 
@@ -133,7 +131,5 @@ export function buildCheckoutPrefill(params: {
 
     fittingMode: "WITHOUT_FITTING",
 
-    comment:
-      (existing.comment ?? "").trim() || "",
   };
 }

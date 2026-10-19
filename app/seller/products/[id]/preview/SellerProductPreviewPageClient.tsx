@@ -121,7 +121,7 @@ function mapSellerProductToPreviewProduct(product: SellerProduct): Product {
     brandSlug: null,
     category: product.category || "",
     audience: product.audience,
-    status: product.status,
+    status: product.status === "DELETED" ? undefined : product.status,
     images,
     colorways: (product.colorways ?? []).map((colorway) => ({
       id: colorway.id,

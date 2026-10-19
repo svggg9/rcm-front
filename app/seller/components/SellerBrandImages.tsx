@@ -19,6 +19,7 @@ import styles from "./SellerBrandTab.module.css";
 export function SellerBrandImages({ brandId, embedded = false }: { brandId: number; embedded?: boolean }) {
   const [images, setImages] = useState<SellerBrandImage[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadFailed, setLoadFailed] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [busyId, setBusyId] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -28,13 +29,17 @@ export function SellerBrandImages({ brandId, embedded = false }: { brandId: numb
   useEffect(() => {
     let alive = true;
     setLoading(true);
+    setLoadFailed(false);
     setError(null);
     void getSellerBrandImages(brandId)
       .then((data) => {
         if (alive) setImages(data);
       })
       .catch((error) => {
-        if (alive) setError(error instanceof Error ? error.message : "Не удалось загрузить фотографии");
+        if (alive) {
+          setLoadFailed(true);
+          setError(error instanceof Error ? error.message : "Не удалось загрузить фотографии");
+        }
       })
       .finally(() => {
         if (alive) setLoading(false);
@@ -93,28 +98,28 @@ export function SellerBrandImages({ brandId, embedded = false }: { brandId: numb
     }
   }
 
+  const uploadControl = (
+    <button
+      type="button"
+      className={`${styles.galleryEmpty}${images.length ? ` ${styles.galleryAdd}` : ""}`}
+      aria-label={uploading ? "Загрузка и обработка фото" : images.length ? "Добавить фото" : "Фотографий пока нет — добавить фото"}
+      aria-busy={uploading}
+      disabled={loading || uploading || busyId !== null}
+      onClick={() => inputRef.current?.click()}
+    >
+      {uploading ? <span className="buttonLoader" aria-hidden="true" /> : <DesignSystemIcon name="images" role="empty" />}
+      <strong className={uploading ? "visuallyHidden" : undefined}>{images.length ? "Добавить фото" : "Фотографий пока нет"}</strong>
+    </button>
+  );
+
   return (
     <section className={embedded ? styles.galleryEmbedded : styles.gallerySection}>
       <div className={styles.sectionHeadingRow}>
         <div className={styles.sectionHeading}>
           <div>
-            {embedded ? <h3>Фотографии бренда</h3> : <h2>Фотографии бренда</h2>}
-            <p>Показываются в галерее на витрине. Добавьте съёмки коллекций, детали или фотографии мастерской.</p>
-            <p>До 8 фотографий — JPEG или WebP, до 8 МБ каждая. Стрелками можно изменить порядок показа.</p>
+            <h2>Фотографии бренда</h2>
           </div>
         </div>
-        <Button
-          type="button"
-          variant="secondary"
-          className={styles.galleryAction}
-          disabled={loading || busyId !== null || images.length >= 8}
-          loading={uploading}
-          reserveLabelSpace
-          title={images.length >= 8 ? "Можно добавить не более 8 фотографий" : undefined}
-          onClick={() => inputRef.current?.click()}
-        >
-          Добавить фото
-        </Button>
         <input
           ref={inputRef}
           type="file"
@@ -123,6 +128,10 @@ export function SellerBrandImages({ brandId, embedded = false }: { brandId: numb
           onChange={(event) => void upload(event.target.files?.[0] ?? null)}
         />
       </div>
+
+      <p className={`${styles.galleryHint} ${styles.mediaMeta}`}>До 8 фото · JPEG или WebP · исходник до 8 МБ</p>
+      <p className={styles.galleryHint}>Размер файла уменьшается автоматически</p>
+      <p className={styles.galleryHint}>В блоке «О бренде»: 16:7 на компьютере, 4:5 на телефоне. Порядок меняется стрелками.</p>
 
       {error ? <div className={styles.error} role="alert"><span>{error}</span>
         <Button type="button" variant="ghost" disabled={loading || uploading || busyId !== null}
@@ -173,13 +182,9 @@ export function SellerBrandImages({ brandId, embedded = false }: { brandId: numb
               </div>
             </article>
           ))}
+          {images.length < 8 && !loadFailed ? uploadControl : null}
         </div>
-      ) : !error ? (
-        <div className={styles.galleryEmpty}>
-          <DesignSystemIcon name="grid" role="empty" />
-          <strong>Фотографий пока нет</strong>
-        </div>
-      ) : null}
+      ) : !loadFailed ? uploadControl : null}
     </section>
   );
 }

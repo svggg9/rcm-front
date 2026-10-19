@@ -15,6 +15,6 @@ export function SellerSectionPanel({ currentTab, children }: Props) {
 
   return <div className={framed ? styles.panel : styles.plain}>
     {framed ? <SellerSectionTabs currentTab={currentTab} /> : null}
-    <div className={framed ? styles.panelBody : styles.plainBody}>{children}</div>
+    <div className={framed ? styles.panelBody : styles.plainBody} data-seller-section-body>{children}</div>
   </div>;
 }

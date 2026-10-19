@@ -1,19 +1,24 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type RefObject } from "react";
 import { useRouter } from "next/navigation";
 
 import { apiFetch, API_URL } from "../lib/api";
+import { paymentConfirmationUrl } from "../lib/paymentRedirect";
+import { savePendingPaymentOrderId, saveBankReturnOrder, clearSucceededPendingPayment } from "./lib/pendingPayment";
 import { rememberUserCartId } from "../lib/auth";
 import { loadResolvedCart } from "../lib/cartAuthority";
 import { emitCartChanged } from "../lib/cartEvents";
+import { useFieldValidation } from "../lib/useFieldValidation";
 import { scrollToFirstValidationError } from "../lib/formValidation";
 
 import { CheckoutContactSection } from "./components/CheckoutContactSection";
 import { CheckoutDeliverySection } from "./components/CheckoutDeliverySection";
+import { CheckoutFlow } from "./components/CheckoutFlow";
+import { CheckoutActionError, readCheckoutError, readCheckoutFailure } from "./lib/checkoutErrors";
 import { CheckoutSummary } from "./components/CheckoutSummary";
 
-import { toast } from "sonner";
+import { toast } from "@/app/components/ui/toast";
 import { Loader } from "../components/ui/Loader";
 import { EmptyState } from "../components/ui/EmptyState";
 
@@ -44,39 +49,12 @@ import {
 
 import {
   buildCheckoutPrefill,
+  type CheckoutPrefill,
   type Me,
 } from "./lib/checkoutPrefill";
 
 import styles from "./Checkout.module.css";
 
-type ApiErrorResponse = {
-  message?: string;
-};
-
-async function readCheckoutError(
-  response: Response,
-  fallback: string
-): Promise<string> {
-  const text = await response.text().catch(() => "");
-
-  if (!text) {
-    return fallback;
-  }
-
-  try {
-    const data = JSON.parse(text) as ApiErrorResponse;
-
-    if (data.message === "order_amount_limit_exceeded") {
-      return "Сумма заказа превышает текущий лимит оплаты 50 000 ₽. Уберите часть товаров из корзины или оформите несколько заказов.";
-    }
-
-    return data.message || fallback;
-  } catch {
-    return text || fallback;
-  }
-}
-
-const PENDING_PAYMENT_ORDER_KEY = "checkout_pending_payment_order_v1";
 const DELIVERY_QUOTE_SAFETY_MARGIN_MS = 30_000;
 
 function shouldRefreshDeliveryQuote(expiresAt: string): boolean {
@@ -89,30 +67,6 @@ function isRetryableDeliveryQuoteConflict(status: number, message: string): bool
   return status === 409 && /delivery_quote_(expired|stale|invalid)/i.test(message);
 }
 
-function getPendingPaymentOrderKey(cartId: string): string {
-  return `${PENDING_PAYMENT_ORDER_KEY}:${cartId}`;
-}
-
-function loadPendingPaymentOrderId(cartId: string): number | null {
-  if (typeof window === "undefined" || !cartId) return null;
-
-  const raw = sessionStorage.getItem(getPendingPaymentOrderKey(cartId));
-  const id = raw ? Number(raw) : NaN;
-
-  return Number.isFinite(id) && id > 0 ? id : null;
-}
-
-function savePendingPaymentOrderId(cartId: string, orderId: number): void {
-  if (typeof window === "undefined" || !cartId) return;
-
-  sessionStorage.setItem(getPendingPaymentOrderKey(cartId), String(orderId));
-}
-
-function clearPendingPaymentOrderId(cartId: string): void {
-  if (typeof window === "undefined" || !cartId) return;
-
-  sessionStorage.removeItem(getPendingPaymentOrderKey(cartId));
-}
 function formatCityDisplayName(fullName: string): string {
   const cityName = fullName.split(",")[0]?.trim() ?? "";
 
@@ -133,28 +87,45 @@ async function loadCheckoutCartFallback(): Promise<CheckoutCartBootstrap> {
 type CheckoutPageProps = {
   initialMe: Me | null;
   initialCart: CheckoutCartBootstrap | null;
+  embedded?: boolean;
+  cartSnapshot?: CheckoutCartBootstrap;
+  cartUpdating?: boolean;
+  cartBlocked?: boolean;
+  cartMutationRef?: RefObject<boolean>;
+  onSubmitBusyChange?: (busy: boolean) => void;
 };
 
-function CheckoutPageContent({ initialMe, initialCart }: CheckoutPageProps) {
+function CheckoutPageContent({ initialMe, initialCart, embedded = false, cartSnapshot, cartUpdating = false,
+  cartBlocked = false, cartMutationRef, onSubmitBusyChange }: CheckoutPageProps) {
   const router = useRouter();
 
-  const [cartId, setCartId] = useState(initialCart?.cartId ?? "");
-  const [items, setItems] = useState<CartItem[]>(initialCart?.items ?? []);
+  const [embeddedBootstrapCart] = useState(cartSnapshot ?? null);
+  const [loadedCartId, setCartId] = useState(initialCart?.cartId ?? "");
+  const [loadedItems, setItems] = useState<CartItem[]>(initialCart?.items ?? []);
+  const cartId = cartSnapshot?.cartId ?? loadedCartId;
+  const items = cartSnapshot?.items ?? loadedItems;
 
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  // Only this checkout attempt can resume this order. Older orders belong to
+  // the account and must never replace the next cart's checkout.
+  const createdOrderRef = useRef<number | null>(null);
+  const [createdOrderId, setCreatedOrderId] = useState<number | null>(null);
+  const committedCartRef = useRef<string | null>(null);
+  const restoredOrderRef = useRef(false);
+  const [committedSubtotal, setCommittedSubtotal] = useState<number | null>(null);
+  const [resumePaymentAllowed, setResumePaymentAllowed] = useState(true);
+  const checkoutAttemptRef = useRef<CheckoutRequest | null>(null);
+  const [checkoutUnknown, setCheckoutUnknown] = useState(false);
 
   const [error, setError] = useState<string | null>(null);
-  const [contactErrors, setContactErrors] = useState<{
-    fullName?: string;
-    phone?: string;
-  }>({});
   const [deliveryErrors, setDeliveryErrors] = useState<{
     city?: string;
     pickupPoint?: string;
   }>({});
 
   const submitLockRef = useRef(false);
+  const leavingCheckoutRef = useRef(false);
   const checkoutMainRef = useRef<HTMLDivElement | null>(null);
   const defaultCitySelectedRef = useRef(false);
   const quoteRequestKeyRef = useRef("");
@@ -163,7 +134,7 @@ function CheckoutPageContent({ initialMe, initialCart }: CheckoutPageProps) {
   const quoteControllerRef = useRef<AbortController | null>(null);
   const searchCitiesRef = useRef<(query: string) => Promise<void>>(async () => {});
   const createDeliveryQuoteRef = useRef<
-    (options?: { silent?: boolean }) => Promise<SellerGroupDeliveryQuoteResponse | null>
+    () => Promise<SellerGroupDeliveryQuoteResponse | null>
   >(async () => null);
 
   useEffect(() => {
@@ -175,6 +146,8 @@ function CheckoutPageContent({ initialMe, initialCart }: CheckoutPageProps) {
   }, []);
 
   const [draftHydrated, setDraftHydrated] = useState(false);
+  const profileContactsRef = useRef<Pick<CheckoutPrefill, "email" | "fullName" | "phone"> | null>(null);
+  const hadCommittedRecipientRef = useRef(false);
 
   const checkoutSnapshotRef = useRef({
     email: "",
@@ -190,7 +163,6 @@ function CheckoutPageContent({ initialMe, initialCart }: CheckoutPageProps) {
     floor: "",
     intercom: "",
     fittingMode: "WITHOUT_FITTING" as FittingMode,
-    comment: "",
   });
 
   const [countryCode, setCountryCode] = useState<CountryCode>("RU");
@@ -203,6 +175,11 @@ function CheckoutPageContent({ initialMe, initialCart }: CheckoutPageProps) {
   const [email, setEmail] = useState("");
   const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState("");
+  const contactValidation = useFieldValidation({ fullName, phone }, values => ({
+    ...(!values.fullName.trim() ? { fullName: "Введите имя и фамилию" } : {}),
+    ...(!isValidPhone(values.phone) ? { phone: "Укажите корректный российский номер телефона" } : {}),
+  }));
+  const contactErrors = contactValidation.errors;
 
   const [deliveryMethod, setDeliveryMethod] =
     useState<DeliveryMethod>("PICKUP");
@@ -215,12 +192,15 @@ function CheckoutPageContent({ initialMe, initialCart }: CheckoutPageProps) {
   const [cityOptions, setCityOptions] = useState<DeliveryCityOption[]>([]);
   const [selectedCity, setSelectedCity] =
     useState<DeliveryCityOption | null>(null);
-  const [, setCityLoading] = useState(false);
+  const [cityLoading, setCityLoading] = useState(false);
   const [cityTouched, setCityTouched] = useState(false);
+  const [pickupError, setPickupError] = useState<string | null>(null);
+  const pickerSnapshot = useRef<{ city: DeliveryCityOption | null; query: string; options: DeliveryOption[]; addressId: string } | null>(null);
   const [pickupLoading, setPickupLoading] = useState(false);
   const [quoteLoading, setQuoteLoading] = useState(false);
   const [quotePending, setQuotePending] = useState(false);
   const [deliveryQuoteToken, setDeliveryQuoteToken] = useState("");
+  const [quotedCartFingerprint, setQuotedCartFingerprint] = useState("");
   const [checkoutToken, setCheckoutToken] = useState("");
   const [checkoutTokenExpiresAt, setCheckoutTokenExpiresAt] = useState("");
   const [deliveryOfferId, setDeliveryOfferId] = useState("");
@@ -238,7 +218,6 @@ function CheckoutPageContent({ initialMe, initialCart }: CheckoutPageProps) {
   const [deliveryAddress, setDeliveryAddress] =
     useState("");
 
-  const [comment, setComment] = useState("");
 
   const [paymentMethod, setPaymentMethod] =
     useState<PaymentMethod>("CARD");
@@ -263,7 +242,6 @@ function CheckoutPageContent({ initialMe, initialCart }: CheckoutPageProps) {
       floor,
       intercom,
       fittingMode,
-      comment,
     };
   }, [
     email,
@@ -279,20 +257,15 @@ function CheckoutPageContent({ initialMe, initialCart }: CheckoutPageProps) {
     floor,
     intercom,
     fittingMode,
-    comment,
   ]);
 
   useEffect(() => {
     const draft = loadCheckoutDraft();
 
     if (draft) {
-      setEmail(draft.email);
-      setFullName(draft.fullName);
-      setPhone(draft.phone);
       setDeliveryMethod(draft.deliveryMethod);
       setSelectedAddressId(draft.selectedAddressId);
       setDeliveryAddress(draft.deliveryAddress);
-      setComment(draft.comment);
       setPaymentMethod(draft.paymentMethod);
       setCountryCode(draft.countryCode);
       if (draft.selectedCityCode && draft.selectedCityName) {
@@ -318,29 +291,23 @@ function CheckoutPageContent({ initialMe, initialCart }: CheckoutPageProps) {
   useEffect(() => {
     if (!draftHydrated) return;
 
+    const committed = pickerSnapshot.current;
     saveCheckoutDraft({
-      email,
-      fullName,
-      phone,
       deliveryMethod,
-      selectedAddressId,
-      selectedPickupPointLabel: selectedPickupPoint?.label ?? "",
+      selectedAddressId: committed ? committed.addressId : selectedAddressId,
+      selectedPickupPointLabel: committed ? committed.options.find(point => point.id === committed.addressId)?.label ?? "" : selectedPickupPoint?.label ?? "",
       deliveryAddress,
       countryCode,
-      selectedCityCode: selectedCity?.code ?? null,
-      selectedCityName: selectedCity?.fullName ?? "",
+      selectedCityCode: committed ? committed.city?.code ?? null : selectedCity?.code ?? null,
+      selectedCityName: committed ? committed.city?.fullName ?? "" : selectedCity?.fullName ?? "",
       apartment,
       floor,
       intercom,
       fittingMode,
-      comment,
       paymentMethod,
     });
   }, [
     draftHydrated,
-    email,
-    fullName,
-    phone,
     deliveryMethod,
     selectedAddressId,
     selectedPickupPoint,
@@ -351,7 +318,6 @@ function CheckoutPageContent({ initialMe, initialCart }: CheckoutPageProps) {
     floor,
     intercom,
     fittingMode,
-    comment,
     paymentMethod,
   ]);
 
@@ -365,14 +331,14 @@ function CheckoutPageContent({ initialMe, initialCart }: CheckoutPageProps) {
 
         const profilePromise = initialMe
           ? Promise.resolve(initialMe)
-          : apiFetch(`${API_URL}/api/profile`)
+          : apiFetch(`${API_URL}/api/profile`, { cache: "no-store" })
               .then(async (response) =>
                 response.ok ? ((await response.json()) as Me) : null
               )
               .catch(() => null);
         const cartPromise = initialCart
           ? Promise.resolve(initialCart)
-          : loadCheckoutCartFallback();
+          : embeddedBootstrapCart ? Promise.resolve(embeddedBootstrapCart) : loadCheckoutCartFallback();
         const [resolvedMe, resolvedCart] = await Promise.all([
           profilePromise,
           cartPromise,
@@ -404,31 +370,19 @@ function CheckoutPageContent({ initialMe, initialCart }: CheckoutPageProps) {
             floor: existing.floor,
             intercom: existing.intercom,
             fittingMode: existing.fittingMode,
-            comment: existing.comment,
           },
         });
 
-        if (!existing.email.trim() && prefill.email) {
-          setEmail(prefill.email);
-        }
-
-        if (!existing.fullName.trim() && prefill.fullName) {
-          setFullName(prefill.fullName);
-        }
-
-        if (!existing.phone.trim() && prefill.phone) {
-          setPhone(prefill.phone);
-        }
+        setEmail(prefill.email);
+        setFullName(prefill.fullName);
+        setPhone(prefill.phone);
+        if (resolvedMe) profileContactsRef.current = prefill;
 
         if (
           !existing.deliveryAddress.trim() &&
           prefill.deliveryAddress
         ) {
           setDeliveryAddress(prefill.deliveryAddress);
-        }
-
-        if (!existing.comment.trim() && prefill.comment) {
-          setComment(prefill.comment);
         }
 
         setCountryCode(prefill.countryCode);
@@ -463,23 +417,58 @@ function CheckoutPageContent({ initialMe, initialCart }: CheckoutPageProps) {
         if (!resolvedCart.cartId) {
           const text = "";
 
-          throw new Error(
+          throw new CheckoutActionError(
             text || "Не удалось загрузить корзину"
           );
         }
 
+        if (resolvedCart.checkoutOrderId) {
+          const id = resolvedCart.checkoutOrderId;
+          createdOrderRef.current = id;
+          restoredOrderRef.current = true;
+          setCreatedOrderId(id);
+          committedCartRef.current = resolvedCart.items.map(item => `${item.variantId}:${item.quantity}:${item.price}`).sort().join("|");
+          const paymentResponse = await apiFetch(`${API_URL}/api/payments/order/${id}/group-last`);
+          if (paymentResponse.ok) {
+            const payment = await paymentResponse.json() as { status: string; externalId?: string };
+            if (payment.status === "PENDING" && payment.externalId) {
+              const sync = await apiFetch(`${API_URL}/api/payments/${encodeURIComponent(payment.externalId)}/sync`, { method: "POST" });
+              if (!sync.ok) throw new CheckoutActionError("Не удалось проверить оплату — обновите страницу или откройте заказ");
+            }
+          } else if (paymentResponse.status !== 404) throw new CheckoutActionError("Не удалось проверить оплату — обновите страницу или откройте заказ");
+          const response = await apiFetch(`${API_URL}/api/orders/${id}/group`);
+          if (!response.ok) throw new CheckoutActionError("Не удалось загрузить заказ — обновите страницу");
+          const group = await response.json() as OrderResponse[];
+          if (!Array.isArray(group) || !group.length || !group.some(order => order.id === id)) throw new CheckoutActionError("Не удалось подтвердить заказ");
+          if (!active) return;
+          if (group.every(order => order.paymentStatus === "PAID" || order.paymentStatus === "REFUNDED")) {
+            clearSucceededPendingPayment(resolvedCart.cartId, id, "SUCCEEDED");
+            try { clearCheckoutDraft(); } catch { /* Browser storage cannot block a confirmed payment. */ }
+            emitCartChanged();
+            router.replace(`/account?tab=orders&orderId=${id}`);
+            return;
+          }
+          const order = group[0];
+          setCommittedSubtotal(group.reduce((sum, order) => sum + Number(order.subtotalAmount ?? 0), 0));
+          setDeliveryPrice(group.reduce((sum, order) => sum + Number(order.deliveryAmount ?? 0), 0));
+          setFullName(order.recipientName ?? ""); setPhone(order.recipientPhone ?? "");
+          setSelectedAddressId(order.pickupPointId ?? "");
+          setDeliveryOptions([{ id: order.pickupPointId ?? "", label: order.deliveryAddress ?? "" }]);
+          setResumePaymentAllowed(group.every(order => order.paymentAllowed !== false));
+        }
+
       } catch (e) {
         const message =
-          e instanceof Error
+          e instanceof CheckoutActionError
             ? e.message
             : "Не удалось загрузить checkout";
 
         setError(message);
-
-        toast.error(message);
+        if (createdOrderRef.current) setResumePaymentAllowed(false);
       } finally {
         if (active) {
           setLoading(false);
+          onSubmitBusyChange?.(false);
         }
       }
     }
@@ -489,7 +478,49 @@ function CheckoutPageContent({ initialMe, initialCart }: CheckoutPageProps) {
     return () => {
       active = false;
     };
-  }, [initialCart, initialMe]);
+  }, [initialCart, initialMe, embeddedBootstrapCart, onSubmitBusyChange, router]);
+
+  useEffect(() => {
+    if (loading || checkoutUnknown) return;
+    if (createdOrderId) {
+      hadCommittedRecipientRef.current = true;
+      return;
+    }
+    let active = true;
+    let controller: AbortController | null = null;
+    async function refreshProfile() {
+      if (createdOrderRef.current || submitLockRef.current) return;
+      controller?.abort();
+      const request = new AbortController();
+      controller = request;
+      try {
+        const response = await apiFetch(`${API_URL}/api/profile`, { cache: "no-store", signal: request.signal });
+        if (!response.ok) return;
+        const profile = await response.json() as Me;
+        if (!active || request.signal.aborted || createdOrderRef.current || submitLockRef.current) return;
+        const next = buildCheckoutPrefill({ me: profile });
+        const previous = profileContactsRef.current;
+        // Preserve an explicitly edited recipient while the profile is unchanged.
+        if (!previous || next.email !== previous.email) setEmail(next.email);
+        if (!previous || next.fullName !== previous.fullName) setFullName(next.fullName);
+        if (!previous || next.phone !== previous.phone) setPhone(next.phone);
+        profileContactsRef.current = next;
+      } catch { /* A failed refresh cannot replace confirmed contacts with stale draft data. */ }
+    }
+    const restore = (event: PageTransitionEvent) => { if (event.persisted) void refreshProfile(); };
+    window.addEventListener("focus", refreshProfile);
+    window.addEventListener("pageshow", restore);
+    if (hadCommittedRecipientRef.current) {
+      hadCommittedRecipientRef.current = false;
+      void refreshProfile();
+    }
+    return () => {
+      active = false;
+      controller?.abort();
+      window.removeEventListener("focus", refreshProfile);
+      window.removeEventListener("pageshow", restore);
+    };
+  }, [loading, checkoutUnknown, createdOrderId]);
 
   useEffect(() => {
   if (!cityTouched) return;
@@ -508,33 +539,55 @@ function CheckoutPageContent({ initialMe, initialCart }: CheckoutPageProps) {
   return () => window.clearTimeout(timeoutId);
 }, [cityQuery, cityTouched]);
 
+  const restorePointCity = useRef<number | null>(null);
   useEffect(() => {
-    pickupSearchRequestRef.current += 1;
-    setPickupLoading(false);
-  }, [selectedCity?.code]);
+    if (!loading && selectedCity && selectedAddressId && !deliveryOptions.length && restorePointCity.current !== selectedCity.code) {
+      restorePointCity.current = selectedCity.code;
+      void searchPickupPoints();
+    }
+  // Only the restored selection triggers this request; the picker owns subsequent searches.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loading, selectedCity?.code, selectedAddressId]);
 
   const subtotal = useMemo(() => {
-    return items.reduce(
+    return committedSubtotal ?? items.reduce(
       (sum, item) => sum + item.price * item.quantity,
       0
     );
-  }, [items]);
+  }, [items, committedSubtotal]);
 
   const cartFingerprint = useMemo(
     () =>
       items
-        .map((item) => `${item.variantId}:${item.quantity}`)
+        .map((item) => `${item.variantId}:${item.quantity}:${item.price}`)
         .sort()
         .join("|"),
     [items]
   );
+  const currentCartFingerprint = useRef(cartFingerprint);
+  currentCartFingerprint.current = cartFingerprint;
+  useEffect(() => {
+    if (!submitting && committedCartRef.current !== null && (committedCartRef.current !== cartFingerprint ||
+      (restoredOrderRef.current && cartSnapshot?.checkoutOrderId !== createdOrderRef.current))) {
+      createdOrderRef.current = null; setCreatedOrderId(null); committedCartRef.current = null;
+      restoredOrderRef.current = false;
+      setCommittedSubtotal(null); setResumePaymentAllowed(true);
+      if (profileContactsRef.current) {
+        setEmail(profileContactsRef.current.email);
+        setFullName(profileContactsRef.current.fullName);
+        setPhone(profileContactsRef.current.phone);
+      }
+    }
+  }, [cartFingerprint, submitting, cartSnapshot?.checkoutOrderId]);
 
   const deliveryCalculated = Boolean(
-    deliveryQuoteToken && deliveryOfferId && checkoutToken
+    !cartUpdating && !cartBlocked && (createdOrderId || (quotedCartFingerprint === cartFingerprint &&
+    deliveryQuoteToken && deliveryOfferId && checkoutToken))
   );
-  const deliveryCalculating = quoteLoading || quotePending;
+  const deliveryCalculating = cartUpdating || quoteLoading || quotePending;
   const submitDisabled =
     submitting ||
+    cartBlocked ||
     deliveryCalculating ||
     items.length === 0;
   const total = subtotal + (deliveryCalculated ? deliveryPrice : 0);
@@ -555,8 +608,6 @@ function CheckoutPageContent({ initialMe, initialCart }: CheckoutPageProps) {
 
   function showError(message: string) {
     setError(message);
-
-    toast.error(message);
   }
 
   function resetDeliveryQuote() {
@@ -569,6 +620,7 @@ function CheckoutPageContent({ initialMe, initialCart }: CheckoutPageProps) {
     setDeliveryCurrency("RUB");
     setSellerDeliveryCosts([]);
     setDeliveryQuoteToken("");
+    setQuotedCartFingerprint("");
     setCheckoutToken("");
     setCheckoutTokenExpiresAt("");
     setDeliveryOfferId("");
@@ -585,10 +637,11 @@ function CheckoutPageContent({ initialMe, initialCart }: CheckoutPageProps) {
   const requestId = ++pickupSearchRequestRef.current;
   try {
     setPickupLoading(true);
-    setError(null);
+    setPickupError(null);
 
     const response = await apiFetch(`${API_URL}/api/delivery/pickup-points/search`, {
       method: "POST",
+      signal: AbortSignal.timeout(20_000),
       body: JSON.stringify({
         location: selectedCity.fullName,
         cityCode: selectedCity.code,
@@ -596,7 +649,7 @@ function CheckoutPageContent({ initialMe, initialCart }: CheckoutPageProps) {
     });
 
     if (!response.ok) {
-      throw new Error(
+      throw new CheckoutActionError(
         await readCheckoutError(response, "Не удалось загрузить пункты выдачи")
       );
     }
@@ -627,9 +680,9 @@ function CheckoutPageContent({ initialMe, initialCart }: CheckoutPageProps) {
   } catch (e) {
     if (requestId !== pickupSearchRequestRef.current) return;
     const message =
-      e instanceof Error ? e.message : "Не удалось загрузить пункты выдачи";
+      e instanceof CheckoutActionError ? e.message : "Не удалось загрузить пункты выдачи";
 
-    showError(message);
+    setPickupError(message);
   } finally {
     if (requestId === pickupSearchRequestRef.current) setPickupLoading(false);
   }
@@ -649,23 +702,24 @@ function CheckoutPageContent({ initialMe, initialCart }: CheckoutPageProps) {
     const response = await apiFetch(
       `${API_URL}/api/delivery/cities/search?query=${encodeURIComponent(
         query.trim()
-      )}&countryCode=${countryCode}`
+      )}&countryCode=${countryCode}`, { signal: AbortSignal.timeout(20_000) }
     );
 
     if (!response.ok) {
-      throw new Error(await readCheckoutError(response, "Не удалось найти город"));
+      throw new CheckoutActionError(await readCheckoutError(response, "Не удалось найти город"));
     }
 
     const data = (await response.json()) as DeliveryCityOption[];
     if (requestId !== citySearchRequestRef.current) return;
 
     setCityOptions(Array.isArray(data) ? data : []);
+    setDeliveryErrors(current => ({ ...current, city: undefined }));
   } catch (e) {
     if (requestId !== citySearchRequestRef.current) return;
     const message =
-      e instanceof Error ? e.message : "Не удалось найти город";
+      e instanceof CheckoutActionError ? e.message : "Не удалось найти город";
 
-    showError(message);
+    setDeliveryErrors(current => ({ ...current, city: message }));
   } finally {
     if (requestId === citySearchRequestRef.current) setCityLoading(false);
   }
@@ -721,10 +775,9 @@ function CheckoutPageContent({ initialMe, initialCart }: CheckoutPageProps) {
     };
   }, [draftHydrated, loading, selectedCity, cityQuery]);
 
-  async function createDeliveryQuote(options?: {
-    silent?: boolean;
-  }): Promise<SellerGroupDeliveryQuoteResponse | null> {
-    if (cartId && loadPendingPaymentOrderId(cartId)) {
+  async function createDeliveryQuote(): Promise<SellerGroupDeliveryQuoteResponse | null> {
+    if (cartUpdating || cartBlocked || cartMutationRef?.current || !items.length) return null;
+    if (createdOrderRef.current) {
       return null;
     }
 
@@ -752,12 +805,11 @@ function CheckoutPageContent({ initialMe, initialCart }: CheckoutPageProps) {
           cityCode:
             selectedPickupPoint?.cityCode ?? selectedCity?.code ?? undefined,
         },
-        comment: comment.trim() || undefined,
       };
 
       const response = await apiFetch(`${API_URL}/api/delivery/seller-group-quotes`, {
         method: "POST",
-        signal: controller.signal,
+        signal: AbortSignal.any([controller.signal, AbortSignal.timeout(20_000)]),
         body: JSON.stringify({
           cartId,
           quote: quotePayload,
@@ -765,18 +817,19 @@ function CheckoutPageContent({ initialMe, initialCart }: CheckoutPageProps) {
       });
 
       if (!response.ok) {
-        throw new Error(
+        throw new CheckoutActionError(
           await readCheckoutError(response, "Не удалось рассчитать доставку")
         );
       }
 
       const quote = (await response.json()) as SellerGroupDeliveryQuoteResponse;
-      if (quoteControllerRef.current !== controller) return null;
-      if (!quote.checkoutToken) {
-        throw new Error("Сервис доставки не вернул токен оформления");
+      if (controller.signal.aborted || cartMutationRef?.current || quoteControllerRef.current !== controller || currentCartFingerprint.current !== cartFingerprint) return null;
+      if (!quote.checkoutToken || !quote.quoteToken || !Number.isFinite(Number(quote.priceAmount)) || Number(quote.priceAmount) < 0) {
+        throw new CheckoutActionError("Не удалось подтвердить стоимость доставки — попробуйте ещё раз");
       }
 
       setDeliveryQuoteToken(quote.quoteToken);
+      setQuotedCartFingerprint(cartFingerprint);
       setCheckoutToken(quote.checkoutToken);
       setCheckoutTokenExpiresAt(quote.expiresAt);
       setDeliveryOfferId(quote.externalOfferId || quote.quoteToken);
@@ -796,12 +849,9 @@ function CheckoutPageContent({ initialMe, initialCart }: CheckoutPageProps) {
         return null;
       }
       const message =
-        e instanceof Error ? e.message : "Не удалось рассчитать доставку";
+        e instanceof CheckoutActionError ? e.message : "Не удалось рассчитать доставку";
       resetDeliveryQuote();
       setError(message);
-      if (!options?.silent) {
-        toast.error(message);
-      }
       return null;
     } finally {
       if (quoteControllerRef.current === controller) {
@@ -815,7 +865,11 @@ function CheckoutPageContent({ initialMe, initialCart }: CheckoutPageProps) {
   createDeliveryQuoteRef.current = createDeliveryQuote;
 
   useEffect(() => {
-    if (cartId && loadPendingPaymentOrderId(cartId)) {
+    if (cartUpdating || cartBlocked) {
+      resetDeliveryQuote();
+      return;
+    }
+    if (createdOrderId) {
       setQuotePending(false);
       return;
     }
@@ -841,7 +895,7 @@ function CheckoutPageContent({ initialMe, initialCart }: CheckoutPageProps) {
     setQuotePending(true);
 
     const timeoutId = window.setTimeout(() => {
-      void createDeliveryQuoteRef.current({ silent: true }).finally(() => {
+      void createDeliveryQuoteRef.current().finally(() => {
         if (quoteRequestKeyRef.current === requestKey) {
           setQuotePending(false);
         }
@@ -852,7 +906,10 @@ function CheckoutPageContent({ initialMe, initialCart }: CheckoutPageProps) {
       window.clearTimeout(timeoutId);
     };
   }, [
+    cartUpdating,
+    cartBlocked,
     cartId,
+    createdOrderId,
     selectedCity,
     cartFingerprint,
     deliveryMethod,
@@ -866,34 +923,65 @@ function CheckoutPageContent({ initialMe, initialCart }: CheckoutPageProps) {
       `${API_URL}/api/payments/order/${encodeURIComponent(orderId)}/group`,
       {
         method: "POST",
+        signal: AbortSignal.timeout(20_000),
       }
     );
 
     if (!payResponse.ok) {
-      throw new Error(
+      throw new CheckoutActionError(
         await readCheckoutError(
           payResponse,
-          `Ошибка инициализации оплаты (${payResponse.status})`
+          "Не удалось открыть оплату — попробуйте ещё раз"
         )
       );
     }
 
     const payment: PaymentInitResponse = await payResponse.json();
 
-    if (!payment.confirmationUrl) {
-      throw new Error("Не пришла ссылка на оплату");
+    const confirmationUrl = paymentConfirmationUrl(payment.confirmationUrl);
+    if (!confirmationUrl) {
+      throw new CheckoutActionError("Не удалось открыть оплату — попробуйте ещё раз");
     }
 
-    toast.success("Переходим к оплате");
-
-    window.location.href = payment.confirmationUrl;
+    leavingCheckoutRef.current = true;
+    saveBankReturnOrder(cartId, orderId);
+    window.location.href = confirmationUrl;
   }
+
+  async function acceptCreatedOrders(response: Response) {
+    const orders: OrderResponse[] = await response.json();
+    const orderId = Array.isArray(orders) ? orders[0]?.id : null;
+    if (!Number.isSafeInteger(orderId) || !orderId || orderId <= 0) {
+      throw new CheckoutActionError("Не удалось подтвердить создание заказа — проверьте заказы в кабинете");
+    }
+    // Mark the attempt before invoking callbacks or starting the bank Init.
+    createdOrderRef.current = orderId;
+    committedCartRef.current = currentCartFingerprint.current;
+    setCreatedOrderId(orderId);
+    checkoutAttemptRef.current = null;
+    setCheckoutUnknown(false);
+    savePendingPaymentOrderId(cartId, orderId);
+    emitCartChanged();
+    try {
+      await redirectToPayment(orderId);
+    } catch {
+      // A committed order owns payment recovery; an empty cart is never its screen.
+      toast.error("Заказ создан, но не удалось открыть оплату — попробуйте ещё раз в заказе");
+      leavingCheckoutRef.current = true;
+      router.replace(`/account?tab=orders&orderId=${orderId}`);
+    }
+  }
+
   async function submitOrder() {
-    if (submitLockRef.current || submitting) return;
+    if (submitLockRef.current || submitting || cartUpdating || cartMutationRef?.current) return;
 
     if (!cartId) return;
+    submitLockRef.current = true;
+    setSubmitting(true);
+    onSubmitBusyChange?.(true);
+    try {
 
-    const pendingPaymentOrderId = loadPendingPaymentOrderId(cartId);
+    const pendingPaymentOrderId = createdOrderRef.current;
 
     if (pendingPaymentOrderId) {
       submitLockRef.current = true;
@@ -904,24 +992,40 @@ function CheckoutPageContent({ initialMe, initialCart }: CheckoutPageProps) {
         await redirectToPayment(pendingPaymentOrderId);
         return;
       } catch (e) {
-        clearPendingPaymentOrderId(cartId);
+        // Preserve the order ID for an explicit payment retry; do not create a second order.
 
         const message =
-          e instanceof Error ? e.message : "Ошибка инициализации оплаты";
+          e instanceof CheckoutActionError ? e.message : "Ошибка инициализации оплаты";
 
         setError(message);
-        toast.error(message);
         return;
-      } finally {
-        submitLockRef.current = false;
-        setSubmitting(false);
       }
     }
 
-    if (items.length === 0) return;
+    if (checkoutAttemptRef.current) {
+      // A lost response is retried with the original signed checkout token,
+      // without inspecting the next cart or requesting a different quote.
+      setError(null);
+      try {
+        const response = await apiFetch(`${API_URL}/api/orders/checkout?cartId=${encodeURIComponent(cartId)}`, {
+          method: "POST", body: JSON.stringify(checkoutAttemptRef.current), signal: AbortSignal.timeout(20_000),
+        });
+        if (!response.ok) {
+          if (response.status < 500) { checkoutAttemptRef.current = null; setCheckoutUnknown(false); }
+          throw new CheckoutActionError(await readCheckoutError(response, "Не удалось проверить создание заказа — попробуйте ещё раз"));
+        }
+        await acceptCreatedOrders(response);
+      } catch (e) {
+        const message = e instanceof CheckoutActionError ? e.message : "Не удалось проверить создание заказа — попробуйте ещё раз";
+        setError(message);
+      }
+      return;
+    }
+
+    if (cartBlocked || items.length === 0) return;
 
     const nextContactErrors = {
-      ...(!fullName.trim() ? { fullName: "Введите ФИО" } : {}),
+      ...(!fullName.trim() ? { fullName: "Введите имя и фамилию" } : {}),
       ...(!isValidPhone(phone)
         ? { phone: "Укажите корректный российский номер телефона" }
         : {}),
@@ -938,11 +1042,11 @@ function CheckoutPageContent({ initialMe, initialCart }: CheckoutPageProps) {
       nextDeliveryErrors.pickupPoint ||
       contactValidationError;
 
-    setContactErrors(nextContactErrors);
+    contactValidation.validate();
     setDeliveryErrors(nextDeliveryErrors);
 
     if (firstValidationError) {
-      showError(firstValidationError);
+      setError(null);
       scrollToFirstValidationError({ root: checkoutMainRef.current });
       return;
     }
@@ -967,7 +1071,7 @@ function CheckoutPageContent({ initialMe, initialCart }: CheckoutPageProps) {
       const quote = await createDeliveryQuote();
 
       if (!quote) {
-        showError("Не удалось рассчитать доставку. Оформление заказа временно недоступно.");
+        showError("Не удалось рассчитать доставку — попробуйте ещё раз");
         return;
       }
 
@@ -1013,7 +1117,6 @@ function CheckoutPageContent({ initialMe, initialCart }: CheckoutPageProps) {
             currency: item.currency || activeDeliveryCurrency,
           })),
         paymentMethod,
-        comment: comment.trim() || undefined,
       };
 
       const submitCheckout = () => apiFetch(
@@ -1021,20 +1124,24 @@ function CheckoutPageContent({ initialMe, initialCart }: CheckoutPageProps) {
         {
           method: "POST",
           body: JSON.stringify(payload),
+          signal: AbortSignal.timeout(20_000),
         }
       );
+      checkoutAttemptRef.current = payload;
       let checkoutResponse = await submitCheckout();
 
       if (!checkoutResponse.ok) {
-        const firstError = await readCheckoutError(
+        const firstFailure = await readCheckoutFailure(
           checkoutResponse,
-          `Ошибка оформления заказа (${checkoutResponse.status})`
+          "Не удалось оформить заказ — попробуйте ещё раз"
         );
 
-        if (isRetryableDeliveryQuoteConflict(checkoutResponse.status, firstError)) {
+        const firstError = firstFailure.message;
+        if (isRetryableDeliveryQuoteConflict(checkoutResponse.status, firstFailure.code)) {
+          checkoutAttemptRef.current = null;
           resetDeliveryQuote();
           const refreshedQuote = await createDeliveryQuote();
-          if (!refreshedQuote) throw new Error(firstError);
+          if (!refreshedQuote) throw new CheckoutActionError(firstError);
 
           payload.deliveryOfferId =
             refreshedQuote.externalOfferId || refreshedQuote.quoteToken;
@@ -1050,49 +1157,191 @@ function CheckoutPageContent({ initialMe, initialCart }: CheckoutPageProps) {
                   currency: item.currency || refreshedQuote.currency || "RUB",
                 }))
             : [];
+          checkoutAttemptRef.current = payload;
           checkoutResponse = await submitCheckout();
         } else {
-          throw new Error(firstError);
+          if (checkoutResponse.status < 500) checkoutAttemptRef.current = null;
+          throw new CheckoutActionError(firstError);
         }
       }
 
       if (!checkoutResponse.ok) {
-        throw new Error(
+        if (checkoutResponse.status < 500) checkoutAttemptRef.current = null;
+        throw new CheckoutActionError(
           await readCheckoutError(
             checkoutResponse,
-            `Ошибка оформления заказа (${checkoutResponse.status})`
+            "Не удалось оформить заказ — попробуйте ещё раз"
           )
         );
       }
 
-      const orders: OrderResponse[] = await checkoutResponse.json();
-
-      if (!Array.isArray(orders) || orders.length === 0) {
-        throw new Error("Backend не вернул созданные заказы");
-      }
-
-      const firstOrderId = orders[0]?.id;
-
-      if (!firstOrderId) {
-        throw new Error("Order id is required for payment");
-      }
-
-      savePendingPaymentOrderId(cartId, firstOrderId);
-      clearCheckoutDraft();
-      emitCartChanged();
-
-      await redirectToPayment(firstOrderId);
+      await acceptCreatedOrders(checkoutResponse);
     } catch (e) {
       const message =
-        e instanceof Error ? e.message : "Ошибка оформления заказа";
+        e instanceof CheckoutActionError ? e.message : "Не удалось подтвердить создание заказа — проверьте заказы или повторите проверку";
 
+      if (checkoutAttemptRef.current && !createdOrderRef.current) setCheckoutUnknown(true);
       setError(message);
-      toast.error(message);
+    }
     } finally {
-      submitLockRef.current = false;
-      setSubmitting(false);
+      if (!leavingCheckoutRef.current) {
+        submitLockRef.current = false; setSubmitting(false); onSubmitBusyChange?.(false);
+      }
     }
   }
+
+  async function continueDelivery(): Promise<boolean> {
+    if (cartUpdating || cartBlocked || cartMutationRef?.current || !items.length) return false;
+    const fields = {
+      ...(!fullName.trim() ? { fullName: "Введите имя и фамилию" } : {}),
+      ...(!isValidPhone(phone) ? { phone: "Укажите корректный российский номер телефона" } : {}),
+    };
+    const deliveryFields = !selectedCity ? { city: "Выберите город из списка" }
+      : !selectedPickupPoint ? { pickupPoint: "Выберите пункт выдачи" } : {};
+    contactValidation.validate(); setDeliveryErrors(deliveryFields);
+    if (Object.keys(fields).length || Object.keys(deliveryFields).length) {
+      scrollToFirstValidationError({ root: checkoutMainRef.current }); return false;
+    }
+    if (!deliveryCalculated || shouldRefreshDeliveryQuote(checkoutTokenExpiresAt)) return Boolean(await createDeliveryQuote());
+    setError(null); return true;
+  }
+  const deliveryContent = <CheckoutDeliverySection
+                options={deliveryOptions}
+                deliveryCalculated={deliveryCalculated}
+                cityLoading={cityLoading}
+                pickupError={pickupError}
+                onPickerOpen={() => { pickerSnapshot.current = { city: selectedCity, query: cityQuery, options: deliveryOptions, addressId: selectedAddressId }; }}
+                onPickerCancel={() => {
+                  const snapshot = pickerSnapshot.current; if (!snapshot) return;
+                  citySearchRequestRef.current += 1; pickupSearchRequestRef.current += 1;
+                  setSelectedCity(snapshot.city); setCityQuery(snapshot.query); setCityOptions([]); setCityTouched(false);
+                  setDeliveryOptions(snapshot.options); setSelectedAddressId(snapshot.addressId); setPickupError(null);
+                  setDeliveryErrors({}); pickerSnapshot.current = null; resetDeliveryQuote();
+                }}
+                onPickerConfirm={() => { pickerSnapshot.current = null; }}
+                deliveryPrice={deliveryPrice}
+                pickupLoading={pickupLoading}
+                quoteLoading={deliveryCalculating}
+                onPickupSearch={searchPickupPoints}
+                countryCode={countryCode}
+                selectedAddressId={selectedAddressId}
+                cityQuery={cityQuery}
+                cityOptions={cityOptions}
+                deliveryDateText={deliveryDateText}
+                selectedCity={selectedCity}
+                cityError={deliveryErrors.city}
+                pickupPointError={deliveryErrors.pickupPoint}
+                onCountryChange={(value) => {
+                  pickupSearchRequestRef.current += 1; citySearchRequestRef.current += 1; setPickupLoading(false);
+                  const currentValidationError =
+                    deliveryErrors.city || deliveryErrors.pickupPoint;
+                  setCountryCode(value);
+                  setSelectedCity(null);
+                  setCityQuery("");
+                  setCityOptions([]);
+                  setDeliveryOptions([]);
+                  setSelectedAddressId("");
+                  setDeliveryAddress("");
+                  setApartment("");
+                  setFloor("");
+                  setIntercom("");
+                  setDeliveryErrors({});
+                  if (currentValidationError) {
+                    setError((current) =>
+                      current === currentValidationError ? null : current
+                    );
+                  }
+                  resetDeliveryQuote();
+                }}
+                onCityQueryChange={(value) => {
+                  const currentValidationError =
+                    deliveryErrors.city || deliveryErrors.pickupPoint;
+                  citySearchRequestRef.current += 1; pickupSearchRequestRef.current += 1; setPickupLoading(false);
+                  setCityOptions([]); setCityLoading(value.trim().length >= 2);
+                  setCityTouched(true);
+                  setCityQuery(value);
+                  setDeliveryErrors({});
+                  if (currentValidationError) {
+                    setError((current) =>
+                      current === currentValidationError ? null : current
+                    );
+                  }
+
+                  if (
+                      selectedCity &&
+                      value !== formatCityDisplayName(selectedCity.fullName)
+                    ) {
+                    setSelectedCity(null);
+                    setDeliveryOptions([]);
+                    setSelectedAddressId("");
+                    setDeliveryAddress("");
+                    setApartment("");
+                    setFloor("");
+                    setIntercom("");
+                    resetDeliveryQuote();
+                  }
+                }}
+                onCitySuggestionsClose={() => {
+                  setCityOptions([]);
+                }}
+                onCitySelect={(city) => {
+                  pickupSearchRequestRef.current += 1; setPickupLoading(false);
+                  const currentValidationError =
+                    deliveryErrors.city || deliveryErrors.pickupPoint;
+                  setSelectedCity(city);
+                  setCityQuery(formatCityDisplayName(city.fullName));
+                  setCityOptions([]);
+                  setCityTouched(false);
+                  setDeliveryOptions([]);
+                  setSelectedAddressId("");
+                  setDeliveryAddress("");
+                  setApartment("");
+                  setFloor("");
+                  setIntercom("");
+                  setDeliveryErrors({});
+                  if (currentValidationError) {
+                    setError((current) =>
+                      current === currentValidationError ? null : current
+                    );
+                  }
+                  resetDeliveryQuote();
+                }}
+                enabled={!submitting && !deliveryCalculating}
+                onAddressChange={(value) => {
+                  const currentValidationError = deliveryErrors.pickupPoint;
+                  resetDeliveryQuote();
+                  setSelectedAddressId(value);
+                  setDeliveryErrors((current) => ({
+                    ...current,
+                    pickupPoint: undefined,
+                  }));
+                  if (currentValidationError) {
+                    setError((current) =>
+                      current === currentValidationError ? null : current
+                    );
+                  }
+                }}
+              />;
+  const contactContent = <CheckoutContactSection disabled={submitting || deliveryCalculating}
+                fullName={fullName}
+                phone={phone}
+                fullNameError={contactErrors.fullName}
+                phoneError={contactErrors.phone}
+                onFullNameBlur={() => contactValidation.touch("fullName")}
+                onPhoneBlur={() => contactValidation.touch("phone")}
+                onFullNameChange={value => { setFullName(value); contactValidation.changed("fullName"); }}
+                onPhoneChange={value => { setPhone(value); contactValidation.changed("phone"); }}
+              />;
+
+  if (embedded) return <div ref={checkoutMainRef}>
+    {loading ? <Loader label="Загрузка оформления" /> : !cartId ? <p role="alert">Не удалось загрузить оформление — вернитесь в корзину и попробуйте ещё раз</p> :
+      <CheckoutFlow delivery={deliveryContent} contact={contactContent} pickupLabel={selectedPickupPoint?.label ?? ""}
+        cityName={selectedCity?.fullName ?? ""} recipient={fullName} phone={phone} subtotal={subtotal}
+        deliveryPrice={deliveryPrice} deliveryCalculated={deliveryCalculated} deliveryCalculating={deliveryCalculating}
+        submitting={submitting} error={error} checkoutUnknown={checkoutUnknown} committedOrderId={submitting ? null : createdOrderId}
+        disabled={cartUpdating || cartBlocked || !items.length || !resumePaymentAllowed}
+        onContinue={continueDelivery} onSubmit={submitOrder} />}
+  </div>;
 
   if (loading) {
     return (
@@ -1136,142 +1385,8 @@ function CheckoutPageContent({ initialMe, initialCart }: CheckoutPageProps) {
         ) : (
           <div className={styles.layout}>
             <div className={styles.main} ref={checkoutMainRef}>
-              <CheckoutDeliverySection
-                options={deliveryOptions}
-                deliveryPrice={deliveryPrice}
-                pickupLoading={pickupLoading}
-                quoteLoading={quoteLoading || quotePending}
-                onPickupSearch={searchPickupPoints}
-                countryCode={countryCode}
-                selectedAddressId={selectedAddressId}
-                cityQuery={cityQuery}
-                cityOptions={cityOptions}
-                deliveryDateText={deliveryDateText}
-                selectedCity={selectedCity}
-                cityError={deliveryErrors.city}
-                pickupPointError={deliveryErrors.pickupPoint}
-                onCountryChange={(value) => {
-                  const currentValidationError =
-                    deliveryErrors.city || deliveryErrors.pickupPoint;
-                  setCountryCode(value);
-                  setSelectedCity(null);
-                  setCityQuery("");
-                  setCityOptions([]);
-                  setDeliveryOptions([]);
-                  setSelectedAddressId("");
-                  setDeliveryAddress("");
-                  setApartment("");
-                  setFloor("");
-                  setIntercom("");
-                  setDeliveryErrors({});
-                  if (currentValidationError) {
-                    setError((current) =>
-                      current === currentValidationError ? null : current
-                    );
-                  }
-                  resetDeliveryQuote();
-                }}
-                onCityQueryChange={(value) => {
-                  const currentValidationError =
-                    deliveryErrors.city || deliveryErrors.pickupPoint;
-                  setCityTouched(true);
-                  setCityQuery(value);
-                  setDeliveryErrors({});
-                  if (currentValidationError) {
-                    setError((current) =>
-                      current === currentValidationError ? null : current
-                    );
-                  }
-
-                  if (
-                      selectedCity &&
-                      value !== formatCityDisplayName(selectedCity.fullName)
-                    ) {
-                    setSelectedCity(null);
-                    setDeliveryOptions([]);
-                    setSelectedAddressId("");
-                    setDeliveryAddress("");
-                    setApartment("");
-                    setFloor("");
-                    setIntercom("");
-                    resetDeliveryQuote();
-                  }
-                }}
-                onCitySuggestionsClose={() => {
-                  setCityOptions([]);
-                }}
-                onCitySelect={(city) => {
-                  const currentValidationError =
-                    deliveryErrors.city || deliveryErrors.pickupPoint;
-                  setSelectedCity(city);
-                  setCityQuery(formatCityDisplayName(city.fullName));
-                  setCityOptions([]);
-                  setCityTouched(false);
-                  setDeliveryOptions([]);
-                  setSelectedAddressId("");
-                  setDeliveryAddress("");
-                  setApartment("");
-                  setFloor("");
-                  setIntercom("");
-                  setDeliveryErrors({});
-                  if (currentValidationError) {
-                    setError((current) =>
-                      current === currentValidationError ? null : current
-                    );
-                  }
-                  resetDeliveryQuote();
-                }}
-                comment={comment}
-                enabled={true}
-                onAddressChange={(value) => {
-                  const currentValidationError = deliveryErrors.pickupPoint;
-                  resetDeliveryQuote();
-                  setSelectedAddressId(value);
-                  setDeliveryErrors((current) => ({
-                    ...current,
-                    pickupPoint: undefined,
-                  }));
-                  if (currentValidationError) {
-                    setError((current) =>
-                      current === currentValidationError ? null : current
-                    );
-                  }
-                }}
-                onCommentChange={setComment}
-              />
-
-              <CheckoutContactSection
-                fullName={fullName}
-                phone={phone}
-                fullNameError={contactErrors.fullName}
-                phoneError={contactErrors.phone}
-                onFullNameChange={(value) => {
-                  const currentValidationError = contactErrors.fullName;
-                  setFullName(value);
-                  setContactErrors((current) => ({
-                    ...current,
-                    fullName: undefined,
-                  }));
-                  if (currentValidationError) {
-                    setError((current) =>
-                      current === currentValidationError ? null : current
-                    );
-                  }
-                }}
-                onPhoneChange={(value) => {
-                  const currentValidationError = contactErrors.phone;
-                  setPhone(value);
-                  setContactErrors((current) => ({
-                    ...current,
-                    phone: undefined,
-                  }));
-                  if (currentValidationError) {
-                    setError((current) =>
-                      current === currentValidationError ? null : current
-                    );
-                  }
-                }}
-              />
+              {deliveryContent}
+              {contactContent}
               {error ? (
                 <div className={styles.error}>
                   {error}

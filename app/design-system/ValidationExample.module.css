@@ -1,0 +1,15 @@
+.form {
+  display: grid;
+  gap: 16px;
+  max-width: 620px;
+  margin-block: 24px;
+}
+
+.form h3,
+.form p {
+  margin: 0;
+}
+
+.form > button {
+  justify-self: start;
+}

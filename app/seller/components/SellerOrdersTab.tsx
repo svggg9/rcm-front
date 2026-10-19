@@ -2,9 +2,8 @@
 
 import { useMemo, useState } from "react";
 
-import { FormSelect } from "../../components/ui/FormSelect";
+import { CabinetTabs } from "../../components/ui/CabinetTabs";
 import { TextInput } from "../../components/ui/TextInput";
-import productStyles from "./SellerProductsTab.module.css";
 import { EmptyState } from "../../components/ui/EmptyState";
 import { ListLoadMore } from "../../components/ui/ListLoadMore";
 
@@ -67,7 +66,7 @@ export function SellerOrdersTab<
     { value: "ALL", label: "Все", count: totalElements },
     {
       value: "READY",
-      label: audience === "seller" ? "К отправке" : "В обработке",
+      label: audience === "seller" ? "Нужно отправить" : "В обработке",
       count: !onLoadMore
         ? orders.filter(isReadyOrder).length || undefined
         : undefined,
@@ -81,21 +80,21 @@ export function SellerOrdersTab<
     },
     {
       value: "IN_TRANSIT",
-      label: "В пути",
+      label: "В доставке",
       count: !onLoadMore
         ? orders.filter(isInTransitOrder).length || undefined
         : undefined,
     },
     {
       value: "COMPLETED",
-      label: "Завершены",
+      label: "Завершённые",
       count: !onLoadMore
         ? orders.filter(isCompletedOrder).length || undefined
         : undefined,
     },
     {
       value: "CANCELED",
-      label: "Отменены",
+      label: "Отменённые",
       count: !onLoadMore
         ? orders.filter(isCanceledOrder).length || undefined
         : undefined,
@@ -111,14 +110,17 @@ export function SellerOrdersTab<
 
   return (
     <section className={styles.page}>
-      {audience !== "buyer" ? <div className={productStyles.productsToolbar}>
-        <div className={productStyles.productSearch}><TextInput type="search" hideLabel
+      {audience !== "buyer" ? <div className={styles.ordersToolbar}>
+        <CabinetTabs items={orderTabs} value={filter} onChange={setFilter}
+          appearance="panel" ariaLabel="Фильтр заказов" idPrefix="seller-order-filter" panelId="seller-order-results" />
+        <div className={styles.search}><TextInput type="search" hideLabel
           label="Номер заказа, товар или получатель" placeholder="Номер заказа, товар или получатель"
           value={search} onChange={event => setSearch(event.target.value)} /></div>
-        <FormSelect ariaLabel="Статус заказа" placeholder="Статус заказа" emptyOptionLabel="Все заказы"
-          options={orderTabs.filter(tab => tab.value !== "ALL").map(({ value, label }) => ({value, label}))}
-          value={filter === "ALL" ? "" : filter} onChange={value => setFilter((value || "ALL") as OrderFilter)} />
       </div> : null}
+
+      {audience === "seller" && onLoadMore ? <p className={styles.searchHint}>Поиск и фильтры — по загруженным заказам</p> : null}
+      <div id="seller-order-results" role={audience === "seller" ? "tabpanel" : undefined}
+        aria-labelledby={audience === "seller" ? `seller-order-filter-${filter}` : undefined} tabIndex={audience === "seller" ? 0 : undefined}>
 
       {orders.length === 0 ? (
         <EmptyState
@@ -127,8 +129,8 @@ export function SellerOrdersTab<
           title="Пока нет заказов"
           text={
             audience === "seller"
-              ? "Когда покупатели оформят заказы, они появятся здесь."
-              : "Когда вы оформите заказ, он появится здесь."
+              ? "Когда покупатели оформят заказы, они появятся здесь"
+              : "Когда вы оформите заказ, он появится здесь"
           }
         />
       ) : (
@@ -146,7 +148,7 @@ export function SellerOrdersTab<
           ) : (
             <div className={`${styles.list} ${audience === "seller" ? styles.tableList : ""}`}>
               {audience === "seller" && <div className={styles.tableHeader} aria-hidden="true">
-                <span>Дата заказа</span><span>Номер заказа</span><span>Товары</span><span>Статус</span><span>Сумма</span><span />
+                <span>Заказ</span><span>Товары</span><span>Статус</span><span>Сумма</span><span />
               </div>}
               {filteredOrders.map((order) => (
                 <SellerOrderCard
@@ -163,6 +165,8 @@ export function SellerOrdersTab<
                   showDeliveryLabel={showDeliveryLabel}
                   openButtonLabel={openButtonLabel}
                   tableLayout={audience === "seller"}
+                  worklist={audience === "seller"}
+                  needsShipment={isReadyOrder(order)}
                 />
               ))}
             </div>
@@ -175,6 +179,7 @@ export function SellerOrdersTab<
           />
         </>
       )}
+      </div>
     </section>
   );
 }

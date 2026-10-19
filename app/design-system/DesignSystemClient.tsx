@@ -3,8 +3,12 @@
 import Link from "next/link";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Button } from "../components/ui/Button";
+import { EmptyState } from "../components/ui/EmptyState";
 import { LikeButton } from "../components/ui/LikeButton";
+import { NumericField } from "../components/ui/NumericField";
+import { INTEGER_RULES, WEIGHT_RULES } from "../lib/numericInput";
 import { TextInput } from "../components/ui/TextInput";
+import { OneTimeCodeInput } from "../components/ui/OneTimeCodeInput";
 import { PhoneInput } from "../components/ui/PhoneInput";
 import { Textarea } from "../components/ui/Textarea";
 import { FormSelect } from "../components/ui/FormSelect";
@@ -18,11 +22,16 @@ import { IconOptionsPreview } from "./IconOptionsPreview";
 import { TypographyComparison } from "./TypographyComparison";
 import fieldStyles from "./FieldPreview.module.css";
 import styles from "./DesignSystem.module.css";
-import { toast } from "sonner";
+import { ToastExamples } from "./ToastExamples";
+import { Banner } from "../components/ui/Banner";
+import { ProductArticleButton } from "../product/[id]/components/ProductArticleButton";
+import productStyles from "../product/[id]/ProductPage.module.css";
+import { DropdownExamples } from "./DropdownExamples";
+import { ValidationExample } from "./ValidationExample";
 
 const sections = [
   ["foundation", "Основа"], ["type", "Типографика"], ["buttons", "Кнопки"],
-  ["fields", "Поля"], ["status", "Статусы"], ["feedback", "Алерты"],
+  ["fields", "Поля"], ["status", "Статусы"], ["feedback", "Баннеры"],
   ["lists", "Списки"], ["icons", "Иконки"], ["states", "Состояния"],
 ] as const;
 
@@ -44,7 +53,7 @@ const typeRoles = [
 const iconExamples: Array<[IconName, string]> = [
   ["return-circle", "Возврат"], ["wallet", "Выплаты"], ["bell", "Уведомления"],
   ["check-circle", "Успех"], ["alert", "Ошибка"], ["clock", "Ожидание"],
-  ["search", "Поиск"], ["heart", "Избранное"], ["x", "Закрыть"],
+  ["search", "Поиск"], ["images", "Фотографии"], ["heart", "Избранное"], ["x", "Закрыть"],
 ];
 
 function Section({ id, title, note, children }: {
@@ -61,26 +70,17 @@ function Section({ id, title, note, children }: {
   );
 }
 
-// Shared empty-state layout, with the approved icon in this preview only.
-function EmptyState({ title, text, actions, icon = "info", tone = "default" }: {
-  title: string; text?: string; actions?: ReactNode; icon?: IconName; tone?: "default" | "danger";
-}) {
-  return <div className="emptyStateLarge" data-tone={tone}>
-    <div className="emptyStateIcon" aria-hidden="true"><Icon name={icon} role="empty" /></div>
-    <div className="emptyStateTitle">{title}</div>
-    {text ? <div className="emptyStateText">{text}</div> : null}
-    {actions ? <div className="mt20">{actions}</div> : null}
-  </div>;
-}
-
-function ButtonExamples({ variant }: { variant: "primary" | "secondary" | "ghost" }) {
+function ButtonExamples({ variant }: { variant: "primary" | "secondary" | "ghost" | "utility" }) {
   const [interaction, setInteraction] = useState("Обычное состояние");
   const textVariant = variant === "ghost";
-  const className = textVariant ? styles.textButton : undefined;
-  const label = variant === "primary" ? "Сохранить" : textVariant ? "Изменить" : "Отменить";
+  const utilityVariant = variant === "utility";
+  const className = textVariant ? styles.textButton : utilityVariant ? styles.utilityButton : undefined;
+  const label = variant === "primary" ? "Сохранить" : textVariant ? "Изменить" : utilityVariant ? "▪ Добавить список" : "Отменить";
+  const stateLabel = textVariant || utilityVariant ? label : "Сохранить";
+  const loadingLabel = textVariant ? "Изменение" : utilityVariant ? "Добавление списка" : "Сохранение";
   return (
     <div className={styles.buttonFamily}>
-      <h3>{variant === "primary" ? "Основная" : textVariant ? "Текстовая" : "Вторичная"}</h3>
+      <h3>{variant === "primary" ? "Основная" : textVariant ? "Текстовая" : utilityVariant ? "Компактная служебная" : "Вторичная"}</h3>
       <div className={styles.buttonStates}>
         <div><span>Живая кнопка</span><Button variant={variant} className={className} type="button"
           onPointerEnter={() => setInteraction("Наведение")}
@@ -92,11 +92,12 @@ function ButtonExamples({ variant }: { variant: "primary" | "secondary" | "ghost
           onKeyDown={event => { if (event.key === " " || event.key === "Enter") setInteraction("Нажатие"); }}
           onKeyUp={() => setInteraction("Фокус")}
         >{label}</Button></div>
-        <div><span>Загрузка</span><Button variant={variant} className={className} loading aria-label={textVariant ? "Изменение" : "Сохранение"} type="button">{textVariant ? label : "Сохранить"}</Button></div>
-        <div><span>Недоступна</span><Button variant={variant} className={className} disabled type="button">{textVariant ? label : "Сохранить"}</Button></div>
+        <div><span>Загрузка</span><Button variant={variant} className={className} loading aria-label={loadingLabel} type="button">{stateLabel}</Button></div>
+        <div><span>Недоступна</span><Button variant={variant} className={className} disabled type="button">{stateLabel}</Button></div>
       </div>
       <p className={styles.note}>{interaction}. Наведите курсор, нажмите кнопку или перейдите к ней клавишей Tab</p>
       {textVariant && <p className={styles.note}>Для действий внутри карточки: «Изменить», «Удалить». Без рамки, бледно-серый фон появляется только при наведении, без анимации</p>}
+      {utilityVariant && <p className={styles.note}>Для компактных служебных действий в редакторах и карточках: «Добавить список», «Добавить пункт», стрелки и удаление. Используем общий <code>Button variant=&quot;utility&quot;</code>: 36 px, обычный вес, без рамки; серый фон появляется мгновенно при наведении и нажатии, без сдвига</p>}
     </div>
   );
 }
@@ -159,6 +160,7 @@ function SaveDemo() {
 }
 
 export function DesignSystemClient() {
+  const [emailCode, setEmailCode] = useState("");
   const [phone, setPhone] = useState("");
   const [category, setCategory] = useState<string>("");
   const [tab, setTab] = useState("orders");
@@ -204,29 +206,37 @@ export function DesignSystemClient() {
         </details>
       </Section>
 
-      <Section id="buttons" title="Кнопки" note="Основная чёрная, вторичная с чёрной рамкой, текстовая без рамки. При загрузке только спиннер">
-        <ButtonExamples variant="primary" /><ButtonExamples variant="secondary" /><ButtonExamples variant="ghost" />
+      <Section id="buttons" title="Кнопки" note="Основная чёрная, вторичная с чёрной рамкой, текстовая и компактная служебная без рамки. При загрузке только спиннер">
+        <ButtonExamples variant="primary" /><ButtonExamples variant="secondary" /><ButtonExamples variant="ghost" /><ButtonExamples variant="utility" />
+        <div className={productStyles.productArticle}><ProductArticleButton article="104582" /></div>
         <LikeDemo />
         <SaveDemo />
         <p className={styles.note}>«Сохранить» остаётся активной и в незаполненной форме. По нажатию показываем ошибки у полей и прокручиваем к первой. Во время запроса повторная отправка заблокирована. Недоступное состояние — только для действительно недоступных действий с объяснением причины</p>
-        <details className={styles.review}><summary>Кнопки согласованы, перенос в проект — отдельно</summary>
-          <p>Выбраны три уровня кнопок, поведение лайка, мягкое нажатие и результат сохранения. В общей кнопке часть переходов ссылается на отсутствующий токен длительности — это исправим при переносе. Рабочие страницы пока не менялись</p>
+        <details className={styles.review}><summary>Правила кнопок закреплены в общей ДС</summary>
+          <p>Основные уровни, компактное служебное действие, поведение лайка, состояния нажатия и результат сохранения реализованы общими компонентами. Для служебных кнопок используем вариант <code>utility</code>, а не копируем локальные hover- и focus-стили</p>
         </details>
       </Section>
 
-      <Section id="fields" title="Поля" note="Чёрные подписи и рамки, компактные ошибки. Правки только в эталоне, без изменения рабочих форм">
+      <Section id="fields" title="Поля" note="Чёрные подписи и рамки, компактные ошибки. Раскрытое поле и список образуют единый блок без внутренней линии">
+        <ValidationExample />
         <div className={`${styles.formGrid} ${fieldStyles.fields}`}>
           <TextInput label="Название бренда" autoComplete="off" />
           <TextInput label="Заполненное поле" defaultValue="Мой первый бренд" autoComplete="off" />
-          <div><TextInput label="Поле с ошибкой" defaultValue="brand@" error="Проверьте адрес электронной почты" aria-describedby="demo-email-error" />
+          <div><TextInput label="Поле с ошибкой" type="email" defaultValue="brand@" error="Проверьте адрес электронной почты" aria-describedby="demo-email-error" />
             <span id="demo-email-error" className="visuallyHidden">Проверьте адрес электронной почты</span></div>
           <TextInput label="Недоступное поле" defaultValue="На проверке" disabled />
           <PhoneInput value={phone} onChange={event => setPhone(event.target.value)} fieldVariant="boxed" autoComplete="off" />
           <FormSelect label="Категория" value={category} onChange={setCategory}
             options={[{ value: "clothing", label: "Одежда" }, { value: "home-art", label: "Дом и искусство" }]} />
+          <DropdownExamples />
           <Textarea label="О бренде" rows={3} />
           <TextInput label="Обязательное поле" required hint="Это нужно, чтобы отправить товар на публикацию" />
           <TextInput label="Почтовый индекс" placeholder="Например, 990022" inputMode="numeric" maxLength={6} autoComplete="postal-code" />
+          <TextInput label="Электронная почта" type="email" autoComplete="off" />
+          <NumericField label="Цена, ₽" name="demoPrice" autoComplete="off" />
+          <NumericField label="Количество" {...INTEGER_RULES} />
+          <NumericField label="Вес, кг" {...WEIGHT_RULES} />
+          <div><p>Код из письма</p><OneTimeCodeInput value={emailCode} onChange={setEmailCode} /></div>
         </div>
         <details className={styles.review}><summary>Что проверяем перед утверждением</summary>
           <p>Рамка 1 px чёрная, при ошибке красная по всему периметру. Ошибка 13 px, отступ от поля 4 px. Подписи и пояснения чёрные. Плейсхолдер оставляем только там, где он поясняет формат, а не повторяет название поля</p>
@@ -243,26 +253,23 @@ export function DesignSystemClient() {
         <p className={styles.note}>Применение согласованных статусов на рабочих экранах проверим при переносе ДС</p>
       </Section>
 
-      <Section id="feedback" title="Алерты" note="Сравнение текущего кода и согласованного принципа: цветная заливка без рамок">
+      <Section id="feedback" title="Баннеры" note="Общий компонент для правил, предупреждений, ошибок и успешных действий: цветная заливка, иконка и чёрный текст без рамок">
         <div className={styles.compareGrid}>
-          <div className={styles.stack}><h3>Сейчас в проекте</h3>
-            <div className="alertDanger">Неверный адрес электронной почты или пароль</div>
-            <div className="alertSuccess">Товар отправлен на модерацию</div>
-            <Button onClick={() => toast.success("Товар отправлен на модерацию", {
-              id: "ds-feedback", duration: 1500,
-            })}>Показать уведомление об успехе</Button>
-            <Button onClick={() => toast.error("Не удалось отправить на модерацию", {
-              id: "ds-feedback", duration: 1500,
-              description: "Свитшот 3-Stripes — добавьте описание товара",
-              action: { label: "Открыть товар", onClick: () => toast.dismiss("ds-feedback") },
-            })}>Показать уведомление об ошибке</Button>
+          <div className={styles.stack}>
+            <Banner tone="info" title="Перед заполнением">
+              <ul><li>Сверяйте сведения с официальными документами.</li><li>Укажите рабочие контакты и пункт отправки СДЭК.</li></ul>
+            </Banner>
+            <Banner tone="warning" title="Проверьте фотографии">Для модерации нужны 3–10 фотографий от 1200 px по короткой стороне. Главное фото — на белом фоне.</Banner>
           </div>
-          <div className={styles.stack}><h3>Изолированный предпросмотр</h3>
-            <div className={styles.feedbackPreview} data-tone="danger"><Icon name="alert" /><span className="textBody">Неверный адрес электронной почты или пароль</span></div>
-            <div className={styles.feedbackPreview} data-tone="success"><Icon name="check-circle" /><div><strong>Товар отправлен на модерацию</strong><p>Статус проверки доступен в разделе «Товары»</p></div></div>
+          <div className={styles.stack}>
+            <Banner tone="success" title="Данные сохранены">Обязательные сведения заполнены. Можно перейти к созданию товара.</Banner>
+            <Banner tone="danger" title="Не удалось сохранить">Попробуйте ещё раз. Заполненные данные остались в форме.</Banner>
           </div>
         </div>
-        <p className={styles.note}>Цветной предпросмотр без рамок согласован. Рабочие алерты пока не менялись</p>
+        <p className={styles.note}>Жёлто-золотой — пояснение, жёлтый — внимание, зелёный — успех, красный — ошибка. Заголовок и действия добавляются по необходимости; ошибки конкретных полей остаются под полями.</p>
+        <h3>Всплывающие уведомления</h3>
+        <div className={styles.actions}><ToastExamples /></div>
+        <p className={styles.note}>Те же цвета по смыслу: зелёный — успех, красный — ошибка, жёлтый — внимание, золотистый — информация. Снизу справа, с иконкой и крестиком. Все обычные уведомления исчезают через 4 секунды.</p>
       </Section>
 
       <Section id="lists" title="Списки и навигация" note="Макет деталки в три ряда: товары, оплата, доставка. Все данные условные, действия не отправляются на сервер">
@@ -279,7 +286,7 @@ export function DesignSystemClient() {
         <div className={styles.iconGrid}>{iconExamples.map(([name, label]) => <div key={name}>
           <Icon name={name} role={name === "x" ? "utility" : "interface"} /><span>{label}</span>
         </div>)}</div>
-        <p className={styles.note}>Интерфейсные иконки — 24 px, служебные — 20 px. Общие компоненты рабочих экранов пока не менялись</p>
+        <p className={styles.note}>Интерфейсные иконки — 24 px, служебные — 20 px. Пустые списки оформляем текстом и действием, без декоративных иконок</p>
       </Section>
 
       <Section id="states" title="Состояния экрана" note="Пустой список, загрузка, ошибка и успех. Без настоящих заказов и запросов к серверу">
@@ -294,7 +301,7 @@ export function DesignSystemClient() {
           </ul></div> : screenState === "error" ? <EmptyState icon="alert" tone="danger" title="Не удалось загрузить товары"
             actions={<Button type="button" variant="secondary" onClick={() => setScreenState("empty")}>Повторить</Button>} />
             : screenState === "success" ? <EmptyState icon="check-circle" title="Товар отправлен на модерацию" text="Статус проверки доступен в разделе «Товары»" />
-              : <EmptyState icon="package" title="Товаров пока нет" />}
+              : <EmptyState title="Товаров пока нет" text="Добавьте первый товар в свой магазин" actions={<Button variant="primary" onClick={() => setScreenState("success")}>Добавить товар</Button>} />}
         </div>
       </Section>
 

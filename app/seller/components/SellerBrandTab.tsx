@@ -4,16 +4,19 @@ import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 
 import { Button } from "../../components/ui/Button";
+import { Banner } from "../../components/ui/Banner";
 import { DesignSystemIcon } from "../../components/ui/DesignSystemIcon";
 import { TextInput } from "../../components/ui/TextInput";
+import { NumericField } from "../../components/ui/NumericField";
 import { Textarea } from "../../components/ui/Textarea";
-import { scrollToFirstValidationError } from "../../lib/formValidation";
+import { toast } from "../../components/ui/toast";
 
 import type {
   SellerBrand,
   SellerBrandProfileRequest,
 } from "../types";
 import { emitSellerOnboardingChanged } from "../lib/sellerOnboardingEvents";
+import { emitSellerNavigationChanged } from "../lib/sellerNavigationEvents";
 import {
   updateSellerBrandProfile,
   uploadSellerBrandWordmark,
@@ -85,11 +88,9 @@ export function SellerBrandTab({ initialBrands }: Props) {
   const [uploadingWordmark, setUploadingWordmark] = useState(false);
   const wordmarkInputRef = useRef<HTMLInputElement | null>(null);
 
-  const [error, setError] = useState<string | null>(null);
-  const [saved, setSaved] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
-  const [dirty, setDirty] = useState(false);
   const pageRef = useRef<HTMLElement | null>(null);
+  const saveBarRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
     if (!saveSuccess) return;
@@ -98,19 +99,59 @@ export function SellerBrandTab({ initialBrands }: Props) {
   }, [saveSuccess]);
 
   const selectedBrand = brands[0] ?? null;
+  const originalForm = selectedBrand ? toFormState(selectedBrand) : null;
+  const dirty = Boolean(form && originalForm && (
+    form.description !== originalForm.description ||
+    form.country !== originalForm.country ||
+    form.foundationYear !== originalForm.foundationYear
+  ));
+
+  useEffect(() => {
+    const page = pageRef.current;
+    const bar = saveBarRef.current;
+    if (!page || !bar) return;
+    const rootStyle = document.documentElement.style;
+    const previousToastOffset = rootStyle.getPropertyValue("--store-toast-offset");
+    const previousToastOffsetPriority = rootStyle.getPropertyPriority("--store-toast-offset");
+    const measure = () => {
+      const height = `${bar.getBoundingClientRect().height}px`;
+      page.style.setProperty("--store-actions-height", height);
+      rootStyle.setProperty("--store-toast-offset", height);
+    };
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(bar);
+    return () => {
+      observer.disconnect();
+      if (previousToastOffset) rootStyle.setProperty("--store-toast-offset", previousToastOffset, previousToastOffsetPriority);
+      else rootStyle.removeProperty("--store-toast-offset");
+    };
+  }, [selectedBrand?.id]);
+
+  useEffect(() => {
+    if (!dirty && !saving && !uploadingWordmark) return;
+    const guard = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+      event.returnValue = "";
+    };
+    window.addEventListener("beforeunload", guard);
+    return () => window.removeEventListener("beforeunload", guard);
+  }, [dirty, saving, uploadingWordmark]);
 
   function updateField<K extends keyof FormState>(key: K, value: FormState[K]) {
     setForm((prev) => (prev ? { ...prev, [key]: value } : prev));
-    setSaved(false);
-    setDirty(true);
+  }
+
+  function resetText() {
+    if (!selectedBrand || saving || uploadingWordmark) return;
+    setForm(toFormState(selectedBrand));
   }
 
   async function save() {
     if (!selectedBrand || !form || saving || uploadingWordmark || saveSuccess) return;
 
     setSaving(true);
-    setError(null);
-    setSaved(false);
+    const toastId = `seller-brand-${selectedBrand.id}-profile`;
 
     try {
       const updated = await updateSellerBrandProfile(
@@ -122,13 +163,14 @@ export function SellerBrandTab({ initialBrands }: Props) {
         prev.map((brand) => (brand.id === updated.id ? updated : brand))
       );
       setForm(toFormState(updated));
-      setSaved(true);
       setSaveSuccess(true);
-      setDirty(false);
+      toast.success("Изменения сохранены", { id: toastId, description: undefined, action: undefined });
       emitSellerOnboardingChanged();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Не удалось сохранить профиль");
-      scrollToFirstValidationError({ root: pageRef.current });
+      toast.error("Не удалось сохранить текст магазина", {
+        id: toastId,
+        description: e instanceof Error ? e.message : undefined,
+      });
     } finally {
       setSaving(false);
     }
@@ -150,7 +192,7 @@ export function SellerBrandTab({ initialBrands }: Props) {
     if (!selectedBrand || !form || !file || saving || uploadingWordmark) return;
 
     setUploadingWordmark(true);
-    setError(null);
+    const toastId = `seller-brand-${selectedBrand.id}-wordmark`;
 
     try {
       const updated = await uploadSellerBrandWordmark(selectedBrand.id, file);
@@ -162,12 +204,13 @@ export function SellerBrandTab({ initialBrands }: Props) {
           ? { ...prev, wordmarkUrl: updated.wordmarkUrl ?? "" }
           : toFormState(updated)
       );
+      toast.success("Текстовый логотип загружен", { id: toastId, description: undefined, action: undefined });
+      emitSellerNavigationChanged();
     } catch (e) {
-      setError(
-        e instanceof Error
-          ? e.message
-          : "Не удалось загрузить текстовый логотип бренда"
-      );
+      toast.error("Не удалось загрузить текстовый логотип", {
+        id: toastId,
+        description: e instanceof Error ? e.message : undefined,
+      });
     } finally {
       setUploadingWordmark(false);
       if (wordmarkInputRef.current) wordmarkInputRef.current.value = "";
@@ -179,59 +222,42 @@ export function SellerBrandTab({ initialBrands }: Props) {
   return (
     <section className={styles.page} ref={pageRef}>
         <header className={styles.pageHeader}>
-          <div>
-            <span className={styles.pageKicker}>Витрина магазина</span>
-            <h1>{form.name}</h1>
-            <p>Настройте публичную страницу бренда</p>
+          <div className={styles.brandIdentity}>
+            <h1>
+              {form.wordmarkUrl ? (
+                <span className={styles.headerWordmark}>
+                  <Image src={form.wordmarkUrl} alt={form.name} fill
+                    sizes="(max-width: 640px) 288px, 280px" />
+                </span>
+              ) : form.name}
+            </h1>
+            <p className={styles.identityHint}>Название меняет администратор площадки</p>
           </div>
-
           <div className={styles.headerActions}>
-            <Button type="button" variant="secondary" disabled={saving || uploadingWordmark}
+            <Button type="button" variant="ghost" disabled={saving || uploadingWordmark}
               onClick={() => setPreviewOpen(true)}>Предпросмотр</Button>
             {selectedBrand.slug ? (
               <a
                 href={`/brand/${selectedBrand.slug}`}
-                className={`buttonSecondary ${styles.openLink}`}
+                className={styles.openLink}
                 target="_blank"
                 rel="noreferrer"
               >
                 Открыть витрину
               </a>
             ) : null}
-            <Button
-              type="submit"
-              form="seller-brand-profile"
-              variant="primary"
-              loading={saving}
-              success={saveSuccess}
-              reserveLabelSpace
-              disabled={uploadingWordmark || saveSuccess}
-            >
-              Сохранить
-            </Button>
           </div>
         </header>
-        {error ? <div className={styles.error} role="alert" data-validation-error="true" tabIndex={-1}>{error}</div> : null}
-        {saved ? <div className={styles.success} role="status"><DesignSystemIcon name="check-circle" /><span>Изменения сохранены</span></div> : null}
-        {dirty ? <p className={styles.saveState} role="status">Есть несохранённые изменения в данных магазина или ссылках. Нажмите «Сохранить».</p> : null}
-
         <form id="seller-brand-profile" className={styles.settingsForm}
           onSubmit={(event) => { event.preventDefault(); void save(); }}>
-          <section className={styles.profileSection} aria-labelledby="brand-about-title">
-            <div className={styles.sectionHeading}>
-              <h2 id="brand-about-title">О магазине</h2>
-              <p>Представьте свой бренд покупателям на публичной странице</p>
-            </div>
             <fieldset className={styles.formSection} disabled={saving}>
-              <TextInput label="Название" value={form.name} readOnly className={styles.inputReadonly} hint="Название нельзя изменить в этой форме. Для изменения обратитесь к администратору площадки." />
-              <Textarea label="Описание"
+              <Textarea label="О бренде"
                   value={form.description}
                   onChange={(event) =>
                     updateField("description", event.target.value)
                   }
-                  rows={5}
+                  rows={4}
                   maxLength={1000}
-                  hint="Расскажите о стиле, истории и идее бренда"
               />
 
               <div className={styles.detailsGrid}>
@@ -239,28 +265,22 @@ export function SellerBrandTab({ initialBrands }: Props) {
                     value={form.country}
                     onChange={(event) => updateField("country", event.target.value)}
                   />
-                  <TextInput label="Год основания"
+                  <NumericField label="Год основания" fractionDigits={0} max={9999}
                     value={form.foundationYear}
                     onChange={(event) =>
-                      updateField("foundationYear", event.target.value.replace(/\D/g, ""))
+                      updateField("foundationYear", event.target.value)
                     }
-                    inputMode="numeric"
                     maxLength={4}
                   />
 
               </div>
             </fieldset>
-          </section>
+        </form>
 
-          <section className={styles.profileSection} aria-labelledby="brand-appearance-title">
-            <div className={styles.sectionHeading}>
-              <h2 id="brand-appearance-title">Оформление витрины</h2>
-              <p>Логотип и фотографии помогают покупателям познакомиться с брендом</p>
-            </div>
-            <div className={styles.appearanceLayout}>
+        <div className={styles.appearanceLayout}>
             <div className={styles.wordmarkCard}>
+              <h2>Текстовый логотип</h2>
               <div className={styles.wordmarkStage}>
-                <span className={styles.summaryLabel}>Текстовый логотип</span>
                 <div className={styles.brandProfileTitle}>
                   {form.wordmarkUrl ? (
                     <span className={styles.wordmarkPreview}>
@@ -268,7 +288,7 @@ export function SellerBrandTab({ initialBrands }: Props) {
                         src={form.wordmarkUrl}
                         alt={form.name}
                         fill
-                        sizes="360px"
+                        sizes="220px"
                       />
                     </span>
                   ) : (
@@ -279,19 +299,20 @@ export function SellerBrandTab({ initialBrands }: Props) {
 
               <Button
                 type="button"
-                variant="secondary"
+                variant="utility"
                 className={styles.wordmarkButton}
                 onClick={() => wordmarkInputRef.current?.click()}
                 disabled={saving}
                 loading={uploadingWordmark}
                 reserveLabelSpace
+                aria-label={form.wordmarkUrl ? "Заменить текстовый логотип" : "Загрузить текстовый логотип"}
               >
-                Загрузить текстовый логотип
+                {form.wordmarkUrl ? "Заменить" : "Загрузить"}
               </Button>
-              <p className={styles.wordmarkHint}>
-                Название бренда в вашем фирменном начертании. SVG или WebP до 2 МБ.
+              <p className={`${styles.wordmarkHint} ${styles.mediaMeta}`}>
+                SVG или WebP до 2 МБ
               </p>
-              <p className={styles.wordmarkHint}>Логотип появится в шапке витрины. Без файла показываем название обычным текстом.</p>
+              <p className={styles.wordmarkHint}>В шапке витрины. Без файла — название бренда.</p>
               <input
                 ref={wordmarkInputRef}
                 type="file"
@@ -304,38 +325,21 @@ export function SellerBrandTab({ initialBrands }: Props) {
             </div>
 
 
-            </div>
-            <p className={styles.publicationHint}>Логотип и фотографии обновляются на витрине сразу после загрузки. Изменение порядка и удаление фотографий тоже сохраняются сразу.</p>
             <SellerBrandImages brandId={selectedBrand.id} embedded />
-          </section>
-
-          <section className={styles.profileSection} aria-labelledby="brand-links-title">
-            <div className={styles.sectionHeading}>
-              <h2 id="brand-links-title">Ссылки</h2>
-              <p>Необязательно. Укажите сайт и страницы бренда в социальных сетях.</p>
-            </div>
-            <fieldset className={styles.formSection} disabled={saving}>
-              <div className={styles.detailsGrid}>
-                  <TextInput label="Сайт"
-                    value={form.website}
-                    onChange={(event) => updateField("website", event.target.value)}
-                    placeholder="https://example.ru"
-                  />
-                  <TextInput label="Telegram"
-                    value={form.telegram}
-                    onChange={(event) => updateField("telegram", event.target.value)}
-                    placeholder="@brand"
-                  />
-                  <TextInput label="ВКонтакте"
-                    value={form.vk}
-                    onChange={(event) => updateField("vk", event.target.value)}
-                    placeholder="vk.com/brand"
-                  />
-
-              </div>
-            </fieldset>
-          </section>
-        </form>
+        </div>
+        <Banner tone="info" title="Логотип и фотографии сохраняются сразу">
+          Порядок и удаление фотографий — тоже.
+        </Banner>
+        <footer ref={saveBarRef} className={styles.saveBar} data-store-actions>
+          <div className={styles.saveActions}>
+            <Button type="submit" form="seller-brand-profile" variant="primary"
+              loading={saving} success={saveSuccess} reserveLabelSpace
+              disabled={uploadingWordmark || saveSuccess}>Сохранить текст</Button>
+            <Button type="button" variant="secondary" disabled={!dirty || saving || uploadingWordmark}
+              onClick={resetText}>Отменить правки</Button>
+          </div>
+          <p className={styles.saveState} role="status">{dirty ? "Есть несохранённые правки текста" : ""}</p>
+        </footer>
         {previewOpen && <SellerBrandPreview brandId={selectedBrand.id} name={form.name}
           country={form.country} foundationYear={form.foundationYear}
           description={form.description} wordmarkUrl={form.wordmarkUrl} onClose={() => setPreviewOpen(false)} />}

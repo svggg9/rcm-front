@@ -11,6 +11,7 @@ export type SellerLegalInfo = {
   ogrnip: string | null;
   companyName: string | null;
   legalName: string | null;
+  contactName: string | null;
   phone: string | null;
   legalAddress: string | null;
   shippingCountryCode: string | null;
@@ -35,6 +36,7 @@ export type SellerLegalInfoForm = {
   ogrnip: string;
   companyName: string;
   legalName: string;
+  contactName: string;
   phone: string;
   legalAddress: string;
   shippingCountryCode: string;
@@ -63,7 +65,36 @@ export type CdekReceptionPoint = {
   fullAddress: string | null;
   instruction: string | null;
   cityCode: number | null;
+  latitude: number | null;
+  longitude: number | null;
 };
+
+type SellerProfileContact = {
+  displayName?: string | null;
+  firstName?: string | null;
+  lastName?: string | null;
+  middleName?: string | null;
+};
+
+export function profileContactName(profile: SellerProfileContact | null): string {
+  if (!profile) return "";
+
+  const displayName = profile.displayName?.trim();
+  if (displayName) return displayName;
+
+  return [profile.lastName, profile.firstName, profile.middleName]
+    .map((part) => part?.trim())
+    .filter((part): part is string => Boolean(part))
+    .join(" ");
+}
+
+export async function getSellerProfileContactName(): Promise<string> {
+  const response = await apiFetch(`${API_URL}/api/profile`);
+
+  if (!response.ok) return "";
+
+  return profileContactName((await response.json()) as SellerProfileContact);
+}
 
 export async function getSellerLegalInfo(): Promise<SellerLegalInfo | null> {
   const response = await apiFetch(`${API_URL}/api/seller/legal-info`);
@@ -98,7 +129,8 @@ export async function searchDeliveryCities(
 
 export async function getCdekReceptionPoints(
   cityCode: number,
-  query?: string
+  query?: string,
+  size?: number
 ): Promise<CdekReceptionPoint[]> {
   const params = new URLSearchParams({
     cityCode: String(cityCode),
@@ -108,12 +140,14 @@ export async function getCdekReceptionPoints(
     params.set("query", query.trim());
   }
 
+  if (size !== undefined) params.set("size", String(size));
+
   const response = await apiFetch(
     `${API_URL}/api/seller/shipping/cdek/reception-points?${params.toString()}`
   );
 
   if (!response.ok) {
-    return [];
+    throw new Error("Не удалось загрузить пункты приёма СДЭК. Попробуйте ещё раз.");
   }
 
   const data = (await response.json()) as CdekReceptionPoint[];

@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Dialog } from "../../components/ui/Dialog";
 import { Button } from "../../components/ui/Button";
+import { Banner } from "../../components/ui/Banner";
 import { FormMultiSelect } from "../../components/ui/FormMultiSelect";
 import { getSellerBrands, getSellerStorefrontCollections } from "../lib/sellerBrandApi";
 import { apiFetch, API_URL } from "../../lib/api";
@@ -75,8 +76,9 @@ export function AddProductsToCollectionDialog({ products, onClose, onSuccess }: 
           values={selected} disabled={saving} options={options.map(option => ({ value: option.key, label: option.label }))}
           onChange={values => { setSelected(values); setError(null); }} />
         : !error ? <p>Подборок пока нет</p> : null}
-    {error ? <div className="alertDanger" role="alert">{error}
-      {!options.length && !loading ? <Button variant="tertiary" onClick={() => setRetry(value => value + 1)}>Повторить</Button> : null}
-    </div> : null}
+    {error ? <Banner tone="danger" role="alert"
+      actions={!options.length && !loading ? <Button variant="tertiary" onClick={() => setRetry(value => value + 1)}>Повторить</Button> : null}>
+      {error}
+    </Banner> : null}
   </Dialog>;
 }

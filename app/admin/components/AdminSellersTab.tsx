@@ -9,6 +9,7 @@ import { EmptyState } from "../../components/ui/EmptyState";
 import { Icon } from "../../components/ui/Icon";
 import { ListLoadMore } from "../../components/ui/ListLoadMore";
 import { StatusBadge, type StatusBadgeTone } from "../../components/ui/StatusBadge";
+import { toast } from "../../components/ui/toast";
 import { formatRussianPhone } from "../../lib/phone";
 
 import { AdminSellerBrandProfile } from "./AdminSellerBrandProfile";
@@ -103,8 +104,6 @@ export function AdminSellersTab({
     null
   );
   const [adminComment, setAdminComment] = useState("");
-  const [actionMessage, setActionMessage] = useState<string | null>(null);
-  const [actionError, setActionError] = useState<string | null>(null);
   const [pendingAction, setPendingAction] = useState<ApplicationAction | null>(null);
 
   const selectedApplication = useMemo(
@@ -124,8 +123,6 @@ export function AdminSellersTab({
 
   function closeDetails() {
     setSelectedApplicationId(null);
-    setActionMessage(null);
-    setActionError(null);
     setPendingAction(null);
     setAdminComment("");
   }
@@ -135,18 +132,18 @@ export function AdminSellersTab({
     action: () => Promise<void>,
     successMessage: string
   ) {
-    setActionMessage(null);
-    setActionError(null);
     setPendingAction(type);
+    const toastId = `admin-seller-application-${selectedApplicationId}`;
 
     try {
       await action();
-      setActionMessage(successMessage);
+      toast.success(successMessage, { id: toastId, description: undefined, action: undefined });
       setSelectedApplicationId(null);
       setAdminComment("");
     } catch (error) {
-      setActionError(
-        error instanceof Error ? error.message : "Не удалось выполнить действие"
+      toast.error(
+        error instanceof Error ? error.message : "Не удалось выполнить действие",
+        { id: toastId }
       );
     } finally {
       setPendingAction(null);
@@ -160,8 +157,6 @@ export function AdminSellersTab({
         loading={actionApplicationId === selectedApplication.id}
         pendingAction={pendingAction}
         adminComment={adminComment}
-        actionMessage={actionMessage}
-        actionError={actionError}
         onAdminCommentChange={setAdminComment}
         onBack={closeDetails}
         onApprove={() =>
@@ -215,22 +210,19 @@ export function AdminSellersTab({
         </Button>
       }
     >
-      <ActionNotice message={actionMessage} tone="success" />
-      <ActionNotice message={actionError} tone="danger" />
-
       {applications.length === 0 ? (
         statusCounts.ALL === 0 ? (
           <EmptyState
             icon="store"
             tone="gold"
             title="Заявок пока нет"
-            text="Новые заявки продавцов появятся здесь."
+            text="Новые заявки продавцов появятся здесь"
           />
         ) : (
           <EmptyState
             icon="search"
             title="Заявок нет"
-            text="По выбранному статусу ничего не найдено."
+            text="По выбранному статусу ничего не найдено"
           />
         )
       ) : (
@@ -242,8 +234,6 @@ export function AdminSellersTab({
                 application={application}
                 onOpen={() => {
                   setSelectedApplicationId(application.id);
-                  setActionMessage(null);
-                  setActionError(null);
                   setPendingAction(null);
                   setAdminComment(application.adminComment ?? "");
                 }}
@@ -351,8 +341,6 @@ function SellerApplicationDetails({
   loading,
   pendingAction,
   adminComment,
-  actionMessage,
-  actionError,
   onAdminCommentChange,
   onBack,
   onApprove,
@@ -363,8 +351,6 @@ function SellerApplicationDetails({
   loading: boolean;
   pendingAction: ApplicationAction | null;
   adminComment: string;
-  actionMessage: string | null;
-  actionError: string | null;
   onAdminCommentChange: (value: string) => void;
   onBack: () => void;
   onApprove: () => void;
@@ -392,9 +378,6 @@ function SellerApplicationDetails({
           </div>
         </div>
       </header>
-
-      <ActionNotice message={actionMessage} tone="success" />
-      <ActionNotice message={actionError} tone="danger" />
 
       <div className={styles.detailsLayout}>
         <main className={styles.detailsMain}>
@@ -553,28 +536,6 @@ function InfoRow({ label, value }: { label: string; value: ReactNode }) {
     <div className={styles.infoRow}>
       <span className={styles.infoLabel}>{label}</span>
       <span className={styles.infoValue}>{value}</span>
-    </div>
-  );
-}
-
-function ActionNotice({
-  message,
-  tone,
-}: {
-  message: string | null;
-  tone: "success" | "danger";
-}) {
-  if (!message) return null;
-
-  return (
-    <div
-      className={`${styles.notice} ${
-        tone === "success" ? styles.noticeSuccess : styles.noticeDanger
-      }`}
-      role={tone === "danger" ? "alert" : "status"}
-    >
-      <Icon name={tone === "success" ? "check-circle" : "info"} size={20} />
-      <span>{message}</span>
     </div>
   );
 }

@@ -33,7 +33,8 @@ global.fetch = async (_url, options) => {
     assert.equal(payloads[1].firstName, "Анна");
     const fallback = "Не удалось отправить код";
     for (const [status, body, expected] of [
-      [429, JSON.stringify({ status: 429, code: "TOO_MANY_REQUESTS", message: "Код уже отправлен. Попробуйте чуть позже.", title: "Too Many Requests" }), "Код уже отправлен. Попробуйте чуть позже."],
+      [429, JSON.stringify({ status: 429, code: "TOO_MANY_REQUESTS", message: "Код уже отправлен. Попробуйте чуть позже.", title: "Too Many Requests" }), fallback],
+      [429, JSON.stringify({ message: "registration_rate_limited" }), "Слишком много попыток. Попробуйте позже"],
       [400, JSON.stringify({ detail: "invalid_email" }), "Проверьте адрес электронной почты"],
       [400, JSON.stringify({ message: " ", detail: "invalid_code" }), "Неверный код. Проверьте письмо и попробуйте ещё раз"],
       [400, JSON.stringify({ title: "registration_expired" }), "Код истёк. Запросите новый код"],
@@ -45,7 +46,7 @@ global.fetch = async (_url, options) => {
       global.fetch = async () => new Response(body, { status });
       await assert.rejects(() => startEmailRegistration("test@example.com", "password123", ""), { message: expected });
     }
-    console.log("PASS: backend message for 429, legacy detail/title/plain text, empty response and safe 5xx fallback");
+    console.log("PASS: known 429 code, safe fallback for unknown server text, legacy detail/title/plain text, empty response and safe 5xx fallback");
     console.log("PASS: all invalid fields at once, password limits, optional name payload");
   } finally { global.fetch = originalFetch; }
 })().catch(error => { console.error(error); process.exitCode = 1; });

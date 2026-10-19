@@ -1,8 +1,10 @@
 "use client";
 
+import { Loader } from "../../components/ui/Loader";
 import { useEffect, useRef, useState } from "react";
 import { Button } from "../../components/ui/Button";
 import { Dialog } from "../../components/ui/Dialog";
+import { toast } from "../../components/ui/toast";
 import { findReviewOrders, operationMoney, paymentRequest, type LatePayment, type OperationPage } from "../lib/paymentOperations";
 import styles from "./AdminPaymentReview.module.css";
 
@@ -11,7 +13,6 @@ export function AdminLatePayments() {
   const [data, setData] = useState<OperationPage<LatePayment> | null>(null);
   const [revision, setRevision] = useState(0);
   const [error, setError] = useState("");
-  const [message, setMessage] = useState("");
   const [actionError, setActionError] = useState("");
   const [selection, setSelection] = useState<{ payment: LatePayment; orders: number[] } | null>(null);
   const [busy, setBusy] = useState(false);
@@ -42,10 +43,12 @@ export function AdminLatePayments() {
     if (inFlight.current) return;
     const remaining = row.amount - row.refundedAmount - row.pendingRefundAmount;
     if (remaining <= 0 || !window.confirm(`Создать возврат по заказу №${orderId} из платежа №${row.paymentId}? Сумма ограничена оплатой этого заказа и уже созданными возвратами.`)) return;
-    inFlight.current = true; setBusy(true); setMessage(""); setActionError("");
+    inFlight.current = true; setBusy(true); setActionError("");
     try {
       await paymentRequest(`/api/admin/payment-review/${orderId}/late-refund?paymentId=${row.paymentId}`, { method: "POST" });
-      setMessage(`Запрос возврата по платежу №${row.paymentId} создан. Проверьте отправку и результат в очереди возвратов`);
+      toast.success(`Запрос возврата по платежу №${row.paymentId} создан. Проверьте отправку и результат в очереди возвратов`, {
+        id: `admin-late-refund-${row.paymentId}-${orderId}`, description: undefined, action: undefined,
+      });
       setSelection(null);
       window.dispatchEvent(new Event("refund-operations-changed"));
     } catch (reason) { setActionError(reason instanceof Error ? reason.message : "Не удалось создать запрос возврата"); }
@@ -55,10 +58,9 @@ export function AdminLatePayments() {
     <div className={styles.heading}><h2>Поздние платежи{data ? ` · ${data.totalElements}` : ""}</h2>
       <Button variant="ghost" disabled={busy} onClick={() => setRevision(value => value + 1)}>Обновить</Button></div>
     <p>Каждая оплаченная попытка показана отдельно. Возврат не возобновляет отменённый заказ.</p>
-    {loading && <p role="status">Загрузка…</p>}
+    {loading && <Loader label="Загрузка данных" />}
     {error && <p className={styles.error} role="alert">{error}</p>}
     {actionError && !selection && <p className={styles.error} role="alert">{actionError}</p>}
-    {message && <p role="status">{message}</p>}
     {data?.content.map(row => <article className={styles.operation} key={row.paymentId} aria-label={`Поздний платёж №${row.paymentId}`}>
       <strong>Платёж №{row.paymentId} · {operationMoney(row.amount, row.currency)}</strong>
       <dl className={styles.facts}>

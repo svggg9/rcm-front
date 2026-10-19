@@ -10,7 +10,7 @@
   scrollbar-width: none;
   overscroll-behavior-x: contain;
   -webkit-overflow-scrolling: touch;
-  touch-action: pan-y pinch-zoom;
+  touch-action: pan-x pan-y pinch-zoom;
 }
 
 .track::-webkit-scrollbar {
@@ -68,3 +68,19 @@
 .indicatorPartActive {
   background: var(--black);
 }
+
+.overlay { position: relative; }
+.overlay .indicator {
+  position: absolute;
+  left: 16px;
+  bottom: 16px;
+  width: min(120px, calc(100% - 32px));
+  gap: 4px;
+  margin: 0;
+  background: transparent;
+  pointer-events: none;
+}
+.overlay .indicatorPart { background: var(--line); }
+.overlay .indicatorPartActive { background: var(--black); }
+.slide:focus-visible { outline: 2px solid var(--black); outline-offset: -4px; }
+.status { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }

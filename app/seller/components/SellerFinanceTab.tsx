@@ -1,9 +1,13 @@
 "use client";
 
+import { NumericInput } from "../../components/ui/NumericInput";
+
+import { Button } from "../../components/ui/Button";
 import { useEffect, useRef, useState, type ReactNode, type FormEvent } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { CabinetSkeleton } from "../../components/ui/CabinetSkeleton";
+import { Banner } from "../../components/ui/Banner";
 import { Icon } from "../../components/ui/Icon";
 import { lockModalScroll } from "../../components/ui/modalScrollLock";
 import { getFinanceData, exportFinanceOperations } from "../lib/sellerFinanceApi";
@@ -54,15 +58,17 @@ function Overview({ finance, onPrefetchOrder }: { finance: SellerFinanceSummary;
         <Summary label="В выплатах" value={finance.inPayoutAmount} hint="Сформированные и отправленные реестры" />
       </Link>
     </div>
-    {Math.abs(finance.reconciliationDifference) >= 0.005 && <p role="alert" className={styles.notice}>
-      <Icon name="alert" size={18} /><span>Обнаружено расхождение в расчёте баланса: {money(finance.reconciliationDifference)}. Обратитесь в поддержку для сверки.</span>
-    </p>}
-    {finance.failedPayoutAmount > 0 && <Link className={styles.notice} href="/seller/finance?view=payouts">
-      <Icon name="alert" size={18} /><span>Выплаты требуют внимания: <strong>{money(finance.failedPayoutAmount)}</strong>. Эти средства остаются в реестрах с ошибкой.</span>
-    </Link>}
-    {!finance.bankDetailsReady && <Link className={styles.notice} href="/seller/legal">
-      <Icon name="alert" size={18} /><span>Заполните банковские реквизиты, чтобы получать выплаты.</span>
-    </Link>}
+    {Math.abs(finance.reconciliationDifference) >= 0.005 && <Banner tone="danger" role="alert">
+      Обнаружено расхождение в расчёте баланса: {money(finance.reconciliationDifference)}. Обратитесь в поддержку для сверки.
+    </Banner>}
+    {finance.failedPayoutAmount > 0 && <Banner tone="warning">
+      <Link href="/seller/finance?view=payouts">
+        Выплаты требуют внимания: <strong>{money(finance.failedPayoutAmount)}</strong>. Эти средства остаются в реестрах с ошибкой.
+      </Link>
+    </Banner>}
+    {!finance.bankDetailsReady && <Banner tone="warning">
+      <Link href="/seller/legal">Заполните банковские реквизиты, чтобы получать выплаты.</Link>
+    </Banner>}
     <div className={styles.nextPayout}>
       <div><span className={styles.caption}>{next ? `Ближайший реестр №${next.id}` : "Прогноз следующего реестра"}</span>
         <strong>{money(next?.payoutAmount ?? finance.nextPayoutAmount)}</strong>
@@ -109,7 +115,7 @@ function Operations({ onPrefetchOrder }: { onPrefetchOrder?: Props["onPrefetchOr
     <form className={styles.filters} onSubmit={apply} key={params.toString()}>
       <label>Тип операции<select name="type" defaultValue={params.get("type") || ""}><option value="">Все операции</option>
         {Object.entries(operationLabels).map(([value, label]) => <option value={value} key={value}>{label}</option>)}</select></label>
-      <label>Номер заказа<input name="orderId" type="number" min="1" step="1" defaultValue={params.get("orderId") || ""} placeholder="ID заказа" /></label>
+      <label>Номер заказа<NumericInput name="orderId" fractionDigits={0} min={1} defaultValue={params.get("orderId") || ""} placeholder="ID заказа" /></label>
       <label>С даты<input name="from" type="date" defaultValue={params.get("from") || ""} /></label>
       <label>По дату<input name="to" type="date" defaultValue={params.get("to") || ""} /></label>
       <button className={styles.button} type="submit">Показать</button>
@@ -167,7 +173,7 @@ function PayoutDetails({ id }: { id: string }) {
     <div className={styles.heading}><h2 id="finance-payout-title">Выплата №{id}</h2><button className={styles.textButton} onClick={close} aria-label="Закрыть детализацию выплаты"><Icon name="x" size={22} /></button></div>
     <RemoteState {...state} />
     {payout && <><p>{labels[payout.status]}</p><strong className={styles.payoutTotal}>{money(payout.payoutAmount, payout.currency)}</strong>
-      {payout.status === "FAILED" && <p className={styles.notice}>Отправку выплаты необходимо проверить. Средства остаются закреплены за этим реестром до решения оператора.</p>}
+      {payout.status === "FAILED" && <Banner tone="warning">Отправку выплаты необходимо проверить. Средства остаются закреплены за этим реестром до решения оператора.</Banner>}
       <dl className={styles.breakdown}><div><dt>Плановая дата</dt><dd>{date(payout.scheduledDate)}</dd></div><div><dt>Отправлено</dt><dd>{payout.sentAt ? dateTime(payout.sentAt) : "—"}</dd></div>
         <div><dt>Выплачено</dt><dd>{payout.paidAt ? dateTime(payout.paidAt) : "—"}</dd></div><div><dt>Платёжное поручение</dt><dd>{payout.paymentOrderNumber || "—"}</dd></div>
         <div><dt>Банк</dt><dd>{payout.bankName}</dd></div><div><dt>Счёт</dt><dd>{payout.checkingAccount}</dd></div></dl>
@@ -221,6 +227,6 @@ function ExportButton({ query, disabled }: { query: string; disabled: boolean })
       if (!controller.signal.aborted) { setBusy(false); request.current = null; }
     }
   }
-  return <div><button className={styles.textButton} disabled={busy || disabled} onClick={download} aria-busy={busy}>{busy ? "Выгружаем…" : "Скачать CSV"}</button>
+  return <div><Button variant="ghost" className={styles.textButton} disabled={disabled} loading={busy} onClick={download}>Скачать CSV</Button>
     {error && <p role="alert" className={styles.error}>{error}</p>}</div>;
 }

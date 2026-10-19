@@ -558,3 +558,21 @@
     display: none;
   }
 }
+
+@media (max-width: 640px) {
+  .header[data-buyer-mobile="true"] { background: var(--white); color: var(--black); }
+  .header[data-buyer-home="true"] .top { display: none; }
+  .buyerBar { background: var(--white); color: var(--black); }
+  .buyerUtility { color: var(--black); }
+  .buyerTitle { text-align: left; font-size: 12px; font-weight: 400; text-transform: uppercase; }
+  .buyerLeading:empty { display: none; }
+  .buyerBar:has(.buyerLeading:empty) { grid-template-columns: minmax(0, 1fr) 44px; }
+}
+
+@media (max-width: 640px) {
+  .mobileAccount { margin-top: auto; padding-bottom: env(safe-area-inset-bottom, 0px); }
+  .mobileAccount .mobileProfileLink:has(svg) { justify-content: flex-start; gap: 12px; }
+  .mobileProfileLink svg { width: 24px; height: 24px; flex: none; }
+}
+
+.iconBtn > span > svg { width: 24px; height: 24px; }

@@ -1,9 +1,15 @@
 "use client";
 
+import { NumericField } from "../../components/ui/NumericField";
+import { useFieldValidation } from "../../lib/useFieldValidation";
+import { scrollToFirstValidationError } from "../../lib/formValidation";
+import { MONEY_RULES, parseNumericInput } from "../../lib/numericInput";
+
 import { useEffect, useState } from "react";
 
 import { Button } from "../../components/ui/Button";
 import { StatusBadge } from "../../components/ui/StatusBadge";
+import { toast } from "../../components/ui/toast";
 import { OrderDetailSection } from "../../components/order-detail/OrderDetail";
 import {
   getAdminOrderReturns,
@@ -23,6 +29,17 @@ export function AdminReturnRequests({ orderId }: Props) {
   const [requests, setRequests] = useState<ReturnRequest[]>([]);
   const [comments, setComments] = useState<Record<number, string>>({});
   const [refundAmounts, setRefundAmounts] = useState<Record<number, string>>({});
+  function validateAmounts(values: Record<number, string>) {
+    const errors: Record<number, string> = {};
+    for (const request of requests) {
+      if (request.status !== "INSPECTED" || request.refundId) continue;
+      const amount = parseNumericInput(values[request.id] ?? "", MONEY_RULES);
+      if (amount === null || !Number.isFinite(amount) || amount <= 0) errors[request.id] = "Укажите корректную сумму возврата";
+      else if (request.requestedAmount && amount > request.requestedAmount) errors[request.id] = "Сумма возврата не может быть больше суммы позиции";
+    }
+    return errors;
+  }
+  const amountValidation = useFieldValidation(refundAmounts, validateAmounts);
   const [busyId, setBusyId] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -86,11 +103,15 @@ export function AdminReturnRequests({ orderId }: Props) {
       setRequests((current) =>
         current.map((item) => (item.id === updated.id ? updated : item))
       );
+      toast.success(`Возврат №${updated.id}: ${returnStatusLabels[updated.status]}`, {
+        id: `admin-return-request-${request.id}`, description: undefined, action: undefined,
+      });
     } catch (reviewError) {
-      setError(
+      toast.error(
         reviewError instanceof Error
           ? reviewError.message
-          : "Не удалось рассмотреть заявку"
+          : "Не удалось рассмотреть заявку",
+        { id: `admin-return-request-${request.id}` }
       );
     } finally {
       setBusyId(null);
@@ -99,13 +120,11 @@ export function AdminReturnRequests({ orderId }: Props) {
 
   async function refund(request: ReturnRequest) {
     if (busyId !== null) return;
-    const amount = Number(refundAmounts[request.id]);
-    if (!Number.isFinite(amount) || amount <= 0) {
-      setError("Укажите корректную сумму возврата");
-      return;
-    }
-    if (request.requestedAmount && amount > request.requestedAmount) {
-      setError("Сумма возврата не может быть больше суммы позиции");
+    amountValidation.touch(request.id);
+    const amount = parseNumericInput(refundAmounts[request.id] ?? "", MONEY_RULES);
+    if (validateAmounts(refundAmounts)[request.id] || amount === null) {
+      setError(null);
+      scrollToFirstValidationError({ selector: '#refund-amount-' + request.id + '[aria-invalid="true"]' });
       return;
     }
 
@@ -117,11 +136,15 @@ export function AdminReturnRequests({ orderId }: Props) {
       setRequests((current) =>
         current.map((item) => (item.id === updated.id ? updated : item))
       );
+      toast.success(`Возврат №${updated.id}: ${returnStatusLabels[updated.status]}`, {
+        id: `admin-return-request-${request.id}`, description: undefined, action: undefined,
+      });
     } catch (refundError) {
-      setError(
+      toast.error(
         refundError instanceof Error
           ? refundError.message
-          : "Не удалось провести возврат денег"
+          : "Не удалось провести возврат денег",
+        { id: `admin-return-request-${request.id}` }
       );
     } finally {
       setBusyId(null);
@@ -214,10 +237,9 @@ export function AdminReturnRequests({ orderId }: Props) {
 
           {request.status === "INSPECTED" && !request.refundId ? (
             <div className={styles.review}>
-              <label data-ui="field">
-                <span>Сумма возврата</span>
-                <input
-                  inputMode="decimal"
+              <NumericField label="Сумма возврата" {...MONEY_RULES}
+                  id={"refund-amount-" + request.id} error={amountValidation.errors[request.id]}
+                  onBlur={() => amountValidation.touch(request.id)}
                   value={refundAmounts[request.id] ?? ""}
                   onChange={(event) =>
                     setRefundAmounts((current) => ({
@@ -226,7 +248,6 @@ export function AdminReturnRequests({ orderId }: Props) {
                     }))
                   }
                 />
-              </label>
               <div className={styles.actions}>
                 {request.requestedAmount ? (
                   <Button

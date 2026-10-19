@@ -1,6 +1,5 @@
 import { NumberField } from "./NumberField";
-import { SectionHeader } from "./SectionHeader";
-import { Icon } from "../../../../../components/ui/Icon";
+import { Banner } from "../../../../../components/ui/Banner";
 import styles from "../ProductEditPage.module.css";
 
 type ValidationErrors = {
@@ -55,12 +54,7 @@ export function ProductShippingCard({
     volumetricWeightKg !== null && volumetricWeightKg > actualWeightKg;
 
   return (
-    <section id="product-shipping" className={styles.card}>
-      <SectionHeader
-        title="Вес и габариты с упаковкой"
-        hint="Укажите размер и вес окончательно упакованной посылки"
-      />
-
+    <section id="product-shipping" className={styles.card} aria-label="Упаковка товара">
       <div className={styles.formGrid}>
         <NumberField
           label="Длина, см"
@@ -93,16 +87,12 @@ export function ProductShippingCard({
       </div>
 
       <div className={styles.shippingGuide}>
-        <div className={styles.shippingGuideIntro}>
-          <Icon name="package" size={18} />
-          <div>
-            <strong>Измеряйте внешнюю упаковку</strong>
-            <span>СДЭК сравнивает фактический вес с объёмным: длина × ширина × высота / 5000</span>
-            <span className={styles.shippingGuideExample}>
-              Например, футболка в упаковке 30 × 25 × 4 см весит 0,3 кг. Объёмный вес — 0,6 кг, поэтому СДЭК рассчитает доставку по объёмному весу
-            </span>
-          </div>
-        </div>
+        <Banner tone="info" icon="package" title={<span className={styles.shippingGuideTitle}>Измеряйте внешнюю упаковку</span>}>
+          <p>СДЭК сравнивает фактический вес с объёмным: длина × ширина × высота / 5000</p>
+          <p className={styles.shippingGuideExample}>
+            Например, футболка в упаковке 30 × 25 × 4 см весит 0,3 кг. Объёмный вес — 0,6 кг, поэтому СДЭК рассчитает доставку по объёмному весу
+          </p>
+        </Banner>
 
         {dimensionsReady && volumetricWeightKg !== null && chargedWeightKg !== null ? (
           <>
@@ -122,17 +112,15 @@ export function ProductShippingCard({
             </div>
 
             {volumetricIsHigher ? (
-              <div className={styles.shippingWeightWarning}>
-                <Icon name="alert" size={17} />
-                <span>Объёмный вес выше фактического, более компактная упаковка снизит стоимость доставки</span>
-              </div>
+              <Banner tone="warning">
+                Объёмный вес выше фактического, более компактная упаковка снизит стоимость доставки
+              </Banner>
             ) : null}
           </>
         ) : (
-          <div className={styles.shippingWeightHint}>
-            <Icon name="info" size={17} />
-            <span>Заполните четыре поля, чтобы увидеть расчётный вес СДЭК</span>
-          </div>
+          <Banner tone="success" icon="info">
+            Заполните четыре поля, чтобы увидеть расчётный вес СДЭК
+          </Banner>
         )}
       </div>
     </section>

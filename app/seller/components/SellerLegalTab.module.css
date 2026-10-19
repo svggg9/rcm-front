@@ -7,37 +7,68 @@
 }
 
 .form {
+  width: 100%;
+  max-width: var(--seller-form-width, 1120px);
   min-width: 0;
   display: flex;
   flex-direction: column;
   gap: 16px;
 }
 
-.pageHeader { padding: 20px; border: .5px solid #a8a8a8; background: var(--white); }
-.pageHeader h1 { margin: 0; font-size: 24px; line-height: 1.2; font-weight: 400; }
-.pageHeader p { margin: 10px 0 0; font-size: 13px; line-height: 20px; color: var(--black); }
+.sectionNavigation {
+  position: sticky;
+  top: var(--site-header-height);
+  z-index: 20;
+  display: flex;
+  gap: 4px;
+  padding: 8px 0;
+  background: var(--white);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.completedBanner h2 { margin-bottom: 0; }
+.incompleteList { margin: 0; padding-left: 20px; }
+.incompleteList li + li { margin-top: 4px; }
+.sectionNavigation::-webkit-scrollbar { display: none; }
+.sectionNavigation button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  flex-shrink: 0;
+  min-height: 44px;
+  padding: 10px 16px;
+  color: var(--black);
+  font-size: 15px;
+  line-height: 21px;
+  font-weight: 400;
+  text-decoration: none;
+  border: 0;
+  background: transparent;
+  font-family: inherit;
+  cursor: pointer;
+}
+.sectionNavigation button:hover { background: var(--surface-hover); }
+.sectionNavigation button[aria-current] { background: var(--soft); font-weight: 500; }
+.sectionNavigation button:focus-visible { outline: 1px solid var(--black); outline-offset: -2px; }
+.sectionNavigation svg { color: var(--success); }
 .page :global(.phoneInputShell) { border: .5px solid #a8a8a8; border-radius: 0; background: var(--white); }
 .page :global(.phoneInputShell):focus-within { border-color: var(--black); }
 .page :global(.label) { color: var(--black); font-size: 12px; font-weight: 400; }
 .page :global(.field) { gap: 4px; }
 .page :global(.phoneInputShell).inputError,
 .page :global(.phoneInputShell.inputError) { border-color: var(--danger); }
-.contactPhone { border: .5px solid #a8a8a8; }
-.typeOption:has(input:focus-visible), .checkbox:has(input:focus-visible) { outline: 1px solid var(--black); outline-offset: 4px; }
+.typeOption:has(input:focus-visible), .checkbox:has(input:focus-visible) { outline: 1px solid var(--black); outline-offset: 3px; }
 .input:focus-visible, .textarea:focus-visible { outline: 1px solid var(--black); outline-offset: -1px; }
 
-@media (max-width: 640px) {
-  .pageHeader { padding: 16px; }
-  .pageHeader h1 { font-size: 22px; }
-}
-
 .card {
+  scroll-margin-top: calc(var(--site-header-height) + 80px);
   min-width: 0;
   display: flex;
   flex-direction: column;
   gap: 20px;
-  padding: 20px;
-  border: .5px solid #a8a8a8;
+  padding: 20px 0;
   background: var(--white);
 }
 
@@ -78,23 +109,12 @@
 }
 
 .typeOption {
-  display: inline-flex;
-  align-items: center;
   gap: 8px;
-  min-height: 42px;
-  padding: 10px 14px;
-  border: .5px solid #a8a8a8;
-  background: transparent;
-  color: var(--black);
-  font-size: 14px;
-  line-height: 1.4;
-  font-weight: 400;
+  white-space: nowrap;
   letter-spacing: 0;
-  cursor: pointer;
 }
 
-.typeOptionActive {
-  border-color: var(--black);
+.typeOption.typeOptionActive {
   font-weight: 500;
 }
 
@@ -121,10 +141,10 @@
   min-width: 0;
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
+  justify-content: flex-start;
   gap: 18px;
-  padding: 20px;
-  background: var(--white);
+  padding: 0;
+  background: transparent;
 }
 
 .contactHint {
@@ -157,15 +177,51 @@
   min-width: 0;
 }
 
+.suggestControl {
+  position: relative;
+  min-width: 0;
+  outline: none !important;
+  --suggest-border-color: var(--black);
+}
+
+.suggestControl > .input {
+  display: block;
+}
+
+.suggestControl:has(> .suggestList) > .input {
+  border-color: var(--suggest-border-color);
+  border-bottom-color: transparent !important;
+  outline: none !important;
+}
+
+.suggestControl:has(> .suggestList):has(> input[aria-invalid="true"]) {
+  --suggest-border-color: var(--danger);
+}
+
+.suggestControl:has(> .suggestList):focus-within > .input {
+  box-shadow:
+    inset 1px 0 0 var(--suggest-border-color),
+    inset -1px 0 0 var(--suggest-border-color),
+    inset 0 1px 0 var(--suggest-border-color);
+}
+
+.suggestControl:has(> .suggestList):focus-within > .suggestList {
+  box-shadow:
+    inset 1px 0 0 var(--suggest-border-color),
+    inset -1px 0 0 var(--suggest-border-color),
+    inset 0 -1px 0 var(--suggest-border-color);
+}
+
 .suggestList {
   position: absolute;
   left: 0;
   right: 0;
-  top: calc(100% + 4px);
+  top: 100%;
   z-index: 10;
   max-height: 280px;
   overflow: auto;
-  border: .5px solid #a8a8a8;
+  border: 1px solid var(--suggest-border-color);
+  border-top-color: transparent;
   background: var(--white);
   box-shadow: none;
 }
@@ -318,24 +374,20 @@
 
 .fieldError { display: block; margin: 0; font-size: 13px; line-height: 18px; color: var(--danger); }
 
-.error {
-  padding: 14px;
-  border: 0;
-  background: color-mix(in srgb, var(--danger) 8%, var(--white));
-  color: var(--danger);
-  font-size: var(--font-sm);
-  line-height: 1.4;
-  font-weight: 400;
-}
-
-.actions {
+.sectionActions {
   display: flex;
   justify-content: flex-end;
-  padding: 16px 0 0;
-  border-top: .5px solid #a8a8a8;
+  padding-top: 2px;
 }
 
-.actions button {
+.pointField { min-width: 0; display: flex; flex-direction: column; gap: 8px; }
+.pointInputRow { min-width: 0; display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: end; gap: 8px; }
+.pointMapAction { display: flex; align-items: center; }
+.pointMapAction button { display: inline-flex; align-items: center; justify-content: center; width: 44px; min-width: 44px; height: 44px; padding: 0; }
+.pointCityHint { color: var(--muted); font-size: 12px; }
+.goldIcon { color: var(--gold-deep); }
+
+.sectionActions button {
   width: auto;
   min-width: 180px;
 }
@@ -350,14 +402,14 @@
 @media (max-width: 640px) {
   .card {
     gap: 18px;
-    padding: 16px;
+    padding: 16px 0;
   }
 
-  .contactPhone {
-    padding: 16px;
-  }
-
-  .actions button {
+  .sectionActions button {
     width: 100%;
+    min-width: 0;
+    flex: 1;
   }
 }
+.card[hidden] { display: none; }
+.sectionActions { gap: 12px; }

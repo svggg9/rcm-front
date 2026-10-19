@@ -1,16 +1,10 @@
-.actions {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.action {
-  width: 100%;
-  text-decoration: none;
-  white-space: nowrap;
-}
-
-.action:focus-visible {
-  outline: 2px solid var(--black);
-  outline-offset: 3px;
-}
+.sidebar{min-width:0;position:sticky;top:calc(var(--site-header-height) + 36px)}
+.heading{margin:0 0 28px;font-size:14px;font-weight:400;text-transform:uppercase}
+.menu{display:flex;flex-direction:column}
+.item{display:flex;align-items:center;justify-content:space-between;gap:20px;padding:24px 0;border-bottom:1px solid var(--line);color:var(--black);text-decoration:none;font-size:14px;line-height:1.5}
+.item[aria-current=page]{font-weight:600}
+.item span:first-child{overflow-wrap:anywhere}.item span:last-child{font-size:16px;font-weight:300}
+.secondary{display:flex;flex-direction:column;align-items:flex-start;gap:22px;padding:40px 0 20px}
+.secondary a,.secondary button{padding:0;border:0;background:none;color:var(--black);font:inherit;font-size:13px;text-decoration:none;cursor:pointer}
+.item:focus-visible,.secondary a:focus-visible,.secondary button:focus-visible{outline:1px solid var(--black);outline-offset:4px}
+@media(max-width:900px){.sidebar{display:none;position:static}.root{display:block}.heading{margin-bottom:20px}.item{min-height:72px;padding:20px 0;text-transform:uppercase}.secondary{gap:26px;padding-top:42px}.secondary a,.secondary button{text-transform:uppercase}}

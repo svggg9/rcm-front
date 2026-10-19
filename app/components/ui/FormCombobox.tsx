@@ -3,6 +3,7 @@
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 
 import { Icon } from "./Icon";
+import { Loader } from "./Loader";
 import styles from "./FormControl.module.css";
 
 type Option = {
@@ -24,6 +25,11 @@ type Props = {
   moderationLabel?: string;
   showModerationBadge?: boolean;
   emptyOptionLabel?: string;
+  suggestionsOnInput?: boolean;
+  onQueryChange?: (query: string) => void;
+  allowCustomValue?: boolean;
+  loading?: boolean;
+  emptyText?: string;
   onChange: (value: number | "", customValue: string) => void;
 };
 
@@ -41,6 +47,11 @@ export function FormCombobox({
   moderationLabel = "На модерации",
   showModerationBadge = true,
   emptyOptionLabel,
+  suggestionsOnInput = false,
+  onQueryChange,
+  allowCustomValue = true,
+  loading = false,
+  emptyText = "Начните вводить свой вариант",
   onChange,
 }: Props) {
   const [open, setOpen] = useState(false);
@@ -52,21 +63,23 @@ export function FormCombobox({
   const selectedOption = options.find((option) => option.value === value) ?? null;
   const inputValue = open ? query : selectedOption?.label ?? customValue;
   const normalizedQuery = query.trim().toLowerCase();
+  const dropdownOpen = open && (!suggestionsOnInput || normalizedQuery.length > 0);
   const hasValue = Boolean(selectedOption || customValue.trim());
   const shouldShowModerationBadge = showModerationBadge && !open && Boolean(customValue.trim());
 
   const filteredOptions = useMemo(() => {
+    if (loading) return [];
     if (!normalizedQuery) return options;
 
     return options.filter((option) =>
       option.label.toLowerCase().includes(normalizedQuery)
     );
-  }, [normalizedQuery, options]);
+  }, [loading, normalizedQuery, options]);
 
   const exactMatch = options.some(
     (option) => option.label.trim().toLowerCase() === normalizedQuery
   );
-  const canSuggest = normalizedQuery.length > 1 && !exactMatch;
+  const canSuggest = !loading && allowCustomValue && normalizedQuery.length > 1 && !exactMatch;
 
   useEffect(() => {
     function handlePointerDown(event: MouseEvent) {
@@ -97,6 +110,7 @@ export function FormCombobox({
     onChange(option.value, "");
     setOpen(false);
     setQuery("");
+    if (suggestionsOnInput) inputRef.current?.focus();
   }
 
   function selectEmpty() {
@@ -122,11 +136,26 @@ export function FormCombobox({
       className={full ? styles.fieldFull : styles.field}
       data-validation-error={invalid ? "true" : undefined}
       ref={rootRef}
+      onBlur={(event) => {
+        if (suggestionsOnInput && !event.currentTarget.contains(event.relatedTarget as Node | null)) {
+          setOpen(false);
+          setQuery("");
+        }
+      }}
+      onKeyDown={(event) => {
+        if (event.key === "Escape" && open) {
+          event.preventDefault();
+          event.stopPropagation();
+          setOpen(false);
+          setQuery("");
+          inputRef.current?.focus();
+        }
+      }}
     >
       <span className={required ? styles.required : undefined}>{label}</span>
 
       <div
-        className={`${styles.select} ${open ? styles.selectOpen : ""} ${
+        className={`${styles.select} ${dropdownOpen ? styles.selectOpen : ""} ${
           invalid ? styles.invalid : ""
         } ${required && !hasValue ? styles.requiredEmpty : ""} ${
           disabled ? styles.selectDisabled : ""
@@ -138,12 +167,17 @@ export function FormCombobox({
           aria-label={label}
           aria-describedby={invalid ? errorId : undefined}
           aria-required={required || undefined}
+          role="combobox"
+          aria-autocomplete="list"
+          aria-expanded={dropdownOpen}
+          aria-controls={dropdownOpen ? listboxId : undefined}
           value={inputValue}
           className={`${styles.comboboxInput} ${shouldShowModerationBadge ? styles.comboboxInputWithBadge : ""} ${hasValue ? "" : styles.placeholder}`}
-          placeholder={open ? placeholder : undefined}
+          placeholder={suggestionsOnInput || open ? placeholder : undefined}
           disabled={disabled}
           onFocus={() => {
             if (disabled) return;
+            if (suggestionsOnInput) return;
             if (suppressNextOpenRef.current) {
               suppressNextOpenRef.current = false;
               return;
@@ -155,11 +189,18 @@ export function FormCombobox({
             if (disabled) return;
             setQuery(event.target.value);
             setOpen(true);
+            onQueryChange?.(event.target.value);
           }}
           onKeyDown={(event) => {
-            if (!disabled && event.key === "Enter" && canSuggest) {
+            if (!disabled && event.key === "ArrowDown" && dropdownOpen) {
               event.preventDefault();
-              selectSuggested();
+              rootRef.current?.querySelector<HTMLButtonElement>('[role="option"]')?.focus();
+            }
+            const matched = filteredOptions.find(option => option.label.trim().toLowerCase() === normalizedQuery);
+            if (!disabled && event.key === "Enter" && dropdownOpen && (canSuggest || matched)) {
+              event.preventDefault();
+              if (matched) selectExisting(matched);
+              else selectSuggested();
             }
           }}
         />
@@ -168,7 +209,7 @@ export function FormCombobox({
           <span className={styles.comboboxBadge}>{moderationLabel}</span>
         ) : null}
 
-        <button
+        {!suggestionsOnInput && <button
           type="button"
           className={styles.chevron}
           aria-label={open ? "Свернуть список" : "Раскрыть список"}
@@ -181,11 +222,11 @@ export function FormCombobox({
           }}
         >
           <Icon name="chevron-down" size={20} strokeWidth={1.5} />
-        </button>
+        </button>}
 
-        <div className={styles.menu} id={listboxId} role="listbox">
+        {(!suggestionsOnInput || dropdownOpen) && <div className={styles.menu} id={listboxId} role="listbox">
           <div className={styles.options}>
-            {placeholder ? (
+            {placeholder && !suggestionsOnInput ? (
               <button
                 type="button"
                 className={`${styles.option} ${styles.optionMuted}`}
@@ -244,10 +285,12 @@ export function FormCombobox({
             ) : null}
 
             {!filteredOptions.length && !canSuggest ? (
-              <div className={`${styles.empty} ${styles.optionPlaceholder}`}>Начните вводить свой вариант</div>
+              <div className={`${styles.empty} ${styles.optionPlaceholder}`}>
+                {loading ? <Loader inline label="Поиск вариантов" /> : <span role="status">{emptyText}</span>}
+              </div>
             ) : null}
           </div>
-        </div>
+        </div>}
       </div>
     </div>
   );

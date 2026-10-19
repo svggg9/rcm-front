@@ -53,6 +53,8 @@ export default async function ProductEditor({ params, intercepted = false }: Pro
     throw new Error("Не удалось загрузить товар");
   }
 
+  if (productResult.product.status === "DELETED" && !productResult.product.revisionSourceId) notFound();
+
   const sellerBrands: Option[] = accessAndBrands.brands.map((brand) => ({
     id: brand.id,
     name: brand.name,

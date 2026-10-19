@@ -12,6 +12,7 @@ import {
   normalizeRussianPhone,
 } from "../../lib/phone";
 import { Field } from "./Field";
+import { InputControl } from "./InputControl";
 
 type Props = Omit<
   InputHTMLAttributes<HTMLInputElement>,
@@ -20,7 +21,7 @@ type Props = Omit<
   label?: string;
   error?: string | null;
   hint?: string;
-  fieldVariant?: "line" | "boxed";
+  fieldVariant?: "line" | "boxed" | "inline";
   hideLabel?: boolean;
   value: string;
   onChange: (event: React.ChangeEvent<HTMLInputElement>) => void;
@@ -117,7 +118,7 @@ export function PhoneInput({
   function handleBlur(event: React.FocusEvent<HTMLInputElement>) {
     pendingCaretRef.current = null;
 
-    if (!getRussianPhoneDigits(value)) {
+    if (!props.readOnly && !props.disabled && !getRussianPhoneDigits(value)) {
       onChange(createChangeEvent(event, ""));
     }
 
@@ -133,11 +134,12 @@ export function PhoneInput({
       hideLabel={hideLabel}
     >
       <span
-        className={`phoneInputShell ${error ? "inputError" : ""}`.trim()}
+        className={`phoneInputShell ${visibleError ? "inputError" : ""}`.trim()}
       >
         <span className="phoneInputPrefix">+7</span>
-        <input
+        <InputControl
           {...props}
+          spacePolicy="formatted"
           ref={inputRef}
           type="tel"
           className={`phoneInput ${className}`.trim()}
@@ -149,7 +151,7 @@ export function PhoneInput({
           minLength={15}
           maxLength={32}
           title={title}
-          aria-invalid={error ? "true" : undefined}
+          aria-invalid={visibleError ? "true" : props["aria-invalid"]}
           aria-describedby={describedBy}
           onChange={handleChange}
           onFocus={handleFocus}

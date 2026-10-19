@@ -1,150 +1,52 @@
 "use client";
 
+import { useState, type ReactNode } from "react";
 import type { DeliveryOption } from "../types";
-import { Price } from "../../components/ui/Price";
+import { Dialog } from "../../components/ui/Dialog";
+import { Button } from "../../components/ui/Button";
+import { Icon } from "../../components/ui/Icon";
+import { CdekLogo } from "../../components/Delivery/CdekLogo";
+import { Loader } from "../../components/ui/Loader";
 import { SkeletonBlock } from "../../components/ui/SkeletonBlock";
 import { PickupPointMap } from "./PickupPointMap";
 import styles from "./PickupPointModal.module.css";
 
 type Props = {
-  open: boolean;
-  loading: boolean;
-  points: DeliveryOption[];
-  selectedId: string;
-  deliveryPrice: number;
-  onClose: () => void;
-  onSelect: (id: string) => void;
-  onConfirm: () => void;
+  open: boolean; loading: boolean; points: DeliveryOption[]; selectedId: string;
+  deliveryPrice: number; cityField?: ReactNode; cityKey?: number; error?: string | null;
+  onClose: () => void; onSelect: (id: string) => void; onConfirm: () => void; onRetry?: () => void;
 };
 
-export function PickupPointModal({
-  open,
-  loading,
-  points,
-  selectedId,
-  deliveryPrice,
-  onClose,
-  onSelect,
-  onConfirm,
-}: Props) {
-  if (!open) return null;
-
-  const selectedPoint = selectedId.trim()
-    ? points.find((point) => point.id === selectedId) ?? null
-    : null;
-
-  return (
-    <div
-      className={styles.overlay}
-      onMouseDown={(event) => {
-        if (event.target === event.currentTarget) {
-          onClose();
-        }
-      }}
-    >
-      <div className={styles.modal}>
-        <header className={styles.header}>
-          <div>
-            <h2 className={styles.title}>Выберите пункт выдачи</h2>
-            <p className={styles.subtitle}>Пункты СДЭК в выбранном городе</p>
-          </div>
-
-          <button type="button" className={styles.closeButton} onClick={onClose}>
-            Закрыть
-          </button>
-        </header>
-
-        <div className={styles.body}>
-          <aside className={styles.panel}>
-            {loading ? (
-              <div
-                className={styles.listLoader}
-                role="status"
-                aria-label="Загрузка пунктов выдачи"
-              >
-                {Array.from({ length: 6 }, (_, index) => (
-                  <div className={styles.skeletonItem} key={index}>
-                    <SkeletonBlock as="span" className={styles.skeletonLine} />
-                    <SkeletonBlock as="span" className={styles.skeletonLineShort} />
-                  </div>
-                ))}
-              </div>
-            ) : selectedPoint ? (
-              <div className={styles.details}>
-                <button
-                  type="button"
-                  className={styles.backButton}
-                  onClick={() => onSelect("")}
-                >
-                  ← Назад к списку
-                </button>
-
-                <div className={styles.provider}>СДЭК</div>
-                <div className={styles.address}>{selectedPoint.label}</div>
-
-                {deliveryPrice > 0 ? (
-                  <div className={styles.detailLine}>
-                    Стоимость доставки <Price amount={deliveryPrice} />
-                  </div>
-                ) : null}
-
-                {selectedPoint.hint ? (
-                  <>
-                    <div className={styles.detailSubtitle}>Как добраться</div>
-                    <div className={styles.detailLine}>{selectedPoint.hint}</div>
-                  </>
-                ) : null}
-
-                <button
-                  type="button"
-                  className={styles.confirmButton}
-                  onClick={onConfirm}
-                >
-                  Выбрать этот пункт
-                </button>
-              </div>
-            ) : (
-              <div className={styles.list}>
-                {points.map((point) => (
-                  <button
-                    key={point.id}
-                    type="button"
-                    className={styles.item}
-                    onClick={() => onSelect(point.id)}
-                  >
-                    <span className={styles.itemTitle}>СДЭК</span>
-                    <span className={styles.itemTitle}>{point.label}</span>
-
-                    {deliveryPrice > 0 ? (
-                      <span className={styles.itemMeta}>
-                        <Price amount={deliveryPrice} />
-                      </span>
-                    ) : null}
-                  </button>
-                ))}
-              </div>
-            )}
-          </aside>
-
-          <div className={styles.map}>
-            {loading ? (
-              <div
-                className={styles.mapLoader}
-                role="status"
-                aria-label="Загрузка карты"
-              >
-                <span />
-              </div>
-            ) : (
-              <PickupPointMap
-                points={points}
-                selectedId={selectedId}
-                onSelect={onSelect}
-              />
-            )}
-          </div>
-        </div>
-      </div>
+function PickupPointPicker({ loading, points, selectedId, cityField, cityKey, error, onClose, onSelect, onConfirm, onRetry }: Omit<Props, "open">) {
+  const [candidate, setCandidate] = useState({ cityKey, id: selectedId });
+  const candidateId = candidate.cityKey === cityKey ? candidate.id : "";
+  const setCandidateId = (id: string) => setCandidate({ cityKey, id });
+  const selected = points.find(point => point.id === candidateId) ?? null;
+  return <Dialog title="Выбрать пункт выдачи" actions={null} size="wide" mobileFullscreen onClose={onClose}>
+    <div className={styles.picker}>
+      {cityField}
+      {error && <div role="alert" className={styles.error}>{error}{onRetry && <button type="button" onClick={onRetry} className={styles.textButton}>Повторить</button>}</div>}
+      {loading ? <div className={`${styles.map} ${styles.loading}`}>
+        <SkeletonBlock className={styles.skeleton} />
+        <Loader inline label="Загрузка пунктов выдачи" />
+      </div> : !cityKey ? <p className={styles.muted}>Выберите город из списка</p> : <>
+        {points.length > 0 && <div className={styles.map}><PickupPointMap points={points} selectedId={selected?.id ?? ""} onSelect={setCandidateId} /></div>}
+        {selected ? <div className={styles.details}>
+          <span className={styles.provider}><CdekLogo /></span><p>{selected.label}</p>
+          {selected.hint && <div className={styles.instructions}><span>Как найти</span><p>{selected.hint}</p></div>}
+          <Button type="button" variant="primary" className={styles.primary} onClick={() => { onSelect(selected.id); onConfirm(); }}>Выбрать этот пункт выдачи</Button>
+          <Button type="button" variant="secondary" className={styles.primary} onClick={() => setCandidateId("")}>Выбрать другой пункт</Button>
+        </div> : <div className={styles.list}>
+          {!points.length && !error && <p className={styles.muted}>В этом городе нет доступных пунктов выдачи</p>}
+          {points.map(point => <button type="button" key={point.id} className={styles.item} onClick={() => setCandidateId(point.id)}>
+            <span><span className={styles.provider}><CdekLogo /></span><span>{point.label}</span></span><Icon name="chevron-right" size={20} strokeWidth={1} />
+          </button>)}
+        </div>}
+      </>}
     </div>
-  );
+  </Dialog>;
+}
+
+export function PickupPointModal(props: Props) {
+  return props.open ? <PickupPointPicker {...props} /> : null;
 }

@@ -3,6 +3,7 @@
 import { useRef, useState, type ComponentProps } from "react";
 import { createPortal } from "react-dom";
 import { Button } from "./Button";
+import { Banner } from "./Banner";
 import { Dialog } from "./Dialog";
 
 type Props = Omit<ComponentProps<typeof Button>, "onClick"> & {
@@ -49,7 +50,7 @@ export function ConfirmActionButton({ confirmTitle, confirmText, confirmLabel = 
       actions={<><Button onClick={() => setOpen(false)} disabled={pending || loading}>Отмена</Button>
         <Button variant="primary" loading={pending || loading} disabled={disabled} onClick={() => void confirm()}>{confirmLabel}</Button></>}>
       <p>{confirmText}</p>
-      {error && <div className="alertDanger" role="alert">{error}</div>}
+      {error && <Banner tone="danger" role="alert">{error}</Banner>}
     </Dialog>, document.body)}
   </>;
 }

@@ -5,6 +5,7 @@ import Link from "next/link";
 import linkedRow from "../../components/ui/LinkedListRow.module.css";
 
 import { Button } from "../../components/ui/Button";
+import { Banner } from "../../components/ui/Banner";
 import { CabinetSkeleton } from "../../components/ui/CabinetSkeleton";
 import { EmptyState } from "../../components/ui/EmptyState";
 import { StatusBadge } from "../../components/ui/StatusBadge";
@@ -184,13 +185,13 @@ export function SellerReturnsTab() {
         </div>
       ) : null}
 
-      {error ? <div className={`alertDanger ${styles.feedback}`} role="alert">
-        <p>{error}</p>
-        <Button onClick={() => {
+      {error ? <div className={styles.feedback}><Banner tone="danger" role="alert"
+        actions={<Button onClick={() => {
           if (loadMoreFailed) { void loadMore(); return; }
           setError(null); setLoading(true); setAttempt(value => value + 1);
-        }}>Повторить</Button>
-      </div> : null}
+        }}>Повторить</Button>}>
+        <p>{error}</p>
+      </Banner></div> : null}
     </section>
   );
 }

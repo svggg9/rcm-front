@@ -1,6 +1,8 @@
 /* eslint-disable @typescript-eslint/no-require-imports -- Isolated browser regression runner. */
 const assert = require("node:assert/strict");
+const fs = require("node:fs");
 const http = require("node:http");
+const path = require("node:path");
 const { spawn } = require("node:child_process");
 const { chromium } = require(process.env.PLAYWRIGHT_PATH || "playwright");
 const origin = "http://localhost:13040";
@@ -21,7 +23,7 @@ const server = http.createServer(async (req, res) => {
   if (req.method === "OPTIONS") return res.end();
   let data = [];
   if (url.pathname === "/api/auth/session") data = { id: 70, username: "seller", role: "SELLER" };
-  else if (url.pathname === "/api/seller/brands") data = [{ id: 1, name: "Brand" }];
+  else if (url.pathname === "/api/seller/brands") data = [{ id: 1, name: "Brand", description: "Описание магазина", wordmarkUrl: "/icons/like.svg" }];
   else if (url.pathname === "/api/seller/onboarding-status") data = { applicationCompleted: true, brandCompleted: true, legalCompleted: true, agreementAccepted: true, progress: 100, completedSteps: 4, totalSteps: 4 };
   else if (url.pathname === "/api/seller/products/list") data = { content: [], totalElements: 0, totalPages: 0, number: 0 };
   else if (url.pathname === "/api/seller/orders/list") data = { content: [order], totalElements: 1, totalPages: 1, number: 0 };
@@ -35,10 +37,88 @@ const server = http.createServer(async (req, res) => {
     data = request;
   } else if (url.pathname === "/api/seller/dashboard/tasks") data = { content: [], hasNext: false, number: 0 };
   else if (url.pathname === "/api/seller/finance/summary") data = { availableAmount: 0, processingAmount: 0, inPayoutAmount: 0, failedPayoutAmount: 0, nextPayoutAmount: 0, reconciliationDifference: 0, operations: [], nextPayout: null, nextPayoutDate: null, bankDetailsReady: true, paidThisMonthAmount: 0, estimatedBalance: 0, salesAmount: 0, commissionAmount: 0, adjustmentsAmount: 0, paidOutAmount: 0 };
+  else if (url.pathname === "/api/seller/finance/payouts" || url.pathname === "/api/seller/finance/operations") data = { content: [], totalElements: 0, totalPages: 0, number: 0 };
   else if (url.pathname === "/api/seller/dashboard-summary") data = { activeProducts: 0, attentionProducts: 0, totalProducts: 0, readyOrders: 0, activeOrders: 0, totalOrders: 0, estimatedBalance: 0, salesAmount: 0, commissionAmount: 0, availablePayout: 0, processingPayout: 0, inPayoutAmount: 0, failedPayouts: 0, telegramLinked: false, supportTelegramUrl: null, recentEvents: [] };
   else if (url.pathname === "/api/cart") data = { items: [] };
   res.end(JSON.stringify(data));
 });
+
+async function assertCenteredNavigation(navigation, label, required = true) {
+  const geometry = await navigation.evaluate(node => {
+    const container = node.getBoundingClientRect();
+    const links = Array.from(node.querySelectorAll("a"), link => link.getBoundingClientRect());
+    return {
+      containerCenter: container.left + container.width / 2,
+      containerWidth: container.width,
+      left: Math.min(...links.map(link => link.left)),
+      right: Math.max(...links.map(link => link.right)),
+    };
+  });
+  const fits = geometry.right - geometry.left <= geometry.containerWidth + 1;
+  if (required) assert.ok(fits, `${label}: all links should fit inside their navigation container`);
+  if (fits) {
+    assert.ok(Math.abs((geometry.left + geometry.right) / 2 - geometry.containerCenter) <= 1,
+      `${label}: links should be centered in their navigation container`);
+  }
+}
+
+async function assertLinkVisible(page, link, label) {
+  const handle = await link.elementHandle();
+  try {
+    await page.waitForFunction(node => {
+      const navigation = node.closest("nav");
+      if (!navigation) return false;
+      const container = navigation.getBoundingClientRect();
+      const item = node.getBoundingClientRect();
+      return item.width > 0 && item.left >= container.left - 1 && item.right <= container.right + 1;
+    }, handle);
+  } finally { await handle.dispose(); }
+  assert.equal(await link.evaluate(node => {
+    const container = node.closest("nav").getBoundingClientRect();
+    const item = node.getBoundingClientRect();
+    return item.left >= container.left - 1 && item.right <= container.right + 1;
+  }), true, `${label}: the complete link should be visible inside the horizontal scroller`);
+}
+
+async function assertKeyboardNavigation(page, navigation, label, startAtLast = false) {
+  const links = navigation.getByRole("link");
+  const count = await links.count();
+  const sourceScroll = await page.evaluate(() => scrollY);
+  await links.nth(startAtLast ? count - 1 : 0).focus();
+  assert.equal(await page.evaluate(() => scrollY), sourceScroll, `${label}: initial focus must preserve page scroll`);
+  if (startAtLast) {
+    for (let index = count - 2; index >= 0; index--) {
+      await page.keyboard.press("Shift+Tab");
+      assert.equal(await links.nth(index).evaluate(node => node === document.activeElement), true,
+        `${label}: Shift+Tab should follow link order`);
+      await assertLinkVisible(page, links.nth(index), `${label}, previous link ${index + 1}`);
+      assert.equal(await page.evaluate(() => scrollY), sourceScroll, `${label}: revealing a link must preserve page scroll`);
+    }
+  }
+  for (let index = 1; index < count; index++) {
+    await page.keyboard.press("Tab");
+    assert.equal(await links.nth(index).evaluate(node => node === document.activeElement), true,
+      `${label}: Tab should follow link order`);
+    await assertLinkVisible(page, links.nth(index), `${label}, next link ${index + 1}`);
+    assert.equal(await page.evaluate(() => scrollY), sourceScroll, `${label}: keyboard focus must preserve page scroll`);
+  }
+  assert.equal(await links.last().evaluate(node => {
+    const style = getComputedStyle(node);
+    return node.matches(":focus-visible") && style.outlineStyle !== "none" && Number.parseFloat(style.outlineWidth) >= 1;
+  }), true, `${label}: keyboard focus must have a visible outline`);
+}
+
+async function saveNavigationScreenshot(page, width) {
+  const navigation = page.getByRole("navigation", { name: "Подразделы кабинета" });
+  const box = await navigation.boundingBox();
+  const directory = path.resolve(__dirname, "../build/navigation-screenshots");
+  fs.mkdirSync(directory, { recursive: true });
+  await page.screenshot({
+    path: path.join(directory, `seller-navigation-${width}.png`),
+    clip: { x: 0, y: 0, width, height: Math.ceil(box.y + box.height + 12) },
+  });
+}
+
 async function main() {
   await new Promise(resolve => server.listen(19640, "127.0.0.1", resolve));
   const child = spawn(process.execPath, [require.resolve("next/dist/bin/next"), "dev", "-p", "13040"], {
@@ -48,6 +128,7 @@ async function main() {
   let logs = ""; child.stdout.on("data", d => { logs += d; }); child.stderr.on("data", d => { logs += d; });
   let browser;
   let page;
+  const errors = [];
   try {
     for (let i = 0; i < 120; i++) {
       if (child.exitCode != null) throw new Error("Test Next server exited: " + logs);
@@ -55,9 +136,9 @@ async function main() {
     }
     browser = await chromium.launch({ headless: true, channel: "msedge" });
     page = await browser.newPage({ viewport: { width: 1280, height: 900 } });
-    const errors = []; page.on("pageerror", e => errors.push(e.message));
+    page.on("pageerror", e => errors.push(e.message));
     const sections = [
-      { path: "/seller/home", label: "Обзор" }, { path: "/seller/products", label: "Каталог" },
+      { path: "/seller/home", label: "Обзор магазина" }, { path: "/seller/products", label: "Товары" },
       { path: "/seller/orders", label: "Заказы" }, { path: "/seller/returns", label: "Заказы", activePath: "/seller/orders", secondary: "Возвраты" },
       { path: "/seller/finance", label: "Финансы" }, { path: "/seller/store", label: "Магазин" },
       { path: "/seller/legal", label: "Данные и документы" },
@@ -87,15 +168,72 @@ async function main() {
     assert.deepEqual(errors, [], "Every canonical route and legacy redirect should render without browser errors");
     console.log("PASS: all seven seller routes open directly and after reload with the seller header and correct active section");
     console.log("PASS: root and legacy tab URLs redirect to canonical routes while preserving section/view parameters");
+
+    for (const section of ["/seller/products", "/seller/orders", "/seller/finance?view=payouts"]) {
+      await page.goto(origin + section);
+      await page.waitForLoadState("networkidle");
+      assert.deepEqual(errors, [], `Seller navigation route ${section} should render without browser errors`);
+      await assertCenteredNavigation(page.getByRole("navigation", { name: "Меню продавца" }), `Primary navigation on ${section}`);
+      await assertCenteredNavigation(page.getByRole("navigation", { name: "Подразделы кабинета" }), `Secondary navigation on ${section}`);
+    }
+    await saveNavigationScreenshot(page, 1280);
+
+    await page.goto(origin + "/seller/legal");
+    await page.waitForLoadState("networkidle");
+    const resizedDocuments = page.getByRole("navigation", { name: "Меню продавца" })
+      .getByRole("link", { name: "Данные и документы", exact: true });
+    for (const width of [390, 320]) {
+      await page.setViewportSize({ width, height: 844 });
+      assert.equal(await resizedDocuments.getAttribute("aria-current"), "page");
+      await assertLinkVisible(page, resizedDocuments, `Documents section after resizing from desktop to ${width}`);
+      assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
+    }
+
+    for (const width of [390, 320]) {
+      await page.setViewportSize({ width, height: 844 });
+      await page.goto(origin + "/seller/legal");
+      await page.waitForLoadState("networkidle");
+      const primary = page.getByRole("navigation", { name: "Меню продавца" });
+      const active = primary.getByRole("link", { name: "Данные и документы", exact: true });
+      await assertLinkVisible(page, active, `Active documents section at ${width}`);
+      assert.equal(await primary.evaluate(node => node.scrollWidth > node.clientWidth), true,
+        `Primary navigation at ${width} should scroll instead of shrinking its links`);
+      assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
+      await page.reload();
+      await page.waitForLoadState("networkidle");
+      assert.equal(await active.getAttribute("aria-current"), "page");
+      await assertLinkVisible(page, active, `Reloaded documents section at ${width}`);
+      await page.evaluate(() => scrollTo(0, 24));
+      assert.equal(await page.evaluate(() => scrollY), 24, "Use a nonzero page scroll position when checking horizontal focus reveal");
+      await assertKeyboardNavigation(page, primary, `Primary navigation at ${width}`, true);
+
+      await page.goto(origin + "/seller/finance?view=payouts");
+      await page.waitForLoadState("networkidle");
+      const secondary = page.getByRole("navigation", { name: "Подразделы кабинета" });
+      const payouts = secondary.getByRole("link", { name: "Выплаты", exact: true });
+      assert.equal(await payouts.getAttribute("aria-current"), "page");
+      await assertLinkVisible(page, payouts, `Third finance subsection at ${width}`);
+      await assertCenteredNavigation(secondary, `Finance subsections at ${width}`);
+      await page.reload();
+      await page.waitForLoadState("networkidle");
+      await assertLinkVisible(page, payouts, `Reloaded third finance subsection at ${width}`);
+      await assertKeyboardNavigation(page, secondary, `Secondary navigation at ${width}`, true);
+      await page.evaluate(() => document.activeElement.blur());
+      assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
+      await saveNavigationScreenshot(page, width);
+    }
+    console.log("PASS: seller navigation centered at 1280; active/edge links, keyboard focus and unchanged page scroll at 390/320; navigation screenshots saved");
+
+    await page.setViewportSize({ width: 1280, height: 900 });
     await page.goto(origin + "/seller/orders");
     await page.waitForLoadState("networkidle");
     const search = page.getByPlaceholder("Номер заказа, товар или получатель");
     await search.fill("Тестовый");
-    await page.getByRole("button", { name: "Ещё 1 товар", exact: true }).click();
-    await page.getByText("Третий товар", { exact: true }).waitFor();
-    assert.match(page.url(), /\/seller\/orders$/, "Inner action must not navigate");
+    await page.getByText("Ещё 1 товар", { exact: true }).waitFor();
+    assert.equal(await page.getByRole("button", { name: "Ещё 1 товар", exact: true }).count(), 0, "List composition must not expand inline");
+    assert.match(page.url(), /\/seller\/orders$/, "Summary must not navigate");
     assert.equal(calls.filter(p => p === "/api/seller/orders/10").length, 0, "No speculative detail requests");
-    const openOrder = page.getByRole("link", { name: /Открыть заказ/ });
+    const openOrder = page.getByRole("link", { name: /Открыть заказ|Подготовить отправку заказа/ });
     await openOrder.scrollIntoViewIfNeeded();
     const sourceScroll = await page.evaluate(() => scrollY);
     const originalSearchNode = await search.elementHandle();
@@ -205,7 +343,7 @@ async function main() {
     }
     console.log("PASS: compact public header 1280/768/390/320, proportional icons, 44px touch targets, no horizontal overflow");
     console.log("PASS: immediate local overlay with delayed API; stable background DOM; no RSC/list refetch; URL, close/Escape, filter/scroll, forward/back, draft, inspect/list sync, direct/reload/legacy URL, mobile 320/390");
-  } catch (e) { console.error(logs.slice(-4000)); if (page) console.error(await page.locator('body').innerText()); throw e; }
+  } catch (e) { console.error(logs.slice(-4000)); if (errors.length) console.error("Browser errors:", errors); if (page) console.error(await page.locator('body').innerText()); throw e; }
   finally { if (browser) await browser.close(); child.kill(); server.close(); }
 }
 main().catch(e => { console.error(e); process.exitCode = 1; });

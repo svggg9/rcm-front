@@ -29,6 +29,7 @@
 .buttonStates > div { display: flex; flex-direction: column; align-items: flex-start; gap: 12px; min-width: 0; }
 .buttonStates > div > span { font-size: 13px; color: var(--muted); }
 .buttonStates button { min-width: 132px; }
+.buttonStates button.utilityButton { min-width: 0; }
 .page .textButton { border: 0; background: transparent; color: var(--black); font-weight: 600; transition: transform var(--transition-fast); }
 .page .textButton:focus-visible { outline: 2px solid var(--black); outline-offset: 3px; }
 .page .textButton:active:not(:disabled) { transform: translateY(1px); }
@@ -54,17 +55,9 @@
 .statusRow > code { width: 70px; }
 .compareGrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 28px; margin-bottom: 20px; }
 .stack { display: grid; gap: 16px; min-width: 0; }
-.feedbackPreview { display: flex; align-items: flex-start; gap: 12px; padding: 16px; font-size: 15px; line-height: 1.5; }
-.feedbackPreview svg { flex-shrink: 0; }
-.feedbackPreview strong { color: var(--black); font-weight: 500; }
-.feedbackPreview p { margin-top: 4px; color: var(--black); font-weight: 400; }
-.feedbackPreview > span { color: var(--black); }
-.feedbackPreview[data-tone="danger"] { color: var(--danger); background: color-mix(in srgb, var(--danger) 8%, var(--white)); }
-.feedbackPreview[data-tone="success"] { color: var(--success); background: color-mix(in srgb, var(--success) 8%, var(--white)); }
 .iconGrid { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 24px 12px; margin-bottom: 20px; }
 .iconGrid > div { display: flex; flex-direction: column; align-items: center; gap: 12px; text-align: center; font-size: 13px; line-height: 1.4; }
 .statePreview { margin-top: 24px; padding: 24px; border: 1px solid var(--line); }
-.statePreview[data-state="success"] :global(.emptyStateIcon) { color: var(--success); }
 .skeletonGrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; max-width: 520px; margin: 0 auto; padding: 0; list-style: none; }
 .nextStep { display: grid; gap: 12px; padding-top: 32px; max-width: 760px; }
 

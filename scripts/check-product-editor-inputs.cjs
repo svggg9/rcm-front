@@ -2,7 +2,8 @@
 const fs=require('node:fs');
 const ts=require('typescript');
 const assert=require('node:assert/strict');
-function read(path){const mod={exports:{}};new Function('require','exports',ts.transpileModule(fs.readFileSync(path,'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,jsx:ts.JsxEmit.ReactJSX}}).outputText)(require,mod.exports);return mod.exports;}
+for (const extension of ['.ts', '.tsx']) require.extensions[extension] = (mod, filename) => mod._compile(ts.transpileModule(fs.readFileSync(filename,'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,jsx:ts.JsxEmit.ReactJSX}}).outputText, filename);
+function read(path){return require(require('node:path').resolve(path));}
 const {parseVariantNumber}=read('app/seller/products/[id]/edit/components/VariantNumberInput.tsx');
 for(const [value,expected] of [['1999,90',1999.9],['1 999.90',1999.9],['0',0],['',null]])assert.equal(parseVariantNumber(value),expected);
 for(const value of ['-1','1e3','12,345','12.3.4','text'])assert.ok(Number.isNaN(parseVariantNumber(value)));

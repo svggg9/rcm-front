@@ -1,5 +1,6 @@
 import Image from "next/image";
 import { Button } from "../../components/ui/Button";
+import { Banner } from "../../components/ui/Banner";
 import { CabinetSkeleton } from "../../components/ui/CabinetSkeleton";
 import { DesignSystemIcon as Icon } from "../../components/ui/DesignSystemIcon";
 import { StatusBadge } from "../../components/ui/StatusBadge";
@@ -31,9 +32,10 @@ export function OrderDetailsPanel({ order, details, loading, error, onRetry, aud
   const headingPrefix = `order-details-${audience}-${order.id}`;
   return <div className={styles.details}>
     <section aria-label="Товары в заказе" className={styles.products}>
-      {loading ? <CabinetSkeleton variant="list" rows={1} compact /> : error ? <div className="alertDanger" role="alert">
-        <p>Не удалось загрузить детали заказа</p><Button onClick={onRetry}>Повторить</Button>
-      </div> : details?.items.length ? <ul className={styles.productList}>
+      {loading ? <CabinetSkeleton variant="list" rows={1} compact /> : error ? <Banner tone="danger" role="alert"
+        actions={<Button onClick={onRetry}>Повторить</Button>}>
+        <p>Не удалось загрузить детали заказа</p>
+      </Banner> : details?.items.length ? <ul className={styles.productList}>
         {details.items.map(item => <li key={`${item.productId}-${item.variantId}`}>
           <article className={styles.product}>
             {item.imageUrl ? <Image src={item.imageUrl} alt={item.productTitle} width={80} height={106} className={styles.productImage} />

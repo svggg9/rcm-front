@@ -2,7 +2,7 @@
 
 import { Suspense, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { toast } from "sonner";
+import { toast } from "@/app/components/ui/toast";
 
 import { setAuth } from "../../../lib/auth";
 import { safeReturnPath } from "../../../lib/safeReturnPath";

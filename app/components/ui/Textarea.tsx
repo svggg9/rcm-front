@@ -24,9 +24,10 @@ export function Textarea({
   return (
     <Field label={label} required={required} hint={hint} variant={fieldVariant}>
       <textarea
-        className={`textarea ${error ? "inputError" : ""} ${className}`.trim()}
-        aria-invalid={error ? "true" : undefined}
+        className={`textarea ${visibleError ? "inputError" : ""} ${className}`.trim()}
         {...props}
+        required={required}
+        aria-invalid={visibleError ? "true" : props["aria-invalid"]}
         aria-required={required || undefined}
         aria-describedby={[props["aria-describedby"], visibleError ? errorId : null].filter(Boolean).join(" ") || undefined}
       />

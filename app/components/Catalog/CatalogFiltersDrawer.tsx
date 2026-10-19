@@ -1,5 +1,9 @@
 "use client";
 
+import { NumericInput } from "../ui/NumericInput";
+import { MONEY_RULES, parseNumericInput } from "../../lib/numericInput";
+
+import { Button } from "../ui/Button";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import styles from "./Catalog.module.css";
@@ -171,12 +175,10 @@ export function CatalogFiltersDrawer({
     return brands.filter((brand) => brand.toLocaleLowerCase("ru").includes(query));
   }, [brandSearch, brands]);
 
-  const parsedMinPrice = minPrice === "" ? undefined : Number(minPrice);
-  const parsedMaxPrice = maxPrice === "" ? undefined : Number(maxPrice);
-  const priceInvalid =
-    parsedMinPrice !== undefined &&
-    parsedMaxPrice !== undefined &&
-    parsedMinPrice > parsedMaxPrice;
+  const parsedMinPrice = parseNumericInput(minPrice, MONEY_RULES) ?? undefined;
+  const parsedMaxPrice = parseNumericInput(maxPrice, MONEY_RULES) ?? undefined;
+  const priceFormatInvalid = Number.isNaN(parsedMinPrice) || Number.isNaN(parsedMaxPrice);
+  const priceInvalid = priceFormatInvalid || (parsedMinPrice !== undefined && parsedMaxPrice !== undefined && parsedMinPrice > parsedMaxPrice);
 
   if (!open) return null;
 
@@ -414,10 +416,7 @@ export function CatalogFiltersDrawer({
             <div className={styles.priceFields}>
               <label data-ui="field">
                 <span>От</span>
-                <input
-                  type="number"
-                  min="0"
-                  inputMode="numeric"
+                <NumericInput {...MONEY_RULES}
                   value={minPrice}
                   placeholder="0"
                   onChange={(event) => setMinPrice(event.target.value)}
@@ -426,10 +425,7 @@ export function CatalogFiltersDrawer({
               <span aria-hidden="true">—</span>
               <label data-ui="field">
                 <span>До</span>
-                <input
-                  type="number"
-                  min="0"
-                  inputMode="numeric"
+                <NumericInput {...MONEY_RULES}
                   value={maxPrice}
                   placeholder="Без ограничений"
                   onChange={(event) => setMaxPrice(event.target.value)}
@@ -437,7 +433,7 @@ export function CatalogFiltersDrawer({
               </label>
             </div>
             {priceInvalid ? (
-              <p className={styles.priceError}>Цена «от» не может быть выше цены «до».</p>
+              <p className={styles.priceError}>{priceFormatInvalid ? "Укажите корректную цену" : "Цена «от» не может быть выше цены «до»"}</p>
             ) : null}
           </section>
 
@@ -463,14 +459,17 @@ export function CatalogFiltersDrawer({
           <button type="button" className={styles.resetButton} onClick={resetDraft}>
             Очистить
           </button>
-          <button
+          <Button
             type="button"
+            variant="primary"
             className={styles.applyButton}
-            disabled={priceInvalid || pending}
+            loading={pending}
+            disabled={priceInvalid}
+            aria-label={pending ? "Применение фильтров" : undefined}
             onClick={applyDraft}
           >
-            {pending ? "Применяем…" : <><span className={styles.desktopFilterLabel}>Применить фильтры</span><span className={styles.mobileFilterLabel}>Показать товары</span></>}
-          </button>
+            <span className={styles.desktopFilterLabel}>Применить фильтры</span><span className={styles.mobileFilterLabel}>Показать товары</span>
+          </Button>
         </footer>
       </aside>
     </div>

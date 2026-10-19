@@ -1,5 +1,10 @@
 import { API_URL, apiFetch } from "./api";
 import { resolveReturnPhotoUrl } from "./returnPhotoUrls";
+import { accountApiError } from "../account/lib/presentation";
+
+export class ReturnSubmitError extends Error {
+  constructor(message: string, public resultUnknown: boolean) { super(message); }
+}
 
 export type ReturnReason =
   | "DEFECT"
@@ -27,6 +32,7 @@ export type ReturnRequestStatus =
   | "CLOSED";
 
 export type ReturnRequest = {
+  requestKey?: string | null;
   id: number;
   orderId: number;
   productId: number;
@@ -87,7 +93,7 @@ export type SellerReturnsPage = {
   totalItems: number;
 };
 
-export type AccountReturnListItem = Pick<
+export type AccountReturnListItem = { imageUrl?: string | null } & Pick<
   ReturnRequest,
   | "id"
   | "orderId"
@@ -199,21 +205,24 @@ export async function createOrderReturn(params: {
   reason: ReturnReason;
   comment: string;
   photos: File[];
+  quantity?: number;
+  requestKey?: string;
 }): Promise<ReturnRequest> {
   const body = new FormData();
   body.set("productId", String(params.productId));
   body.set("variantId", String(params.variantId));
   body.set("reason", params.reason);
+  if (params.quantity !== undefined) body.set("quantity", String(params.quantity));
+  if (params.requestKey) body.set("requestKey", params.requestKey);
   body.set("comment", params.comment.trim());
   params.photos.forEach((photo) => body.append("photos", photo));
 
   const response = await apiFetch(
     `${API_URL}/api/orders/${params.orderId}/returns`,
-    { method: "POST", body }
-  );
+    { method: "POST", body, signal: AbortSignal.timeout(20000) }
+  ).catch(() => { throw new ReturnSubmitError("Не удалось подтвердить результат — повторите отправку", true); });
   if (!response.ok) {
-    const text = await response.text().catch(() => "");
-    throw new Error(text || "Не удалось создать заявку на возврат");
+    throw new ReturnSubmitError(await accountApiError(response, "Не удалось создать заявку на возврат — попробуйте ещё раз"), response.status >= 500);
   }
   return normalizeReturnPhotos(await response.json());
 }

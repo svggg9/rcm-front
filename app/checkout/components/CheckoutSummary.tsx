@@ -4,6 +4,7 @@ import Image from "next/image";
 
 import { Button } from "../../components/ui/Button";
 import { Price } from "../../components/ui/Price";
+import { Loader } from "../../components/ui/Loader";
 import styles from "../Checkout.module.css";
 import type { CartItem } from "../types";
 
@@ -29,7 +30,7 @@ export function CheckoutSummary({
   onSubmit,
 }: Props) {
   const deliveryValue = quoteLoading
-    ? "Рассчитываем…"
+    ? <Loader inline label="Расчёт доставки" />
     : !deliveryCalculated
       ? "Не рассчитана"
       : deliveryPrice === 0
@@ -82,9 +83,9 @@ export function CheckoutSummary({
         <div className={styles.summaryTotal} aria-live="polite">
           <span>{totalReady ? "Итого" : "Стоимость товаров"}</span>
           <span><Price amount={totalReady ? total : subtotal} /></span>
-          {!totalReady ? (
+          {!totalReady && !quoteLoading ? (
             <span className={styles.totalPending}>
-              {quoteLoading ? "Рассчитываем доставку…" : "Доставка ещё не рассчитана"}
+              Доставка ещё не рассчитана
             </span>
           ) : null}
         </div>

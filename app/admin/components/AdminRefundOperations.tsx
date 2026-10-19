@@ -1,8 +1,10 @@
 "use client";
 
+import { Loader } from "../../components/ui/Loader";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "../../components/ui/Button";
 import { Dialog } from "../../components/ui/Dialog";
+import { toast } from "../../components/ui/toast";
 import { paymentRequest, refundLabel, operationMoney, type OperationPage, type RefundOperation } from "../lib/paymentOperations";
 import styles from "./AdminPaymentReview.module.css";
 
@@ -13,8 +15,6 @@ export function AdminRefundOperations({ onOpenOrder }: { onOpenOrder: (id: numbe
   const inFlight = useRef(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [actionError, setActionError] = useState("");
-  const [message, setMessage] = useState("");
   const [proof, setProof] = useState<RefundOperation | null>(null);
   const [evidence, setEvidence] = useState("");
   const [proofError, setProofError] = useState("");
@@ -39,18 +39,21 @@ export function AdminRefundOperations({ onOpenOrder }: { onOpenOrder: (id: numbe
     if (action === "confirm-resolution" && !evidence.trim()) { setProofError("Укажите основание банковской сверки"); return; }
     if ((action === "execute" || action === "retry") && !window.confirm(
       `${action === "retry" ? "Повторить ту же операцию" : "Отправить возврат"} на ${operationMoney(row.amount, row.currency)}? Новый возврат создан не будет.`)) return;
-    inFlight.current = true; setBusy(true); setActionError(""); setProofError(""); setMessage("");
+    inFlight.current = true; setBusy(true); setProofError("");
+    const toastId = `admin-refund-operation-${row.id}`;
     try {
       const updated = await paymentRequest<RefundOperation>(`/api/payments/refund-operations/${row.id}/${action}`, {
         method: "POST", ...(action === "confirm-resolution" ? { headers: { "Content-Type": "application/json" }, body: JSON.stringify({
           amount: row.amount, currency: row.currency, requestReference: row.requestReference, evidence: evidence.trim(),
         }) } : {}),
       });
-      setMessage(`Возврат №${updated.id}: ${refundLabel(updated)}`);
+      const notify = updated.status === "SUCCEEDED" ? toast.success
+        : updated.status === "FAILED" || updated.status === "CANCELED" ? toast.error : toast.info;
+      notify(`Возврат №${updated.id}: ${refundLabel(updated)}`, { id: toastId, description: undefined, action: undefined });
       setProof(null); reload(); window.dispatchEvent(new Event("refund-operations-changed"));
     } catch (reason) {
       const text = reason instanceof Error ? reason.message : "Ошибка операции";
-      if (action === "confirm-resolution") setProofError(text); else setActionError(text);
+      if (action === "confirm-resolution") setProofError(text); else toast.error(text, { id: toastId });
       reload();
     } finally { inFlight.current = false; setBusy(false); }
   }
@@ -59,9 +62,7 @@ export function AdminRefundOperations({ onOpenOrder }: { onOpenOrder: (id: numbe
       <Button variant="ghost" disabled={busy} onClick={reload}>Обновить</Button></div>
     <p>Создание запроса не означает возврат денег. Завершение фиксируется после подтверждения операции.</p>
     {error && <p className={styles.error} role="alert">{error}</p>}
-    {actionError && <p className={styles.error} role="alert">{actionError}</p>}
-    {message && <p role="status">{message}</p>}
-    {loading && <p role="status">Загрузка…</p>}
+    {loading && <Loader label="Загрузка данных" />}
     {data?.content.map(row => <article className={styles.operation} key={row.id} aria-label={`Возврат №${row.id}`}>
       <div className={styles.heading}><strong>Возврат №{row.id} · {operationMoney(row.amount, row.currency)}</strong>
         {row.orderId != null && <button className={styles.order} onClick={() => onOpenOrder(row.orderId!)}>Заказ №{row.orderId}</button>}</div>

@@ -76,7 +76,7 @@ function MockPayPageContent() {
         throw new Error(text || `Ошибка mock-оплаты (${response.status})`);
       }
 
-      router.replace(`/checkout/result/${encodeURIComponent(orderId)}`);
+      router.replace(`/account?tab=orders&orderId=${encodeURIComponent(orderId)}`);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Не удалось завершить mock-оплату");
     } finally {
@@ -149,7 +149,7 @@ function MockPayPageContent() {
         <button
           type="button"
           onClick={() =>
-            orderId ? router.push(`/checkout/result/${encodeURIComponent(orderId)}`) : router.push("/account?tab=orders")
+            orderId ? router.push(`/account?tab=orders&orderId=${encodeURIComponent(orderId)}`) : router.push("/account?tab=orders")
           }
           style={styles.linkBtn}
         >

@@ -10,6 +10,7 @@ import type { CartItem } from "../cart/lib/types";
 export type ResolvedCart = {
   cartId: string;
   items: CartItem[];
+  checkoutOrderId?: number | null;
 };
 
 export async function resolveCartId(): Promise<string> {

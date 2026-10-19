@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { EditorSurface } from "../../components/ui/EditorSurface";
 import { Button } from "../../components/ui/Button";
+import { Banner } from "../../components/ui/Banner";
+import { toast } from "../../components/ui/toast";
 import { CabinetSkeleton } from "../../components/ui/CabinetSkeleton";
 import { StatusBadge } from "../../components/ui/StatusBadge";
 import { apiFetch, API_URL } from "../../lib/api";
@@ -25,7 +27,8 @@ export function SellerEntityPage({ id, kind, intercepted = false, onClose }: {
   const [attempt, setAttempt] = useState(0);
   const [busy, setBusy] = useState(false);
   const [dirty, setDirty] = useState(false);
-  const [feedback, setFeedback] = useState<string | null>(null);
+  const notificationScope = intercepted ? `seller-${kind}-${id}` : undefined;
+  const notificationId = `seller-${kind}-${id}-update`;
   const inFlight = useRef(false);
   const title = `${kind === "orders" ? "Заказ" : "Возврат"} №${id}`;
   useEffect(() => {
@@ -72,22 +75,23 @@ export function SellerEntityPage({ id, kind, intercepted = false, onClose }: {
   async function update(action: () => Promise<ReturnRequest>) {
     if (inFlight.current) return;
     inFlight.current = true;
-    setBusy(true); setError(null); setFeedback(null);
+    setBusy(true); setError(null);
     try {
       const updated = await action();
       setRequest(updated); setDirty(false);
       try { sessionStorage.removeItem(`seller-return-inspection-${id}`); } catch { /* Storage is optional. */ }
       window.dispatchEvent(new CustomEvent("seller-return-updated", { detail: updated }));
-      setFeedback("Изменения сохранены");
+      toast.success("Изменения сохранены", { id: notificationId, toasterId: notificationScope, description: undefined, action: undefined });
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Не удалось сохранить изменения");
+      toast.error(e instanceof Error ? e.message : "Не удалось сохранить изменения", { id: notificationId, toasterId: notificationScope });
     } finally { inFlight.current = false; setBusy(false); }
   }
   const content = <div className={styles.content}>
     {loading ? <CabinetSkeleton variant="list" rows={3} compact /> : null}
-    {error ? <div className="alertDanger" role="alert"><p>{error}</p>
-      {!order && !request && <Button onClick={() => { setError(null); setLoading(true); setAttempt(n => n + 1); }}>Повторить</Button>}
-    </div> : null}
+    {error ? <Banner tone="danger" role="alert"
+      actions={!order && !request && <Button onClick={() => { setError(null); setLoading(true); setAttempt(n => n + 1); }}>Повторить</Button>}>
+      <p>{error}</p>
+    </Banner> : null}
     {!loading && order ? <OrderDetailsPanel order={{ ...order,
       firstProductTitle: order.items[0]?.productTitle ?? null, firstImageUrl: order.items[0]?.imageUrl ?? null,
       productTitles: order.items.map(item => item.productTitle), itemsCount: order.items.length }}
@@ -122,9 +126,8 @@ export function SellerEntityPage({ id, kind, intercepted = false, onClose }: {
           onDirtyChange={setDirty} persistDraft onInspect={values => update(() => inspectSellerReturn(id, values))} />
       </section>}
     </> : null}
-    {feedback && <div className="alertSuccess" role="status">{feedback}</div>}
   </div>;
-  if (intercepted) return <EditorSurface title={title} dirty={dirty} busy={busy} closeLabel="Закрыть детали" onClose={close}>{content}</EditorSurface>;
+  if (intercepted) return <EditorSurface title={title} dirty={dirty} busy={busy} toastId={notificationScope} closeLabel="Закрыть детали" onClose={close}>{content}</EditorSurface>;
   return <main className={styles.page}><header className={styles.header}>
     <Button variant="ghost" disabled={busy} onClick={() => {
       if (!dirty || window.confirm("Выйти из проверки? Черновик сохранён в этом браузере.")) close();

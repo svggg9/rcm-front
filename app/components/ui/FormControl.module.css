@@ -32,43 +32,47 @@
 }
 
 .requiredEmpty {
-  border-color: var(--black);
+  border-color: var(--select-border-color, var(--black));
   background: var(--white);
 }
 
 .select {
   position: relative;
   width: 100%;
-  border: 1px solid var(--black);
+  border: 1px solid var(--select-border-color, var(--black));
   background: var(--white);
   transition: border-color 0.18s ease, background 0.18s ease;
   z-index: 5;
 }
 
 .select.requiredEmpty {
-  border-color: var(--black);
+  border-color: var(--select-border-color, var(--black));
   background: var(--white);
 }
 
 .selectOpen {
-  border-color: var(--black);
-  border-bottom-color: var(--line);
+  border-color: var(--select-border-color, var(--black));
+  border-bottom-color: transparent !important;
   background: var(--white);
   z-index: 40;
 }
 
 .selectOpen.requiredEmpty {
   background: var(--white);
-  border-color: var(--black);
-  border-bottom-color: var(--line);
+  border-color: var(--select-border-color, var(--black));
+  border-bottom-color: transparent !important;
 }
 
 .select.invalid,
 .selectOpen.invalid,
 .selectOpen.requiredEmpty.invalid {
   border-color: var(--danger) !important;
-  border-bottom-color: var(--danger) !important;
   background: var(--white) !important;
+}
+
+.selectOpen.invalid,
+.selectOpen.requiredEmpty.invalid {
+  border-bottom-color: transparent !important;
 }
 
 .select.invalid .menu,
@@ -77,7 +81,7 @@
 }
 
 .selectOpen.invalid .menu {
-  border-top-color: var(--danger);
+  border-top-color: transparent !important;
 }
 
 .selectDisabled {
@@ -109,8 +113,106 @@
   cursor: not-allowed;
 }
 
+.compact {
+  --select-border-color: var(--line-subtle);
+}
+
+.compact .select {
+  margin: 6px 0;
+}
+
+.compact .selectButton {
+  position: relative;
+  height: 32px;
+  padding: 0 25px 0 10px;
+  gap: 6px;
+}
+
+/* A compact visible field keeps a 44px touch target. */
+.compact .selectButton::before {
+  content: "";
+  position: absolute;
+  inset: -6px 0;
+}
+
+.compact .selectOpen .selectButton::before {
+  bottom: 0;
+}
+
+.compact .selectValue,
+.compact .optionValue {
+  font-size: 12px;
+}
+
+.compact .chevron {
+  right: 8px;
+  width: 14px;
+  height: 14px;
+}
+
+.compact .chevron svg {
+  width: 14px;
+  height: 14px;
+}
+
+.compact .option {
+  padding: 0 10px;
+}
+
 .placeholder {
   color: var(--muted);
+}
+
+/* Inline values keep their geometry when editing is enabled. */
+.field[data-field-variant=inline],
+.fieldFull[data-field-variant=inline] {
+  gap: 7px;
+}
+
+.field[data-field-variant=inline] .select,
+.fieldFull[data-field-variant=inline] .select {
+  border-color: transparent transparent var(--line);
+  background: var(--white);
+}
+
+.field[data-field-variant=inline] .selectOpen,
+.fieldFull[data-field-variant=inline] .selectOpen {
+  border-color: var(--black);
+}
+
+.field[data-field-variant=inline] .selectButton,
+.fieldFull[data-field-variant=inline] .selectButton {
+  height: 27px;
+  padding: 0 30px 3px 0;
+}
+
+.field[data-field-variant=inline] .selectButton::before,
+.fieldFull[data-field-variant=inline] .selectButton::before {
+  content: "";
+  position: absolute;
+  inset: -9px 0;
+}
+
+.field[data-field-variant=inline] .selectOpen .selectButton::before,
+.fieldFull[data-field-variant=inline] .selectOpen .selectButton::before {
+  bottom: 0;
+}
+
+.field[data-field-variant=inline] .selectButton:disabled,
+.fieldFull[data-field-variant=inline] .selectButton:disabled {
+  color: var(--black);
+  cursor: default;
+}
+
+.field[data-field-variant=inline] .chevron,
+.fieldFull[data-field-variant=inline] .chevron {
+  right: 0;
+  top: 12px;
+}
+
+.field[data-readonly=true] .chevron,
+.fieldFull[data-readonly=true] .chevron {
+  visibility: hidden;
 }
 
 .comboboxInput {
@@ -190,7 +292,7 @@
   z-index: 50;
   display: grid;
   grid-template-rows: 0fr;
-  border: 1px solid var(--black);
+  border: 1px solid var(--select-border-color, var(--black));
   border-top: 1px solid transparent;
   background: var(--white);
   overflow: hidden;
@@ -200,7 +302,7 @@
 
 .selectOpen .menu {
   grid-template-rows: 1fr;
-  border-top-color: var(--line);
+  border-top-color: transparent !important;
   pointer-events: auto;
 }
 
