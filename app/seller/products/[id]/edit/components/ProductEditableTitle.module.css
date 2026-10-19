@@ -1,0 +1,59 @@
+.trigger,
+.input {
+  width: 100%;
+  min-width: 0;
+  min-height: 44px;
+  color: var(--black);
+  font: inherit;
+  letter-spacing: inherit;
+}
+
+.trigger {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  text-align: left;
+  cursor: text;
+}
+
+.text {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.placeholder,
+.icon {
+  color: var(--muted);
+}
+
+.icon {
+  flex-shrink: 0;
+}
+
+.trigger:hover .icon {
+  color: var(--black);
+}
+
+.trigger:focus-visible {
+  outline: 1px solid var(--black);
+  outline-offset: 4px;
+}
+
+.input {
+  padding: 8px 12px;
+  border: .5px solid var(--line);
+  border-radius: 0;
+  background: var(--white);
+}
+
+.input:focus {
+  border-color: var(--black);
+  outline: 1px solid var(--black);
+  outline-offset: 2px;
+}

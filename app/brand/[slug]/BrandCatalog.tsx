@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { NumericInput } from "../../components/ui/NumericInput";
 import type { CatalogProduct } from "../../components/Catalog/catalogTypes";
 import { ProductTile } from "../../components/ProductTile/ProductTile";
 import styles from "./BrandPage.module.css";
@@ -33,8 +34,8 @@ export function BrandCatalog({ products, brandSlug, totalPages, totalProducts, c
     <form className={styles.filterBar} action={`/brand/${encodeURIComponent(brandSlug)}#brand-products`}>
       {filters.category && <input type="hidden" name="category" value={filters.category} />}
       {filters.collection && <input type="hidden" name="collection" value={filters.collection} />}
-      <div className={catalog.priceFields}><label>Цена от, ₽<input name="minPrice" type="number" min="0" step="0.01" defaultValue={filters.minPrice} placeholder="От" /></label><span>—</span>
-      <label>Цена до, ₽<input name="maxPrice" type="number" min="0" step="0.01" defaultValue={filters.maxPrice} placeholder="До" /></label></div>
+      <div className={catalog.priceFields}><label>Цена от, ₽<NumericInput key={filters.minPrice} name="minPrice" defaultValue={filters.minPrice} placeholder="От" /></label><span>—</span>
+      <label>Цена до, ₽<NumericInput key={filters.maxPrice} name="maxPrice" defaultValue={filters.maxPrice} placeholder="До" /></label></div>
       {filters.sort && <input type="hidden" name="sort" value={filters.sort} />}
       <button className={catalog.applyButton} type="submit">Применить</button>
       <details className={catalog.sortWrap}>

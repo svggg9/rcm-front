@@ -5,6 +5,7 @@ import styles from "../Admin.module.css";
 import type { AdminProduct, DictionaryItem } from "../types";
 import { Price } from "../../components/ui/Price";
 import { StatusBadge } from "../../components/ui/StatusBadge";
+import { Banner } from "../../components/ui/Banner";
 
 type Props = {
   product: AdminProduct;
@@ -123,6 +124,9 @@ export function AdminProductDetails({
 
       <div className={styles.detailsLayout}>
         <main className={styles.detailsMain}>
+          {product.revisionSourceId && <Banner tone="info" title={`Изменения товара №${product.revisionSourceId}`}>
+            Одобрение обновит существующую карточку, сохранив текущие цены и резервы
+          </Banner>}
           <section className={styles.detailsSection}>
             <h2 className={`${styles.detailsSectionTitle} textBody`}>
               Основные данные

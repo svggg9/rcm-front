@@ -4,7 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { toast } from "sonner";
+import { toast } from "@/app/components/ui/toast";
 
 import styles from "./ProductTile.module.css";
 import { Price } from "../ui/Price";
@@ -25,8 +25,10 @@ type Product = {
 export function ProductTile({
   product,
   onFavoriteChange,
+  compact = false,
 }: {
   product: Product;
+  compact?: boolean;
   onFavoriteChange?: (productId: number, isFavorite: boolean) => void;
 }) {
   const router = useRouter();
@@ -106,7 +108,7 @@ export function ProductTile({
   }
 
   return (
-    <li className={styles.item}>
+    <li className={`${styles.item} ${compact ? styles.compact : ""}`}>
       <article className={styles.card}>
         <div className={styles.mediaWrap}>
           <Link

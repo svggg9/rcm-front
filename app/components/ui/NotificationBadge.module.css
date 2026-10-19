@@ -1,0 +1,29 @@
+.badge {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: var(--gold-deep);
+  color: var(--white);
+  font-family: inherit;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.dot {
+  width: 8px;
+  height: 8px;
+}
+
+.counter {
+  min-width: 18px;
+  height: 18px;
+  padding-inline: 4px;
+  font-size: 11px;
+  line-height: 18px;
+}
+
+.muted {
+  background: var(--muted);
+}

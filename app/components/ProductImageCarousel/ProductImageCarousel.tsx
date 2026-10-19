@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useRef, useState, type TouchEvent } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import styles from "./ProductImageCarousel.module.css";
 
@@ -12,6 +12,7 @@ type Props = {
   className?: string;
   fit?: "cover" | "contain";
   sizes?: string;
+  overlayIndicators?: boolean;
 };
 
 export function ProductImageCarousel({
@@ -20,12 +21,11 @@ export function ProductImageCarousel({
   onImageClick,
   className = "",
   fit = "cover",
+  overlayIndicators = false,
   sizes = "(max-width: 768px) 100vw, 240px",
 }: Props) {
   const [activeIndex, setActiveIndex] = useState(0);
   const trackRef = useRef<HTMLDivElement | null>(null);
-  const touchStartXRef = useRef(0);
-  const touchStartIndexRef = useRef(0);
   const displayedActiveIndex = Math.min(activeIndex, Math.max(images.length - 1, 0));
   const imagesKey = images.join("\u0000");
 
@@ -40,7 +40,7 @@ export function ProductImageCarousel({
     const safeIndex = Math.min(Math.max(index, 0), images.length - 1);
     node.scrollTo({
       left: node.clientWidth * safeIndex,
-      behavior: "smooth",
+      behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth",
     });
     setActiveIndex(safeIndex);
   }
@@ -53,38 +53,27 @@ export function ProductImageCarousel({
     setActiveIndex(Math.min(Math.max(nextIndex, 0), images.length - 1));
   }
 
-  function handleTouchStart(event: TouchEvent<HTMLDivElement>) {
-    touchStartXRef.current = event.touches[0]?.clientX ?? 0;
-    touchStartIndexRef.current = displayedActiveIndex;
-  }
-
-  function handleTouchEnd(event: TouchEvent<HTMLDivElement>) {
-    const endX = event.changedTouches[0]?.clientX ?? touchStartXRef.current;
-    const deltaX = touchStartXRef.current - endX;
-    let nextIndex = touchStartIndexRef.current;
-
-    if (deltaX > 36) nextIndex += 1;
-    if (deltaX < -36) nextIndex -= 1;
-
-    window.requestAnimationFrame(() => scrollToIndex(nextIndex));
-  }
-
   if (!images.length) {
     return (
-      <div className={`${styles.root} ${className}`.trim()}>
+      <div className={`${styles.root} ${overlayIndicators ? styles.overlay : ""} ${className}`.trim()}>
         <div className={`${styles.slide} ${styles.placeholder}`}>Фото отсутствует</div>
       </div>
     );
   }
 
   return (
-    <div className={`${styles.root} ${className}`.trim()}>
+    <div className={`${styles.root} ${overlayIndicators ? styles.overlay : ""} ${className}`.trim()}>
       <div
         ref={trackRef}
         className={styles.track}
         onScroll={handleScroll}
-        onTouchStart={handleTouchStart}
-        onTouchEnd={handleTouchEnd}
+        role="group"
+        aria-label={`${title} — фотографии`}
+        onKeyDown={(event) => {
+          if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
+          event.preventDefault();
+          scrollToIndex(displayedActiveIndex + (event.key === "ArrowRight" ? 1 : -1));
+        }}
       >
         {images.map((src, index) => (
           <button
@@ -109,6 +98,7 @@ export function ProductImageCarousel({
         ))}
       </div>
 
+      {overlayIndicators ? <span className={styles.status} role="status">Фото {displayedActiveIndex + 1} из {images.length}</span> : null}
       {images.length > 1 ? (
         <div className={styles.indicator} aria-hidden="true">
           {images.map((src, index) => (

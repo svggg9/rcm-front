@@ -11,7 +11,8 @@ export type ProductStatus =
   | "NEEDS_REVISION"
   | "ACTIVE"
   | "ARCHIVED"
-  | "BLOCKED";
+  | "BLOCKED"
+  | "DELETED";
 
 export type ProductVariant = {
   id: number | null;
@@ -25,12 +26,19 @@ export type ProductVariant = {
   groupKey?: string;
   price: number;
   availableQuantity: number | null;
+  stockQuantity?: number | null;
+  reservedQuantity?: number;
+  initialQuantity?: number | null;
+  initialPrice?: number;
+  initialSellerArticle?: string | null;
   sku: string;
   sellerArticle?: string | null;
   stockTrackingEnabled: boolean;
 };
 
 export type ProductImageItem = {
+  width?: number | null;
+  height?: number | null;
   id: number;
   colorwayId?: number | null;
   url: string;
@@ -48,6 +56,10 @@ export type ProductColorway = {
 };
 
 export type SellerProduct = {
+  version?: number;
+  revisionSourceId?: number | null;
+  contentRevisionId?: number | null;
+  contentRevisionStatus?: ProductStatus | null;
   id: number;
   publicId?: string | null;
   title: string;

@@ -1,0 +1,15 @@
+.field { min-width: 0; }
+.label { display: block; margin: 0 0 8px; color: var(--text-primary, #111); font-size: 14px; line-height: 20px; }
+.control { position: relative; width: 100%; max-width: 352px; }
+.cells { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 8px; }
+.cells span { display: grid; place-items: center; min-width: 0; height: 52px; border: 1px solid var(--line-subtle, #e5e5e5); background: var(--white); color: var(--black); font-size: 20px; line-height: 28px; font-weight: 400; }
+.input { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: text; font-size: 16px; }
+.control:focus-within .cells span[data-active] { border-color: var(--black); box-shadow: inset 0 0 0 1px var(--black); }
+.control[data-error] .cells span { border-color: var(--danger); }
+.control[data-error]:focus-within .cells span[data-active] { box-shadow: inset 0 0 0 1px var(--danger); }
+.control[data-disabled] { opacity: .55; }
+.field > p { margin: 12px 0 0; }
+.field > .hint { color: var(--text-muted, #777); font-size: 12px; line-height: 18px; }
+@media (prefers-reduced-motion: no-preference) {
+  .cells span { transition: border-color .12s ease; }
+}

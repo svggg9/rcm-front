@@ -1,17 +1,10 @@
-import { Suspense } from "react";
+import { redirect } from "next/navigation";
 
-import { CheckoutResultContent } from "../page";
-
-type Props = {
+export default async function LegacyPaymentReturn({ params }: {
   params: Promise<{ orderId: string }>;
-};
-
-export default async function CheckoutResultOrderPage({ params }: Props) {
+}) {
   const { orderId } = await params;
-
-  return (
-    <Suspense fallback={null}>
-      <CheckoutResultContent orderId={orderId} />
-    </Suspense>
-  );
+  redirect(/^[1-9]\d*$/.test(orderId)
+    ? `/account?tab=orders&orderId=${encodeURIComponent(orderId)}`
+    : "/account?tab=orders");
 }

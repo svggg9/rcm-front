@@ -1,62 +1,27 @@
 "use client";
-
+import Image from "next/image";
 import Link from "next/link";
-
 import type { BuyerTab } from "../../lib/buyerNavigation";
-import { Icon, type IconName } from "../ui/Icon";
+import { BuyerNavigationIcon } from "./BuyerNavigationIcon";
+import { FavoritesNavigationIcon } from "./FavoritesNavigationIcon";
 import styles from "./BuyerBottomNavigation.module.css";
 
 type Props = {
-  activeTab: BuyerTab;
+  activeTab?: BuyerTab;
   cartCount: number;
   favoritesCount: number;
-  isAuthenticated: boolean;
-  onSignIn: () => void;
+  menuOpen: boolean;
+  onMenu: () => void;
+  onSearch: () => void;
 };
-
-const items: Array<{ tab: BuyerTab; href: string; label: string; icon: IconName }> = [
-  { tab: "home", href: "/", label: "Главная", icon: "home" },
-  { tab: "catalog", href: "/catalog", label: "Каталог", icon: "grid" },
-  { tab: "favorites", href: "/favorites", label: "Избранное", icon: "heart" },
-  { tab: "cart", href: "/cart", label: "Корзина", icon: "shopping-bag" },
-  { tab: "account", href: "/account", label: "Профиль", icon: "user" },
-];
-
-export function BuyerBottomNavigation({
-  activeTab,
-  cartCount,
-  favoritesCount,
-  isAuthenticated,
-  onSignIn,
-}: Props) {
+export function BuyerBottomNavigation({ activeTab, cartCount, favoritesCount, menuOpen, onMenu, onSearch }: Props) {
   return (
     <nav className={styles.navigation} data-buyer-bottom-nav aria-label="Навигация покупателя">
-      {items.map((item) => {
-        const count = item.tab === "cart" ? cartCount : item.tab === "favorites" ? favoritesCount : 0;
-        return (
-          <Link
-            key={item.tab}
-            href={item.href}
-            className={styles.item}
-            aria-current={activeTab === item.tab ? "page" : undefined}
-            aria-label={count > 0 ? `${item.label}: ${count}` : item.label}
-            onClick={(event) => {
-              if (item.tab === "account" && !isAuthenticated) {
-                event.preventDefault();
-                onSignIn();
-              }
-            }}
-          >
-            <span className={styles.icon}>
-              <Icon name={item.icon} size={22} strokeWidth={1.8} />
-              {item.tab === "cart" && count > 0 ? (
-                <span className={styles.count} aria-hidden="true">{count > 99 ? "99+" : count}</span>
-              ) : null}
-            </span>
-            <span className={styles.label}>{item.label}</span>
-          </Link>
-        );
-      })}
+      <button type="button" className={styles.item} aria-label="Открыть меню" aria-expanded={menuOpen} aria-controls="site-menu" onClick={onMenu}><BuyerNavigationIcon name="menu" /></button>
+      <button type="button" className={styles.item} aria-label="Поиск" onClick={onSearch}><BuyerNavigationIcon name="search" /></button>
+      <Link href="/" className={`${styles.item} ${styles.logo}`} aria-label="рцмаркет — главная" aria-current={activeTab === "home" ? "page" : undefined}><Image src="/brand/wordmark-black.svg" alt="рцмаркет" width={794} height={100} /></Link>
+      <Link href="/favorites" className={styles.item} aria-label={favoritesCount > 0 ? `Избранное: ${favoritesCount}` : "Избранное"} aria-current={activeTab === "favorites" ? "page" : undefined}><FavoritesNavigationIcon count={favoritesCount} /></Link>
+      <Link href="/cart" className={styles.item} aria-label={cartCount > 0 ? `Корзина: ${cartCount}` : "Корзина"} aria-current={activeTab === "cart" ? "page" : undefined}><BuyerNavigationIcon name="bag" /></Link>
     </nav>
   );
 }

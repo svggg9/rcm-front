@@ -77,7 +77,7 @@ export function AccountHomeTab({
             icon="shopping-bag"
             tone="gold"
             title="Заказов пока нет"
-            text="Когда вы оформите первый заказ, он появится здесь."
+            text="Когда вы оформите первый заказ, он появится здесь"
           />
         )}
       </section>

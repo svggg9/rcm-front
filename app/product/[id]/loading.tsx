@@ -10,9 +10,6 @@ export default function Loading() {
       aria-label="Загрузка товара"
       aria-busy="true"
     >
-      <div className={styles.top}>
-        <SkeletonBlock className={styles.breadcrumb} />
-      </div>
       <div className={styles.layout} aria-hidden="true">
         <div className={styles.gallery}>
           <SkeletonBlock className={styles.image} />

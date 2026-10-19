@@ -1,5 +1,6 @@
 "use client";
 
+import { Loader } from "../ui/Loader";
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
@@ -57,7 +58,7 @@ export function SellerHeader() {
           {open && <section id="seller-notifications" className={styles.popover} aria-label="Уведомления">
             <h2>Уведомления</h2>
             {failed ? <div role="alert"><p>Не удалось загрузить уведомления</p><button type="button" onClick={() => { setFailed(false); setAttempt(value => value + 1); }}>Повторить</button></div>
-              : !summary ? <p role="status">Загрузка…</p>
+              : !summary ? <Loader label="Загрузка уведомлений" />
               : summary.recentEvents.length === 0 ? <p>Новых событий пока нет</p>
               : summary.recentEvents.slice(0, 8).map(event => <Link key={`${event.type}-${event.occurredAt}-${event.href}`} href={event.href} className={styles.event} onClick={() => setOpen(false)}>
                 <strong>{event.title}</strong><span>{event.description}</span><time dateTime={event.occurredAt}>{new Date(event.occurredAt).toLocaleDateString("ru-RU", { day: "numeric", month: "short" })}</time>

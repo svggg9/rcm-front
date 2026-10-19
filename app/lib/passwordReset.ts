@@ -33,9 +33,9 @@ async function resetError(response: Response): Promise<PasswordResetError> {
   } else if (reason === "invalid_email") {
     message = "Проверьте адрес электронной почты.";
   } else if (reason === "password_too_short") {
-    message = "Пароль должен содержать минимум 8 символов и не состоять только из пробелов.";
+    message = "Пароль должен содержать минимум 8 символов и не состоять только из пробелов";
   } else if (reason === "password_too_long") {
-    message = "Пароль слишком длинный: максимум 72 байта UTF-8. Сократите его.";
+    message = "Пароль слишком длинный — максимум 72 байта UTF-8";
   } else if (reason === "invalid_or_expired_reset_code") {
     message = "Код неверен, истёк или уже использован. Проверьте последний код или запросите новый.";
   }
@@ -53,12 +53,12 @@ export function isValidResetEmail(value: string): boolean {
 
 export function passwordResetValidationError(password: string, confirmation: string): string | null {
   if (password.length < 8 || !password.trim()) {
-    return "Пароль должен содержать минимум 8 символов и не состоять только из пробелов.";
+    return "Пароль должен содержать минимум 8 символов и не состоять только из пробелов";
   }
   if (new TextEncoder().encode(password).length > 72) {
-    return "Пароль слишком длинный: максимум 72 байта UTF-8. Сократите его.";
+    return "Пароль слишком длинный — максимум 72 байта UTF-8";
   }
-  if (password !== confirmation) return "Пароли не совпадают.";
+  if (password !== confirmation) return "Пароли не совпадают";
   return null;
 }
 

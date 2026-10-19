@@ -7,6 +7,7 @@ export type Me = {
   birthDate: string | null;
   gender: "men" | "women" | null;
   email: string | null;
+  emailVerified?: boolean;
   displayName: string | null;
   role: string;
   sellerApproved: boolean;
@@ -90,6 +91,7 @@ export type Order = {
   orderGroupId: string;
   status: OrderStatus;
   paymentStatus: PaymentStatus;
+  paymentMethod?: string | null;
   deliveryStatus: DeliveryStatus;
   subtotalAmount: number;
   deliveryAmount: number;
@@ -104,6 +106,7 @@ export type Order = {
   trackingNumber: string | null;
   createdAt: string;
   paidAt: string | null;
+  returnAvailableUntil?: string | null;
   cancellationAvailableUntil: string | null;
   cancellationRequestedAt: string | null;
   cancelledAt: string | null;
@@ -127,6 +130,9 @@ export type OrderListItem = {
   firstProductTitle: string | null;
   productTitles?: string[];
   firstImageUrl: string | null;
+  imageUrls?: string[];
+  returnAvailableUntil?: string | null;
+  deliveryAddress?: string | null;
   itemsCount: number;
   createdAt: string;
 };

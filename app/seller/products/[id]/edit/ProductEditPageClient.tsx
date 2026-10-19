@@ -1,5 +1,6 @@
 "use client";
-import { PRODUCT_PHOTO_COUNT_ERROR, validProductPhotoCount, validateProductPhotoUpload } from "../../../../lib/productPhotos";
+import { Loader } from "../../../../components/ui/Loader";
+import { PRODUCT_PHOTO_COUNT_ERROR, validProductPhotoCount, validateProductPhotoUpload, hasLowResolutionPhoto, PRODUCT_PHOTO_RESOLUTION_ERROR } from "../../../../lib/productPhotos";
 
 import { hasDescriptionContent } from "../../../../lib/productDescription";
 import Link from "next/link";
@@ -8,6 +9,7 @@ import { useEffect, useRef, useState } from "react";
 
 import { apiFetch, API_URL } from "../../../../lib/api";
 import { Button } from "../../../../components/ui/Button";
+import { Banner } from "../../../../components/ui/Banner";
 import { Dialog } from "../../../../components/ui/Dialog";
 import { Icon } from "../../../../components/ui/Icon";
 import {
@@ -15,16 +17,22 @@ import {
 } from "../../../../lib/formValidation";
 
 import { ProductDraftPreview } from "./components/ProductDraftPreview";
+import { ProductRevisionReview } from "./components/ProductRevisionReview";
 import { ProductGeneralCard } from "./components/ProductGeneralCard";
+import { ProductEditableTitle } from "./components/ProductEditableTitle";
 import { ProductVariantsCard } from "./components/ProductVariantsCard";
 import { ProductShippingCard } from "./components/ProductShippingCard";
-import { ProductPreviewAside } from "./components/ProductPreviewAside";
+import { ProductPhotoEditor } from "./components/ProductPhotoEditor";
+import { StatusBadge } from "../../../../components/ui/StatusBadge";
+import { PRODUCT_EDITOR_STEPS, getProductEditorErrorStep, type ProductEditorStep } from "./editorSteps";
 import { EditorSurface, requestEditorNavigation } from "../../../../components/ui/EditorSurface";
+import { productActionBlockedReason, productActionResponseError } from "../../../lib/sellerProductActions";
+import { emitSellerNavigationChanged } from "../../../lib/sellerNavigationEvents";
 import {
   getSellerOnboardingStatus,
   type SellerOnboardingStatus,
 } from "../../../lib/sellerOnboardingApi";
-import { toast as globalToast, type ExternalToast } from "sonner";
+import { toast as globalToast, type ExternalToast } from "@/app/components/ui/toast";
 
 import type {
   Audience,
@@ -33,14 +41,16 @@ import type {
   ProductVariant,
   SellerProduct,
 } from "./types";
-import { numberOrNull } from "./utils";
+import { numberOrNull, formatProductStatus, getProductStatusTone, inconsistentColorPriceIndexes } from "./utils";
 
 import styles from "./ProductEditPage.module.css";
 
 const toast = {
+  dismiss: globalToast.dismiss,
   error: (message: string, options?: ExternalToast) => globalToast.error(message, { ...options, toasterId: "product-editor" }),
   success: (message: string, options?: ExternalToast) => globalToast.success(message, { ...options, toasterId: "product-editor" }),
   info: (message: string, options?: ExternalToast) => globalToast.info(message, { ...options, toasterId: "product-editor" }),
+  warning: (message: string, options?: ExternalToast) => globalToast.warning(message, { ...options, toasterId: "product-editor" }),
 };
 
 const MODAL_FOCUSABLE_SELECTOR = [
@@ -61,8 +71,10 @@ type Props = {
 };
 
 type ValidationErrors = {
+  variantCount?: boolean;
   title?: boolean;
   description?: boolean;
+  composition?: boolean;
   categoryId?: boolean;
   brandId?: boolean;
   images?: boolean;
@@ -118,10 +130,14 @@ function mapProductVariants(productData: SellerProduct): ProductVariant[] {
         color: variant.color ?? "",
         colorHex: variant.colorHex ?? null,
         price: Number(variant.price ?? 0),
-        availableQuantity: variant.availableQuantity,
+        availableQuantity: variant.stockQuantity === undefined ? variant.availableQuantity : variant.stockQuantity,
+        initialQuantity: variant.stockQuantity === undefined ? variant.availableQuantity : variant.stockQuantity,
+        reservedQuantity: variant.reservedQuantity ?? 0,
+        initialPrice: Number(variant.price ?? 0),
+        initialSellerArticle: variant.sellerArticle ?? "",
         sku: variant.sku ?? "",
         sellerArticle: variant.sellerArticle ?? "",
-        stockTrackingEnabled: true,
+        stockTrackingEnabled: variant.stockTrackingEnabled,
       }))
     : [createEmptyVariant()];
 }
@@ -136,6 +152,11 @@ function getInitialTitle(product: SellerProduct) {
   return product.title ?? "";
 }
 
+function productListHref() {
+  const target = typeof window === "undefined" ? null : new URLSearchParams(window.location.search).get("returnTo");
+  return target === "/seller/products" || target?.startsWith("/seller/products?") ? target : "/seller/products";
+}
+
 export function ProductEditPageClient({
   intercepted = false,
   productId,
@@ -146,6 +167,23 @@ export function ProductEditPageClient({
   const router = useRouter();
   const [dirty, setDirty] = useState(false);
   const [draftPreviewOpen, setDraftPreviewOpen] = useState(false);
+  useEffect(() => {
+    if (initialProduct.status === "DELETED" && initialProduct.revisionSourceId) {
+      router.replace(`/seller/products/${initialProduct.revisionSourceId}/edit?returnTo=${encodeURIComponent(productListHref())}`);
+    }
+  }, [initialProduct.status, initialProduct.revisionSourceId, router]);
+  const [mobileEditor, setMobileEditor] = useState(false);
+  useEffect(() => {
+    const media = window.matchMedia("(max-width: 700px)");
+    const update = () => setMobileEditor(media.matches);
+    update();
+    media.addEventListener("change", update);
+    return () => media.removeEventListener("change", update);
+  }, []);
+  const [activeStep, setActiveStep] = useState<ProductEditorStep>("general");
+  const [revisionReviewSource, setRevisionReviewSource] = useState<SellerProduct | null>(null);
+  const [reviewLoading, setReviewLoading] = useState(false);
+  const reviewRequestRef = useRef(false);
   const saveRequestRef = useRef(false);
   const publishRequestRef = useRef(false);
 
@@ -200,6 +238,7 @@ export function ProductEditPageClient({
   const [, setPublishSucceeded] = useState(false);
   const [publishSuccessOpen, setPublishSuccessOpen] = useState(false);
   const [creatingNextProduct, setCreatingNextProduct] = useState(false);
+  const [openingRevision, setOpeningRevision] = useState(false);
   const [archiving, setArchiving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [confirmation, setConfirmation] = useState<"archive" | "delete" | null>(null);
@@ -213,6 +252,27 @@ export function ProductEditPageClient({
 
   const [validationErrors, setValidationErrors] = useState<ValidationErrors>({});
   const pageContentRef = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    if (mobileEditor) return;
+    const body = pageContentRef.current?.closest<HTMLElement>("[data-editor-body]");
+    if (!body) return;
+    let frame = 0;
+    const onScroll = () => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(() => {
+        const top = body.getBoundingClientRect().top + 80;
+        let current: ProductEditorStep = "general";
+        for (const step of PRODUCT_EDITOR_STEPS) {
+          if (step.id === "photos") continue;
+          const panel = document.getElementById(step.panelId);
+          if (panel && panel.getBoundingClientRect().top <= top) current = step.id;
+        }
+        setActiveStep(current);
+      });
+    };
+    body.addEventListener("scroll", onScroll, { passive: true });
+    return () => { body.removeEventListener("scroll", onScroll); cancelAnimationFrame(frame); };
+  }, [mobileEditor]);
   const editRevisionRef = useRef(0);
   const publishSuccessDialogRef = useRef<HTMLDivElement | null>(null);
   const publishSuccessCloseRef = useRef<HTMLButtonElement | null>(null);
@@ -369,11 +429,17 @@ export function ProductEditPageClient({
     setDirty(true);
   }
 
-  function clearValidationError(key: keyof ValidationErrors) {
+  function clearValidationError(key: keyof ValidationErrors, stillInvalid = false) {
     setValidationErrors((current) => ({
       ...current,
-      [key]: undefined,
+      [key]: current[key] && stillInvalid ? true : undefined,
     }));
+  }
+
+  function updateTitle(value: string) {
+    setTitle(value);
+    clearValidationError("title", !value.trim());
+    markDirty();
   }
 
   function clearVariantValidationError(
@@ -400,45 +466,68 @@ export function ProductEditPageClient({
     });
   }
 
-  function scrollToFirstValidationError() {
-    scrollToFirstValidationErrorShared({
-      root: pageContentRef.current,
-      selector: [
-        '[aria-invalid="true"]',
-        '[data-validation-error="true"]',
-        `.${styles.fieldInvalid}`,
-        `.${styles.dropZoneInvalid}`,
-      ].join(", "),
+  function selectEditorStep(step: ProductEditorStep, focusPanel = false) {
+    setActiveStep(step);
+    window.requestAnimationFrame(() => {
+      const panelId = PRODUCT_EDITOR_STEPS.find(item => item.id === step)?.panelId;
+      const panel = panelId ? document.getElementById(panelId) : null;
+      if (mobileEditor) pageContentRef.current?.scrollIntoView({ behavior: "auto", block: "start" });
+      else panel?.scrollIntoView({ behavior: "auto", block: "start" });
+      if (focusPanel) panel?.focus({ preventScroll: true });
+    });
+  }
+
+  function scrollToFirstValidationError(errors: ValidationErrors) {
+    const errorStep = getProductEditorErrorStep(errors);
+    if (errorStep) setActiveStep(errorStep);
+    window.requestAnimationFrame(() => {
+      const panelId = PRODUCT_EDITOR_STEPS.find(item => item.id === errorStep)?.panelId;
+      const panel = panelId ? document.getElementById(panelId) : pageContentRef.current;
+      panel?.focus({ preventScroll: true });
+      scrollToFirstValidationErrorShared({
+        root: panel,
+      });
     });
   }
 
   function validateProduct() {
   const nextErrors: ValidationErrors = {};
-  const messages: string[] = [];
+  const stepMessages: Record<ProductEditorStep, string[]> = {
+    general: [], description: [], variants: [], shipping: [], photos: [],
+  };
 
   if (!title.trim()) {
     nextErrors.title = true;
-    messages.push("Заполните название товара");
+    stepMessages.general.push("Заполните название товара");
   }
 
   if (!hasDescriptionContent(description) || description.length > 2000) {
     nextErrors.description = true;
-    messages.push("Заполните описание");
+    stepMessages.description.push(description.length > 2000 ? "Описание должно быть не длиннее 2000 символов" : "Заполните описание");
   }
 
   if (categoryId === "" && !suggestedCategoryName.trim()) {
     nextErrors.categoryId = true;
-    messages.push("Выберите категорию или предложите свою");
+    stepMessages.general.push("Выберите категорию или предложите свою");
   }
 
   if (brandId === "") {
     nextErrors.brandId = true;
-    messages.push("Выберите бренд или производителя");
+    stepMessages.general.push("Выберите бренд или производителя");
+  }
+
+  if (composition.length > 1000) {
+    nextErrors.composition = true;
+    stepMessages.description.push("Состав должен быть не длиннее 1000 символов");
   }
 
   if (!validProductPhotoCount(images.length)) {
     nextErrors.images = true;
-    messages.push(PRODUCT_PHOTO_COUNT_ERROR);
+    stepMessages.photos.push(PRODUCT_PHOTO_COUNT_ERROR);
+  }
+  if (images.some(hasLowResolutionPhoto)) {
+    nextErrors.images = true;
+    stepMessages.photos.push(PRODUCT_PHOTO_RESOLUTION_ERROR);
   }
 
   if ((packageWidthCm === "" || !Number.isFinite(packageWidthCm) || packageWidthCm <= 0)) nextErrors.packageWidthCm = true;
@@ -447,11 +536,12 @@ export function ProductEditPageClient({
   if ((packageWeightKg === "" || !Number.isFinite(packageWeightKg) || packageWeightKg <= 0)) nextErrors.packageWeightKg = true;
 
   if ((packageWidthCm === "" || !Number.isFinite(packageWidthCm) || packageWidthCm <= 0) || (packageHeightCm === "" || !Number.isFinite(packageHeightCm) || packageHeightCm <= 0) || (packageLengthCm === "" || !Number.isFinite(packageLengthCm) || packageLengthCm <= 0) || (packageWeightKg === "" || !Number.isFinite(packageWeightKg) || packageWeightKg <= 0)) {
-    messages.push("Заполните вес и габариты с упаковкой");
+    stepMessages.shipping.push("Заполните вес и габариты с упаковкой");
   }
 
   if (variants.length === 0) {
-    messages.push("Добавьте хотя бы один вариант товара");
+    nextErrors.variantCount = true;
+    stepMessages.variants.push("Добавьте хотя бы один вариант товара");
   }
 
   const variantErrors: ValidationErrors["variants"] = {};
@@ -522,17 +612,23 @@ export function ProductEditPageClient({
     }
   });
 
+  inconsistentColorPriceIndexes(variants).forEach(index => {
+    variantErrors[index] = { ...variantErrors[index], price: true };
+  });
+
   if (Object.keys(variantErrors).length > 0) {
     nextErrors.variants = variantErrors;
-    messages.push("Проверьте варианты товара: вариант, размер, цену и остатки");
+    stepMessages.variants.push("Проверьте варианты товара: вариант, размер, цену и остатки");
   }
 
   setValidationErrors(nextErrors);
+  const messages = PRODUCT_EDITOR_STEPS.flatMap(step => stepMessages[step.id]);
 
   return {
     valid: messages.length === 0 && Object.keys(nextErrors).length === 0,
     message: messages[0] ?? null,
     messages,
+    errors: nextErrors,
   };
   }
 
@@ -550,13 +646,29 @@ export function ProductEditPageClient({
     ) return false;
 
     if (!canEditProductOperations(product?.status)) {
-      toast.error(getProductEditUnavailableReason(product?.status));
+      toast.warning(getProductEditUnavailableReason(product?.status), { id: "product-save" });
       return false;
     }
 
-    if ([packageWidthCm,packageHeightCm,packageLengthCm,packageWeightKg].some(n=>n !== "" && (!Number.isFinite(n) || n <= 0)) || description.length > 2000 || variants.some(v=>!Number.isFinite(v.price) || v.price < 0 || (v.availableQuantity !== null && (!Number.isSafeInteger(v.availableQuantity) || v.availableQuantity < 0)))) {
-      scrollToFirstValidationError();
-      toast.error("Проверьте цену, остатки, габариты и длину описания"); return false;
+    const draftErrors: ValidationErrors = {};
+    if (composition.length > 1000) draftErrors.composition = true;
+    if (description.length > 2000) draftErrors.description = true;
+    for (const [key, value] of [["packageWidthCm", packageWidthCm], ["packageHeightCm", packageHeightCm], ["packageLengthCm", packageLengthCm], ["packageWeightKg", packageWeightKg]] as const) {
+      if (value !== "" && (!Number.isFinite(value) || value <= 0)) draftErrors[key] = true;
+    }
+    variants.forEach((variant, index) => {
+      const fields: NonNullable<ValidationErrors["variants"]>[number] = {};
+      if (!Number.isFinite(variant.price) || variant.price < 0) fields.price = true;
+      if (variant.availableQuantity !== null && (!Number.isSafeInteger(variant.availableQuantity) || variant.availableQuantity < 0)) fields.availableQuantity = true;
+      if (Object.keys(fields).length) draftErrors.variants = { ...draftErrors.variants, [index]: fields };
+    });
+    inconsistentColorPriceIndexes(variants).forEach(index => {
+      draftErrors.variants = { ...draftErrors.variants, [index]: { ...draftErrors.variants?.[index], price: true } };
+    });
+    if (Object.keys(draftErrors).length) {
+      setValidationErrors(draftErrors);
+      scrollToFirstValidationError(draftErrors);
+      return false;
     }
     setValidationErrors({});
     saveRequestRef.current = true;
@@ -571,8 +683,9 @@ export function ProductEditPageClient({
       const response = await apiFetch(`${API_URL}/api/seller/products/${productId}`, {
         method: "PUT",
         body: JSON.stringify({
-          title: title.trim(),
-          description: description.trim(),
+          expectedVersion: product?.version,
+          title: product?.status === "ACTIVE" ? product.title : title.trim(),
+          description: product?.status === "ACTIVE" ? product.description : description.trim(),
           composition: composition.trim(),
           categoryId: categoryId ? Number(categoryId) : null,
           suggestedCategoryName: suggestedCategoryName.trim() || null,
@@ -590,7 +703,16 @@ export function ProductEditPageClient({
             colorId: variant.colorId ? Number(variant.colorId) : null,
             suggestedColorName: variant.colorId ? null : variant.color.trim() || null,
             price: Number(variant.price),
-            stockQuantity: variant.availableQuantity,
+            stockQuantity: variant.id !== null && variant.availableQuantity === variant.initialQuantity
+              ? null : variant.availableQuantity,
+            operationalChanged: variant.id === null || variant.price !== variant.initialPrice ||
+              variant.availableQuantity !== variant.initialQuantity ||
+              (variant.sellerArticle ?? "") !== (variant.initialSellerArticle ?? ""),
+            priceChanged: variant.id === null || variant.price !== variant.initialPrice,
+            sellerArticleChanged: variant.id === null ||
+              (variant.sellerArticle ?? "") !== (variant.initialSellerArticle ?? ""),
+            stockTrackingChanged: variant.id === null ||
+              (variant.availableQuantity !== null) !== (variant.initialQuantity !== null),
             sku: variant.sku.trim() || null,
             sellerArticle: variant.sellerArticle?.trim() || null,
             stockTrackingEnabled: variant.availableQuantity !== null,
@@ -599,22 +721,25 @@ export function ProductEditPageClient({
       });
 
       if (!response.ok) {
-        const text = await response.text().catch(() => "");
-        throw new Error(text || `Ошибка сохранения (${response.status})`);
+        throw new Error(await productActionResponseError(response));
       }
 
       const stateReloaded = await reloadProductState(saveRevision);
       if (stateReloaded && editRevisionRef.current === saveRevision) {
         setDirty(false);
+        emitSellerNavigationChanged();
         if (!forModeration) {
+          toast.success("Товар сохранён", { id: "product-save", description: undefined, action: undefined });
           setSaveSucceeded(true);
           window.setTimeout(() => setSaveSucceeded(false), 1200);
+        } else {
+          toast.dismiss("product-save");
         }
         return true;
       }
       return false;
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Не удалось сохранить товар");
+      toast.error(e instanceof Error ? e.message : "Не удалось сохранить товар", { id: "product-save" });
       return false;
     } finally {
       saveRequestRef.current = false;
@@ -731,6 +856,7 @@ export function ProductEditPageClient({
     if (!response.ok) return;
 
     const data: SellerProduct = await response.json();
+    setProduct((current) => current ? { ...current, version: data.version } : current);
     setImages(Array.isArray(data.imageItems) ? data.imageItems : []);
   }
 
@@ -799,6 +925,8 @@ export function ProductEditPageClient({
         throw new Error(text || `Ошибка сортировки (${response.status})`);
       }
 
+      await reloadProductImages();
+
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Не удалось сохранить порядок фото");
       await reloadProductImages();
@@ -833,7 +961,7 @@ export function ProductEditPageClient({
     void saveImageOrder(nextImages);
   }
 
-  async function publishProduct() {
+  async function publishProduct(reviewed = false) {
     if (
       publishRequestRef.current ||
       saveRequestRef.current ||
@@ -847,14 +975,14 @@ export function ProductEditPageClient({
     ) return;
 
     if (!product || !isProductStatusPublishable(product.status)) {
-      toast.info(getPublishUnavailableReason(product?.status));
+      toast.warning(getPublishUnavailableReason(product?.status));
       return;
     }
 
     const validation = validateProduct();
 
     if (!validation.valid) {
-      scrollToFirstValidationError();
+      scrollToFirstValidationError(validation.errors);
       failValidation(validation.message ?? "Проверьте обязательные поля");
       return;
     }
@@ -870,10 +998,8 @@ export function ProductEditPageClient({
             },
           },
         });
-      } else if (onboardingStatus === null) {
-        toast.info("Проверяем готовность магазина. Попробуйте ещё раз через секунду");
-      } else {
-        toast.error("Сначала заполните реквизиты и примите оферту продавца", {
+      } else if (onboardingStatus !== null) {
+        toast.warning("Сначала заполните реквизиты и примите оферту продавца", {
           action: {
             label: "Заполнить",
             onClick: () => requestEditorNavigation(() => router.push("/seller/legal")),
@@ -884,6 +1010,25 @@ export function ProductEditPageClient({
       return;
     }
 
+    if (product.revisionSourceId && !reviewed) {
+      if (reviewRequestRef.current) return;
+      reviewRequestRef.current = true;
+      setReviewLoading(true);
+      try {
+        const response = await apiFetch(`${API_URL}/api/seller/products/${product.revisionSourceId}`, { signal: AbortSignal.timeout(20000) });
+        if (!response.ok) throw new Error(await productActionResponseError(response));
+        const source: SellerProduct = await response.json();
+        if (source.id !== product.revisionSourceId || source.status !== "ACTIVE") throw new Error("Опубликованный товар изменился — обновите редактор");
+        setRevisionReviewSource(source);
+      } catch {
+        toast.error("Не удалось сравнить изменения — обновите редактор и повторите попытку");
+      } finally {
+        reviewRequestRef.current = false;
+        setReviewLoading(false);
+      }
+      return;
+    }
+    setRevisionReviewSource(null);
     publishSuccessReturnFocusRef.current =
       document.activeElement instanceof HTMLElement
         ? document.activeElement
@@ -914,6 +1059,7 @@ export function ProductEditPageClient({
       );
       setPublishSucceeded(true);
       setPublishSuccessOpen(true);
+      emitSellerNavigationChanged();
       toast.success("Товар отправлен на модерацию");
       window.setTimeout(() => setPublishSucceeded(false), 1200);
     } catch (e) {
@@ -1004,6 +1150,7 @@ export function ProductEditPageClient({
       variant,
     ]);
 
+    clearValidationError("variantCount");
     markDirty();
   }
 
@@ -1025,7 +1172,7 @@ export function ProductEditPageClient({
     ) return;
 
     if (dirty) {
-      toast.error("Сначала сохраните изменения, затем перенесите товар в архив");
+      toast.warning("Сначала сохраните изменения, затем перенесите товар в архив");
       return;
     }
 
@@ -1059,6 +1206,7 @@ export function ProductEditPageClient({
           : current
       );
       toast.success("Товар перемещён в архив");
+      emitSellerNavigationChanged();
       setConfirmation(null);
     } catch (e) {
       setConfirmationError(e instanceof Error ? e.message : "Не удалось переместить товар в архив");
@@ -1093,6 +1241,7 @@ export function ProductEditPageClient({
         current ? { ...current, status: "DRAFT" } : current
       );
       toast.success("Товар возвращён в черновики");
+      emitSellerNavigationChanged();
     } catch (error) {
       toast.error(
         error instanceof Error ? error.message : "Не удалось изменить статус"
@@ -1110,6 +1259,7 @@ export function ProductEditPageClient({
       saving ||
       uploading ||
       reordering ||
+      mediaActionPending ||
       !product ||
       !canDeleteProduct(product.status)
     ) return;
@@ -1124,23 +1274,26 @@ export function ProductEditPageClient({
     setConfirmationError(null);
 
     setDeleting(true);
+    let failureReason: string | null = null;
 
     try {
       const response = await apiFetch(
         `${API_URL}/api/seller/products/${productId}/delete`,
-        { method: "POST" }
+        { method: "POST", signal: AbortSignal.timeout(20000) }
       );
 
       if (!response.ok) {
-        const text = await response.text().catch(() => "");
-        throw new Error(text || `Ошибка удаления (${response.status})`);
+        failureReason = await productActionResponseError(response);
+        throw new Error(failureReason);
       }
 
-      toast.success("Товар удалён");
-      router.push("/seller/products");
-    } catch (error) {
+      setDirty(false);
+      emitSellerNavigationChanged();
+      globalToast.success("Товар удалён");
+      requestEditorNavigation(() => router.replace(productListHref()), { completed: true });
+    } catch {
       setConfirmationError(
-        error instanceof Error ? error.message : "Не удалось удалить товар"
+        failureReason ?? "Не получено подтверждение от сервера — обновите список и проверьте статус перед повтором"
       );
       confirmationPending.current = false;
       setDeleting(false);
@@ -1151,8 +1304,28 @@ export function ProductEditPageClient({
     toast.error(message);
   }
 
+  async function openContentRevision() {
+    if (openingRevision || productMutationBusy) return;
+    if (dirty) {
+      toast.warning("Сначала сохраните изменения цены и остатков");
+      return;
+    }
+    setOpeningRevision(true);
+    try {
+      const response = await apiFetch(`${API_URL}/api/seller/products/${productId}/revision`, { method: "POST" });
+      if (!response.ok) throw new Error(await productActionResponseError(response));
+      const revisionId: unknown = await response.json();
+      if (typeof revisionId !== "number" || !Number.isSafeInteger(revisionId) || revisionId <= 0) throw new Error("Не удалось открыть изменения товара");
+      requestEditorNavigation(() => router.replace(`/seller/products/${revisionId}/edit?returnTo=${encodeURIComponent(productListHref())}`), { completed: true });
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Не удалось открыть изменения товара");
+    } finally {
+      setOpeningRevision(false);
+    }
+  }
+
   const productMutationBusy =
-    saving ||
+    saving || openingRevision || reviewLoading ||
     uploading ||
     reordering ||
     publishing ||
@@ -1172,190 +1345,74 @@ export function ProductEditPageClient({
     onboardingStatus !== null &&
     (!onboardingStatus.legalCompleted || !onboardingStatus.agreementAccepted);
   const onboardingStatusPending = onboardingStatus === null;
+  const stepIndex = PRODUCT_EDITOR_STEPS.findIndex(step => step.id === activeStep);
+  const stepNavigationDisabled = productMutationBusy || creatingNextProduct;
+  const deleteAvailable = product !== null && canDeleteProduct(product.status);
+  const brandName = brands.find(brand => brand.id === brandId)?.name?.trim() || product?.brand?.trim() || null;
 
   return (
-    <EditorSurface title={<span className={!title.trim() ? styles.titlePlaceholder : undefined}>{title.trim() || "Название товара"}</span>}
+    <EditorSurface className={styles.productSurface} title={<ProductEditableTitle value={title} disabled={contentControlsDisabled || creatingNextProduct} onChange={updateTitle} />}
+      headerMeta={product && <StatusBadge tone={getProductStatusTone(product.status)} size="regular">{formatProductStatus(product.status)}</StatusBadge>}
+      subtitle={brandName}
       guardNavigation
-      discardHint="Изменения фотографий уже сохранены и не будут отменены."
+      discardHint="Изменения фотографий уже сохранены и не будут отменены"
       toastId="product-editor"
       dirty={dirty} busy={productMutationBusy || creatingNextProduct}
-      onClose={() => { if (intercepted) router.back(); else router.replace("/seller/products"); }}
-      actions={<>
-        <Button variant="ghost" disabled={productMutationBusy} onClick={()=>setDraftPreviewOpen(true)}>Предпросмотр</Button>
-        <Button onClick={() => void saveProduct()} disabled={productMutationBusy || saveSucceeded || !operationalEditingAllowed} loading={saving} success={saveSucceeded} variant="secondary">Сохранить</Button>
-        <Button onClick={() => void publishProduct()} disabled={productMutationBusy} loading={publishing} variant="primary">Отправить на модерацию</Button>
-      </>}>
-    <nav className={styles.editorSectionNav} aria-label="Разделы редактора товара">
-      {[["product-general","Основное"],["product-description","Описание"],["product-variants","Варианты"],["product-shipping","Упаковка"],["product-photos","Фото"]].map(([id,label])=><button type="button" key={id} aria-controls={id} onClick={()=>document.getElementById(id)?.scrollIntoView({behavior:window.matchMedia('(prefers-reduced-motion: reduce)').matches ? "auto" : "smooth",block:"start"})}>{label}</button>)}
-    </nav>
+      onClose={() => { if (intercepted) router.back(); else router.replace(productListHref()); }}
+      navigation={<nav className={styles.editorSectionNav} role={mobileEditor ? "tablist" : undefined} aria-label={mobileEditor ? "Шаги заполнения товара" : "Разделы товара"}>
+        {PRODUCT_EDITOR_STEPS.map((step,index)=><button type="button" key={step.id} id={`editor-tab-${step.id}`} role={mobileEditor ? "tab" : undefined} aria-selected={mobileEditor ? activeStep === step.id : undefined} aria-current={!mobileEditor && activeStep === step.id ? "location" : undefined}
+          aria-controls={step.panelId} tabIndex={!mobileEditor || activeStep === step.id ? 0 : -1} disabled={stepNavigationDisabled}
+          onFocus={event=>event.currentTarget.scrollIntoView({block:"nearest",inline:"nearest"})}
+          onKeyDown={event => {
+            let nextIndex = index;
+            if (event.key === "ArrowRight") nextIndex = (index + 1) % PRODUCT_EDITOR_STEPS.length;
+            else if (event.key === "ArrowLeft") nextIndex = (index - 1 + PRODUCT_EDITOR_STEPS.length) % PRODUCT_EDITOR_STEPS.length;
+            else if (event.key === "Home") nextIndex = 0;
+            else if (event.key === "End") nextIndex = PRODUCT_EDITOR_STEPS.length - 1;
+            else return;
+            event.preventDefault();
+            const nextStep = PRODUCT_EDITOR_STEPS[nextIndex];
+            selectEditorStep(nextStep.id);
+            document.getElementById(`editor-tab-${nextStep.id}`)?.focus();
+          }}
+          onClick={()=>selectEditorStep(step.id)}><span className={styles.stepNumber} aria-hidden="true">{index + 1}</span>{step.label}</button>)}
+      </nav>}
+      actions={<div className={styles.wizardActions}>
+        <div className={styles.wizardSecondaryActions}>
+          <Button variant="ghost" disabled={productMutationBusy} onClick={()=>setDraftPreviewOpen(true)}>Предпросмотр</Button>
+          <Button onClick={() => void saveProduct()} disabled={!dirty || productMutationBusy || saveSucceeded || !operationalEditingAllowed} loading={saving} success={saveSucceeded} variant="secondary">Сохранить</Button>
+        </div>
+        <div className={styles.wizardPager}>
+          <Button className={styles.mobileOnly} variant="ghost" disabled={stepNavigationDisabled || stepIndex === 0} onClick={()=>selectEditorStep(PRODUCT_EDITOR_STEPS[stepIndex - 1].id, true)}>Назад</Button>
+          {mobileEditor && stepIndex < PRODUCT_EDITOR_STEPS.length - 1
+            ? <Button variant="primary" disabled={stepNavigationDisabled} onClick={()=>selectEditorStep(PRODUCT_EDITOR_STEPS[stepIndex + 1].id, true)}>Далее</Button>
+            : <Button onClick={() => void publishProduct()} disabled={productMutationBusy || !isProductStatusPublishable(product?.status)} loading={publishing || reviewLoading} variant="primary">Отправить на модерацию</Button>}
+        </div>
+      </div>}>
     <div className={styles.panelContent}>
       <div className={styles.sellerLayout}>
 
         <div className={styles.editorContent}>
       <div className={styles.page}>
         <div className={styles.pageContent} ref={pageContentRef} tabIndex={-1}>
-
-        {onboardingError ? (
-          <div className={styles.onboardingWarning}>
-            <strong>Не удалось проверить готовность магазина</strong>
-            <p>Повторите проверку перед отправкой товара на модерацию.</p>
-            <Button
-              type="button"
-              variant="secondary"
-              onClick={() => {
-                setOnboardingStatus(null);
-                setOnboardingRetry((current) => current + 1);
-              }}
-            >
-              Повторить
-            </Button>
+        {product?.status === "ACTIVE" && <Banner tone="info" title="Товар опубликован" className={styles.editorNotice}
+          actions={<Button variant="secondary" loading={openingRevision} disabled={productMutationBusy} onClick={() => void openContentRevision()}>{product.contentRevisionId ? "Открыть изменения" : "Изменить карточку"}</Button>}>
+          Цена, количество и артикул меняются в разделе «Варианты»
+          <br />Для остальных полей и фото откройте изменения — текущая карточка останется в продаже до их одобрения
+          {product.contentRevisionStatus && <><br />Изменения: {formatProductStatus(product.contentRevisionStatus)}</>}
+        </Banner>}
+        {product?.revisionSourceId && (!mobileEditor || activeStep === "general" || activeStep === "variants") && <Banner tone="info" title="Изменения опубликованного товара" className={styles.editorNotice}>
+          До одобрения покупатели видят прежнюю карточку
+          <details className={styles.noticeDetails}><summary>Как сохраняются изменения</summary>Цена, количество и артикул существующих вариантов применяются сразу после сохранения</details>
+          <Link className={styles.noticeLink} href={`/seller/products/${product.revisionSourceId}/edit?returnTo=${encodeURIComponent(productListHref())}`}>Открыть опубликованный товар</Link>
+        </Banner>}
+        <div className={styles.wizardContext}>
+          <div className={styles.wizardProgress}>
+            <span>Шаг {stepIndex + 1} из {PRODUCT_EDITOR_STEPS.length}</span>
           </div>
-        ) : onboardingRequirementsPending ? (
-          <div className={styles.onboardingWarning}>
-            <strong>Магазин не готов к публикации</strong>
-            <p>
-              Заполните юридические данные и примите оферту продавца, чтобы отправлять
-              товары на модерацию.
-            </p>
-            <Link href="/seller/legal">Перейти к реквизитам</Link>
-          </div>
-        ) : null}
-
-        {product?.status === "NEEDS_REVISION" && product.moderationComment ? (
-          <div className={styles.revisionBox}>
-            <strong>Товар вернули на доработку</strong>
-            <p>{withoutTrailingPeriod(product.moderationComment)}</p>
-          </div>
-        ) : null}
-
-        <div className={styles.layout}>
-          <main className={styles.main}>
-            <fieldset
-              className={styles.lockedFieldset}
-              disabled={contentControlsDisabled}
-            >
-              <ProductGeneralCard
-                validationErrors={validationErrors}
-                title={title}
-                description={description}
-                composition={composition}
-                categoryId={categoryId}
-                suggestedCategoryName={suggestedCategoryName}
-                audience={audience}
-                categories={categories}
-                onTitleChange={(value) => {
-                  setTitle(value);
-                  clearValidationError("title");
-                  markDirty();
-                }}
-                onDescriptionChange={(value) => {
-                  setDescription(value);
-                  clearValidationError("description");
-                  markDirty();
-                }}
-                onCompositionChange={(value) => {
-                  setComposition(value);
-                  markDirty();
-                }}
-                onCategoryIdChange={(value) => {
-                  setCategoryId(value);
-                  if (value) {
-                    setSuggestedCategoryName("");
-                  }
-                  clearValidationError("categoryId");
-                  markDirty();
-                }}
-                onSuggestedCategoryNameChange={(value) => {
-                  setSuggestedCategoryName(value);
-                  if (value.trim()) {
-                    setCategoryId("");
-                  }
-                  clearValidationError("categoryId");
-                  markDirty();
-                }}
-                onAudienceChange={(value) => {
-                  setAudience(value);
-                  markDirty();
-                }}
-              />
-            </fieldset>
-
-            <ProductVariantsCard
-              variants={variants}
-              variantStructureDisabled={contentControlsDisabled}
-              operationalDisabled={operationalControlsDisabled}
-              validationErrors={validationErrors.variants ?? {}}
-              onUpdateVariant={updateVariant}
-              onAddVariant={addVariant}
-              onRemoveVariant={removeVariant}
-            />
-
-            <fieldset
-              className={styles.lockedFieldset}
-              disabled={contentControlsDisabled}
-            >
-              <ProductShippingCard
-                validationErrors={validationErrors}
-                packageWidthCm={packageWidthCm}
-                packageHeightCm={packageHeightCm}
-                packageLengthCm={packageLengthCm}
-                packageWeightKg={packageWeightKg}
-                onPackageWidthCmChange={(value) => {
-                  setPackageWidthCm(value);
-                  clearValidationError("packageWidthCm");
-                  markDirty();
-                }}
-                onPackageHeightCmChange={(value) => {
-                  setPackageHeightCm(value);
-                  clearValidationError("packageHeightCm");
-                  markDirty();
-                }}
-                onPackageLengthCmChange={(value) => {
-                  setPackageLengthCm(value);
-                  clearValidationError("packageLengthCm");
-                  markDirty();
-                }}
-                onPackageWeightKgChange={(value) => {
-                  setPackageWeightKg(value);
-                  clearValidationError("packageWeightKg");
-                  markDirty();
-                }}
-              />
-            </fieldset>
-
-            {onboardingStatusPending ? (
-              <div className={styles.publishRequirementHint} role="status">
-                Проверяем готовность магазина…
-              </div>
-            ) : onboardingRequirementsPending ? (
-              <div className={styles.publishRequirementHint}>
-                Для публикации сначала заполните реквизиты и примите оферту.{" "}
-                <Link href="/seller/legal">Перейти к реквизитам</Link>
-              </div>
-            ) : onboardingError ? (
-              <div className={styles.publishRequirementHint}>
-                Не удалось проверить готовность магазина. Нажмите «Повторить» выше.
-              </div>
-            ) : null}
-
-          </main>
-
-            <ProductPreviewAside
-            title={title}
-            brandId={brandId}
-            brands={brands}
-            product={product}
-            photoEditor={{
-              colorways: product?.colorways ?? [],
-              images, invalidImages: validationErrors.images, uploadProgress, uploading, reordering,
-              mediaDisabled: productMutationBusy || !contentEditingAllowed, mediaDisabledHint, dragImageId,
-              onFilesChange: setSelectedFiles,
-              onUploadImages: (files, colorwayId) => void uploadImages(files, colorwayId),
-              onDragImageStart: setDragImageId, onDragImageEnd: () => setDragImageId(null),
-              onMoveImage: moveImage, onDeleteImage: deleteImage, onMoveImageByIndex: moveImageByIndex,
-            }}
-            actions={
-              product && product.status !== "BLOCKED" ? (
+          {product && product.status !== "BLOCKED" && product.status !== "DELETED" && <details className={styles.productActionsMenu}>
+            <summary>Действия с товаром</summary>
+            <div>{product ? (
                 <>
                   {product.status === "ARCHIVED" ? (
                     <Button
@@ -1375,52 +1432,231 @@ export function ProductEditPageClient({
                       disabled={productMutationBusy && !archiving}
                       onClick={() => void archiveProduct()}
                     >
-                      {product.status === "ACTIVE"
-                        ? "Снять с витрины"
-                        : product.status === "MODERATION"
-                          ? "Отозвать в архив"
-                          : "Перенести в архив"}
+                      В архив
                     </Button>
                   )}
 
-                  {canDeleteProduct(product.status) ? (
-                    <Button
-                      type="button"
-                      variant="danger"
-                      loading={deleting}
-                      disabled={productMutationBusy && !deleting}
-                      onClick={() => void deleteProduct()}
-                    >
-                      Удалить товар
-                    </Button>
-                  ) : null}
+          {deleteAvailable && <Button
+            type="button"
+            variant="danger"
+            loading={deleting}
+            disabled={productMutationBusy && !deleting}
+            onClick={() => void deleteProduct()}
+          >{product?.revisionSourceId ? "Удалить изменения" : "Удалить"}</Button>}
                 </>
-              ) : null
-            }
+              ) : null}</div>
+          </details>}
+        </div>
+
+        {onboardingError ? (
+          <Banner tone="danger" title="Не удалось проверить готовность магазина" className={styles.editorNotice}
+            actions={<Button
+              type="button"
+              variant="secondary"
+              onClick={() => {
+                setOnboardingStatus(null);
+                setOnboardingRetry((current) => current + 1);
+              }}
+            >
+              Повторить
+            </Button>}>
+            Повторите проверку перед отправкой товара на модерацию
+          </Banner>
+        ) : onboardingRequirementsPending ? (
+          <Banner tone="warning" title="Магазин не готов к публикации" className={styles.editorNotice}
+            actions={<Link href="/seller/legal">Перейти к реквизитам</Link>}>
+            Заполните юридические данные и примите оферту продавца, чтобы отправлять
+            товары на модерацию
+          </Banner>
+        ) : null}
+
+        {product?.status === "NEEDS_REVISION" && product.moderationComment ? (
+          <Banner tone="warning" title="Товар вернули на доработку" className={styles.editorNotice}>
+            {withoutTrailingPeriod(product.moderationComment)}
+          </Banner>
+        ) : null}
+
+        <div className={styles.wizardLayout}>
+          <main className={`${styles.main} ${styles.stepPanel}`} hidden={mobileEditor && activeStep === "photos"}>
+            <fieldset
+              className={`${styles.lockedFieldset} ${styles.stepPanel}`}
+              hidden={mobileEditor && activeStep !== "general" && activeStep !== "description"}
+              disabled={contentControlsDisabled}
+            >
+              <ProductGeneralCard
+                activeSection={mobileEditor ? (activeStep === "general" ? "general" : "description") : undefined}
+                validationErrors={validationErrors}
+                title={title}
+                description={description}
+                composition={composition}
+                categoryId={categoryId}
+                suggestedCategoryName={suggestedCategoryName}
+                audience={audience}
+                categories={categories}
+                onTitleChange={updateTitle}
+                onDescriptionChange={(value) => {
+                  setDescription(value);
+                  clearValidationError("description", !hasDescriptionContent(value) || value.length > 2000);
+                  markDirty();
+                }}
+                onCompositionChange={(value) => {
+                  clearValidationError("composition", value.length > 1000);
+                  setComposition(value);
+                  markDirty();
+                }}
+                onCategoryIdChange={(value) => {
+                  setCategoryId(value);
+                  if (value) {
+                    setSuggestedCategoryName("");
+                  }
+                  clearValidationError("categoryId", value === "" && !suggestedCategoryName.trim());
+                  markDirty();
+                }}
+                onSuggestedCategoryNameChange={(value) => {
+                  setSuggestedCategoryName(value);
+                  if (value.trim()) {
+                    setCategoryId("");
+                  }
+                  clearValidationError("categoryId", categoryId === "" && !value.trim());
+                  markDirty();
+                }}
+                onAudienceChange={(value) => {
+                  setAudience(value);
+                  markDirty();
+                }}
+              />
+            </fieldset>
+
+            <div id="product-step-variants" className={styles.stepPanel} role={mobileEditor ? "tabpanel" : "region"} aria-labelledby="editor-tab-variants"
+              data-editor-step="variants" tabIndex={-1} hidden={mobileEditor && activeStep !== "variants"}>
+            <h2 className={`${styles.sectionTitle} ${styles.desktopOnly}`}>Варианты</h2>
+            <ProductVariantsCard
+              countInvalid={validationErrors.variantCount}
+              variants={variants}
+              variantStructureDisabled={contentControlsDisabled}
+              operationalDisabled={operationalControlsDisabled}
+              validationErrors={validationErrors.variants ?? {}}
+              onUpdateVariant={updateVariant}
+              onAddVariant={addVariant}
+              onRemoveVariant={removeVariant}
             />
+            </div>
+
+            <fieldset
+              id="product-step-shipping" className={`${styles.lockedFieldset} ${styles.stepPanel}`} role={mobileEditor ? "tabpanel" : "region"} aria-labelledby="editor-tab-shipping"
+              data-editor-step="shipping" tabIndex={-1} hidden={mobileEditor && activeStep !== "shipping"}
+              disabled={contentControlsDisabled}
+            >
+              <h2 className={`${styles.sectionTitle} ${styles.desktopOnly}`}>Упаковка</h2>
+              <ProductShippingCard
+                validationErrors={validationErrors}
+                packageWidthCm={packageWidthCm}
+                packageHeightCm={packageHeightCm}
+                packageLengthCm={packageLengthCm}
+                packageWeightKg={packageWeightKg}
+                onPackageWidthCmChange={(value) => {
+                  setPackageWidthCm(value);
+                  clearValidationError("packageWidthCm", value === "" || !Number.isFinite(value) || value <= 0);
+                  markDirty();
+                }}
+                onPackageHeightCmChange={(value) => {
+                  setPackageHeightCm(value);
+                  clearValidationError("packageHeightCm", value === "" || !Number.isFinite(value) || value <= 0);
+                  markDirty();
+                }}
+                onPackageLengthCmChange={(value) => {
+                  setPackageLengthCm(value);
+                  clearValidationError("packageLengthCm", value === "" || !Number.isFinite(value) || value <= 0);
+                  markDirty();
+                }}
+                onPackageWeightKgChange={(value) => {
+                  setPackageWeightKg(value);
+                  clearValidationError("packageWeightKg", value === "" || !Number.isFinite(value) || value <= 0);
+                  markDirty();
+                }}
+              />
+            </fieldset>
+
+            {onboardingStatusPending ? (
+              <div className={styles.publishRequirementHint}><Loader inline label="Проверка готовности магазина" /></div>
+            ) : onboardingRequirementsPending ? (
+              <div className={styles.publishRequirementHint}>
+                Для публикации сначала заполните реквизиты и примите оферту.{" "}
+                <Link href="/seller/legal">Перейти к реквизитам</Link>
+              </div>
+            ) : onboardingError ? (
+              <div className={styles.publishRequirementHint}>
+                Не удалось проверить готовность магазина. Нажмите «Повторить» выше.
+              </div>
+            ) : null}
+
+          </main>
+
+            <div id="product-step-photos" className={`${styles.stepPanel} ${styles.photoStep}`} role={mobileEditor ? "tabpanel" : "region"} aria-labelledby="editor-tab-photos"
+              data-editor-step="photos" tabIndex={-1} hidden={mobileEditor && activeStep !== "photos"}>
+              <ProductPhotoEditor
+                colorways={product?.colorways ?? []}
+                images={images}
+                invalidImages={validationErrors.images}
+                uploadProgress={uploadProgress}
+                uploading={uploading}
+                reordering={reordering}
+                mediaDisabled={productMutationBusy || !contentEditingAllowed}
+                mediaDisabledHint={mediaDisabledHint}
+                dragImageId={dragImageId}
+                onFilesChange={setSelectedFiles}
+                onUploadImages={(files, colorwayId) => void uploadImages(files, colorwayId)}
+                onDragImageStart={setDragImageId}
+                onDragImageEnd={() => setDragImageId(null)}
+                onMoveImage={moveImage}
+                onDeleteImage={deleteImage}
+                onMoveImageByIndex={moveImageByIndex}
+              />
+            </div>
             </div>
         </div>
       </div>
         </div>
       </div>
 
+      {revisionReviewSource && <Dialog title="Проверьте изменения карточки" onClose={() => setRevisionReviewSource(null)}
+        actions={<><Button variant="secondary" onClick={() => setRevisionReviewSource(null)}>Вернуться к редактированию</Button>
+          <Button variant="primary" disabled={productMutationBusy} onClick={() => void publishProduct(true)}>Отправить изменения</Button></>}>
+        <ProductRevisionReview source={revisionReviewSource} current={{ title, description, composition,
+          category: suggestedCategoryName.trim() || categories.find(c => c.id === categoryId)?.name || product?.category || null,
+          audience, packageWidthCm: numberOrNull(packageWidthCm), packageHeightCm: numberOrNull(packageHeightCm),
+          packageLengthCm: numberOrNull(packageLengthCm), packageWeightKg: numberOrNull(packageWeightKg),
+          variantSummary: variants.map(v => `${v.color || "Без цвета"} · ${v.size || "Без размера"}`).sort().join("\n"),
+          photos: images.map(i => i.url),
+        }} />
+      </Dialog>}
       {draftPreviewOpen && <Dialog title="Предпросмотр товара" onClose={()=>setDraftPreviewOpen(false)} actions={<Button onClick={()=>setDraftPreviewOpen(false)}>Вернуться к редактированию</Button>}>
         <ProductDraftPreview title={title} brand={brands.find(b=>b.id === brandId)?.name ?? product?.brand ?? ""} description={description} composition={composition} variants={variants} images={images} />
       </Dialog>}
       {confirmation ? (
-        <Dialog title={confirmation === "delete" ? "Удалить товар?" : product?.status === "ACTIVE" ? "Снять товар с витрины?" : "Перенести товар в архив?"}
+        <Dialog title={confirmation === "delete" ? (product?.revisionSourceId ? "Удалить изменения?" : "Удалить товар?") : product?.status === "ACTIVE" ? "Снять товар с витрины?" : "Перенести товар в архив?"}
           busy={archiving || deleting} onClose={() => setConfirmation(null)}
           actions={<>
             <Button variant="secondary" disabled={archiving || deleting} onClick={() => setConfirmation(null)}>Отмена</Button>
             <Button variant="primary" loading={archiving || deleting}
               onClick={() => void (confirmation === "delete" ? deleteProduct(true) : archiveProduct(true))}>
-              {confirmation === "delete" ? "Удалить товар" : product?.status === "ACTIVE" ? "Снять с витрины" : "Перенести в архив"}
+              {confirmation === "delete" ? "Удалить" : "В архив"}
             </Button>
           </>}>
-          <p>{confirmation === "delete"
-            ? "Товар исчезнет из кабинета, восстановить его через интерфейс не получится"
+          <p>{product?.revisionSourceId
+            ? "Это действие касается только версии изменений. Опубликованный товар остаётся в продаже"
+            : confirmation === "delete"
+            ? "Товар исчезнет с витрины и из списка продавца. Заказы и их история сохранятся. Самостоятельно восстановить товар не получится"
             : "Товар исчезнет из каталога, но его данные сохранятся в архиве. Позже его можно вернуть в черновики"}</p>
-          {confirmationError ? <div className="alertDanger" role="alert">{confirmationError}</div> : null}
+          {confirmationError ? <Banner tone="danger" role="alert"
+            actions={/заблокирован|поддержк|обновите список/i.test(confirmationError) ? <Button variant="tertiary" disabled={archiving || deleting}
+              onClick={() => {
+                setConfirmation(null);
+                requestEditorNavigation(() => /обновите список/i.test(confirmationError)
+                  ? router.replace(productListHref()) : router.push("/contacts"));
+              }}>{/обновите список/i.test(confirmationError) ? "Обновить список" : "Поддержка"}</Button> : undefined}>
+            {confirmationError}
+          </Banner> : null}
         </Dialog>
       ) : null}
 
@@ -1446,7 +1682,7 @@ export function ProductEditPageClient({
               <div>
                 <Icon name="check-circle" className={styles.publishSuccessIcon} />
                 <h2 className="modalTitle" id="product-publish-success-title">
-                  Товар отправлен на модерацию
+                  {product?.revisionSourceId ? "Изменения отправлены на модерацию" : "Товар отправлен на модерацию"}
                 </h2>
               </div>
               <button
@@ -1463,8 +1699,7 @@ export function ProductEditPageClient({
 
             <div className="modalBody">
               <p className={styles.publishSuccessText}>
-                Карточка получила статус «На модерации». Пока мы её проверяем,
-                можно добавить следующий товар
+                {product?.revisionSourceId ? "Опубликованный товар остаётся в продаже. Изменения появятся после одобрения" : "Карточка получила статус «На модерации». Пока мы её проверяем, можно добавить следующий товар"}
               </p>
               <Link
                 href={`/seller/products/${productId}/preview`}
@@ -1488,14 +1723,14 @@ export function ProductEditPageClient({
               >
                 К товарам
               </Button>
-              <Button
+              {!product?.revisionSourceId && <Button
                 type="button"
                 variant="primary"
                 loading={creatingNextProduct}
                 onClick={() => void createNextProductDraft()}
               >
                 Добавить ещё товар
-              </Button>
+              </Button>}
             </div>
           </div>
         </div>
@@ -1510,14 +1745,10 @@ function withoutTrailingPeriod(value: string) {
 }
 
 function canDeleteProduct(status: SellerProduct["status"]) {
-  return (
-    status === "DRAFT" ||
-    status === "NEEDS_REVISION" ||
-    status === "ARCHIVED"
-  );
+  return productActionBlockedReason("delete", status) === null;
 }
 
-function isProductStatusPublishable(status: SellerProduct["status"]) {
+function isProductStatusPublishable(status?: SellerProduct["status"]) {
   return status === "DRAFT" || status === "NEEDS_REVISION";
 }
 
@@ -1550,19 +1781,19 @@ function getMediaDisabledHint(
   busy: boolean
 ) {
   if (status === "ACTIVE") {
-    return "Чтобы изменить фото, сначала снимите товар с витрины.";
+    return "Чтобы изменить фото, нажмите «Изменить карточку»";
   }
 
   if (status === "MODERATION") {
-    return "Фото нельзя менять во время модерации.";
+    return "Фото нельзя менять во время модерации";
   }
 
   if (status === "BLOCKED") {
-    return "Фото заблокированного товара доступны только для просмотра.";
+    return "Фото заблокированного товара доступны только для просмотра";
   }
 
   if (busy) {
-    return "Дождитесь завершения текущего действия.";
+    return "Дождитесь завершения текущего действия";
   }
 
   return undefined;

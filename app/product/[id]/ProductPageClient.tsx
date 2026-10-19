@@ -1,12 +1,10 @@
 "use client";
 
-import Link from "next/link";
 import dynamic from "next/dynamic";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import styles from "./ProductPage.module.css";
-import { Icon } from "../../components/ui/Icon";
 import { resolveCartId } from "../../lib/cartAuthority";
 import { emitCartChanged } from "../../lib/cartEvents";
 import { useFavorites } from "../../lib/FavoritesContext";
@@ -19,7 +17,7 @@ import type { Product } from "./lib/types";
 import { useCurrentUser } from "../../lib/useCurrentUser";
 import { addVariantToCart } from "./lib/productPageApi";
 import { getMinPrice } from "./lib/productPageUtils";
-import { toast } from "sonner";
+import { toast } from "@/app/components/ui/toast";
 import type { CarouselProduct } from "../../components/ProductCarousel/types";
 
 const ProductImageViewer = dynamic(
@@ -56,7 +54,8 @@ export default function ProductPageClient({
   const addSuccessTimerRef = useRef<number | null>(null);
   const addInFlightRef = useRef(false);
   const favoriteInFlightRef = useRef(false);
-  const [openDescription, setOpenDescription] = useState(true);
+  const addErrorToastId = `product-cart-add-${product.id}`;
+  const [openComposition, setOpenComposition] = useState(false);
   const [openBrand, setOpenBrand] = useState(false);
 
   const [selectedVariantId, setSelectedVariantId] = useState<number | null>(null);
@@ -153,11 +152,12 @@ export default function ProductPageClient({
     }
 
     window.addEventListener("keydown", onKeyDown);
+    const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
 
     return () => {
       window.removeEventListener("keydown", onKeyDown);
-      document.body.style.overflow = "";
+      document.body.style.overflow = previousOverflow;
     };
   }, [viewerOpen, displayImages]);
 
@@ -166,8 +166,9 @@ export default function ProductPageClient({
       if (addSuccessTimerRef.current !== null) {
         window.clearTimeout(addSuccessTimerRef.current);
       }
+      toast.dismiss(addErrorToastId);
     };
-  }, []);
+  }, [addErrorToastId]);
 
   function handleChangeColorway(colorwayId: number) {
     setSelectedColorwayId(colorwayId);
@@ -184,7 +185,8 @@ export default function ProductPageClient({
     }
   }
 
-  async function handleAddToCart() {
+  async function handleAddToCart(variantId?: number) {
+    const variantToAdd = variantId === undefined ? selectedVariant : product.variants.find(variant => variant.id === variantId);
     if (addInFlightRef.current || addSuccess) return;
 
     addInFlightRef.current = true;
@@ -196,29 +198,30 @@ export default function ProductPageClient({
       const cartId = await resolveCartId();
 
       if (!cartId) {
-        toast.error("Не удалось создать корзину");
+        toast.error("Не удалось создать корзину", { id: addErrorToastId });
         return;
       }
 
-      if (!selectedVariant) {
-        toast.error("Нет доступных вариантов");
+      if (!variantToAdd) {
+        toast.warning("Нет доступных вариантов");
         return;
       }
 
       if (
-        selectedVariant.availableQuantity !== null &&
-        selectedVariant.availableQuantity <= 0
+        variantToAdd.availableQuantity !== null &&
+        variantToAdd.availableQuantity <= 0
       ) {
-        toast.error("Этот вариант отсутствует в наличии");
+        toast.warning("Этот вариант отсутствует в наличии");
         return;
       }
 
       await addVariantToCart({
         cartId,
-        variantId: selectedVariant.id,
+        variantId: variantToAdd.id,
         qty: 1,
       });
 
+      toast.dismiss(addErrorToastId);
       emitCartChanged();
       setAddSuccess(true);
 
@@ -231,9 +234,10 @@ export default function ProductPageClient({
         addSuccessTimerRef.current = null;
       }, 1200);
     } catch (error) {
-        toast.error(
-          error instanceof Error ? error.message : "Не удалось добавить в корзину"
-        );
+      toast.error(
+        error instanceof Error ? error.message : "Не удалось добавить в корзину",
+        { id: addErrorToastId },
+      );
     } finally {
       addInFlightRef.current = false;
       setAdding(false);
@@ -249,7 +253,7 @@ export default function ProductPageClient({
       setFavoritePending(true);
       await toggle(product.id);
 
-      toast(isFav ? "Удалено из избранного" : "Добавлено в избранное");
+      toast.success(isFav ? "Удалено из избранного" : "Добавлено в избранное");
     } catch (error) {
       toast.error(
         error instanceof Error ? error.message : "Не удалось обновить избранное"
@@ -287,41 +291,6 @@ export default function ProductPageClient({
     <>
       <div className="pageContainer">
         <div className={styles.page}>
-          <nav
-            className={styles.breadcrumbs}
-            aria-label="Навигационная цепочка"
-          >
-            <ol className={styles.breadcrumbList}>
-              <li className={styles.breadcrumbItem}>
-                <Link href="/catalog" className={styles.breadcrumbLink}>
-                  Каталог
-                </Link>
-              </li>
-
-              {product.brand ? (
-                <li className={styles.breadcrumbSeparator} aria-hidden="true">
-                  <Icon name="chevron-right" size={13} strokeWidth={1.4} />
-                </li>
-              ) : null}
-
-              {product.brandSlug ? (
-                <li className={styles.breadcrumbItem}>
-                  <Link
-                    href={`/brand/${product.brandSlug}`}
-                    className={styles.breadcrumbLink}
-                  >
-                    {product.brand}
-                  </Link>
-                </li>
-              ) : product.brand ? (
-                <li className={styles.breadcrumbItem}>
-                  <span className={styles.breadcrumbCurrent}>
-                    {product.brand}
-                  </span>
-                </li>
-              ) : null}
-            </ol>
-          </nav>
           <div className={styles.top}>
             <ProductGallery
               key={selectedColorwayId ?? "default"}
@@ -349,9 +318,9 @@ export default function ProductPageClient({
               }
               selectedColorwayId={selectedColorwayId}
               onChangeColorway={handleChangeColorway}
-              openDescription={openDescription}
+              openComposition={openComposition}
               openBrand={openBrand}
-              onToggleDescription={() => setOpenDescription((prev) => !prev)}
+              onToggleComposition={() => setOpenComposition((prev) => !prev)}
               onToggleBrand={() => setOpenBrand((prev) => !prev)}
             />
           </div>

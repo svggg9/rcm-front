@@ -39,12 +39,8 @@ export function SellerOverview({ active, brand, summary, onboarding, onNavigate,
   return <div className={styles.overview}>
     <div className={styles.topGrid}>
     <section className={styles.attention} aria-label="Требует внимания">
-      <h2 className={styles.attentionTitle}>Требует внимания</h2>
-      <SellerHomeTasks active={active} hasSetupTasks={Boolean(summary?.failedPayouts)}>
-        {Boolean(summary?.failedPayouts) && <Link className={styles.row} href="/seller/finance?view=payouts">
-          <span>Не удалось провести выплату</span><StatusBadge tone="danger">Проверить выплаты</StatusBadge>
-        </Link>}
-      </SellerHomeTasks>
+      <h2 className={styles.attentionTitle}>Заказы, возвраты и товары</h2>
+      <SellerHomeTasks active={active} hasSetupTasks={false}>{null}</SellerHomeTasks>
     </section>
 
     <OverviewBlock title="Заказы" href="/seller/orders" action="Все заказы">
@@ -79,7 +75,7 @@ export function SellerOverview({ active, brand, summary, onboarding, onNavigate,
           <Metric label="Ожидает доступности" value={summary ? <Price amount={summary.processingPayout} /> : undefined} />
           <Metric label="В выплатах" value={summary ? <Price amount={summary.inPayoutAmount} /> : undefined} />
         </div>
-        <p className={styles.empty}>График выплат и история операций — в разделе «Финансы».</p>
+        <p className={styles.empty}>График выплат и история операций — в разделе «Финансы»</p>
       </OverviewBlock>
 
       <OverviewBlock title="Магазин" href="/seller/store" action="Настроить">
@@ -89,7 +85,7 @@ export function SellerOverview({ active, brand, summary, onboarding, onNavigate,
 
       <OverviewBlock title="Данные и документы" href="/seller/legal" action="Открыть">
         <Link className={styles.row} href="/seller/legal"><span>Реквизиты и данные</span><Completion value={onboarding?.legalCompleted} /></Link>
-        <Link className={styles.row} href="/seller/legal"><span>Условия работы</span><Completion value={onboarding?.agreementAccepted} /></Link>
+        <Link className={styles.row} href="/seller/legal?section=bank"><span>Условия работы</span><Completion value={onboarding?.agreementAccepted} /></Link>
         <Link className={styles.row} href="/seller/legal"><span>Уведомления в Telegram</span><StatusBadge tone={summary?.telegramLinked ? "success" : "default"}>{!summary ? "Нет данных" : summary.telegramLinked ? "Подключены" : "Не подключены"}</StatusBadge></Link>
       </OverviewBlock>
     </div>

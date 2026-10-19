@@ -238,3 +238,50 @@ button[class*="primaryBtn"]:active:not(:disabled),
 @media (prefers-reduced-motion: reduce) {
   :is(.buttonPrimary, .buttonPrimaryShimmer, .buttonSecondary, .buttonTertiary, .buttonGhost, .buttonDanger) { transition: none; }
 }
+
+/* Compact utility action: editor/card controls such as "Добавить список". */
+.buttonUtility,
+.utilityAction {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 36px;
+  padding: 6px 8px;
+  overflow: hidden;
+  border: 0;
+  border-radius: 0;
+  background: var(--white);
+  color: var(--black);
+  font-family: inherit;
+  font-size: var(--font-sm);
+  line-height: 21px;
+  font-weight: 400;
+  text-decoration: none;
+  cursor: pointer;
+  transition: none;
+}
+
+@media (hover: hover) {
+  :is(.buttonUtility, .utilityAction):hover:not(:disabled) {
+    background: var(--surface-hover);
+  }
+}
+
+:is(.buttonUtility, .utilityAction):active:not(:disabled) {
+  background: var(--surface-hover);
+}
+
+:is(.buttonUtility, .utilityAction):focus-visible {
+  outline: 1px solid var(--black);
+  outline-offset: 3px;
+}
+
+.buttonUtility:disabled {
+  color: var(--muted);
+  cursor: not-allowed;
+}
+
+.buttonUtility:disabled:is([data-loading], [data-success]) {
+  color: var(--black);
+}

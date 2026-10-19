@@ -2,6 +2,7 @@
 
 import type { ReactNode, FormEvent } from "react";
 import { scrollToFirstValidationError } from "../../lib/formValidation";
+import { NavigationScrollReset } from "../NavigationScrollReset";
 
 // A form's React validation commits before the helper's animation frame.
 // Navigation, API calls and validation rules remain owned by each form.
@@ -11,5 +12,5 @@ export function FormValidationBoundary({ children }: { children: ReactNode }) {
       scrollToFirstValidationError({ root: event.target });
     }
   }
-  return <main className="appMain" onSubmitCapture={submitted}>{children}</main>;
+  return <main className="appMain" onSubmitCapture={submitted}><NavigationScrollReset />{children}</main>;
 }

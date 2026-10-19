@@ -1,6 +1,6 @@
 "use client";
 
-import { toast } from "sonner";
+import { toast } from "@/app/components/ui/toast";
 import { LikeButton } from "../../components/ui/LikeButton";
 
 import {

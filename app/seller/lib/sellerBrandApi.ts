@@ -97,6 +97,11 @@ export async function uploadSellerBrandImage(
   brandId: number,
   file: File
 ): Promise<SellerBrandImage> {
+  if (!["image/jpeg", "image/webp"].includes(file.type)) {
+    throw new Error("Разрешены только JPEG и WebP");
+  }
+  if (!file.size) throw new Error("Выберите непустую фотографию");
+  if (file.size > 8 * 1024 * 1024) throw new Error("Исходное фото должно быть не больше 8 МБ");
   const formData = new FormData();
   formData.append("file", file);
   const response = await apiFetch(
@@ -104,8 +109,15 @@ export async function uploadSellerBrandImage(
     { method: "POST", body: formData }
   );
   if (!response.ok) {
-    const text = await response.text().catch(() => "");
-    throw new Error(text || "Не удалось загрузить фотографию бренда");
+    const data: unknown = await response.json().catch(() => null);
+    const message = data && typeof data === "object"
+      ? (data as { message?: unknown; detail?: unknown }).message ?? (data as { detail?: unknown }).detail
+      : null;
+    throw new Error(typeof message === "string" && message.trim()
+      ? message
+      : response.status === 413
+        ? "Исходное фото должно быть не больше 8 МБ"
+        : "Не удалось загрузить фотографию бренда");
   }
   return response.json();
 }

@@ -1,5 +1,27 @@
 import { API_URL, apiFetch } from "../../lib/api";
 import type { CartItem } from "./types";
+import { MAX_PRODUCT_QUANTITY } from "./quantityLimits";
+
+export const PRODUCT_QUANTITY_LIMIT_MESSAGE = `Не больше ${MAX_PRODUCT_QUANTITY} единиц одного товара`;
+
+export class CartActionError extends Error {
+  constructor(message: string, public readonly availableQuantity?: number) { super(message); }
+}
+
+export async function cartActionError(response: Response, fallback: string): Promise<CartActionError> {
+  const body: unknown = await response.json().catch(() => null);
+  const message = body && typeof body === "object" && "message" in body && typeof body.message === "string" ? body.message : "";
+  const stock = /^Requested qty \d+ exceeds available stock (\d+)$/.exec(message);
+  if (stock) {
+    const available = Number(stock[1]);
+    return new CartActionError(available ? `Доступно только ${available} шт` : "Товар закончился", available);
+  }
+  if (["PRODUCT_QUANTITY_LIMIT", PRODUCT_QUANTITY_LIMIT_MESSAGE, "Не больше 5 единиц одного товара по всем размерам и цветам"].includes(message)) {
+    return new CartActionError(PRODUCT_QUANTITY_LIMIT_MESSAGE);
+  }
+  if (response.status === 409 && message === "Variant is not available for purchase") return new CartActionError("Товар больше недоступен — удалите его из корзины");
+  return new CartActionError(fallback);
+}
 
 export async function getCart(cartId: string): Promise<CartItem[]> {
   const res = await apiFetch(
@@ -7,8 +29,7 @@ export async function getCart(cartId: string): Promise<CartItem[]> {
   );
 
   if (!res.ok) {
-    const text = await res.text().catch(() => "");
-    throw new Error(text || "Не удалось загрузить корзину");
+    throw await cartActionError(res, "Не удалось загрузить корзину");
   }
 
   return res.json();
@@ -27,8 +48,7 @@ export async function updateQuantity(
   );
 
   if (!res.ok) {
-    const text = await res.text().catch(() => "");
-    throw new Error(text || "Не удалось изменить количество");
+    throw await cartActionError(res, "Не удалось изменить количество — попробуйте ещё раз");
   }
 
   return res.json();
@@ -46,8 +66,7 @@ export async function removeItem(
   );
 
   if (!res.ok) {
-    const text = await res.text().catch(() => "");
-    throw new Error(text || "Не удалось удалить товар");
+    throw await cartActionError(res, "Не удалось удалить товар — попробуйте ещё раз");
   }
 
   return res.json();

@@ -1,12 +1,15 @@
 "use client";
 
+import { Loader } from "../../components/ui/Loader";
 import Link from "next/link";
 import { useEffect, useState, type ReactNode } from "react";
 import { Button } from "../../components/ui/Button";
+import { Banner } from "../../components/ui/Banner";
 import { DesignSystemIcon as Icon } from "../../components/ui/DesignSystemIcon";
 import { CabinetSkeleton } from "../../components/ui/CabinetSkeleton";
 import { CabinetPanel } from "../../components/ui/CabinetPanel";
 import { getSellerTasks, type SellerTask } from "../lib/sellerTasks";
+import { SELLER_NAVIGATION_EVENT } from "../lib/sellerNavigationEvents";
 import styles from "./SellerHomeTab.module.css";
 import listItemStyles from "../../components/ui/CabinetListItem.module.css";
 
@@ -22,8 +25,9 @@ export function SellerHomeTasks({ children, hasSetupTasks, active = true }: { ch
   const [now, setNow] = useState<number | null>(null);
   useEffect(() => {
     const refresh = () => setAttempt(value => value + 1);
+    window.addEventListener(SELLER_NAVIGATION_EVENT, refresh);
     window.addEventListener("seller-return-updated", refresh);
-    return () => window.removeEventListener("seller-return-updated", refresh);
+    return () => { window.removeEventListener(SELLER_NAVIGATION_EVENT, refresh); window.removeEventListener("seller-return-updated", refresh); };
   }, []);
   useEffect(() => {
     const update = () => setNow(Date.now());
@@ -54,14 +58,19 @@ export function SellerHomeTasks({ children, hasSetupTasks, active = true }: { ch
       items={[{ value: "all", label: "Все" }, { value: "order", label: "Заказы" }, { value: "return", label: "Возвраты" }, { value: "product", label: "Товары" }]}
       onChange={value => { setCategory(value); setPage(0); setState({ status: "loading" }); }}>
     {state.status === "loading" && busy && <CabinetSkeleton variant="list" rows={2} compact />}
-    {refreshError && <div className="alertDanger" role="alert">
-      <p>{refreshError}</p><Button onClick={() => setAttempt(value => value + 1)}>Повторить</Button>
-    </div>}
-    {state.status === "ready" && filteredTasks.map(task => <SellerTaskRow key={task.id} task={task} now={now} />)}
+    {refreshError && <Banner tone="danger" role="alert"
+      actions={<Button onClick={() => setAttempt(value => value + 1)}>Повторить</Button>}>
+      <p>{refreshError}</p>
+    </Banner>}
+    {state.status === "ready" && filteredTasks.filter(task => task.action !== "Открыть возврат").map(task => <SellerTaskRow key={task.id} task={task} now={now} />)}
     {state.status === "ready" && category !== "all" && filteredTasks.length === 0 && <p>Задач этого типа пока нет</p>}
+    {state.status === "ready" && filteredTasks.some(task => task.action === "Открыть возврат") && <>
+      <strong>Ожидаем поступления возврата</strong>
+      {filteredTasks.filter(task => task.action === "Открыть возврат").map(task => <SellerTaskRow key={task.id} task={task} now={now} />)}
+    </>}
     {children}
     {state.status === "ready" && <div>
-      {busy && <span role="status">Обновляем задачи…</span>}
+      {busy && <Loader inline label="Обновление задач" />}
       {page > 0 && <Button disabled={busy} onClick={() => { setState({ status: "loading" }); setPage(value => value - 1); }}>Назад</Button>}
       {state.hasNext && <Button disabled={busy} onClick={() => { setState({ status: "loading" }); setPage(value => value + 1); }}>Следующие задачи</Button>}
     </div>}

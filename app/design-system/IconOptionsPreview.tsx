@@ -11,7 +11,7 @@ const selectedIcons = [
 const sizeExamples: { role: IconRole; title: string; icon: IconName }[] = [
   { role: "utility", title: "Служебные", icon: "chevron-down" },
   { role: "interface", title: "Навигация и задачи", icon: "shopping-bag" },
-  { role: "empty", title: "Пустые состояния", icon: "package" },
+  { role: "empty", title: "Крупный размер", icon: "package" },
 ];
 
 export function IconOptionsPreview() {

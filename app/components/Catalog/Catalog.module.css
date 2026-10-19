@@ -891,7 +891,7 @@
   }
 
   .grid {
-    gap: 26px 8px;
+    gap: 16px 8px;
   }
 
   .drawerHeader,
@@ -1090,12 +1090,12 @@
   .grid {
     min-height: 0;
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 26px 8px;
+    gap: 16px 8px;
   }
 
   .mobileAddedProducts {
     display: grid;
-    margin-top: 26px;
+    margin-top: 16px;
   }
 
   .mobileLoadMore {
@@ -1254,4 +1254,9 @@
   .skeletonFilter {
     width: 78px;
   }
+}
+
+@media (max-width: 640px) {
+  .catalogContainer { width: calc(100% - 16px); }
+  .catalogToolbar { min-height: 48px; margin-bottom: 4px; }
 }

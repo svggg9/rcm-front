@@ -108,6 +108,10 @@ const AdminStorefrontTab = dynamic(
     ),
   { loading: () => <CabinetSkeleton variant="form" /> }
 );
+const AdminContactsTab = dynamic(
+  () => import("./components/AdminContactsTab").then((module) => module.AdminContactsTab),
+  { loading: () => <CabinetSkeleton variant="list" compact /> }
+);
 
 function normalizeTab(raw: string | null): AdminTab {
   if (raw === "storefront") return "storefront";
@@ -115,6 +119,7 @@ function normalizeTab(raw: string | null): AdminTab {
   if (raw === "sellers") return "sellers";
   if (raw === "dictionaries") return "dictionaries";
   if (raw === "finance") return "finance";
+  if (raw === "contact-messages" || raw === "contacts") return "contact-messages";
   if (raw === "delivery") return "delivery";
   return "products";
 }
@@ -1119,8 +1124,8 @@ function AdminPageContent({ initialData }: Props) {
       return;
     }
 
-    if (currentTab === "storefront") {
-      loadedListKeyByTabRef.current.set("storefront", listKey);
+    if (currentTab === "storefront" || currentTab === "contact-messages") {
+      loadedListKeyByTabRef.current.set(currentTab, listKey);
       setLoading(false);
       return;
     }
@@ -1421,12 +1426,14 @@ function AdminPageContent({ initialData }: Props) {
     action: (id: number) => Promise<void>
   ) {
     const expectedSelectedProductId = selectedProductIdRef.current;
+    const revisionSourceId = selectedProduct?.id === productId ? selectedProduct.revisionSourceId : null;
     setActionProductId(productId);
     setError(null);
 
     try {
       await action(productId);
       invalidateProduct(productId);
+      if (revisionSourceId) invalidateProduct(revisionSourceId);
       loadedListKeyByTabRef.current.delete("products");
       invalidatedListTabsRef.current.add("products");
       productCountsLoadedRef.current = false;
@@ -1435,7 +1442,8 @@ function AdminPageContent({ initialData }: Props) {
         currentTabRef.current === "products" &&
         Number(selectedProductIdRef.current) === productId
       ) {
-        await loadSelectedProduct(productId, true);
+        if (revisionSourceId && action === approveProduct) openProduct(revisionSourceId);
+        else await loadSelectedProduct(productId, true);
       }
     } catch (e) {
       if (
@@ -1548,11 +1556,6 @@ function AdminPageContent({ initialData }: Props) {
       invalidatedListTabsRef.current.add("sellers");
       sellerCountsLoadedRef.current = false;
       setListInvalidationVersion((current) => current + 1);
-    } catch (e) {
-      if (currentTabRef.current === "sellers") {
-        setError(e instanceof Error ? e.message : "Не удалось выполнить действие");
-      }
-      throw e;
     } finally {
       setActionApplicationId(null);
     }
@@ -1576,6 +1579,8 @@ function AdminPageContent({ initialData }: Props) {
 
             {loading ? (
               <CabinetSkeleton variant={getAdminSkeletonVariant(currentTab)} />
+            ) : currentTab === "contact-messages" ? (
+              <AdminContactsTab />
             ) : currentTab === "storefront" ? (
               <AdminStorefrontTab
                 initialHome={storefrontHome}

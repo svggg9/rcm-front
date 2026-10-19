@@ -11,6 +11,7 @@ import {
 } from "react";
 
 import { Button } from "../../components/ui/Button";
+import { toast } from "../../components/ui/toast";
 import {
   getAdminStorefrontHome,
   updateAdminStorefrontHeroPosition,
@@ -183,14 +184,16 @@ export function AdminStorefrontTab({
       setSelectedFile(null);
       setPreviewUrl(null);
       setSuccess(true);
+      toast.success("Главное изображение сохранено", { id: "admin-storefront-hero", description: undefined, action: undefined });
 
       if (successTimerRef.current) clearTimeout(successTimerRef.current);
       successTimerRef.current = setTimeout(() => setSuccess(false), 1600);
     } catch (caught) {
-      setError(
+      toast.error(
         caught instanceof Error
           ? caught.message
-          : "Не удалось сохранить изображение"
+          : "Не удалось сохранить изображение",
+        { id: "admin-storefront-hero" }
       );
     } finally {
       setSaving(false);
@@ -270,9 +273,11 @@ export function AdminStorefrontTab({
       };
       setPosition(nextPosition);
       setSavedPosition(nextPosition);
+      toast.success("Позиция изображения сохранена", { id: "admin-storefront-hero-position", description: undefined, action: undefined });
     } catch (caught) {
-      setError(
-        caught instanceof Error ? caught.message : "Не удалось сохранить позицию"
+      toast.error(
+        caught instanceof Error ? caught.message : "Не удалось сохранить позицию",
+        { id: "admin-storefront-hero-position" }
       );
     } finally {
       setPositionSaving(false);
@@ -359,8 +364,9 @@ export function AdminStorefrontTab({
           >
             По центру
           </button>
-          <button
+          <Button
             type="button"
+            loading={positionSaving}
             disabled={
               loading ||
               saving ||
@@ -370,8 +376,8 @@ export function AdminStorefrontTab({
             }
             onClick={() => void savePosition()}
           >
-            {positionSaving ? "Сохранение…" : "Сохранить позицию"}
-          </button>
+            Сохранить позицию
+          </Button>
         </div>
 
         {error ? (

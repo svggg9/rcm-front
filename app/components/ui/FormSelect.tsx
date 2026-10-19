@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState, type KeyboardEvent, type FocusEventHandler } from "react";
 
 import { Icon } from "./Icon";
 import styles from "./FormControl.module.css";
@@ -24,8 +24,12 @@ type Props<TValue extends SelectValue> = {
   errorId?: string;
   required?: boolean;
   disabled?: boolean;
+  readOnly?: boolean;
+  fieldVariant?: "boxed" | "inline";
   full?: boolean;
+  size?: "default" | "compact";
   onChange: (value: TValue | "") => void;
+  onBlur?: FocusEventHandler<HTMLDivElement>;
 };
 
 export function FormSelect<TValue extends SelectValue>({
@@ -39,17 +43,24 @@ export function FormSelect<TValue extends SelectValue>({
   errorId,
   required = false,
   disabled = false,
+  readOnly = false,
+  fieldVariant = "boxed",
   full = false,
+  size = "default",
   onChange,
+  onBlur,
 }: Props<TValue>) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement | null>(null);
+  const triggerRef = useRef<HTMLButtonElement | null>(null);
+  const focusFrameRef = useRef<number | null>(null);
   const labelId = useId();
   const valueId = useId();
   const listboxId = useId();
   const selectedOption = options.find((option) => option.value === value) ?? null;
   const hasValue = value !== "";
   const displayValue = selectedOption?.label ?? placeholder ?? "";
+  const inactive = disabled || readOnly;
 
   useEffect(() => {
     function handlePointerDown(event: MouseEvent) {
@@ -58,32 +69,97 @@ export function FormSelect<TValue extends SelectValue>({
       }
     }
 
-    function handleKeyDown(event: KeyboardEvent) {
-      if (event.key === "Escape") {
-        setOpen(false);
-      }
-    }
-
     document.addEventListener("mousedown", handlePointerDown);
-    document.addEventListener("keydown", handleKeyDown);
 
     return () => {
       document.removeEventListener("mousedown", handlePointerDown);
-      document.removeEventListener("keydown", handleKeyDown);
+      if (focusFrameRef.current !== null) {
+        window.cancelAnimationFrame(focusFrameRef.current);
+      }
     };
   }, []);
 
-  function selectValue(nextValue: TValue | "") {
-    onChange(nextValue);
+  if (inactive && open) {
     setOpen(false);
+  }
+
+  function closeMenu(returnFocus = false) {
+    if (focusFrameRef.current !== null) {
+      window.cancelAnimationFrame(focusFrameRef.current);
+      focusFrameRef.current = null;
+    }
+    setOpen(false);
+    if (returnFocus) triggerRef.current?.focus();
+  }
+
+  function focusOption(key: string) {
+    const enabledOptions = Array.from(
+      rootRef.current?.querySelectorAll<HTMLButtonElement>('[role="option"]') ?? [],
+    ).filter((option) => !option.matches(":disabled"));
+    if (enabledOptions.length === 0) return;
+
+    const currentIndex = enabledOptions.findIndex((option) => option === document.activeElement);
+    const selectedIndex = enabledOptions.findIndex((option) => option.getAttribute("aria-selected") === "true");
+    let nextIndex: number;
+
+    if (key === "Home") nextIndex = 0;
+    else if (key === "End") nextIndex = enabledOptions.length - 1;
+    else if (currentIndex >= 0) {
+      nextIndex = key === "ArrowDown"
+        ? Math.min(currentIndex + 1, enabledOptions.length - 1)
+        : Math.max(currentIndex - 1, 0);
+    } else {
+      nextIndex = selectedIndex >= 0 ? selectedIndex : key === "ArrowDown" ? 0 : enabledOptions.length - 1;
+    }
+
+    enabledOptions[nextIndex]?.focus();
+  }
+
+  function handleKeyDown(event: KeyboardEvent<HTMLDivElement>) {
+    if (inactive || triggerRef.current?.matches(":disabled")) return;
+
+    if (event.key === "Escape" && open) {
+      event.preventDefault();
+      event.stopPropagation();
+      closeMenu(true);
+    } else if (event.key === "Tab" && open) {
+      closeMenu(true);
+    } else if (["ArrowDown", "ArrowUp", "Home", "End"].includes(event.key)) {
+      event.preventDefault();
+      if (open) {
+        focusOption(event.key);
+      } else {
+        setOpen(true);
+        const key = event.key;
+        focusFrameRef.current = window.requestAnimationFrame(() => {
+          focusFrameRef.current = null;
+          if (triggerRef.current?.getAttribute("aria-expanded") === "true"
+            && !triggerRef.current.matches(":disabled")) {
+            focusOption(key);
+          }
+        });
+      }
+    }
+  }
+
+  function selectValue(nextValue: TValue | "") {
+    if (inactive || triggerRef.current?.matches(":disabled")) return;
+    onChange(nextValue);
+    closeMenu(true);
   }
 
   return (
     <div
       data-ui="field"
-      className={full ? styles.fieldFull : styles.field}
+      data-field-variant={fieldVariant === "inline" ? "inline" : undefined}
+      data-readonly={readOnly || undefined}
+      className={`${full ? styles.fieldFull : styles.field} ${size === "compact" ? styles.compact : ""}`}
       data-validation-error={invalid ? "true" : undefined}
       ref={rootRef}
+      onKeyDown={handleKeyDown}
+      onBlur={(event) => {
+        if (!event.currentTarget.contains(event.relatedTarget)) { closeMenu(); onBlur?.(event); }
+      }}
     >
       {label ? <span id={labelId} className={required ? styles.required : undefined}>
         {label}
@@ -93,18 +169,21 @@ export function FormSelect<TValue extends SelectValue>({
         className={`${styles.select} ${open ? styles.selectOpen : ""} ${
           invalid ? styles.invalid : ""
         } ${required && !hasValue ? styles.requiredEmpty : ""} ${
-          disabled ? styles.selectDisabled : ""
+          inactive ? styles.selectDisabled : ""
         }`}
       >
         <button
           type="button"
           role="combobox"
+          ref={triggerRef}
           className={`${styles.selectButton} ${hasValue ? "" : styles.placeholder}`}
-          disabled={disabled}
+          disabled={inactive}
+          aria-readonly={readOnly || undefined}
           aria-describedby={invalid && errorId ? errorId : undefined}
           aria-expanded={open}
           aria-haspopup="listbox"
           aria-invalid={invalid || undefined}
+          aria-required={required || undefined}
           aria-controls={listboxId}
           aria-label={label ? undefined : ariaLabel}
           aria-labelledby={label ? `${labelId} ${valueId}` : undefined}
@@ -126,6 +205,8 @@ export function FormSelect<TValue extends SelectValue>({
           id={listboxId}
           role="listbox"
           aria-hidden={!open}
+          aria-labelledby={label ? labelId : undefined}
+          aria-label={label ? undefined : ariaLabel}
         >
           <div className={styles.options}>
             {(emptyOptionLabel || placeholder) && !required ? (
@@ -134,7 +215,8 @@ export function FormSelect<TValue extends SelectValue>({
                 className={styles.option}
                 role="option"
                 aria-selected={!hasValue}
-                tabIndex={open ? 0 : -1}
+                tabIndex={-1}
+                disabled={inactive}
                 onClick={() => selectValue("")}
               >
                 <span className={`${styles.optionLabel} ${emptyOptionLabel ? styles.optionValue : styles.optionPlaceholder}`}>{emptyOptionLabel ?? placeholder}</span>
@@ -147,9 +229,9 @@ export function FormSelect<TValue extends SelectValue>({
                 type="button"
                 className={styles.option}
                 role="option"
-                disabled={option.disabled}
+                disabled={inactive || option.disabled}
                 aria-selected={option.value === value}
-                tabIndex={open ? 0 : -1}
+                tabIndex={-1}
                 onClick={() => selectValue(option.value as TValue)}
               >
                 <span className={`${styles.optionLabel} ${styles.optionValue}`}>{option.label}</span>

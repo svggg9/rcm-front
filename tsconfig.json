@@ -40,7 +40,9 @@
     "build/navigation-check/types/**/*.ts",
     "build/navigation-check/dev/types/**/*.ts",
     "build/unpaid-check/types/**/*.ts",
-    "build/unpaid-check/dev/types/**/*.ts"
+    "build/unpaid-check/dev/types/**/*.ts",
+    "build/account-redesign-dev/types/**/*.ts",
+    "build/account-redesign-dev/dev/types/**/*.ts"
   ],
   "exclude": [
     "node_modules"

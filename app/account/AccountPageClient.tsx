@@ -1,23 +1,25 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import dynamic from "next/dynamic";
-import { toast } from "sonner";
+import { toast } from "@/app/components/ui/toast";
 
 import { apiFetch, API_URL } from "../lib/api";
 import { logout as logoutAuth } from "../lib/auth";
 import { useSessionResourceCache } from "../lib/useSessionResourceCache";
 
-import { AccountSidebar } from "./components/AccountSidebar";
-import { AccountHomeTab } from "./components/AccountHomeTab";
+import type { AccountTab } from "./components/AccountSidebar";
+import { AccountFrame } from "./components/AccountFrame";
+import { AccountSkeleton } from "./components/AccountSkeleton";
+import { accountApiError } from "./lib/presentation";
+import { requestEditorNavigation } from "../components/ui/EditorSurface";
 import {
   AccountProfileTab,
   type AccountProfileUpdate,
 } from "./components/AccountProfileTab";
 import { AccountOrdersTab } from "./components/AccountOrdersTab";
-import { CabinetSkeleton } from "../components/ui/CabinetSkeleton";
-import { CabinetPanel } from "../components/ui/CabinetPanel";
+import { AccountInfoTab } from "./components/AccountInfoTab";
 
 import styles from "./AccountPageClient.module.css";
 
@@ -34,29 +36,28 @@ import type {
 const AccountOrderDetails = dynamic(() =>
   import("./components/AccountOrderDetails").then(
     (module) => module.AccountOrderDetails
-  )
+  ),
+  { loading: () => <AccountSkeleton variant="detail" /> }
 );
 const AccountFavoritesTab = dynamic(() =>
   import("./components/AccountFavoritesTab").then(
     (module) => module.AccountFavoritesTab
-  )
+  ),
+  { loading: () => <AccountSkeleton variant="favorites" /> }
 );
 const AccountBrandsTab = dynamic(() =>
   import("./components/AccountBrandsTab").then(
     (module) => module.AccountBrandsTab
-  )
-);
-const AccountInfoTab = dynamic(() =>
-  import("./components/AccountInfoTab").then((module) => module.AccountInfoTab)
+  ),
+  { loading: () => <AccountSkeleton variant="brands" /> }
 );
 const AccountReturnsTab = dynamic(() =>
   import("./components/AccountReturnsTab").then(
     (module) => module.AccountReturnsTab
-  )
+  ),
+  { loading: () => <AccountSkeleton variant="returns" /> }
 );
 
-type AccountTab =
-  "home" | "orders" | "returns" | "favorites" | "brands" | "info";
 
 function formatOrderStatus(status: OrderStatus): string {
   switch (status) {
@@ -117,14 +118,6 @@ function formatDeliveryStatus(status: DeliveryStatus): string {
   }
 }
 
-function isActiveAccountOrder(order: OrderListItem): boolean {
-  return (
-    order.status !== "CANCELED" &&
-    order.status !== "COMPLETED" &&
-    order.deliveryStatus !== "DELIVERED"
-  );
-}
-
 function buildOrderStatusLabel(order: Order | OrderListItem): string {
   if (order.status === "CANCELED") return "Отменён";
   if (order.paymentStatus === "CANCELED") return "Оплата отменена";
@@ -160,8 +153,7 @@ async function fetchAccountOrder(orderId: number): Promise<Order> {
   const response = await apiFetch(`${API_URL}/api/orders/${orderId}`);
 
   if (!response.ok) {
-    const text = await response.text().catch(() => "");
-    throw new Error(text || `Не удалось загрузить заказ (${response.status})`);
+    throw new Error(await accountApiError(response, "Не удалось загрузить заказ"));
   }
 
   return response.json() as Promise<Order>;
@@ -199,8 +191,9 @@ function AccountPageContent({
   const [error, setError] = useState<string | null>(null);
 
   const tabParam = searchParams.get("tab");
-  const profileRequested = tabParam === "profile";
+  const ordersScroll = useRef(0);
   const currentTab: AccountTab =
+    tabParam === "profile" ||
     tabParam === "orders" ||
     tabParam === "returns" ||
     tabParam === "favorites" ||
@@ -210,6 +203,9 @@ function AccountPageContent({
       : "home";
 
   const selectedOrderId = searchParams.get("orderId");
+  useLayoutEffect(() => {
+    if (currentTab === "orders" && !selectedOrderId && ordersLoaded) window.scrollTo({top:ordersScroll.current,behavior:"auto"});
+  }, [currentTab, selectedOrderId, ordersLoaded]);
   const [visitedTabs, setVisitedTabs] = useState<Set<AccountTab>>(
     () => new Set([currentTab]),
   );
@@ -257,10 +253,10 @@ function AccountPageContent({
         if (!cancelled) {
           setSelectedOrder(data);
         }
-      } catch (e) {
+      } catch {
         if (!cancelled) {
           setError(
-            e instanceof Error ? e.message : "Не удалось загрузить заказ",
+            "Не удалось загрузить заказ",
           );
         }
       } finally {
@@ -292,7 +288,7 @@ function AccountPageContent({
   }, [initialOrders, initialOrdersLoaded]);
 
   useEffect(() => {
-    if (ordersLoaded || (currentTab !== "home" && currentTab !== "orders")) {
+    if (ordersLoaded || currentTab !== "orders") {
       return;
     }
 
@@ -316,7 +312,7 @@ function AccountPageContent({
         setOrdersLoaded(true);
       } catch (loadError) {
         if (!cancelled && requestId === ordersRequestIdRef.current) {
-          toast.error(
+          setError(
             loadError instanceof Error
               ? loadError.message
               : "Не удалось загрузить заказы"
@@ -392,8 +388,8 @@ function AccountPageContent({
           firstName: values.firstName,
           lastName: values.lastName,
           middleName: me?.middleName ?? null,
-          birthDate: values.birthDate || null,
-          gender: values.gender,
+          birthDate: me?.birthDate ?? null,
+          gender: me?.gender ?? null,
           phone: values.phone || null,
           defaultDeliveryAddress: me?.defaultDeliveryAddress ?? null,
           defaultDeliveryCityName: me?.defaultDeliveryCityName ?? null,
@@ -404,17 +400,17 @@ function AccountPageContent({
       });
 
       if (!response.ok) {
-        const text = await response.text().catch(() => "");
-        throw new Error(text || "Не удалось сохранить профиль");
+        throw new Error(await accountApiError(response, "Не удалось сохранить профиль"));
       }
 
       const updated: Me = await response.json();
 
       setMe(updated);
+      toast.success("Профиль сохранён");
       return true;
-    } catch (e) {
+    } catch {
       toast.error(
-        e instanceof Error ? e.message : "Не удалось сохранить профиль",
+        "Не удалось сохранить профиль",
       );
       return false;
     } finally {
@@ -428,9 +424,10 @@ function AccountPageContent({
     router.refresh();
   }
 
-  function openOrder(orderId: number) {
+  function openOrder(orderId: number, from: "orders" | "returns" = "orders") {
+    ordersScroll.current = window.scrollY;
     prefetchOrderDetails(orderId);
-    navigateAccount(`/account?tab=orders&orderId=${orderId}`);
+    navigateAccount(`/account?tab=orders&orderId=${orderId}${from === "returns" ? "&from=returns" : ""}`);
     window.requestAnimationFrame(() => {
       window.scrollTo({ top: 0, left: 0, behavior: "auto" });
     });
@@ -438,10 +435,6 @@ function AccountPageContent({
 
   function openTab(tab: AccountTab) {
     navigateAccount(tab === "home" ? "/account" : `/account?tab=${tab}`);
-  }
-
-  function closeOrderDetails() {
-    navigateAccount("/account?tab=orders");
   }
 
   function updateOrder(updatedOrder: Order, updatedOrderGroupId?: string) {
@@ -475,151 +468,31 @@ function AccountPageContent({
       return;
     }
 
-    window.history.pushState(null, "", href);
+    requestEditorNavigation(() => {
+      setError(null);
+      window.history.pushState(null, "", href);
+      window.scrollTo({top:0,behavior:"auto"});
+    });
   }
 
-  function handleProfileEditingChange(editing: boolean) {
-    const activeTab = new URL(window.location.href).searchParams.get("tab");
 
-    if (!editing && activeTab === "profile") {
-      window.history.replaceState(null, "", "/account");
-    }
-  }
+  const orderId = selectedOrderId && Number.isInteger(Number(selectedOrderId)) && Number(selectedOrderId) > 0 ? Number(selectedOrderId) : null;
 
-  if (error && !selectedOrderId) {
-    return (
-      <div className="pageContainer">
-        <div className={styles.page}>
-          <div className={styles.sectionTitle}>
-            Не удалось загрузить аккаунт
-          </div>
-          <div className={styles.errorText}>{error}</div>
-        </div>
-      </div>
-    );
-  }
+  return <AccountFrame currentTab={currentTab} orderId={orderId} showSellerCabinet={Boolean(me?.sellerApproved)} onNavigate={navigateAccount} onLogout={() => void logout()}>
+      {error ? <div className={styles.errorText} role="alert">{error}<button className="buttonGhost" onClick={() => { setError(null); router.refresh(); }}>Повторить</button></div> : null}
 
-  const activeOrdersCount = orders.filter(isActiveAccountOrder).length;
-  const accountName =
-    me?.displayName?.trim() ||
-    [me?.firstName, me?.lastName].filter(Boolean).join(" ").trim() ||
-    me?.username ||
-    "Профиль";
-
-  return (
-    <div className="pageContainer">
-      <div className={styles.page}>
-        <div className={styles.layout}>
-          <AccountSidebar
-            currentTab={currentTab}
-            ordersCount={activeOrdersCount}
-            showSellerCabinet={Boolean(me?.sellerApproved)}
-            userName={accountName}
-            onNavigate={navigateAccount}
-            onLogout={() => void logout()}
-          />
-
-          <div className={styles.content}>
-            {visitedTabs.has("orders") || visitedTabs.has("returns") ? (
-              <div hidden={currentTab !== "orders" && currentTab !== "returns"}>
-                <CabinetPanel<"orders" | "returns">
-                  items={[
-                    { value: "orders", label: "Заказы" },
-                    { value: "returns", label: "Возвраты" },
-                  ]}
-                  value={currentTab === "returns" ? "returns" : "orders"}
-                  onChange={(tab) => openTab(tab)}
-                  ariaLabel="Заказы и возвраты"
-                >
-                  {visitedTabs.has("orders") ? (
-                    <div hidden={currentTab !== "orders"} aria-busy={detailsLoading}>
-                      {selectedOrder ? (
-                        <AccountOrderDetails
-                          order={selectedOrder}
-                          onBack={closeOrderDetails}
-                          onOrderUpdated={updateOrder}
-                          formatOrderStatus={formatOrderStatus}
-                          formatPaymentStatus={formatPaymentStatus}
-                          formatDeliveryStatus={formatDeliveryStatus}
-                          buildOrderStatusLabel={buildOrderStatusLabel}
-                        />
-                      ) : selectedOrderId && detailsLoading ? (
-                        <CabinetSkeleton variant="detail" />
-                      ) : (
-                        <AccountOrdersTab
-                          orders={orders}
-                          totalElements={ordersTotal}
-                          loadingMore={ordersLoadingMore}
-                          onLoadMore={
-                            orders.length < ordersTotal ? loadMoreOrders : undefined
-                          }
-                          buildOrderStatusLabel={buildOrderStatusLabel}
-                          onOpenOrder={openOrder}
-                          onLoadOrder={getOrderDetails}
-                          onPrefetchOrder={prefetchOrderDetails}
-                        />
-                      )}
-                    </div>
-                  ) : null}
-
-                  {visitedTabs.has("returns") ? (
-                    <div hidden={currentTab !== "returns"}>
-                      <AccountReturnsTab onOpenOrders={() => openTab("orders")} />
-                    </div>
-                  ) : null}
-                </CabinetPanel>
-              </div>
-            ) : null}
-
-            {visitedTabs.has("home") ? (
-              <div hidden={currentTab !== "home"}>
-                <AccountHomeTab
-                  orders={orders}
-                  buildOrderStatusLabel={buildOrderStatusLabel}
-                  onOpenOrder={openOrder}
-                  onLoadOrder={getOrderDetails}
-                  onPrefetchOrder={prefetchOrderDetails}
-                  onOpenOrders={() => openTab("orders")}
-                  profileEditor={
-                    <AccountProfileTab
-                      email={me?.email?.trim() || ""}
-                      firstName={me?.firstName ?? ""}
-                      lastName={me?.lastName ?? ""}
-                      phone={me?.phone ?? ""}
-                      birthDate={me?.birthDate ?? ""}
-                      gender={me?.gender ?? null}
-                      saving={profileSaving}
-                      initialEditing={profileRequested}
-                      onEditingChange={handleProfileEditingChange}
-                      onSave={saveProfile}
-                    />
-                  }
-                />
-              </div>
-            ) : null}
-
-            {visitedTabs.has("favorites") ? (
-              <div hidden={currentTab !== "favorites"}>
-                <AccountFavoritesTab />
-              </div>
-            ) : null}
-
-            {visitedTabs.has("brands") ? (
-              <div hidden={currentTab !== "brands"}>
-                <AccountBrandsTab />
-              </div>
-            ) : null}
-
-            {visitedTabs.has("info") ? (
-              <div hidden={currentTab !== "info"}>
-                <AccountInfoTab defaultEmail={me?.email ?? ""} />
-              </div>
-            ) : null}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
+      {currentTab === "orders" || visitedTabs.has("orders") ? <div hidden={currentTab !== "orders"} aria-busy={detailsLoading || ordersLoadingMore}>
+        {selectedOrder && selectedOrder.id === Number(selectedOrderId) ? <AccountOrderDetails key={selectedOrder.id} order={selectedOrder} onOrderUpdated={updateOrder} formatOrderStatus={formatOrderStatus} formatPaymentStatus={formatPaymentStatus} formatDeliveryStatus={formatDeliveryStatus} buildOrderStatusLabel={buildOrderStatusLabel} />
+          : orderId && !error ? <AccountSkeleton variant="detail" />
+          : !selectedOrderId && !ordersLoaded && !error ? <AccountSkeleton variant="orders" />
+          : !selectedOrderId ? <AccountOrdersTab orders={orders} totalElements={ordersTotal} loadingMore={ordersLoadingMore} onLoadMore={orders.length < ordersTotal ? loadMoreOrders : undefined} buildOrderStatusLabel={buildOrderStatusLabel} onOpenOrder={openOrder} onLoadOrder={getOrderDetails} onPrefetchOrder={prefetchOrderDetails} /> : null}
+      </div> : null}
+      {currentTab === "returns" || visitedTabs.has("returns") ? <div hidden={currentTab !== "returns"}><AccountReturnsTab onOpenOrders={() => openTab("orders")} onOpenOrder={id=>openOrder(id,"returns")} /></div> : null}
+      <div hidden={currentTab !== "profile" && currentTab !== "home"}><AccountProfileTab email={me?.email?.trim() || ""} emailVerified={me?.emailVerified === true} onEmailChanged={email => setMe(current => current ? { ...current, email, emailVerified: true } : current)} firstName={me?.firstName ?? ""} lastName={me?.lastName ?? ""} phone={me?.phone ?? ""} saving={profileSaving} onSave={saveProfile} onEditingChange={editing => { if (editing && currentTab === "home") window.history.replaceState(null, "", "/account?tab=profile"); }} /></div>
+      {currentTab === "favorites" || visitedTabs.has("favorites") ? <div hidden={currentTab !== "favorites"}><AccountFavoritesTab /></div> : null}
+      {currentTab === "brands" || visitedTabs.has("brands") ? <div hidden={currentTab !== "brands"}><AccountBrandsTab /></div> : null}
+      {currentTab === "info" || visitedTabs.has("info") ? <div hidden={currentTab !== "info"}><AccountInfoTab /></div> : null}
+  </AccountFrame>;
 }
 
 export function AccountPageClient(props: Props) {

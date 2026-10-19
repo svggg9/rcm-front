@@ -1,13 +1,17 @@
 "use client";
+import { SellerAttentionContext } from "./lib/SellerAttentionContext";
+import { useSellerNavigationAttention } from "./lib/useSellerNavigationAttention";
 
 import { lazy, Suspense, useEffect, useRef, useState, type ComponentProps, type MouseEvent } from "react";
 import dynamic from "next/dynamic";
 import { useRouter, useSearchParams } from "next/navigation";
-import { toast } from "sonner";
+import { toast } from "@/app/components/ui/toast";
 
 import { apiFetch, API_URL } from "../lib/api";
+import { createSellerProductDraft } from "./lib/createSellerProductDraft";
 import { useSessionResourceCache } from "../lib/useSessionResourceCache";
 import { CabinetSkeleton } from "../components/ui/CabinetSkeleton";
+import { Banner } from "../components/ui/Banner";
 
 import { SellerSidebar } from "./components/SellerSidebar";
 import { SellerSectionPanel } from "./components/SellerSectionPanel";
@@ -19,6 +23,7 @@ import {
   type SellerOnboardingStatus as SellerOnboardingStatusType,
 } from "./lib/sellerOnboardingApi";
 import { SELLER_ONBOARDING_EVENT } from "./lib/sellerOnboardingEvents";
+import { emitSellerNavigationChanged } from "./lib/sellerNavigationEvents";
 import {
   getSellerFinanceClient,
   getSellerDashboardSummaryClient,
@@ -141,6 +146,7 @@ function SellerPageContent({
     return () => window.removeEventListener("popstate", restorePanel);
   }, []);
   const [currentTab, setCurrentTab] = useState<SellerTab>(initialTab);
+  const attention = useSellerNavigationAttention(currentTab);
   const [selectedOrderId, setSelectedOrderId] = useState(initialOrderId);
   const [linkedOrder, setLinkedOrder] = useState<SellerOrderListItem | null>(null);
   const [linkedOrderError, setLinkedOrderError] = useState<string | null>(null);
@@ -202,6 +208,7 @@ function SellerPageContent({
   } = useSessionResourceCache<number, SellerOrder>(fetchSellerOrder);
 
   const [creatingProduct, setCreatingProduct] = useState(false);
+  const creatingProductPending = useRef(false);
 
   useEffect(() => {
     const id = parseOrderId(selectedOrderId);
@@ -557,8 +564,8 @@ function SellerPageContent({
   }
 
   async function createDraftProduct() {
-    if (creatingProduct) return;
-
+    if (creatingProductPending.current) return;
+    creatingProductPending.current = true;
     setCreatingProduct(true);
 
     try {
@@ -567,26 +574,19 @@ function SellerPageContent({
         return;
       }
 
-      const response = await apiFetch(`${API_URL}/api/seller/products/draft`, {
-        method: "POST",
-      });
-
-      if (!response.ok) {
-        const text = await response.text().catch(() => "");
-        throw new Error(text || "Не удалось создать черновик");
-      }
-
-      const id: number = await response.json();
+      const id = await createSellerProductDraft();
       router.push(`/seller/products/${id}/edit`);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Не удалось создать товар");
     } finally {
+      creatingProductPending.current = false;
       setCreatingProduct(false);
     }
   }
 
   function handleProductsChanged(changes: ProductChange[]) {
     if (!changes.length) return;
+    emitSellerNavigationChanged();
     const statuses = new Map(changes.map(change => [change.id, change.status]));
     const removedCount = products.filter(product => statuses.get(product.id) === "DELETED").length;
     setProducts(current => current.flatMap(product => statuses.get(product.id) === "DELETED" ? []
@@ -696,7 +696,8 @@ function SellerPageContent({
   ) : null;
 
   return (
-    <div className="pageContainer">
+    <SellerAttentionContext.Provider value={attention}>
+    <div className="pageContainer" data-seller-shell>
       <div className={styles.page}>
         <div className={`${styles.layout} ${currentTab === "products" ? styles.attachedPanel : ""}`} onClickCapture={handleSellerNavigation}>
           <SellerSidebar
@@ -704,7 +705,7 @@ function SellerPageContent({
 
           />
 
-          <div className={styles.content}>
+          <div className={styles.content} data-seller-content>
             <SellerSectionPanel currentTab={currentTab}>
             {currentTab === "home" || currentTab === "brand" || currentTab === "legal" ? tabLoadError : null}
             <div hidden={currentTab !== "home"}>
@@ -740,7 +741,10 @@ function SellerPageContent({
             ) : null}
 
             {visitedTabs.has("legal") ? (
-              <div hidden={currentTab !== "legal"}>
+              <div
+                hidden={currentTab !== "legal"}
+                className={styles.legalContent}
+              >
                 <SellerLegalTab />
               </div>
             ) : null}
@@ -774,7 +778,7 @@ function SellerPageContent({
                 {tabLoadError}
                 {currentTab === "orders" && !loadError ? (
                   <div>
-                    {selectedOrderId && linkedOrderError && <div className="alertDanger" role="alert">{linkedOrderError}</div>}
+                    {selectedOrderId && linkedOrderError && <Banner tone="danger" role="alert">{linkedOrderError}</Banner>}
                     {!ordersLoaded || ordersLoading ? (
                       <CabinetSkeleton variant="list" compact />
                     ) : (
@@ -804,6 +808,7 @@ function SellerPageContent({
       {entityPanel && <SellerEntityPage key={`${entityPanel.kind}-${entityPanel.id}`}
         id={entityPanel.id} kind={entityPanel.kind} intercepted onClose={() => window.history.back()} />}
     </div>
+    </SellerAttentionContext.Provider>
   );
 }
 

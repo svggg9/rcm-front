@@ -1,10 +1,14 @@
 "use client";
 
+import { useRef } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { Button } from "../../../components/ui/Button";
 import { LikeButton } from "../../../components/ui/LikeButton";
-import { Price } from "../../../components/ui/Price";
+import { ProductDescriptionText } from "./ProductDescriptionText";
+import { ProductArticleButton } from "./ProductArticleButton";
+import { ProductShareButton } from "./ProductShareButton";
 import { ProductDetailsAccordion } from "./ProductDetailsAccordion";
 import { ProductVariantSelect } from "./ProductVariantSelect";
 import styles from "../ProductPage.module.css";
@@ -22,15 +26,15 @@ type Props = {
   addSuccess: boolean;
   isFav: boolean;
   favoritePending: boolean;
-  onAddToCart: () => void;
+  onAddToCart: (variantId?: number) => void;
   onToggleFavorite: () => void | Promise<void>;
   isSellerView: boolean;
   onEditProduct: () => void;
   selectedColorwayId: number | null;
   onChangeColorway: (colorwayId: number) => void;
-  openDescription: boolean;
+  openComposition: boolean;
   openBrand: boolean;
-  onToggleDescription: () => void;
+  onToggleComposition: () => void;
   onToggleBrand: () => void;
 };
 
@@ -51,37 +55,24 @@ export function ProductInfoPanel({
   onEditProduct,
   selectedColorwayId,
   onChangeColorway,
-  openDescription,
+  openComposition,
   openBrand,
-  onToggleDescription,
+  onToggleComposition,
   onToggleBrand,
 }: Props) {
+  const pathname = usePathname();
+  const variantsRef = useRef<HTMLDivElement>(null);
   const colorways = product.colorways ?? [];
   const selectedColorway =
     colorways.find((colorway) => colorway.id === selectedColorwayId) ??
     colorways[0] ??
     null;
-  const hasAvailableVariant = variants.some(
-    (variant) =>
-      variant.availableQuantity === null || variant.availableQuantity > 0
-  );
-  const needsVariantSelection = variants.length > 1 && !selectedVariant;
-  const selectedVariantUnavailable = Boolean(
-    selectedVariant &&
-      selectedVariant.availableQuantity !== null &&
-      selectedVariant.availableQuantity <= 0
-  );
-  const purchaseDisabled =
-    adding ||
-    addSuccess ||
-    !hasAvailableVariant ||
-    needsVariantSelection ||
-    selectedVariantUnavailable;
-  const purchaseLabel = !hasAvailableVariant
-    ? "Нет в наличии"
-    : needsVariantSelection
-      ? "Выберите размер"
-      : "Добавить в корзину";
+  const prices = variants.map((variant) => variant.price);
+  const minPrice = prices.length ? Math.min(...prices) : currentPrice;
+  const maxPrice = prices.length ? Math.max(...prices) : currentPrice;
+  const priceLabel = !selectedVariant && minPrice !== maxPrice
+    ? `${minPrice.toLocaleString("ru-RU")}–${maxPrice.toLocaleString("ru-RU")}`
+    : currentPrice.toLocaleString("ru-RU");
 
   return (
     <aside className={styles.info}>
@@ -89,37 +80,50 @@ export function ProductInfoPanel({
         <div className={styles.brandRow}>
           {product.brand.trim() ? (
             product.brandSlug ? (
-              <Link href={`/brand/${product.brandSlug}`} className={styles.brand}>
+              <Link href={`/brand/${product.brandSlug}?returnTo=${encodeURIComponent(pathname)}`} className={styles.brand}>
                 {product.brand}
               </Link>
             ) : (
               <div className={styles.brand}>{product.brand}</div>
             )
           ) : null}
-
-          {!isSellerView ? (
-            <LikeButton
-              liked={isFav}
-              onClick={onToggleFavorite}
-              pending={favoritePending}
-              aria-label={isFav ? "Убрать из избранного" : "Добавить в избранное"}
-            />
-          ) : null}
         </div>
 
-        <h1 className={styles.title}>{product.title}</h1>
+        <div className={styles.titleRow}>
+          <h1 className={styles.title}>{product.title}</h1>
+          {!isSellerView ? (
+            <div className={styles.headingActions}>
+              <LikeButton
+                liked={isFav}
+                onClick={onToggleFavorite}
+                pending={favoritePending}
+                aria-label={isFav ? "Убрать из избранного" : "Добавить в избранное"}
+              />
+              <ProductShareButton product={product} />
+            </div>
+          ) : null}
+        </div>
+        <div className={styles.productArticle}>
+          <ProductArticleButton article={product.article} />
+          {isSellerView && selectedVariant?.sellerArticle ? (
+            <span>Артикул продавца: {selectedVariant.sellerArticle}</span>
+          ) : null}
+        </div>
       </div>
 
       <div className={styles.priceBlock}>
         <div className={styles.price}>
-          {needsVariantSelection ? (
-            <span className={styles.priceFrom}>от</span>
-          ) : null}
-          <Price amount={currentPrice} />
+          {priceLabel} ₽
         </div>
       </div>
 
-      <div className={styles.variantBlock}>
+      {product.description.trim() ? (
+        <div className={styles.productDescription}>
+          <ProductDescriptionText text={product.description} fallback="" />
+        </div>
+      ) : null}
+
+      <div className={styles.variantBlock} ref={variantsRef}>
         {colorways.length > 1 ? (
           <div className={styles.colorways}>
             <div className={styles.colorwayHeader}>
@@ -171,52 +175,31 @@ export function ProductInfoPanel({
           </div>
         ) : null}
 
-        <ProductVariantSelect
-          variants={variants}
-          selectedVariantId={selectedVariantId}
-          onChange={onChangeVariant}
-        />
-
         <div className={styles.actions}>
           {isSellerView ? (
-            <Button
-              type="button"
-              variant="primary"
-              className={styles.addBtn}
-              onClick={onEditProduct}
-            >
-              Редактировать
-            </Button>
+            <Button type="button" variant="primary" className={styles.addBtn} onClick={onEditProduct}>Редактировать</Button>
           ) : (
-            <Button
-              type="button"
-              variant="primary"
-              className={styles.addBtn}
-              onClick={onAddToCart}
-              loading={adding}
-              success={addSuccess}
-              disabled={purchaseDisabled}
-              aria-label={
-                adding
-                  ? "Добавляем в корзину"
-                  : addSuccess
-                    ? "Добавлено в корзину"
-                    : purchaseLabel
-              }
-            >
-              {purchaseLabel}
-            </Button>
+            <div className={styles.desktopPurchase}>
+              <ProductVariantSelect variants={variants} selectedVariantId={selectedVariantId}
+                onChange={onChangeVariant} onAdd={onAddToCart} adding={adding} success={addSuccess}
+                className={styles.addBtn} />
+            </div>
           )}
         </div>
+        {!isSellerView ? (
+          <div className={styles.mobilePurchase} data-product-purchase>
+            <ProductVariantSelect variants={variants} selectedVariantId={selectedVariantId}
+              onChange={onChangeVariant} onAdd={onAddToCart} adding={adding} success={addSuccess}
+              className={styles.mobilePurchaseButton} />
+          </div>
+        ) : null}
       </div>
 
       <ProductDetailsAccordion
         product={product}
-        selectedVariant={selectedVariant}
-        openDescription={openDescription}
+        openComposition={openComposition}
         openBrand={openBrand}
-        isSellerView={isSellerView}
-        onToggleDescription={onToggleDescription}
+        onToggleComposition={onToggleComposition}
         onToggleBrand={onToggleBrand}
       />
     </aside>

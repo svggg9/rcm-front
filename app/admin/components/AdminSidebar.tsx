@@ -50,6 +50,13 @@ export function AdminSidebar({
           active: currentTab === "sellers",
         },
         {
+          href: "/admin?tab=contact-messages",
+          label: "Обращения",
+          mobileLabel: "Обращения",
+          icon: "file",
+          active: currentTab === "contact-messages",
+        },
+        {
           href: "/admin?tab=dictionaries",
           label: "Справочники",
           mobileLabel: "Словари",

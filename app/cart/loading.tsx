@@ -1,3 +1,4 @@
+import { SkeletonBlock } from "../components/ui/SkeletonBlock";
 import { CartContentSkeleton } from "../components/ui/CommerceSkeleton";
 import styles from "./Cart.module.css";
 
@@ -7,7 +8,7 @@ export default function CartLoading() {
       <div className={styles.page}>
         <div className={styles.top}>
           <h1 className={styles.title}>Корзина</h1>
-          <p className={styles.count}>Загрузка…</p>
+          <SkeletonBlock as="span" className={styles.countSkeleton} />
         </div>
         <CartContentSkeleton />
       </div>

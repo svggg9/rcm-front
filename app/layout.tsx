@@ -1,5 +1,5 @@
 import "./globals.css";
-import { toastIcons } from "./components/ui/toastIcons";
+import { RcmToaster } from "./components/ui/RcmToaster";
 
 import "./styles/tokens.css";
 import "./styles/typography.css";
@@ -27,7 +27,6 @@ import "./styles/actions.css";
 
 import { Inter } from "next/font/google";
 import type { Metadata, Viewport } from "next";
-import { Toaster } from "sonner";
 
 import { Header } from "./components/Header/Header";
 import { loadMenuCategories } from "./components/Header/menuCategories";
@@ -74,22 +73,7 @@ export default async function RootLayout({
               <Footer />
             </div>
 
-            <Toaster
-              icons={toastIcons}
-              position="bottom-center"
-              duration={1500}
-              className="rcmToaster"
-              toastOptions={{
-                closeButtonAriaLabel: "Закрыть уведомление",
-                classNames: {
-                  toast: "rcmToast",
-                  title: "rcmToastTitle",
-                  description: "rcmToastDescription",
-                  actionButton: "rcmToastAction",
-                  cancelButton: "rcmToastCancel",
-                },
-              }}
-            />
+            <RcmToaster />
           </AuthModalProvider>
         </FavoritesProvider>
       </body>

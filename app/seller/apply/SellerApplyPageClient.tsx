@@ -1,5 +1,6 @@
 "use client";
 
+import { Loader } from "../../components/ui/Loader";
 import Image from "next/image";
 import Link from "next/link";
 import {
@@ -18,6 +19,7 @@ import { PhoneInput } from "../../components/ui/PhoneInput";
 import { Textarea } from "../../components/ui/Textarea";
 import { TextInput } from "../../components/ui/TextInput";
 import { API_URL, apiFetch } from "../../lib/api";
+import { useFieldValidation } from "../../lib/useFieldValidation";
 import { scrollToFirstValidationError } from "../../lib/formValidation";
 import { useCurrentUser } from "../../lib/useCurrentUser";
 import {
@@ -83,7 +85,8 @@ export function SellerApplyPageClient() {
   const formRef = useRef<HTMLFormElement | null>(null);
 
   const [form, setForm] = useState<SellerApplicationForm>(INITIAL_FORM);
-  const [errors, setErrors] = useState<FormErrors>({});
+  const validation = useFieldValidation(form, validate);
+  const { errors, reset: resetValidation } = validation;
   const [application, setApplication] = useState<SellerApplication | null>(null);
   const [loadingApplication, setLoadingApplication] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -120,7 +123,7 @@ export function SellerApplyPageClient() {
 
       setApplication(created);
       setForm(INITIAL_FORM);
-      setErrors({});
+      resetValidation();
     } catch (error) {
       setFormError(
         error instanceof Error ? error.message : "Не удалось отправить заявку"
@@ -128,7 +131,7 @@ export function SellerApplyPageClient() {
     } finally {
       setSubmitting(false);
     }
-  }, [form, submitting, telegramStatus?.telegramUsername]);
+  }, [form, submitting, telegramStatus?.telegramUsername, resetValidation]);
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -254,29 +257,29 @@ export function SellerApplyPageClient() {
     value: SellerApplicationForm[K]
   ) {
     setForm((current) => ({ ...current, [key]: value }));
-    setErrors((current) => ({ ...current, [key]: undefined }));
+    validation.changed(key);
   }
 
-  function validate(): FormErrors {
+  function validate(values: SellerApplicationForm): FormErrors {
     const nextErrors: FormErrors = {};
 
-    if (!isNonEmpty(form.brandName)) {
+    if (!isNonEmpty(values.brandName)) {
       nextErrors.brandName = "Введите название марки";
     }
 
-    if (!isNonEmpty(form.category)) {
+    if (!isNonEmpty(values.category)) {
       nextErrors.category = "Укажите категорию товаров";
     }
 
-    if (!isNonEmpty(form.contactName)) {
+    if (!isNonEmpty(values.contactName)) {
       nextErrors.contactName = "Укажите контактное лицо";
     }
 
-    if (!isValidPhone(form.phone)) {
+    if (!isValidPhone(values.phone)) {
       nextErrors.phone = "Проверьте номер телефона";
     }
 
-    if (!isValidEmail(form.email)) {
+    if (!isValidEmail(values.email)) {
       nextErrors.email = "Проверьте электронную почту";
     }
 
@@ -319,8 +322,7 @@ export function SellerApplyPageClient() {
   async function submitApplication(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    const nextErrors = validate();
-    setErrors(nextErrors);
+    const nextErrors = validation.validate();
     setFormError(null);
 
     if (Object.keys(nextErrors).length > 0) {
@@ -375,13 +377,11 @@ export function SellerApplyPageClient() {
             <div className={styles.formHeader}>
               <span>Заявка</span>
               <h2 id="seller-apply-title">Коротко о вашей марке</h2>
-              <p>Обязательные поля отмечены звёздочкой.</p>
+              <p>Обязательные поля отмечены звёздочкой</p>
             </div>
 
             {userLoading || loadingApplication ? (
-              <div className={styles.statusLoading} role="status" aria-busy="true">
-                Проверяем статус заявки…
-              </div>
+              <Loader className={styles.statusLoading} label="Проверка статуса заявки" />
             ) : isSeller ? (
               <StatusBlock
                 label="Доступ открыт"
@@ -460,9 +460,11 @@ export function SellerApplyPageClient() {
                       required
                       fieldVariant="boxed"
                       autoComplete="organization"
+                      enterKeyHint="next"
                       maxLength={255}
                       value={form.brandName}
                       error={errors.brandName}
+                      onBlur={() => validation.touch("brandName")}
                       onChange={(event) =>
                         updateField("brandName", event.target.value)
                       }
@@ -474,8 +476,10 @@ export function SellerApplyPageClient() {
                       fieldVariant="boxed"
                       placeholder="Например, одежда и аксессуары"
                       maxLength={255}
+                      enterKeyHint="next"
                       value={form.category}
                       error={errors.category}
+                      onBlur={() => validation.touch("category")}
                       onChange={(event) =>
                         updateField("category", event.target.value)
                       }
@@ -497,6 +501,10 @@ export function SellerApplyPageClient() {
                     <div className={styles.fullField}>
                       <TextInput
                         label="Сайт или страница в социальной сети"
+                        spacePolicy="remove"
+                        type="url"
+                        autoComplete="url"
+                        enterKeyHint="next"
                         fieldVariant="boxed"
                         placeholder="https://"
                         maxLength={500}
@@ -517,9 +525,11 @@ export function SellerApplyPageClient() {
                       required
                       fieldVariant="boxed"
                       autoComplete="name"
+                      enterKeyHint="next"
                       maxLength={255}
                       value={form.contactName}
                       error={errors.contactName}
+                      onBlur={() => validation.touch("contactName")}
                       onChange={(event) =>
                         updateField("contactName", event.target.value)
                       }
@@ -529,7 +539,9 @@ export function SellerApplyPageClient() {
                       required
                       fieldVariant="boxed"
                       value={form.phone}
+                      enterKeyHint="next"
                       error={errors.phone}
+                      onBlur={() => validation.touch("phone")}
                       onChange={(event) =>
                         updateField("phone", event.target.value)
                       }
@@ -542,9 +554,11 @@ export function SellerApplyPageClient() {
                         fieldVariant="boxed"
                         type="email"
                         autoComplete="email"
+                        enterKeyHint="done"
                         maxLength={255}
                         value={form.email}
                         error={errors.email}
+                      onBlur={() => validation.touch("email")}
                         onChange={(event) =>
                           updateField("email", event.target.value)
                         }

@@ -1,8 +1,10 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { toast } from "sonner";
+import { toast } from "@/app/components/ui/toast";
 import { Button } from "../../components/ui/Button";
+import { NumericField } from "../../components/ui/NumericField";
+import { INTEGER_RULES, WEIGHT_RULES } from "../../lib/numericInput";
 import { TextInput } from "../../components/ui/TextInput";
 import { Textarea } from "../../components/ui/Textarea";
 import { StatusBadge } from "../../components/ui/StatusBadge";
@@ -64,7 +66,7 @@ function Editor({ mode, close }: { mode: Mode; close: () => void }) {
   function save() {
     if (!name.trim()) { ref.current?.querySelector<HTMLInputElement>("input")?.focus(); return; }
     setDirty(false);
-    toast.success("Макет: изменения сохранены только для демонстрации", { duration: 1500 });
+    toast.success("Макет: изменения сохранены только для демонстрации");
     close();
   }
   return <>
@@ -92,10 +94,10 @@ function Editor({ mode, close }: { mode: Mode; close: () => void }) {
             <Textarea label="Описание" rows={5} defaultValue={mode === "edit" ? "Рубашка свободного кроя с длинным рукавом и перламутровыми пуговицами" : ""} />
             <TextInput label="Состав" defaultValue={mode === "edit" ? "100% шёлк" : ""} />
             <h3>Цена и остаток</h3>
-            <div className={styles.twoColumns}><TextInput label="Цена, ₽" defaultValue={mode === "edit" ? "12900" : ""} inputMode="decimal" /><TextInput label="Количество" defaultValue="12" inputMode="numeric" /></div>
+            <div className={styles.twoColumns}><NumericField label="Цена, ₽" defaultValue={mode === "edit" ? "12900" : ""} /><NumericField label="Количество" defaultValue="12" {...INTEGER_RULES} /></div>
             <TextInput label="Артикул продавца" defaultValue={mode === "edit" ? "SH-001" : ""} />
             <h3>Упаковка и доставка</h3>
-            <div className={styles.twoColumns}>{["Вес, кг", "Длина, см", "Ширина, см", "Высота, см"].map(label => <TextInput key={label} label={label} inputMode="decimal" />)}</div>
+            <div className={styles.twoColumns}>{["Вес, кг", "Длина, см", "Ширина, см", "Высота, см"].map(label => <NumericField key={label} label={label} {...(label === "Вес, кг" ? WEIGHT_RULES : { ...INTEGER_RULES, min: 1 })} />)}</div>
           </section>
           <aside className={styles.stack}><h3>Фотографии</h3><div className={styles.photo}><Icon name="package" size={48} /><span>Основное фото</span></div>
             <div className={styles.photoStrip}>{[1,2,3].map(n => <div key={n}><Icon name="plus" size={20} /></div>)}</div>

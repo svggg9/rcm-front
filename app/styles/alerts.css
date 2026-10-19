@@ -1,10 +1,11 @@
 .alert, .alertSuccess, .alertWarning, .alertDanger {
   padding: 16px; border: 0; color: var(--black); font-size: 15px; line-height: 21px; font-weight: 400;
 }
-.alert { background: var(--soft); }
-.alertSuccess { background: color-mix(in srgb, var(--success) 8%, var(--white)); }
-.alertWarning { background: color-mix(in srgb, var(--warning) 8%, var(--white)); }
-.alertDanger { background: color-mix(in srgb, var(--danger) 8%, var(--white)); }
+.alert { background: var(--feedback-info-bg); }
+.alertSuccess { background: var(--feedback-success-bg); }
+.alertWarning { background: var(--feedback-warning-bg); }
+.alertDanger { background: var(--feedback-danger-bg); }
+.alert > svg { color: var(--gold-deep); }
 .alertSuccess > svg { color: var(--success); }
 .alertWarning > svg { color: var(--warning); }
 .alertDanger > svg { color: var(--danger); }

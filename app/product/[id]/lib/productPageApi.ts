@@ -1,4 +1,5 @@
 import { API_URL, apiFetch } from "../../../lib/api";
+import { cartActionError } from "../../../cart/lib/cartApi";
 import type { Product } from "./types";
 
 export async function fetchProduct(productId: string): Promise<Product> {
@@ -27,7 +28,6 @@ export async function addVariantToCart(params: {
   );
 
   if (!response.ok) {
-    const text = await response.text().catch(() => "");
-    throw new Error(text || "Ошибка добавления в корзину");
+    throw await cartActionError(response, "Не удалось добавить товар в корзину — попробуйте ещё раз");
   }
 }

@@ -1,5 +1,6 @@
 "use client";
 
+import { Loader } from "../../components/ui/Loader";
 import Image from "next/image";
 import { useState } from "react";
 import { Icon } from "../../components/ui/Icon";
@@ -13,9 +14,10 @@ type Props = {
   error: boolean;
   onRetry?: () => void;
   compact?: boolean;
+  summaryOnly?: boolean;
 };
 
-export function OrderProductsPreview({ order, details, loading, error, onRetry, compact = false }: Props) {
+export function OrderProductsPreview({ order, details, loading, error, onRetry, compact = false, summaryOnly = false }: Props) {
   const [showAll, setShowAll] = useState(false);
   const fallbackTitles = order.productTitles?.length ? order.productTitles : [order.firstProductTitle].filter((title): title is string => Boolean(title));
   const items = details ? details.items : fallbackTitles.map((productTitle, index) => ({
@@ -38,8 +40,8 @@ export function OrderProductsPreview({ order, details, loading, error, onRetry, 
           </span>
         </div>
       </li>)}
-    </ul> : <p className={styles.note}>{loading ? "Загрузка товаров…" : "Состав заказа недоступен"}</p>}
-    {remaining > 0 && <button type="button" className={styles.more} aria-expanded={showAll} aria-controls={listId}
+    </ul> : loading ? <Loader inline label="Загрузка товаров заказа" /> : <p className={styles.note}>Состав заказа недоступен</p>}
+    {remaining > 0 && summaryOnly ? <span className={styles.note}>Ещё {remaining} {productWord(remaining)}</span> : remaining > 0 && <button type="button" className={styles.more} aria-expanded={showAll} aria-controls={listId}
       onClick={() => setShowAll(value => !value)}>
       {showAll ? "Свернуть товары" : `Ещё ${remaining} ${productWord(remaining)}`}
     </button>}

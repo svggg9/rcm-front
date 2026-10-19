@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { toast } from "sonner";
 
 import styles from "./Favorites.module.css";
 import { apiFetch, API_URL } from "../lib/api";
@@ -9,9 +8,11 @@ import { getClientSession } from "../lib/client-session";
 import { getGuestFavoriteIds } from "../lib/favorites";
 import { EmptyState } from "../components/ui/EmptyState";
 import { ProductTileSkeleton } from "../components/ui/CommerceSkeleton";
-import { ProductTile } from "../components/ProductTile/ProductTile";
+import Link from "next/link";
+import { FavoriteCard } from "./FavoriteCard";
+import { Button } from "../components/ui/Button";
+import { Dialog } from "../components/ui/Dialog";
 import { ProductShowcase } from "../components/ProductShowcase/ProductShowcase";
-import { RecommendationsShowcase } from "../components/Recommendations/RecommendationsShowcase";
 import type { CarouselProduct } from "../components/ProductCarousel/types";
 import { getStorefrontHome } from "../home/lib/getStorefrontHome";
 import { getHomePageData } from "../home/lib/getHomePageData";
@@ -96,12 +97,16 @@ export default function FavoritesPage() {
   const [products, setProducts] = useState<FavoriteProduct[]>([]);
   const [collections, setCollections] = useState<FavoriteCollection[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
+  const [reload, setReload] = useState(0);
+  const [collectionsOpen, setCollectionsOpen] = useState(false);
 
   useEffect(() => {
     let alive = true;
 
     async function load() {
       setLoading(true);
+      setLoadError(false);
 
       try {
         const session = await getClientSession();
@@ -144,13 +149,10 @@ export default function FavoritesPage() {
           .map(toTileProduct);
 
         setProducts(filtered);
-      } catch (error) {
+      } catch {
         if (!alive) return;
 
-        setProducts([]);
-        toast.error(
-          error instanceof Error ? error.message : "Не удалось загрузить избранное"
-        );
+        setLoadError(true);
       } finally {
         if (!alive) return;
         setLoading(false);
@@ -169,7 +171,7 @@ export default function FavoritesPage() {
       alive = false;
       window.removeEventListener("auth-changed", handleAuthChanged);
     };
-  }, []);
+  }, [reload]);
 
   useEffect(() => {
     let alive = true;
@@ -241,7 +243,7 @@ export default function FavoritesPage() {
       setCollections(automatic);
     }
 
-    void loadCollections();
+    void loadCollections().catch(() => { /* Optional content must not block favorites. */ });
 
     return () => {
       alive = false;
@@ -275,9 +277,7 @@ export default function FavoritesPage() {
         <div className={styles.header}>
           <h1 className={styles.pageTitle}>Избранное</h1>
 
-          {!loading ? (
-            <div className={styles.count}>Товаров: {products.length}</div>
-          ) : null}
+          {collections.length > 0 && <Button variant="secondary" className={styles.collectionsToggle} onClick={() => setCollectionsOpen(true)}>Подборки</Button>}
         </div>
 
         <div>
@@ -291,27 +291,24 @@ export default function FavoritesPage() {
                 <ProductTileSkeleton key={index} />
               ))}
             </ul>
+          ) : loadError ? (
+            <div className={styles.errorState} role="alert"><p>Не удалось загрузить избранное</p><Button variant="secondary" onClick={() => setReload(value => value + 1)}>Повторить</Button></div>
           ) : products.length === 0 ? (
-            <EmptyState
-              icon="heart"
-              tone="gold"
-              title="В избранном пока пусто"
-              text="Сохраняйте товары, чтобы вернуться к ним позже"
-            />
+            <EmptyState title="В избранном пока пусто" text="Сохраняйте товары, чтобы вернуться к ним позже" actions={<Link href="/catalog" className="buttonPrimary">Перейти в каталог</Link>} />
           ) : (
             <ul className={styles.grid}>
               {products.map((product) => (
-                <ProductTile
+                <FavoriteCard
                   key={product.id}
                   product={product}
-                  onFavoriteChange={handleFavoriteChange}
+                  onRemove={handleFavoriteChange}
                 />
               ))}
             </ul>
           )}
         </div>
 
-        {collections.length > 0 ? (
+        {collectionsOpen && <Dialog title="Подборки" size="wide" mobileFullscreen onClose={() => setCollectionsOpen(false)} actions={null}>
           <section className={styles.collections} aria-label="Подборки">
             <div className={styles.collectionList}>
               {collections.map((collection) => (
@@ -329,8 +326,7 @@ export default function FavoritesPage() {
               ))}
             </div>
           </section>
-        ) : null}
-        {!loading ? <RecommendationsShowcase seedIds={products.map((product) => product.id)} /> : null}
+        </Dialog>}
       </div>
     </div>
   );

@@ -1,3 +1,4 @@
+import styles from "./Catalog.module.css";
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { cache, type ReactNode } from "react";
@@ -415,7 +416,7 @@ export async function CatalogPageContent({
   }
 
   return (
-    <div className="pageContainer">
+    <div className={`pageContainer ${styles.catalogContainer}`}>
       {header}
       <CatalogClient
         basePath={basePath}

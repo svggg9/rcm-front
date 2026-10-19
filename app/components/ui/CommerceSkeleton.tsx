@@ -24,7 +24,7 @@ export function CartContentSkeleton() {
       <span className={styles.srOnly}>Загрузка корзины</span>
 
       <div className={styles.cartItems} aria-hidden="true">
-        {Array.from({ length: 3 }).map((_, index) => (
+        {Array.from({ length: 2 }).map((_, index) => (
           <div className={styles.cartItem} key={index}>
             <Block className={styles.cartMedia} />
             <div className={styles.cartContent}>
@@ -39,8 +39,6 @@ export function CartContentSkeleton() {
               <div className={styles.cartActions}>
                 <div className={styles.cartCounter}>
                   <Block />
-                  <Block />
-                  <Block />
                 </div>
                 <Block className={styles.cartRemove} />
               </div>
@@ -50,9 +48,7 @@ export function CartContentSkeleton() {
       </div>
 
       <aside className={styles.summary} aria-hidden="true">
-        <Block className={styles.summaryHeading} />
         <div className={styles.summaryRows}>
-          <SummaryRow />
           <SummaryRow />
           <SummaryRow total />
         </div>

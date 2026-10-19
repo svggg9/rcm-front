@@ -6,6 +6,9 @@
   --seller-font-body: var(--font-sm);
   --seller-font-value: var(--font-md);
   --seller-font-section: var(--font-xl);
+  --seller-page-gutter: 32px;
+  --seller-form-width: 1120px;
+  --seller-compact-form-width: 800px;
 }
 
 .layout {
@@ -21,6 +24,15 @@
   display: flex;
   flex-direction: column;
   gap: 16px;
+}
+
+.legalContent {
+  min-width: 0;
+  width: 100%;
+}
+
+@media (max-width: 768px) {
+  .page { --seller-page-gutter: 16px; }
 }
 
 .layout.attachedPanel { gap: 20px; }

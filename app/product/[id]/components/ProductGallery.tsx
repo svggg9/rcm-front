@@ -51,7 +51,7 @@ export function ProductGallery({ title, images, onOpenImage }: Props) {
   if (images.length === 0) {
     return (
       <div className={styles.gallery}>
-        <div className={styles.galleryMain}>
+        <div className={styles.galleryEmpty}>
           <div className={styles.galleryPlaceholder}>Фото отсутствует</div>
         </div>
       </div>
@@ -131,6 +131,7 @@ export function ProductGallery({ title, images, onOpenImage }: Props) {
           title={title}
           images={images}
           fit="contain"
+          overlayIndicators
           sizes="(max-width: 1100px) 100vw, 56vw"
           onImageClick={onOpenImage}
         />

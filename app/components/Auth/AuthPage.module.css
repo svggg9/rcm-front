@@ -1,0 +1,3 @@
+.page { display: flex; justify-content: center; padding: 64px 0; min-height: calc(100dvh - var(--site-header-height)); }
+.content { width: min(400px, 100%); min-width: 0; }
+@media (max-width: 640px) { .page { padding: 32px 0 64px; } }

@@ -1,7 +1,9 @@
 "use client";
 
+import { InputControl } from "../../components/ui/InputControl";
+
 import { useEffect, useState } from "react";
-import { toast } from "sonner";
+import { toast } from "@/app/components/ui/toast";
 
 import { EmptyState } from "../../components/ui/EmptyState";
 import { Button } from "../../components/ui/Button";
@@ -85,7 +87,7 @@ export function AdminFinanceTab(props: Props) {
         toast.info("Нет сумм, доступных для выплаты");
       }
       if (result.skipped.length) {
-        toast.info(`Пропущено продавцов: ${result.skipped.length}`);
+        toast.warning(`Пропущено продавцов: ${result.skipped.length}`);
       }
       await props.onLoadPayouts(true);
     } catch (error) {
@@ -299,7 +301,7 @@ function PayoutRegistry({
           />
         </>
       ) : (
-        <EmptyState icon="wallet" title="Реестров пока нет" text="Сформируйте первый реестр после окончания холда по доставленным заказам." />
+        <EmptyState icon="wallet" title="Реестров пока нет" text="Сформируйте первый реестр после окончания холда по доставленным заказам" />
       )}
     </>
   );
@@ -323,7 +325,7 @@ function PayoutActions({
   return (
     <div className={styles.payoutActions}>
       {payout.status === "READY" ? (
-        <input
+        <InputControl spacePolicy="remove"
           value={paymentOrder}
           onChange={(event) => onPaymentOrderChange(event.target.value)}
           aria-label="Номер платежного поручения"
@@ -389,7 +391,7 @@ function Ledger({
         </label>
         <label className={adminStyles.adminField} data-ui="field">
           <span className="textCaption">Группа заказа</span>
-          <input
+          <InputControl spacePolicy="remove"
             className={`${adminStyles.adminInput} textSmall`}
             value={orderGroupDraft}
             onChange={(event) => setOrderGroupDraft(event.target.value)}
@@ -433,7 +435,7 @@ function Ledger({
           />
         </>
       ) : (
-        <EmptyState icon="money" title="Движений нет" text="По выбранным фильтрам финансовые записи не найдены." />
+        <EmptyState icon="money" title="Движений нет" text="По выбранным фильтрам финансовые записи не найдены" />
       )}
     </>
   );

@@ -1,12 +1,13 @@
-import { useId, type InputHTMLAttributes } from "react";
+import { useId } from "react";
+import { InputControl, type InputControlProps } from "./InputControl";
 
 import { Field } from "./Field";
 
-type Props = InputHTMLAttributes<HTMLInputElement> & {
+type Props = InputControlProps & {
   label: string;
   error?: string | null;
   hint?: string;
-  fieldVariant?: "line" | "boxed";
+  fieldVariant?: "line" | "boxed" | "inline";
   hideLabel?: boolean;
 };
 
@@ -31,11 +32,11 @@ export function TextInput({
       variant={fieldVariant}
       hideLabel={hideLabel}
     >
-      <input
-        className={`input ${error ? "inputError" : ""} ${className}`.trim()}
-        aria-invalid={error ? "true" : undefined}
+      <InputControl
+        className={`input ${visibleError ? "inputError" : ""} ${className}`.trim()}
         required={required}
         {...props}
+        aria-invalid={visibleError ? "true" : props["aria-invalid"]}
         aria-required={required || undefined}
         aria-describedby={[props["aria-describedby"], visibleError ? errorId : null].filter(Boolean).join(" ") || undefined}
       />

@@ -1,57 +1,20 @@
 "use client";
 
 import { Button } from "../../components/ui/Button";
-import { Price } from "../../components/ui/Price";
+import type { ReactNode } from "react";
 import styles from "../Cart.module.css";
 
-type Props = {
-  subtotal: number;
-  itemCount: number;
-  onCheckout: () => void;
-  disabled: boolean;
-};
+type Props = { subtotal: number; itemCount: number; onCheckout: () => void; disabled: boolean; children?: ReactNode; hideAction?: boolean };
 
-export function CartSummary({ subtotal, itemCount, onCheckout, disabled }: Props) {
-  return (
-    <aside className={styles.summary} data-cart-summary>
-      <h2 className={styles.summaryTitle}>Ваш заказ</h2>
-
-      <div className={styles.summaryBlock}>
-        <div className={styles.summaryRow}>
-          <span>Товары, {itemCount} шт.</span>
-          <span>
-            <Price amount={subtotal} />
-          </span>
-        </div>
-
-        <div className={styles.summaryRow}>
-          <span>Доставка</span>
-          <span className={styles.deliveryValue}>Рассчитаем при оформлении</span>
-        </div>
-      </div>
-
-      <div className={styles.summaryTotal}>
-        <span className={styles.subtotalLabel}>Товары</span>
-        <span>
-          <Price amount={subtotal} />
-        </span>
-        <span className={styles.mobileDeliveryNote}>Доставка при оформлении</span>
-      </div>
-
-      <Button
-        type="button"
-        variant="primary"
-        className={styles.checkoutBtn}
-        onClick={onCheckout}
-        disabled={disabled}
-      >
-        <span className={styles.desktopCheckoutLabel}>Перейти к оформлению</span>
-        <span className={styles.mobileCheckoutLabel}>К оформлению</span>
-      </Button>
-
-      <p className={styles.summaryNote}>
-        Способы доставки и оплаты можно выбрать на следующем шаге.
-      </p>
-    </aside>
-  );
+export function CartSummary({ subtotal, itemCount, onCheckout, disabled, children, hideAction = false }: Props) {
+  const price = `${subtotal.toLocaleString("ru-RU")} ₽`;
+  return <aside className={styles.summary} aria-label="Итог корзины" data-cart-summary>
+    <dl className={styles.summaryRows}>
+      <div><dt>Количество</dt><dd>{itemCount} ед.</dd></div>
+      <div><dt>Общая стоимость товаров</dt><dd>{price}</dd></div>
+    </dl>
+    {!hideAction && (children || <Button type="button" variant="primary" className={styles.checkoutBtn} onClick={onCheckout} disabled={disabled} data-checkout-trigger>
+      Перейти к оформлению
+    </Button>)}
+  </aside>;
 }

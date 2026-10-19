@@ -11,12 +11,14 @@ const DEFAULT_ERROR_SELECTOR = [
 ].join(", ");
 
 const FOCUSABLE_SELECTOR = [
-  "input:not(:disabled)",
-  "textarea:not(:disabled)",
+  'input:not(:disabled):not([type="hidden"]):not([readonly])',
+  "textarea:not(:disabled):not([readonly])",
   "select:not(:disabled)",
   "button:not(:disabled)",
   '[tabindex]:not([tabindex="-1"])',
 ].join(", ");
+
+const pendingFrames = new WeakMap<ParentNode, number>();
 
 /**
  * Call immediately after rendering field-level validation errors.
@@ -28,9 +30,14 @@ export function scrollToFirstValidationError({
   behavior = "smooth",
   block = "center",
 }: ScrollToValidationErrorOptions = {}) {
-  window.requestAnimationFrame(() => {
-    const searchRoot = root ?? document;
-    const errorNode = searchRoot.querySelector<HTMLElement>(selector);
+  const searchRoot = root ?? document;
+  const pending = pendingFrames.get(searchRoot);
+  if (pending !== undefined) window.cancelAnimationFrame(pending);
+  pendingFrames.set(searchRoot, window.requestAnimationFrame(() => {
+    pendingFrames.delete(searchRoot);
+    const errorNode = Array.from(searchRoot.querySelectorAll<HTMLElement>(selector)).find(node =>
+      node.getClientRects().length > 0 && !node.closest('[hidden], [inert], [aria-hidden="true"]') &&
+      !node.matches(':disabled, [readonly], input[type="hidden"]'));
 
     if (!errorNode) return;
 
@@ -39,8 +46,8 @@ export function scrollToFirstValidationError({
 
     const focusTarget = errorNode.matches(FOCUSABLE_SELECTOR)
       ? errorNode
-      : errorNode.querySelector<HTMLElement>(FOCUSABLE_SELECTOR);
+      : Array.from(errorNode.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR)).find(node => node.getClientRects().length > 0);
 
     focusTarget?.focus({ preventScroll: true });
-  });
+  }));
 }

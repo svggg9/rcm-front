@@ -16,6 +16,7 @@ import {
   FileText,
   Heart,
   House,
+  Images,
   Info,
   LayoutDashboard,
   LayoutGrid,
@@ -57,6 +58,7 @@ export type IconName =
   | "file"
   | "heart"
   | "home"
+  | "images"
   | "grid"
   | "dashboard"
   | "delivery-truck"
@@ -117,6 +119,7 @@ const icons: Record<Exclude<IconName, CustomIconName>, LucideIcon> = {
   file: FileText,
   heart: Heart,
   home: House,
+  images: Images,
   grid: LayoutGrid,
   dashboard: LayoutDashboard,
   info: Info,

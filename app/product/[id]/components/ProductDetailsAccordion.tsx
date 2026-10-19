@@ -1,20 +1,19 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { Icon } from "../../../components/ui/Icon";
 import styles from "../ProductPage.module.css";
 import { ProductDescriptionText } from "./ProductDescriptionText";
 
-import type { Product, Variant } from "../lib/types";
+import type { Product } from "../lib/types";
 
 type Props = {
   product: Product;
-  selectedVariant: Variant | null;
-  openDescription: boolean;
+  openComposition: boolean;
   openBrand: boolean;
-  onToggleDescription: () => void;
+  onToggleComposition: () => void;
   onToggleBrand: () => void;
-  isSellerView: boolean;
 };
 
 function ChevronIcon() {
@@ -27,63 +26,36 @@ function ChevronIcon() {
 
 export function ProductDetailsAccordion({
   product,
-  selectedVariant,
-  openDescription,
+  openComposition,
   openBrand,
-  onToggleDescription,
+  onToggleComposition,
   onToggleBrand,
-  isSellerView,
 }: Props) {
+  const pathname = usePathname();
   const composition = product.composition?.trim();
   const brandDescription = product.brandDescription?.trim();
+  if (!composition && !brandDescription) return null;
 
   return (
     <div className={styles.accordion}>
-      <section className={styles.accItem}>
-        <button
-          type="button"
-          className={styles.accBtn}
-          onClick={onToggleDescription}
-          aria-expanded={openDescription}
-        >
-          <span>Описание</span>
-          <ChevronIcon />
-        </button>
-
-        {openDescription ? (
-          <div className={styles.accBodyOpen}>
-            <div className={styles.descriptionMain}>
-              <div className={styles.detailGroup}>
-                <ProductDescriptionText
-                  text={product.description || ""}
-                  fallback="Описание пока не добавлено."
-                />
-              </div>
-
-              {composition ? (
-                <div className={styles.detailGroup}>
-                  <h3 className={styles.subTitle}>Состав</h3>
-                  <p className={styles.text}>{composition}</p>
-                </div>
-              ) : null}
-
-              <div className={styles.articleRows}>
-                <div>
-                  <span>Артикул сайта</span>
-                  <strong>{selectedVariant?.sku || `рцмаркет-${product.id}`}</strong>
-                </div>
-
-                {isSellerView && selectedVariant?.sellerArticle ? (
-                  <div>
-                    <span>Артикул продавца</span>
-                    <strong>{selectedVariant.sellerArticle}</strong>
-                  </div>
-                ) : null}
-              </div>
+      {composition ? (
+        <section className={styles.accItem}>
+          <button
+            type="button"
+            className={styles.accBtn}
+            onClick={onToggleComposition}
+            aria-expanded={openComposition}
+          >
+            <span>Состав</span>
+            <ChevronIcon />
+          </button>
+          {openComposition ? (
+            <div className={styles.accBodyOpen}>
+              <ProductDescriptionText text={composition} fallback="" />
             </div>
-          </div>
-        ) : null}
-      </section>
+          ) : null}
+        </section>
+      ) : null}
 
       {brandDescription ? (
         <section className={styles.accItem}>
@@ -102,7 +74,7 @@ export function ProductDetailsAccordion({
               <div className={styles.brandAboutText}>
                 <ProductDescriptionText text={brandDescription} fallback="" />
                 {product.brandSlug ? (
-                  <Link href={`/brand/${product.brandSlug}`}>
+                  <Link href={`/brand/${product.brandSlug}?returnTo=${encodeURIComponent(pathname)}`}>
                     Все товары бренда
                   </Link>
                 ) : null}

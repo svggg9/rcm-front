@@ -1,11 +1,12 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useState } from "react";
-import { toast } from "sonner";
+import Link from "next/link";
+import { toast } from "@/app/components/ui/toast";
 
 import { EmptyState } from "../../components/ui/EmptyState";
 import { ProductTileSkeleton } from "../../components/ui/CommerceSkeleton";
-import { ProductTile } from "../../components/ProductTile/ProductTile";
+import { FavoriteCard } from "../../favorites/FavoriteCard";
 import { apiFetch, API_URL } from "../../lib/api";
 
 import styles from "./AccountFavoritesTab.module.css";
@@ -114,12 +115,6 @@ export function AccountFavoritesTab() {
 
   return (
     <section className={styles.page}>
-      <div className={styles.header}>
-        <h2>
-          <span>Избранное</span>
-          {!loading ? <span className={styles.count}>{products.length}</span> : null}
-        </h2>
-      </div>
 
       {loading ? (
         <ul
@@ -133,18 +128,17 @@ export function AccountFavoritesTab() {
         </ul>
       ) : products.length === 0 ? (
         <EmptyState
-          icon="heart"
-          tone="gold"
           title="В избранном пока пусто"
-          text="Сохраняйте товары, чтобы вернуться к ним позже."
+          text="Сохраняйте товары, чтобы вернуться к ним позже"
+          actions={<Link href="/catalog" className="buttonPrimary">Перейти в каталог</Link>}
         />
       ) : (
         <ul className={styles.grid}>
           {products.map((product) => (
-            <ProductTile
+            <FavoriteCard
               key={product.id}
               product={product}
-              onFavoriteChange={handleFavoriteChange}
+              onRemove={handleFavoriteChange}
             />
           ))}
         </ul>

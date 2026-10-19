@@ -15,6 +15,7 @@ export type CartItem = {
 export type CheckoutCartBootstrap = {
   cartId: string;
   items: CartItem[];
+  checkoutOrderId?: number | null;
 };
 
 export type PaymentMethod = "CARD" | "SBP";
@@ -120,6 +121,14 @@ export type CheckoutRequest = {
 export type OrderResponse = {
   id: number;
   orderGroupId: string;
+  paymentStatus?: string;
+  paymentAllowed?: boolean;
+  subtotalAmount?: number;
+  deliveryAmount?: number;
+  recipientName?: string;
+  recipientPhone?: string;
+  deliveryAddress?: string;
+  pickupPointId?: string;
 };
 
 export type PaymentInitResponse = {

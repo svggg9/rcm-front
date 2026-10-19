@@ -17,6 +17,7 @@
 
   --muted: var(--black-muted);
   --line: var(--black-line);
+  --line-subtle: #e5e5e5;
   --soft: var(--black-surface);
   --content-primary: var(--black-soft);
   --content-primary-hover-label: var(--black);
@@ -32,6 +33,11 @@
   --success: #216a43;
   --warning: #8a6a2f;
   --danger: #9b2c2c;
+
+  --feedback-info-bg: color-mix(in srgb, var(--gold) 10%, var(--white));
+  --feedback-success-bg: color-mix(in srgb, var(--success) 8%, var(--white));
+  --feedback-warning-bg: color-mix(in srgb, var(--warning) 8%, var(--white));
+  --feedback-danger-bg: color-mix(in srgb, var(--danger) 8%, var(--white));
 
   /* spacing */
 
@@ -53,8 +59,9 @@
   --page-padding: 24px;
 
   --site-header-height: 80px;
-  --buyer-bottom-nav-height: calc(64px + env(safe-area-inset-bottom, 0px));
-  --mobile-buyer-header-height: calc(56px + env(safe-area-inset-top, 0px));
+  --product-purchase-height: 60px;
+  --buyer-bottom-nav-height: calc(56px + env(safe-area-inset-bottom, 0px));
+  --mobile-buyer-header-height: calc(44px + env(safe-area-inset-top, 0px));
   --product-sticky-header-height: 96px;
 
   /* typography */
@@ -85,7 +92,7 @@
 
   --z-header: 100;
   --z-modal: 500;
-  --z-toast: 700;
+  --z-toast: 1500;
 
   /* shadows */
 

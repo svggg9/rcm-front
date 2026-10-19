@@ -14,12 +14,27 @@ export const SELLER_PRODUCTS_PAGE_SIZE = 50;
 export async function getSellerProductsClient(
   page = 0,
   size = SELLER_PRODUCTS_PAGE_SIZE,
-  sort: ProductSort | null = null
+  sort: ProductSort | null = null,
+  signal?: AbortSignal
 ): Promise<PageResponse<SellerProductListItem>> {
   return getPage<SellerProductListItem>(
     `/api/seller/products/list?page=${page}&size=${size}&sort=${sort ? `${sort.key},${sort.direction}` : "createdAt,desc"}`,
-    "Не удалось загрузить товары"
+    "Не удалось загрузить товары",
+    signal
   );
+}
+
+/** Existing owner-scoped API has no query filters: read every page before filtering. */
+export async function getSellerProductCatalogueClient(sort: ProductSort | null, signal?: AbortSignal): Promise<SellerProductListItem[]> {
+  const items = new Map<number, SellerProductListItem>();
+  const requestSignal = signal ? AbortSignal.any([signal, AbortSignal.timeout(30000)]) : AbortSignal.timeout(30000);
+  for (let page = 0; ; page += 1) {
+    const result = await getSellerProductsClient(page, 200, sort, requestSignal);
+    if (signal?.aborted) throw new DOMException("Aborted", "AbortError");
+    for (const product of result.content) items.set(product.id, product);
+    if (page + 1 >= result.totalPages) return [...items.values()];
+    if (!result.content.length || !Number.isFinite(result.totalPages)) throw new Error("Список товаров загружен не полностью");
+  }
 }
 
 export async function getSellerActiveProductsClient(signal?: AbortSignal): Promise<SellerProductListItem[]> {

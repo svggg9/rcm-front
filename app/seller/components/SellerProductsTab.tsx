@@ -1,14 +1,20 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { toast } from "sonner";
-import Link from "next/link";
+import { Loader } from "../../components/ui/Loader";
+import { useEffect, useId, useMemo, useRef, useState, type ReactNode } from "react";
+import { toast } from "@/app/components/ui/toast";
 import { useRouter, useSearchParams } from "next/navigation";
 
 import styles from "./SellerProductsTab.module.css";
 import { EmptyState } from "../../components/ui/EmptyState";
 import { CabinetSkeleton } from "../../components/ui/CabinetSkeleton";
-import { ProductListCard, ProductListHeader } from "../../components/ProductListCard";
+import Link from "next/link";
+import { getSellerProductCatalogueClient } from "../lib/sellerClientDataApi";
+import { Banner } from "../../components/ui/Banner";
+import Image from "next/image";
+import { Price } from "../../components/ui/Price";
+import { StatusBadge } from "../../components/ui/StatusBadge";
+import { formatProductCreatedAt } from "../lib/sellerProductSort";
 import { ListLoadMore } from "../../components/ui/ListLoadMore";
 import { FormSelect } from "../../components/ui/FormSelect";
 import { TextInput } from "../../components/ui/TextInput";
@@ -26,8 +32,9 @@ import { SellerCollectionsTab } from "./SellerCollectionsTab";
 import type { ProductSort, ProductSortKey } from "../lib/sellerProductSort";
 import { ProductActionDialog, ProductActionsMenu, ProductSelectionBar } from "./SellerProductActions";
 import { AddProductsToCollectionDialog } from "./AddProductsToCollectionDialog";
+import { ProductFailureGroups } from "./ProductFailureGroups";
 import {
-  executeProductAction, productActionBlockedReason,
+  executeProductAction, getProductActionSelection, productActionBlockedReason,
   type ProductAction, type ProductActionResult, type ProductChange,
 } from "../lib/sellerProductActions";
 
@@ -53,7 +60,8 @@ type ProductFilter =
   | "MODERATION"
   | "NEEDS_REVISION"
   | "DRAFT"
-  | "ARCHIVED";
+  | "ARCHIVED"
+  | "BLOCKED";
 
 export function SellerProductsTab({
   brands = [],
@@ -62,39 +70,90 @@ export function SellerProductsTab({
   loading,
   error,
   loadingMore = false,
-  onLoadMore,
   creatingProduct = false,
   onCreateProduct,
   onProductsChanged,
-  sort,
-  onSort,
+  sort: initialSort,
   sorting = false,
 }: Props) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const requestedSort = searchParams.get("sort");
+  const sort = useMemo<ProductSort>(() => {
+    const [key, direction] = (requestedSort ?? "").split(",");
+    return ["title", "minPrice", "variantsCount", "totalStock", "status", "createdAt"].includes(key) && ["asc", "desc"].includes(direction)
+      ? { key: key as ProductSortKey, direction: direction as "asc" | "desc" }
+      : initialSort ?? { key: "createdAt", direction: "desc" };
+  }, [requestedSort, initialSort]);
+  function onSort(key: ProductSortKey) {
+    updateQuery("sort", `${key},${sort.key === key && sort.direction === "asc" ? "desc" : "asc"}`);
+    setSelected(new Set());
+  }
   const section = searchParams.get("section") === "collections" ? "collections" : "products";
   const [actionReport, setActionReport] = useState<ProductActionResult | null>(null);
   const [items, setItems] = useState(products);
   const requestedStatus = searchParams.get("status");
-  const filter = (["ACTIVE", "MODERATION", "NEEDS_REVISION", "DRAFT", "ARCHIVED", "attention"].includes(requestedStatus ?? "") ? requestedStatus : "") as ProductFilter | "";
+  const filter = (["ACTIVE", "MODERATION", "NEEDS_REVISION", "DRAFT", "ARCHIVED", "BLOCKED", "attention"].includes(requestedStatus ?? "") ? requestedStatus : "") as ProductFilter | "";
   function setFilter(value: ProductFilter | "") {
     const params = new URLSearchParams(searchParams.toString());
     if (value) params.set("status", value); else params.delete("status");
-    router.replace(`/seller/products?${params.toString()}`, { scroll: false });
+    window.history.replaceState(null, "", `/seller/products?${params.toString()}`);
   }
-  const [categoryFilter, setCategoryFilter] = useState("");
-  const [searchQuery, setSearchQuery] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState(searchParams.get("category") ?? "");
+  const [searchQuery, setSearchQuery] = useState(searchParams.get("q") ?? "");
+  const filtersId = useId();
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [catalogLoading, setCatalogLoading] = useState(false);
+  const [catalogError, setCatalogError] = useState(false);
+  const [retry, setRetry] = useState(0);
+  const [visibleCount, setVisibleCount] = useState(() => Math.max(50, Math.min(5000, Number(searchParams.get("shown")) || 50)));
+  function updateQuery(key: string, value: string) {
+    const params = new URLSearchParams(window.location.search);
+    if (value) params.set(key, value); else params.delete(key);
+    window.history.replaceState(null, "", `/seller/products${params.size ? `?${params}` : ""}`);
+  }
+  useEffect(() => {
+    setSearchQuery(searchParams.get("q") ?? "");
+    setCategoryFilter(searchParams.get("category") ?? "");
+    setSelected(new Set());
+  }, [searchParams]);
   const [selected, setSelected] = useState<Set<number>>(new Set());
   const [collectionOpen, setCollectionOpen] = useState(false);
-  const [confirmation, setConfirmation] = useState<{ action: ProductAction; products: SellerProductListItem[] } | null>(null);
+  const [confirmation, setConfirmation] = useState<{ action: ProductAction; products: SellerProductListItem[]; targets: SellerProductListItem[] } | null>(null);
   const [busy, setBusy] = useState(false);
   const [completed, setCompleted] = useState(0);
   const pending = useRef(false);
   const selectAllRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
+    const controller = new AbortController();
     setItems(products);
-  }, [products]);
+    setCatalogError(false);
+    const initialOrderMatches = sort.key === (initialSort?.key ?? "createdAt") && sort.direction === (initialSort?.direction ?? "desc");
+    if (loading || section !== "products" || (products.length >= totalElements && initialOrderMatches)) {
+      setCatalogLoading(false);
+      return () => controller.abort();
+    }
+    setCatalogLoading(true);
+    void getSellerProductCatalogueClient(sort, controller.signal).then(all => {
+      if (!controller.signal.aborted) setItems(all);
+    }).catch(() => {
+      if (!controller.signal.aborted) setCatalogError(true);
+    }).finally(() => {
+      if (!controller.signal.aborted) setCatalogLoading(false);
+    });
+    return () => controller.abort();
+  }, [products, totalElements, sort, initialSort, loading, section, retry]);
+
+  useEffect(() => {
+    if (loading || catalogLoading) return;
+    const key = `seller-product-scroll:/seller/products${searchParams.size ? `?${searchParams}` : ""}`;
+    let position = 0;
+    try { position = Number(sessionStorage.getItem(key)) || 0; } catch { return; }
+    if (!position) return;
+    const frame = requestAnimationFrame(() => window.scrollTo({ top: position, behavior: "instant" }));
+    return () => cancelAnimationFrame(frame);
+  }, [loading, catalogLoading, searchParams]);
 
   const productStatusOptions = [
     { value: "attention", label: "Требуют внимания" },
@@ -103,6 +162,7 @@ export function SellerProductsTab({
     { value: "NEEDS_REVISION", label: "Нужны исправления" },
     { value: "DRAFT", label: "Черновики" },
     { value: "ARCHIVED", label: "В архиве" },
+    { value: "BLOCKED", label: "Заблокированные" },
   ] satisfies { value: ProductFilter; label: string }[];
 
   const categoryOptions = useMemo(() => {
@@ -129,25 +189,27 @@ export function SellerProductsTab({
   }, [categoryFilter, filter, items, searchQuery]);
 
   // Selection never silently includes hidden rows after a filter change.
-  const selectedProducts = filteredProducts.filter(product => selected.has(product.id));
-  const allSelected = filteredProducts.length > 0 && selectedProducts.length === filteredProducts.length;
-  const controlsDisabled = busy || loadingMore || sorting;
+  const visibleProducts = filteredProducts.slice(0, visibleCount);
+  const selectedProducts = visibleProducts.filter(product => selected.has(product.id));
+  const allSelected = filteredProducts.length > 0 && selectedProducts.length === visibleProducts.length;
+  const controlsDisabled = busy || loadingMore || sorting || catalogLoading || catalogError;
   useEffect(() => {
     if (selectAllRef.current) selectAllRef.current.indeterminate = selectedProducts.length > 0 && !allSelected;
   }, [selectedProducts.length, allSelected, loading]);
 
-  function selectAll() { setSelected(new Set(filteredProducts.map(product => product.id))); }
+  function selectAll() { setSelected(new Set(visibleProducts.map(product => product.id))); }
   function requestAction(action: ProductAction, targets = selectedProducts) {
-    if (pending.current || loadingMore || sorting || targets.length === 0) return;
+    if (pending.current || controlsDisabled || targets.length === 0) return;
     setCompleted(0);
-    setConfirmation({ action, products: targets });
+    const selection = getProductActionSelection(action, targets);
+    setConfirmation({ action, products: selection.products, targets: selection.allowed });
   }
   async function confirmAction() {
-    if (!confirmation || pending.current) return;
+    if (!confirmation || pending.current || !confirmation.targets.length) return;
     pending.current = true;
     setBusy(true);
     try {
-      const outcome = await executeProductAction(confirmation.action, confirmation.products, setCompleted);
+      const outcome = await executeProductAction(confirmation.action, confirmation.targets, setCompleted);
       const changes = new Map(outcome.changes.map(change => [change.id, change.status]));
       setItems(current => current.flatMap(product => changes.get(product.id) === "DELETED" ? []
         : [{ ...product, status: changes.get(product.id) ?? product.status }]));
@@ -156,12 +218,13 @@ export function SellerProductsTab({
       const feedback = productFeedback(confirmation.action, outcome);
       const toastId = "seller-product-action-result";
       if (!outcome.failures.length) {
-        toast.success(feedback.title, { id: toastId, position: "bottom-center", duration: 1500 });
+        toast.success(feedback.title, { id: toastId, description: undefined, action: undefined });
       } else {
         const failure = feedback.singleFailure;
         const destination = failure ? productFailureDestination(failure) : null;
-        toast.error(feedback.title, {
-          id: toastId, position: "bottom-center", duration: 1500,
+        const notify = outcome.changes.length ? toast.warning : toast.error;
+        notify(feedback.title, {
+          id: toastId,
           description: failure
             ? `${failure.product.title.trim() || "Без названия"} — ${failure.reason}`
             : `Не выполнено для ${outcome.failures.length} товаров — откройте список причин`,
@@ -169,7 +232,8 @@ export function SellerProductsTab({
             label: destination?.label ?? "Посмотреть ошибки",
             onClick: () => {
               toast.dismiss(toastId);
-              if (destination) router.push(destination.href);
+              if (destination?.refresh) router.refresh();
+              else if (destination) router.push(destination.href);
               else setActionReport(outcome);
             },
           },
@@ -203,16 +267,7 @@ export function SellerProductsTab({
     <div className={`${styles.productsPage} ${selectedProducts.length ? styles.hasSelection : ""}`}>
       {actionReport ? <Dialog title="Не удалось выполнить действие" onClose={() => setActionReport(null)}
         actions={<Button variant="secondary" onClick={() => setActionReport(null)}>Закрыть</Button>}>
-        <ul className={styles.failureList}>
-          {actionReport.failures.map((failure) => {
-            const destination = productFailureDestination(failure);
-            return <li key={failure.product.id}>
-              <strong>{failure.product.title.trim() || "Без названия"}</strong>
-              <p>{failure.reason}</p>
-              <Link href={destination.href} onClick={() => setActionReport(null)}>{destination.label}</Link>
-            </li>;
-          })}
-        </ul>
+        <ProductFailureGroups failures={actionReport.failures} onNavigate={() => setActionReport(null)} />
       </Dialog> : null}
       {sectionPanel(createProductAction, <>
       <div className={styles.productsToolbar}>
@@ -221,17 +276,22 @@ export function SellerProductsTab({
             label="Название товара или артикул"
             hideLabel
             type="search"
+            maxLength={200}
             placeholder="Название товара или артикул"
             value={searchQuery}
             disabled={busy || loadingMore || sorting}
             onChange={(event) => {
               if (!pending.current) {
                 setSearchQuery(event.target.value);
+                updateQuery("q", event.target.value);
                 setSelected(new Set());
               }
             }}
           />
         </div>
+        <div className={styles.toolbarAction}>{createProductAction}</div>
+        <Button variant="secondary" className={styles.filterToggle} aria-expanded={filtersOpen} aria-controls={filtersId} onClick={() => setFiltersOpen(value => !value)}>Фильтры{filter || categoryFilter ? " · Выбраны" : ""}</Button>
+        <div id={filtersId} className={`${styles.filters} ${filtersOpen ? styles.filtersOpen : ""}`}>
         <FormSelect<ProductFilter>
           ariaLabel="Статус товара"
           placeholder="Статус товара"
@@ -256,14 +316,32 @@ export function SellerProductsTab({
           onChange={next => {
             if (!pending.current) {
               setCategoryFilter(next);
+              updateQuery("category", next);
               setSelected(new Set());
             }
           }}
         />
-        <div className={styles.toolbarAction}>{createProductAction}</div>
+        <FormSelect<ProductSortKey> ariaLabel="Сортировка товаров" placeholder="Сортировка"
+          value={sort?.key ?? "createdAt"} disabled={controlsDisabled}
+          options={[{ value: "createdAt", label: "По дате" }, { value: "title", label: "По названию" }, { value: "minPrice", label: "По цене" }, { value: "totalStock", label: "По остатку" }, { value: "variantsCount", label: "По числу вариантов" }, { value: "status", label: "По статусу" }]}
+          onChange={key => { if (key) { setSelected(new Set()); onSort(key); } }} />
+        <Button variant="tertiary" disabled={controlsDisabled} aria-label={`Сортировка ${sort.direction === "asc" ? "по возрастанию" : "по убыванию"} — изменить направление`}
+          onClick={() => onSort(sort?.key ?? "createdAt")}>{sort?.direction === "asc" ? "По возрастанию ↑" : "По убыванию ↓"}</Button>
+        </div>
+      </div>
+      <div className={styles.listSummary}>
+        {catalogLoading ? <Loader inline label="Загрузка товаров для поиска" /> : <span role="status">{catalogError ? `Загружено ${items.length} из ${totalElements}` : `Найдено ${filteredProducts.length}`}</span>}
+        {searchQuery || filter || categoryFilter ? <button type="button" disabled={controlsDisabled} onClick={() => {
+          setSearchQuery(""); setCategoryFilter(""); setSelected(new Set());
+          updateQuery("q", ""); updateQuery("category", ""); updateQuery("status", "");
+        }}>Сбросить</button> : null}
       </div>
 
-      {loading ? (
+      {catalogError ? <Banner tone="warning" title="Список загружен не полностью">
+        <p>Поиск пока учитывает только загруженные товары</p>
+        <Button variant="secondary" onClick={() => setRetry(value => value + 1)}>Повторить</Button>
+      </Banner> : null}
+      {loading || catalogLoading ? (
         <CabinetSkeleton variant="list" compact />
       ) : error ? error : items.length === 0 ? (
         <EmptyState
@@ -277,24 +355,21 @@ export function SellerProductsTab({
               icon="search"
               title="Товаров нет"
               text={
-                onLoadMore
-                  ? "В загруженной части списка товаров с таким статусом нет."
-                  : "По выбранному фильтру ничего не найдено."
+                catalogError ? "Повторите загрузку, чтобы проверить все товары" : "Попробуйте другой запрос или сбросьте фильтры"
               }
             />
           ) : (
             <div className={styles.productsList}>
-              <ProductListHeader sort={sort} onSort={key => {
-                setSelected(new Set());
-                onSort(key);
-              }} disabled={controlsDisabled}
-                leadingControl={<label className={styles.checkboxTarget}>
+              <div className={styles.listHeader}>
+                <label className={styles.checkboxTarget}>
                   <input ref={selectAllRef} type="checkbox" className={styles.checkbox}
-                    aria-label={`Выбрать все показанные товары (${filteredProducts.length})`}
+                    aria-label={`Выбрать все показанные товары (${visibleProducts.length})`}
                     checked={allSelected} disabled={controlsDisabled}
                     onChange={() => allSelected ? setSelected(new Set()) : selectAll()} />
-                </label>} />
-              {filteredProducts.map((product) => (
+                </label>
+                <div className={styles.headerColumns}><span /><span>Товар</span><span>Цена</span><span>Остаток</span><span>Добавлен</span></div><span />
+              </div>
+              {visibleProducts.map((product) => (
                 <ProductRow key={product.id} product={product} selected={selected.has(product.id)} disabled={controlsDisabled}
                   onSelect={() => setSelected(current => {
                     const next = new Set(current);
@@ -305,10 +380,10 @@ export function SellerProductsTab({
             </div>
           )}
           <ListLoadMore
-            loaded={items.length}
-            total={totalElements}
-            loading={loadingMore}
-            onLoadMore={busy ? undefined : onLoadMore}
+            loaded={Math.min(visibleCount, filteredProducts.length)}
+            total={filteredProducts.length}
+            loading={catalogLoading}
+            onLoadMore={busy || visibleCount >= filteredProducts.length ? undefined : () => { const next = visibleCount + 50; setVisibleCount(next); updateQuery("shown", String(next)); }}
           />
         </>
       )}
@@ -336,38 +411,37 @@ function ProductRow({
 }) {
   const router = useRouter();
 
-  const editHref = `/seller/products/${product.id}/edit`;
+  const params = useSearchParams();
+  const returnTo = `/seller/products${params.size ? `?${params}` : ""}`;
+  const editParams = new URLSearchParams(params.toString());
+  editParams.set("returnTo", returnTo);
+  const editHref = `/seller/products/${product.id}/edit?${editParams}`;
 
-  function openProductEdit() {
-    router.push(editHref);
-  }
-
-  return (
-    <ProductListCard
-      id={product.id}
-      title={product.title}
-      imageUrl={product.coverImage}
-      appearance="order-list"
-      columnLabels
-      createdAt={product.createdAt}
-      categoryName={product.categoryName}
-      minPrice={product.minPrice}
-      variantsCount={product.variantsCount}
-      totalStock={product.totalStock}
-      statusLabel={formatProductStatus(product.status)}
-      statusTone={getProductStatusTone(product.status)}
-      selected={selected}
-      leadingControl={<label className={styles.checkboxTarget}>
-        <input type="checkbox" className={styles.checkbox} aria-label={`Выбрать товар «${product.title.trim() || "Без названия"}»`}
-          checked={selected} disabled={disabled} onChange={onSelect} />
-      </label>}
-      trailingControl={<ProductActionsMenu label={`Действия с товаром «${product.title.trim() || "Без названия"}»`} disabled={disabled}
-        items={([product.status === "ARCHIVED" ? "draft" : "archive", "delete"] as ProductAction[])
-          .map(action => ({ action, reason: productActionBlockedReason(action, product.status) }))}
-        collectionReason={product.status === "ACTIVE" ? null : "В подборку можно добавить только активный товар"}
-        onCreateCollection={() => router.push(`/seller/products?section=collections&collectionProductId=${product.id}&collectionProductTitle=${encodeURIComponent(product.title.trim() || "Без названия")}`)}
-        onAction={onAction} />}
-      onOpen={openProductEdit}
-    />
-  );
+  return <article className={`${styles.productRow} ${selected ? styles.rowSelected : ""}`}>
+    <label className={styles.checkboxTarget}>
+      <input type="checkbox" className={styles.checkbox} aria-label={`Выбрать товар «${product.title.trim() || "Без названия"}»`}
+        checked={selected} disabled={disabled} onChange={onSelect} />
+    </label>
+    <Link href={editHref} scroll={false} className={styles.productLink} onClick={() => {
+      try { sessionStorage.setItem(`seller-product-scroll:${returnTo}`, String(window.scrollY)); } catch { /* Storage may be unavailable */ }
+    }}>
+      <span className={styles.productImage}>{product.coverImage ? <Image src={product.coverImage} alt="" fill sizes="56px" /> : <span>Нет фото</span>}</span>
+      <span className={styles.productIdentity}>
+        <span className={styles.productTitleLine}>
+          <strong>{product.title.trim() || "Без названия"}</strong>
+          <StatusBadge tone={getProductStatusTone(product.status)}>{formatProductStatus(product.status)}</StatusBadge>
+        </span>
+        <span className={styles.productMeta}>{[product.brandName, product.article, product.categoryName].filter(Boolean).join(" · ")}</span>
+      </span>
+      <span className={styles.productFacts}><span className={styles.productPrice}>{product.minPrice == null ? "Без цены" : <Price amount={product.minPrice} />}</span>
+      <span className={styles.productStock} aria-label={`Остаток: ${product.totalStock == null ? "без учёта" : `${product.totalStock} шт`}`}>{product.totalStock == null ? "Без учёта" : `${product.totalStock} шт`}</span>
+      </span><span className={styles.productDate} aria-label={`Добавлен ${formatProductCreatedAt(product.createdAt)}`}>{formatProductCreatedAt(product.createdAt)}</span>
+    </Link>
+    <ProductActionsMenu label={`Действия с товаром «${product.title.trim() || "Без названия"}»`} disabled={disabled}
+      items={(["publish", product.status === "ARCHIVED" ? "draft" : "archive", "delete"] as ProductAction[])
+        .map(action => ({ action, reason: productActionBlockedReason(action, product.status) }))}
+      collectionReason={product.status === "ACTIVE" ? null : "В подборку можно добавить только активный товар"}
+      onCreateCollection={() => router.push(`/seller/products?section=collections&collectionProductId=${product.id}&collectionProductTitle=${encodeURIComponent(product.title.trim() || "Без названия")}`)}
+      onAction={onAction} />
+  </article>;
 }

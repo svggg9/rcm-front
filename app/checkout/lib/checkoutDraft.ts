@@ -7,17 +7,6 @@ import type {
 
 const CHECKOUT_DRAFT_KEY = "checkout_draft_v1";
 
-function isEmailLike(value: string): boolean {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
-}
-
-function isPhoneLike(value: string): boolean {
-  const trimmed = value.trim();
-  const digits = trimmed.replace(/\D/g, "");
-
-  return digits.length >= 10 && /^[+\d\s\-()]+$/.test(trimmed);
-}
-
 function getCheckoutDraftKey(): string {
   if (typeof window === "undefined") return CHECKOUT_DRAFT_KEY;
 
@@ -32,9 +21,6 @@ function getCheckoutDraftKey(): string {
 }
 
 export type CheckoutDraft = {
-  email: string;
-  fullName: string;
-  phone: string;
   deliveryMethod: DeliveryMethod;
   selectedAddressId: string;
   selectedPickupPointLabel: string;
@@ -46,7 +32,6 @@ export type CheckoutDraft = {
   floor: string;
   intercom: string;
   fittingMode: FittingMode;
-  comment: string;
   paymentMethod: PaymentMethod;
 };
 
@@ -73,24 +58,9 @@ export function loadCheckoutDraft(): CheckoutDraft | null {
         : "CARD";
 
     return {
-      email:
-        typeof parsed.email === "string" && isEmailLike(parsed.email)
-          ? parsed.email
-          : "",
-
-      fullName:
-        typeof parsed.fullName === "string" && !isPhoneLike(parsed.fullName)
-          ? parsed.fullName
-          : "",
-
-      phone:
-        typeof parsed.phone === "string"
-          ? parsed.phone
-          : "",
-
       deliveryMethod,
 
-      selectedAddressId: "",
+      selectedAddressId: typeof parsed.selectedAddressId === "string" && parsed.selectedAddressId.length <= 128 ? parsed.selectedAddressId : "",
 
       selectedPickupPointLabel: "",
 
@@ -127,11 +97,6 @@ export function loadCheckoutDraft(): CheckoutDraft | null {
           : "",
 
       fittingMode: "WITHOUT_FITTING",
-
-      comment:
-        typeof parsed.comment === "string"
-          ? parsed.comment
-          : "",
 
       paymentMethod,
     };

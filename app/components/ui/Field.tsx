@@ -5,7 +5,7 @@ type Props = {
   required?: boolean;
   children: ReactNode;
   hint?: string;
-  variant?: "line" | "boxed";
+  variant?: "line" | "boxed" | "inline";
   hideLabel?: boolean;
 };
 
@@ -20,6 +20,7 @@ export function Field({
   const fieldClassName = [
     "field",
     variant === "boxed" ? "fieldBoxed" : "",
+    variant === "inline" ? "fieldInline" : "",
     hideLabel ? "fieldLabelHidden" : "",
   ]
     .filter(Boolean)
@@ -33,7 +34,7 @@ export function Field({
     .join(" ");
 
   return (
-    <label className={fieldClassName} data-ui="field">
+    <label className={fieldClassName} data-ui="field" data-field-variant={variant === "inline" ? "inline" : undefined}>
       <span className={labelClassName}>{label}</span>
       {children}
       {hint ? <small className="muted">{hint}</small> : null}

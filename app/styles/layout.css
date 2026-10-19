@@ -13,10 +13,6 @@
   }
 
   /* Keep the final footer links reachable behind checkout action bars too. */
-  .appShell:has([data-cart-summary]) {
-    padding-bottom: calc(var(--buyer-bottom-nav-height) + 116px);
-  }
-
   .appShell:has([data-checkout-summary]) {
     padding-bottom: calc(128px + env(safe-area-inset-bottom, 0px));
   }
@@ -87,4 +83,18 @@
   .pageContainer {
     width: min(100%, calc(100% - 32px));
   }
+}
+
+@media (max-width: 640px) {
+  .appShell:has([data-buyer-home="true"]) { --site-header-height: 0px; }
+}
+
+@media (max-width: 640px) {
+  .appShell:has([data-product-purchase]) {
+    padding-bottom: calc(var(--buyer-bottom-nav-height) + var(--product-purchase-height));
+  }
+}
+
+@media (max-width: 640px) {
+  .appShell:has([data-buyer-account="true"]) { --site-header-height: 0px; }
 }

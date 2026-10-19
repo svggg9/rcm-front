@@ -1,0 +1,119 @@
+.page,
+.content {
+  min-width: 0;
+}
+
+.title {
+  margin: 0 0 24px;
+  color: var(--black);
+  font-size: 24px;
+  font-weight: 400;
+}
+
+.total,
+.notice,
+.error {
+  margin: 0 0 16px;
+  font-size: 14px;
+}
+
+.total,
+.saving {
+  color: var(--muted);
+}
+
+.error {
+  color: var(--danger);
+}
+
+.list {
+  display: grid;
+  gap: 16px;
+}
+
+.card {
+  min-width: 0;
+  padding: 20px;
+  border: 1px solid var(--line);
+  background: var(--white);
+  overflow-wrap: anywhere;
+}
+
+.heading {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.heading h2 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 400;
+}
+
+.facts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px 24px;
+  margin: 20px 0;
+  font-size: 14px;
+}
+
+.facts dt {
+  margin-bottom: 4px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.facts dd {
+  margin: 0;
+}
+
+.facts a {
+  color: var(--black);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.message {
+  margin: 0 0 20px;
+  white-space: pre-wrap;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.statusControl {
+  display: flex;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.statusControl > :first-child {
+  width: 260px;
+  max-width: 100%;
+}
+
+.saving {
+  padding-bottom: 12px;
+  font-size: 13px;
+}
+
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 20px;
+  font-size: 13px;
+}
+
+@media (max-width: 480px) {
+  .card { padding: 14px; }
+  .facts { grid-template-columns: minmax(0, 1fr); }
+  .statusControl > :first-child { width: 100%; }
+  .pagination { gap: 8px; }
+}

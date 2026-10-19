@@ -39,6 +39,8 @@ type Props = {
   tableLayout?: boolean;
   navigateOnOpen?: boolean;
   compact?: boolean;
+  worklist?: boolean;
+  needsShipment?: boolean;
 };
 
 export type OrderCardDetails = {
@@ -87,6 +89,8 @@ export function SellerOrderCard({
   tableLayout = false,
   navigateOnOpen = false,
   compact = false,
+  worklist = false,
+  needsShipment = false,
 }: Props) {
   const [expanded, setExpanded] = useState(false);
   const [details, setDetails] = useState<OrderCardDetails | null>(null);
@@ -157,7 +161,7 @@ export function SellerOrderCard({
   }, [tableLayout, audience, onLoadDetails, details, detailsError, loadDetails]);
 
   useEffect(() => {
-    if (!autoExpand) {
+    if (!autoExpand || worklist) {
       autoExpandHandled.current = false;
       return;
     }
@@ -169,7 +173,7 @@ export function SellerOrderCard({
     if (!details && !detailsLoading) {
       void loadDetails();
     }
-  }, [autoExpand, details, detailsLoading, loadDetails]);
+  }, [autoExpand, details, detailsLoading, loadDetails, worklist]);
 
   function toggleExpanded() {
     if (navigateOnOpen && onOpenOrder) { onOpenOrder(order.id); return; }
@@ -187,11 +191,30 @@ export function SellerOrderCard({
     <article
       ref={articleRef}
       tabIndex={-1}
-      className={`${styles.orderRow} ${tableLayout && navigateOnOpen && audience === "seller" ? linkedRow.row : ""} ${expanded ? styles.orderRowExpanded : ""} ${tableLayout ? styles.tableRow : ""} ${compact ? `${styles.compact} ${listItemStyles.item}` : ""}`}
+      className={`${styles.orderRow} ${(worklist || (tableLayout && navigateOnOpen && audience === "seller")) ? linkedRow.row : ""} ${expanded ? styles.orderRowExpanded : ""} ${tableLayout ? styles.tableRow : ""} ${worklist ? styles.worklist : ""} ${compact ? `${styles.compact} ${listItemStyles.item}` : ""}`}
       onMouseEnter={schedulePrefetch}
       onMouseLeave={cancelPrefetch}
     >
-      <SummaryTag
+      {worklist ? <div className={styles.worklistSummary}>
+        <div className={styles.identity}>
+          <strong>{formatOrderCode(order)}</strong>
+          <span>{formatProductCreatedAt(order.createdAt)}</span>
+        </div>
+        <div className={styles.worklistProducts}>
+          <OrderProductsPreview order={order} details={details} loading={detailsLoading}
+            error={detailsError} onRetry={onLoadDetails ? () => void loadDetails() : undefined} summaryOnly />
+        </div>
+        <div className={styles.worklistStatus}>
+          <StatusBadge size="regular" tone={orderVisual.tone === "statusDanger" ? "danger" : orderVisual.tone === "statusWarning" ? "warning" : "success"}>{statusLabel}</StatusBadge>
+          {showStageElapsed && needsShipment && order.deliveryStatus === "READY_FOR_SHIPMENT" ? <StageElapsedTime startedAt={order.deliveryStatusChangedAt ?? null} /> : null}
+        </div>
+        <strong className={styles.worklistAmount}>{new Intl.NumberFormat("ru-RU", { style: "currency", currency: order.currency || "RUB", minimumFractionDigits: 0, maximumFractionDigits: 2 }).format(order.totalAmount)}</strong>
+        <Link href={`/seller/orders/${order.id}`} scroll={false} prefetch={false}
+          className={`${styles.worklistAction} ${needsShipment ? styles.shipmentAction : ""} ${linkedRow.link}`}
+          aria-label={`${needsShipment ? "Подготовить отправку заказа" : "Открыть заказ"} ${formatOrderCode(order)}`}>
+          <span>{needsShipment ? "К отправке" : "Открыть"}</span><Icon name="arrow-up-right" size={20} />
+        </Link>
+      </div> : <SummaryTag
         className={styles.orderToggle}
         {...(!tableLayout ? {
           type: "button" as const,
@@ -255,10 +278,10 @@ export function SellerOrderCard({
         </button> : <span className={styles.expandIcon} aria-hidden="true">
           <Icon name={expanded ? "minus" : "plus"} size={20} strokeWidth={1.5} />
         </span>}
-      </SummaryTag>
+      </SummaryTag>}
 
 
-      {expanded ? (
+      {expanded && !worklist ? (
         <div
           className={styles.orderDetails}
           id={`${detailsIdPrefix}-${order.id}`}
@@ -349,22 +372,7 @@ function formatOrderDate(value: string) {
 }
 
 export function formatOrderCode(order: SellerOrderCardListItem) {
-  const source = `${order.orderGroupId}:${order.id}`;
-  const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-  let hash = 2166136261;
-
-  for (let index = 0; index < source.length; index += 1) {
-    hash ^= source.charCodeAt(index);
-    hash = Math.imul(hash, 16777619);
-  }
-
-  let value = hash >>> 0;
-  let result = "";
-  for (let index = 0; index < 6; index += 1) {
-    result += alphabet[value % alphabet.length];
-    value = Math.imul(value ^ (value >>> 13), 1597334677) >>> 0;
-  }
-  return result;
+  return String(order.id);
 }
 
 function getOrderVisual(

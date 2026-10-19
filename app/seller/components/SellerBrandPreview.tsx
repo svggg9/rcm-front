@@ -1,5 +1,6 @@
 "use client";
 
+import { Loader } from "../../components/ui/Loader";
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { BrandPresentation } from "../../brand/[slug]/BrandPresentation";
@@ -51,7 +52,7 @@ export function SellerBrandPreview({ brandId, name, description, wordmarkUrl, co
           <summary>О бренде {name}</summary>
           {description && <p className={brandStyles.aboutDescription}>{description}</p>}
           {(country || foundationYear) && <p className={brandStyles.brandFacts}>{country}{country && foundationYear ? ". " : ""}{foundationYear ? `Основан в ${foundationYear} году` : ""}</p>}
-        {!loaded ? <p role="status">Загрузка фотографий…</p> : result.error ? <p role="alert">{result.error}. <button type="button" onClick={() => setAttempt(value => value + 1)}>Повторить</button></p>
+        {!loaded ? <Loader label="Загрузка фотографий" /> : result.error ? <p role="alert">{result.error}. <button type="button" onClick={() => setAttempt(value => value + 1)}>Повторить</button></p>
           : <BrandImageCarousel images={result.images ?? []} contained />}
         </details>
       </div>

@@ -4,7 +4,7 @@ import { ConfirmActionButton } from "../../components/ui/ConfirmActionButton";
 import Image from "next/image";
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useSearchParams } from "next/navigation";
-import { toast } from "sonner";
+import { toast } from "@/app/components/ui/toast";
 
 import { Button } from "../../components/ui/Button";
 import { EditorSurface } from "../../components/ui/EditorSurface";
@@ -141,7 +141,7 @@ export function SellerStorefrontCollections({ brandId, renderPanel }: Props) {
   async function openEditor() {
     if (saving || editing) return;
     if (collections.length >= 12) {
-      setError("Можно создать не более 12 подборок");
+      toast.warning("Можно создать не более 12 подборок", { id: "seller-collection-limit" });
       return;
     }
 
@@ -231,9 +231,13 @@ export function SellerStorefrontCollections({ brandId, renderPanel }: Props) {
       setSelectedIds([]);
       setEditingId(null);
       setEditing(false);
-      toast.success(editingId === null ? "Подборка создана" : "Подборка сохранена", { position: "bottom-center", duration: 1500 });
+      toast.success(editingId === null ? "Подборка создана" : "Подборка сохранена", {
+        id: "seller-collection-save", toasterId: undefined, description: undefined, action: undefined,
+      });
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : "Не удалось создать подборку");
+      toast.error(reason instanceof Error ? reason.message : "Не удалось сохранить подборку", {
+        id: "seller-collection-save", toasterId: "collection-editor",
+      });
     } finally {
       setSaving(false);
     }
@@ -248,8 +252,9 @@ export function SellerStorefrontCollections({ brandId, renderPanel }: Props) {
       setCollections((current) =>
         current.filter((collection) => collection.id !== collectionId)
       );
+      toast.success("Подборка удалена", { id: `seller-collection-delete-${collectionId}`, description: undefined, action: undefined });
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : "Не удалось удалить подборку");
+      toast.error(reason instanceof Error ? reason.message : "Не удалось удалить подборку", { id: `seller-collection-delete-${collectionId}` });
     } finally {
       setRemovingId(null);
     }
@@ -274,10 +279,13 @@ export function SellerStorefrontCollections({ brandId, renderPanel }: Props) {
       const byId = new Map(updated.map(collection => [collection.id, collection]));
       setCollections(current => current.map(collection => byId.get(collection.id) ?? collection));
       setSelectedCollectionIds(new Set(failedIds));
-      if (failedIds.length) setError(`Не удалось обновить ${failedIds.length} из ${selectedCollections.length} подборок. Повторите действие для оставшихся выбранных.`);
-      else toast.success(active ? "Подборки опубликованы" : "Подборки скрыты");
+      if (failedIds.length) {
+        const notify = updated.length ? toast.warning : toast.error;
+        notify(`Не удалось обновить ${failedIds.length} из ${selectedCollections.length} подборок. Повторите действие для оставшихся выбранных.`, { id: "seller-collections-bulk-update" });
+      }
+      else toast.success(active ? "Подборки опубликованы" : "Подборки скрыты", { id: "seller-collections-bulk-update", description: undefined, action: undefined });
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : "Не удалось обновить подборки");
+      toast.error(reason instanceof Error ? reason.message : "Не удалось обновить подборки", { id: "seller-collections-bulk-update" });
     } finally {
       setBulkBusy(false);
     }
@@ -294,10 +302,13 @@ export function SellerStorefrontCollections({ brandId, renderPanel }: Props) {
       const failedIds = ids.filter(id => !deletedIds.has(id));
       setCollections(current => current.filter(collection => !deletedIds.has(collection.id)));
       setSelectedCollectionIds(new Set(failedIds));
-      if (failedIds.length) setError(`Не удалось удалить ${failedIds.length} из ${ids.length} подборок. Повторите действие для оставшихся выбранных.`);
-      else toast.success("Подборки удалены");
+      if (failedIds.length) {
+        const notify = deletedIds.size ? toast.warning : toast.error;
+        notify(`Не удалось удалить ${failedIds.length} из ${ids.length} подборок. Повторите действие для оставшихся выбранных.`, { id: "seller-collections-bulk-delete" });
+      }
+      else toast.success("Подборки удалены", { id: "seller-collections-bulk-delete", description: undefined, action: undefined });
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : "Не удалось удалить подборки");
+      toast.error(reason instanceof Error ? reason.message : "Не удалось удалить подборки", { id: "seller-collections-bulk-delete" });
     } finally {
       setBulkBusy(false);
     }
@@ -318,6 +329,7 @@ export function SellerStorefrontCollections({ brandId, renderPanel }: Props) {
       {error ? <div className={pageStyles.error} role="alert">{error}</div> : null}
       {editing ? (
         <EditorSurface compact title={editingId === null ? "Создание подборки" : "Редактирование подборки"} busy={saving}
+          toastId="collection-editor"
           dirty={draftDirty}
           onClose={() => { setEditing(false); setEditingId(null); setTitle(""); setDescription(""); selectedIdsRef.current = []; setSelectedIds([]); setError(null); }}
           actions={<Button type="button" variant="primary"

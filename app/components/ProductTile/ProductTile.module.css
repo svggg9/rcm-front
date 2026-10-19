@@ -163,3 +163,11 @@
     right: 6px;
   }
 }
+
+@media (max-width: 640px) {
+  .compact .info { min-height: 0; padding-top: 6px; }
+  .compact .brandText { font-size: 12px; line-height: 15px; font-weight: 500; }
+  .compact .title { margin-top: 2px; min-height: 0; font-size: 12px; line-height: 15px; }
+  .compact .price { margin-top: 0; padding-top: 4px; font-size: 13px; line-height: 18px; font-weight: 500; }
+  .compact .like { top: 0; right: 0; }
+}

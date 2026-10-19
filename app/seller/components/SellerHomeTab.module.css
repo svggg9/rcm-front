@@ -55,11 +55,6 @@
 .danger .statusIcon { color: var(--danger); }
 .neutral { color: var(--black); }
 .statusLoading { display: grid; place-items: center; min-height: 88px; }
-.statusError { display: flex; align-items: flex-start; gap: 12px; padding: 16px; border: 1px solid var(--black); background: var(--white); }
-.statusError > svg { flex-shrink: 0; color: var(--black); }
-.statusErrorCopy { flex: 1; min-width: 0; }
-.statusError strong, .statusError span { display: block; font-size: var(--font-md); line-height: 1.4; font-weight: 400; }
-.statusError span { margin-top: 4px; font-weight: 300; }
 .emptyTasks { display: flex; align-items: center; gap: 16px; min-height: 88px; padding: 18px 22px; }
 .emptyTasks > svg { color: var(--success); flex-shrink: 0; }
 .emptyTasks strong { font-size: var(--font-md); font-weight: 400; }
@@ -128,8 +123,6 @@
   .taskAction { max-width: 100%; }
   .event { padding: 16px; grid-template-columns: 24px minmax(0, 1fr); }
   .event time { grid-column: 2; }
-  .statusError { flex-wrap: wrap; }
-  .statusError .action { margin-left: 36px; }
 }
 @media (max-width: 420px) {
   .pageHeader .addButton { width: 100%; }
