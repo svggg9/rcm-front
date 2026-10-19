@@ -1,8 +1,8 @@
 # План проекта рцмаркет
 
-## Draft PR frontend — 19 октября 2026
+## Frontend слит в main — 19 октября 2026
 
-Накопленный frontend-пакет отправлен в [PR #52](https://github.com/svggg9/rcm-front/pull/52), ветка `codex/frontend-pr-2026-10`, target `main`. 317 файлов. PR остаётся draft для совместного разбора; не слит и не выложен. Локально прошли ESLint, TypeScript и production build в отдельной папке `.next/pr-review`; GitHub CI checks пока не сообщает. Реальные платежи/SMTP/СДЭК и физическая мобильная приёмка не заявляются. Связанный backend — PR #47.
+Накопленный frontend-пакет из [PR #52](https://github.com/svggg9/rcm-front/pull/52) слит в `main`, merge commit `f15c18b05423121441ea322b7cf8da4224aba975`. Все коммиты PR присутствуют в основной ветке, локальный checkout синхронизирован. Прошли ESLint, TypeScript и production build в отдельной папке `.next/pr-review`. Связанный backend [PR #47](https://github.com/svggg9/rcm/pull/47) также слит в `master`; устаревший backend #43 закрыт после переноса отсутствовавшего фикса. Выкладки не было; реальные платежи/SMTP/СДЭК и физическая мобильная приёмка остаются открытыми.
 
 ## Общий ввод кода из письма — 18 октября 2026
 
