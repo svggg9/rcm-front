@@ -1,3 +1,4 @@
+import { getImageUploadMetadataError } from "../../lib/imageUploadPolicy";
 import { API_URL, apiFetch } from "../../lib/api";
 import { ApiRequestError, readApiError, toApiError } from "../../lib/apiErrors";
 import { CATEGORY_API_MESSAGES } from "../../lib/categoryErrors";
@@ -580,6 +581,8 @@ export async function getAdminStorefrontHome(): Promise<AdminStorefrontHome> {
 export async function uploadAdminStorefrontHero(
   file: File
 ): Promise<AdminStorefrontHome> {
+  const validationMessage = getImageUploadMetadataError(file);
+  if (validationMessage) throw new Error(validationMessage);
   const formData = new FormData();
   formData.append("file", file);
 
@@ -592,8 +595,22 @@ export async function uploadAdminStorefrontHero(
   );
 
   if (!response.ok) {
-    throw new Error(
-      await readError(response, "Не удалось загрузить hero-изображение")
+    throw await readApiError(response,
+      response.status === 413 ? "Фото должно быть не больше 10 МБ"
+        : response.status === 503 ? "Обработка фотографий временно недоступна — попробуйте ещё раз"
+          : "Не удалось загрузить изображение витрины",
+      {
+        "Фото должно быть не больше 10 МБ": "Фото должно быть не больше 10 МБ",
+        "Фото должно быть не больше 48 мегапикселей и 16384 пикселей по стороне": "Фото должно быть не больше 48 мегапикселей и 16384 пикселей по стороне",
+        "Выберите одну статичную фотографию": "Выберите одну статичную фотографию",
+        "Выберите статичную фотографию без анимации": "Выберите статичную фотографию без анимации",
+        "Не удалось прочитать фотографию": "Не удалось прочитать фотографию — выберите другой файл",
+        "Не удалось прочитать фото или его содержимое не соответствует JPEG/PNG/WebP": "Не удалось прочитать фото — выберите JPEG, PNG или WebP",
+        "Содержимое фото не соответствует формату файла": "Содержимое фото не соответствует формату файла",
+        "Разрешены только JPEG, PNG и WebP": "Разрешены только JPEG, PNG и WebP",
+        "Другая фотография ещё обрабатывается, повторите загрузку": "Другая фотография ещё обрабатывается — повторите загрузку",
+        "Обработка фотографий временно недоступна": "Обработка фотографий временно недоступна — попробуйте ещё раз",
+      },
     );
   }
 

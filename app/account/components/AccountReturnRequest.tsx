@@ -7,6 +7,7 @@ import {Price} from "../../components/ui/Price";
 import {toast} from "../../components/ui/toast";
 import {createOrderReturn,ReturnSubmitError,returnReasonLabels,returnStatusLabels,type ReturnReason,type ReturnRequest} from "../../lib/returns";
 import {AccountProductRow} from "./AccountProductRow";
+import {getImageUploadMetadataError,PHOTO_FILE_ACCEPT} from "../../lib/imageUploadPolicy";
 import type {Order,OrderItem} from "../types";
 import styles from "./AccountReturnRequest.module.css";
 const reasons:ReturnReason[]=["DOES_NOT_FIT","BUYER_CHANGED_MIND","DEFECT","WRONG_ITEM","DAMAGED_DELIVERY","OTHER"];
@@ -79,9 +80,11 @@ export function AccountReturnRequest({order,existingReturns,onCreated}:{order:Or
       {active&&editing&&activeItem?<EditorSurface title="Причина возврата" className={styles.reasonPanel} onClose={()=>setEditing(null)} actions={<Button variant="primary" disabled={!active.reason||!active.photos.length} onClick={()=>setEditing(null)}>Готово</Button>}>
         <fieldset className={styles.reasons}><legend className="visuallyHidden">Выберите причину для {activeItem.productTitle}</legend>{reasons.map(reason=><label key={reason}><input type="radio" name="return-reason" checked={active.reason===reason} onChange={()=>update(editing,{reason})}/><span>{returnReasonLabels[reason]}</span></label>)}</fieldset>
         <label className={styles.comment}>Комментарий<textarea maxLength={1000} value={active.comment} onChange={event=>update(editing,{comment:event.target.value})}/></label>
-        <label className={styles.upload}>Фотографии товара<input type="file" accept="image/jpeg,image/png,image/webp" multiple onChange={event=>{
+        <label className={styles.upload}>Фотографии товара<input type="file" accept={PHOTO_FILE_ACCEPT} multiple onChange={event=>{
           const next=Array.from(event.target.files??[]);event.target.value="";
-          if(next.some(file=>!["image/jpeg","image/png","image/webp"].includes(file.type)||file.size>10*1024*1024)||active.photos.length+next.length>5){setError("До 5 фотографий JPG, PNG или WebP, каждая до 10 МБ");return;}
+          const validationMessage=next.map(file=>getImageUploadMetadataError(file)).find(Boolean);
+          if(validationMessage){setError(validationMessage);return;}
+          if(active.photos.length+next.length>5){setError("Можно добавить не больше 5 фотографий");return;}
           update(editing,{photos:[...active.photos,...next]});
         }}/><span>От 1 до 5 файлов · JPG, PNG или WebP · до 10 МБ каждый</span></label>
         <div className={styles.photos}>{active.photos.map((file,index)=><Photo key={index} file={file} onRemove={()=>update(editing,{photos:active.photos.filter((_,i)=>i!==index)})}/>)}</div>

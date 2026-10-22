@@ -1,6 +1,7 @@
 import { API_URL, apiFetch } from "./api";
 import { resolveReturnPhotoUrl } from "./returnPhotoUrls";
 import { accountApiError } from "../account/lib/presentation";
+import { getImageUploadMetadataError } from "./imageUploadPolicy";
 
 export class ReturnSubmitError extends Error {
   constructor(message: string, public resultUnknown: boolean) { super(message); }
@@ -208,6 +209,8 @@ export async function createOrderReturn(params: {
   quantity?: number;
   requestKey?: string;
 }): Promise<ReturnRequest> {
+  const validationMessage = params.photos.map(photo => getImageUploadMetadataError(photo)).find(Boolean);
+  if (validationMessage) throw new ReturnSubmitError(validationMessage, false);
   const body = new FormData();
   body.set("productId", String(params.productId));
   body.set("variantId", String(params.variantId));

@@ -45,10 +45,16 @@ async function run(){
     "./api":{API_URL:"",apiFetch:async(url,options)=>{calls.push({url,options});if(mode==="network")throw new TypeError("Private network details");if(mode!=="success")return Response.json({message:"SQL private detail"},{status:Number(mode)});return Response.json({id:1,photoUrls:[]});}},
     "./returnPhotoUrls":{resolveReturnPhotoUrl:value=>value},
     "../account/lib/presentation":presentation,
+    "./imageUploadPolicy":load("app/lib/imageUploadPolicy.ts"),
   });
   const input={orderId:701,productId:407,variantId:901,quantity:1,reason:"DEFECT",comment:" test ",photos:[new File(["test"],"test.png",{type:"image/png"})],requestKey:"00000000-0000-0000-0000-000000000001"};
   await api.createOrderReturn(input);await api.createOrderReturn(input);
   for(const call of calls){assert.equal(call.options.body.get("quantity"),"1");assert.equal(call.options.body.get("requestKey"),input.requestKey);assert.equal(call.options.body.get("comment"),"test");}
+  const beforeInvalidPhotos=calls.length;
+  for(const photo of [new File([],"empty.png",{type:"image/png"}),new File(["gif"],"bad.gif",{type:"image/gif"}),new File([new Uint8Array(10*1024*1024+1)],"large.jpg",{type:"image/jpeg"})]){
+    await assert.rejects(()=>api.createOrderReturn({...input,photos:[photo]}),error=>error instanceof api.ReturnSubmitError&&error.resultUnknown===false);
+  }
+  assert.equal(calls.length,beforeInvalidPhotos,"Invalid return photo metadata must be rejected before the request");
   for(const [status,unknown] of [["400",false],["500",true],["network",true]]){mode=status;await assert.rejects(()=>api.createOrderReturn(input),error=>error instanceof api.ReturnSubmitError&&error.resultUnknown===unknown&&!error.message.includes("private"));}
   console.log("Account: numeric identity, readable address, safe API errors, return quantity/key and known rejection vs unknown result passed");
   console.log("Empty states: no zero counter or decorative icon, catalogue action, populated brands and error retry preserved");

@@ -24,7 +24,7 @@ export function ToastExamples() {
   });
   const warning = (toasterId?: string) => toast.warning("Проверьте фотографии", {
     id: toasterId ? "ds-editor-feedback" : "ds-feedback", toasterId,
-    description: "Для модерации нужны фотографии от 1200 px по короткой стороне",
+    description: "Рекомендуем загрузить более качественные исходники",
     action: undefined,
   });
   const info = (toasterId?: string) => toast.info("Изменения ещё не опубликованы", {

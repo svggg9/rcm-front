@@ -33,11 +33,14 @@ try {
   assert.match(html, /Фото с низким разрешением/);
   assert.match(html.replace(/<[^>]*>/g, ""), /600 × 866/);
   assert.doesNotMatch(html, /class="fieldError"/); // Warning does not make the draft invalid.
-  assert.match(render(saved, true), /class="fieldError"/);
+  assert.doesNotMatch(render(saved, true), /class="fieldError"/); // Small dimensions never block moderation.
+  assert.match(render(saved.slice(0, 2), true), /class="fieldError"/); // Count still blocks moderation.
+  assert.match(html, /до 10 МБ/);
+  assert.doesNotMatch(html, /Перед модерацией замените|от 1200 px/);
   saved[0].width = 1200; saved[0].height = 1600;
   assert.doesNotMatch(render(saved), /Фото с низким разрешением/);
   assert.doesNotMatch(render([{id: 1, url: "https://example.invalid/legacy.webp", sortOrder: 0}]), /Фото с низким разрешением/);
-  console.log("Photo editor: warning survives reload, draft remains valid, publication error is inline, replacement clears warning");
+  console.log("PASS: low-resolution warning survives reload without blocking publication, count error stays inline, replacement clears warning");
 } finally {
   Module._load = originalLoad;
 }

@@ -1,4 +1,5 @@
 "use client";
+import { PHOTO_FILE_ACCEPT } from "../../../../../lib/imageUploadPolicy";
 import { useId, useRef, useState } from "react";
 import Image from "next/image";
 import { ConfirmActionButton } from "../../../../../components/ui/ConfirmActionButton";
@@ -7,7 +8,7 @@ import { Banner } from "../../../../../components/ui/Banner";
 import { DesignSystemIcon } from "../../../../../components/ui/DesignSystemIcon";
 import type { ProductImageItem } from "../types";
 import styles from "./ProductPhotoEditor.module.css";
-import { hasLowResolutionPhoto, PRODUCT_PHOTO_RESOLUTION_ERROR } from "../../../../../lib/productPhotos";
+import { hasLowResolutionPhoto } from "../../../../../lib/productPhotos";
 
 export type ProductPhotoEditorProps = {
   images: ProductImageItem[];
@@ -41,7 +42,7 @@ export function ProductPhotoEditor({ images, colorways = [], invalidImages = fal
   const locked = mediaDisabled || uploading || reordering;
   const lowResolutionCount = images.filter(hasLowResolutionPhoto).length;
   const invalidCount = images.length < 3 || images.length > 10;
-  const invalid = invalidImages && (invalidCount || lowResolutionCount > 0);
+  const invalid = invalidImages && invalidCount;
 
   function uploadFiles(files: File[]) {
     setDragActive(false);
@@ -101,20 +102,21 @@ export function ProductPhotoEditor({ images, colorways = [], invalidImages = fal
       <label>Фото для цвета (необязательно)<select value={uploadColorwayId ?? ""} disabled={locked} onChange={event=>setUploadColorwayId(event.target.value ? Number(event.target.value) : null)}><option value="">Общие фотографии</option>{colorways.map(c=><option key={c.id} value={c.id}>{c.color || "Без цвета"}</option>)}</select></label>
       <p className={styles.hint}>Нового цвета нет в списке? Сохраните товар, чтобы он появился</p>
     </>}
-    <input ref={fileInputRef} hidden type="file" accept="image/jpeg,image/png,image/webp" multiple disabled={locked} aria-label="Файлы фотографий товара"
+    <input ref={fileInputRef} hidden type="file" accept={PHOTO_FILE_ACCEPT} multiple disabled={locked} aria-label="Файлы фотографий товара"
       onChange={event => { uploadFiles(Array.from(event.target.files ?? [])); event.target.value = ""; }} />
     <Button type="button" variant="secondary" className={styles.uploadButton} loading={uploading} disabled={locked}
       aria-describedby={invalid ? `${fieldId}-images-error` : undefined} onClick={() => fileInputRef.current?.click()}>Выбрать фото</Button>
-    <p className={styles.hint}>JPEG, PNG или WebP · до 8 МБ на файл · до 10 фото</p>
-    <p className={styles.hint}>Для модерации — 3–10 фото от 1200 px по короткой стороне</p>
+    <p className={styles.hint}>JPEG, PNG или WebP · до 10 МБ на файл · до 10 фото</p>
+    <p className={styles.hint}>Для модерации — 3–10 фото, включая крупные исходники 4К и выше</p>
     {mediaDisabled && mediaDisabledHint && <Banner tone="warning" role="status">{mediaDisabledHint}</Banner>}
-    {invalid && <span className="fieldError" id={`${fieldId}-images-error`}>{invalidCount ? "Для модерации нужно от 3 до 10 фото товара" : PRODUCT_PHOTO_RESOLUTION_ERROR}</span>}
-    {lowResolutionCount > 0 && <Banner tone="warning" role="status">Фото с низким разрешением: {lowResolutionCount}. В черновике они сохранены, но при увеличении могут выглядеть нечётко. Перед модерацией замените их на фото от 1200 px по короткой стороне.</Banner>}
+    {invalid && <span className="fieldError" id={`${fieldId}-images-error`}>Для модерации нужно от 3 до 10 фото товара</span>}
+    {lowResolutionCount > 0 && <Banner tone="warning" role="status">Фото с низким разрешением: {lowResolutionCount}. При увеличении они могут выглядеть нечётко. Рекомендуем загрузить более качественные исходники</Banner>}
     {selected?.width != null && selected.height != null && <p className={styles.hint}>Размер выбранного фото: {selected.width} × {selected.height} px</p>}
     <details className={styles.photoRequirements}>
       <summary>Требования к фотографиям</summary>
       <ul>
-        <li>Черновик можно сохранить без фото или с фото меньшего размера. Перед модерацией добавьте полный комплект нужного разрешения.</li>
+        <li>Черновик можно сохранить без полного комплекта фото</li>
+        <li>Крупные исходники сохраняются, для показа подбирается оптимизированный размер</li>
         <li>На главном фото — белый фон, товар по центру с небольшими полями. Мягкая естественная тень допустима.</li>
         <li>Фото должны точно передавать цвет и комплектацию товара, без рекламных надписей, водяных знаков, рамок и коллажей.</li>
         <li>Используйте фотографии, на которые у вас есть права.</li>

@@ -1,4 +1,5 @@
 "use client";
+import { getImageUploadMetadataError, PHOTO_FILE_ACCEPT } from "../../lib/imageUploadPolicy";
 import { ConfirmActionButton } from "../../components/ui/ConfirmActionButton";
 
 import Image from "next/image";
@@ -51,6 +52,8 @@ export function SellerBrandImages({ brandId, embedded = false }: { brandId: numb
 
   async function upload(file: File | null) {
     if (!file || uploading || busyId !== null || images.length >= 8) return;
+    const validationMessage = getImageUploadMetadataError(file);
+    if (validationMessage) { setError(validationMessage); return; }
     setError(null);
     setUploading(true);
     try {
@@ -123,14 +126,14 @@ export function SellerBrandImages({ brandId, embedded = false }: { brandId: numb
         <input
           ref={inputRef}
           type="file"
-          accept=".jpg,.jpeg,.webp,image/jpeg,image/webp"
+          accept={PHOTO_FILE_ACCEPT}
           className={styles.logoInput}
           onChange={(event) => void upload(event.target.files?.[0] ?? null)}
         />
       </div>
 
-      <p className={`${styles.galleryHint} ${styles.mediaMeta}`}>До 8 фото · JPEG или WebP · исходник до 8 МБ</p>
-      <p className={styles.galleryHint}>Размер файла уменьшается автоматически</p>
+      <p className={`${styles.galleryHint} ${styles.mediaMeta}`}>До 8 фото · JPEG, PNG или WebP · до 10 МБ</p>
+      <p className={styles.galleryHint}>Исходник сохраняется, версия для показа оптимизируется автоматически</p>
       <p className={styles.galleryHint}>В блоке «О бренде»: 16:7 на компьютере, 4:5 на телефоне. Порядок меняется стрелками.</p>
 
       {error ? <div className={styles.error} role="alert"><span>{error}</span>

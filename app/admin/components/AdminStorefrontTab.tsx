@@ -12,6 +12,7 @@ import {
 
 import { Button } from "../../components/ui/Button";
 import { toast } from "../../components/ui/toast";
+import { getImageUploadMetadataError, PHOTO_FILE_ACCEPT } from "../../lib/imageUploadPolicy";
 import {
   getAdminStorefrontHome,
   updateAdminStorefrontHeroPosition,
@@ -23,8 +24,6 @@ import styles from "./AdminStorefrontTab.module.css";
 import { AdminStorefrontCollections } from "./AdminStorefrontCollections";
 
 const FALLBACK_HERO_IMAGE = "/kazansky.jpg";
-const MAX_FILE_SIZE = 8 * 1024 * 1024;
-const ALLOWED_FILE_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
 
 type Props = {
   initialHome?: AdminStorefrontHome | null;
@@ -146,17 +145,11 @@ export function AdminStorefrontTab({
 
     if (!file) return;
 
-    if (!ALLOWED_FILE_TYPES.has(file.type)) {
+    const validationMessage = getImageUploadMetadataError(file);
+    if (validationMessage) {
       setSelectedFile(null);
       setPreviewUrl(null);
-      setError("Выберите изображение в формате JPEG, PNG или WebP");
-      return;
-    }
-
-    if (file.size > MAX_FILE_SIZE) {
-      setSelectedFile(null);
-      setPreviewUrl(null);
-      setError("Размер изображения не должен превышать 8 МБ");
+      setError(validationMessage);
       return;
     }
 
@@ -302,7 +295,8 @@ export function AdminStorefrontTab({
       <div className={styles.form}>
         <div className={styles.fieldHead}>
           <span className={styles.label}>Главное изображение</span>
-          <span className={styles.requirements}>JPEG, PNG или WebP, до 8 МБ</span>
+          <span className={styles.requirements}>JPEG, PNG или WebP · до 10 МБ</span>
+          <span className={styles.requirements}>Исходник сохраняется, версия для показа оптимизируется автоматически</span>
         </div>
 
         <div
@@ -411,7 +405,7 @@ export function AdminStorefrontTab({
         <input
           ref={inputRef}
           type="file"
-          accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp"
+          accept={PHOTO_FILE_ACCEPT}
           className={styles.fileInput}
           onChange={(event) => {
             selectFile(event.target.files?.[0] ?? null);

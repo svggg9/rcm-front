@@ -91,7 +91,7 @@ export function ProductImagesCard({
           <span>
             {uploading
               ? `${uploadProgress.done} из ${uploadProgress.total}`
-              : "JPEG, PNG, WebP. До 8 МБ. Для модерации — от 1200 px по короткой стороне; в черновике допустим меньший размер. Первое фото — главное."}
+              : "JPEG, PNG или WebP · до 10 МБ на файл · крупные исходники сохраняются · первое фото — главное"}
           </span>
         </div>
 

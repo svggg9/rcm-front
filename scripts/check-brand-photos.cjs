@@ -17,11 +17,11 @@ global.fetch = async (_url, options) => {
 };
 const file = (type, size) => new File([new Uint8Array(size)], "photo", { type });
 (async () => {
-  await assert.rejects(uploadSellerBrandImage(1, file("image/png", 10)), /JPEG и WebP/);
+  await assert.rejects(uploadSellerBrandImage(1, file("image/gif", 10)), /JPEG, PNG и WebP/);
   await assert.rejects(uploadSellerBrandImage(1, file("image/jpeg", 0)), /непустую/);
-  await assert.rejects(uploadSellerBrandImage(1, file("image/webp", 8 * 1024 * 1024 + 1)), /8 МБ/);
+  await assert.rejects(uploadSellerBrandImage(1, file("image/webp", 10 * 1024 * 1024 + 1)), /10 МБ/);
   assert.equal(requests, 0, "Invalid selections must be rejected before the network request");
-  const original = file("image/jpeg", 8 * 1024 * 1024);
+  let original;
   nextResponse = async options => {
     const uploaded = options.body.get("file");
     assert.equal(uploaded.type, original.type);
@@ -29,14 +29,17 @@ const file = (type, size) => new File([new Uint8Array(size)], "photo", { type })
     assert.deepEqual(Buffer.from(await uploaded.arrayBuffer()), Buffer.from(await original.arrayBuffer()));
     return Response.json({ id: 1, imageUrl: "/optimized.webp" });
   };
-  assert.equal((await uploadSellerBrandImage(1, original)).imageUrl, "/optimized.webp");
-  nextResponse = () => Response.json({ message: "Не удалось прочитать фотографию" }, { status: 400 });
-  await assert.rejects(uploadSellerBrandImage(1, file("image/webp", 10)), /^Error: Не удалось прочитать фотографию$/);
+  for (const type of ["image/jpeg", "image/png", "image/webp"]) {
+    original = file(type, 10 * 1024 * 1024);
+    assert.equal((await uploadSellerBrandImage(1, original)).imageUrl, "/optimized.webp");
+  }
+  nextResponse = () => Response.json({ message: "Не удалось прочитать фотографию магазина" }, { status: 400 });
+  await assert.rejects(uploadSellerBrandImage(1, file("image/webp", 10)), { message: "Не удалось прочитать фотографию" });
   nextResponse = () => Response.json({ detail: "Фотография слишком большая по разрешению" }, { status: 400 });
-  await assert.rejects(uploadSellerBrandImage(1, file("image/jpeg", 10)), /слишком большая по разрешению/);
+  await assert.rejects(uploadSellerBrandImage(1, file("image/jpeg", 10)), { message: "Не удалось загрузить фотографию бренда" });
   nextResponse = () => new Response("<html>Proxy failure</html>", { status: 502 });
-  await assert.rejects(uploadSellerBrandImage(1, file("image/jpeg", 10)), /^Error: Не удалось загрузить фотографию бренда$/);
+  await assert.rejects(uploadSellerBrandImage(1, file("image/jpeg", 10)), { message: "Не удалось загрузить фотографию бренда" });
   nextResponse = () => new Response("Too large", { status: 413 });
-  await assert.rejects(uploadSellerBrandImage(1, file("image/jpeg", 10)), /8 МБ/);
-  console.log("PASS: brand photo upload preflight, original multipart, JSON errors and retry-safe fallback");
+  await assert.rejects(uploadSellerBrandImage(1, file("image/jpeg", 10)), /10 МБ/);
+  console.log("PASS: brand photo JPEG/PNG/WebP exact 10 MiB boundary, empty/unsupported/oversized preflight, original multipart bytes, JSON errors and retry-safe fallback");
 })().catch(error => { console.error(error); process.exitCode = 1; });

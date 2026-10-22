@@ -1,6 +1,6 @@
 "use client";
 import { Loader } from "../../../../components/ui/Loader";
-import { PRODUCT_PHOTO_COUNT_ERROR, validProductPhotoCount, validateProductPhotoUpload, hasLowResolutionPhoto, PRODUCT_PHOTO_RESOLUTION_ERROR } from "../../../../lib/productPhotos";
+import { PRODUCT_PHOTO_COUNT_ERROR, validProductPhotoCount, validateProductPhotoUpload } from "../../../../lib/productPhotos";
 
 import { hasDescriptionContent } from "../../../../lib/productDescription";
 import Link from "next/link";
@@ -531,10 +531,6 @@ export function ProductEditPageClient({
   if (!validProductPhotoCount(images.length)) {
     nextErrors.images = true;
     stepMessages.photos.push(PRODUCT_PHOTO_COUNT_ERROR);
-  }
-  if (images.some(hasLowResolutionPhoto)) {
-    nextErrors.images = true;
-    stepMessages.photos.push(PRODUCT_PHOTO_RESOLUTION_ERROR);
   }
 
   if ((packageWidthCm === "" || !Number.isFinite(packageWidthCm) || packageWidthCm <= 0)) nextErrors.packageWidthCm = true;

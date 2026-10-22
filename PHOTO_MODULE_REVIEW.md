@@ -1,4 +1,36 @@
-# Фотографии — оценка модуля, 6 октября 2026
+# Фотографии — оценка модуля и пересмотр правил загрузки
+
+## Согласованная политика и реализация — 22 октября 2026
+
+Источник: основной frontend-чат, запрос фото до 10 МБ и крупных исходников, затем поручение реализовать frontend и backend. Изменение локальное, без выкладки и массового переписывания файлов S3.
+
+| Сценарий | Реализованное правило |
+| --- | --- |
+| Товар | JPEG/PNG/WebP до 10 МиБ; до 10 фото, для модерации 3–10. Оригинальные байты сохраняются. Минимум 1200px не блокирует модерацию/ADMIN, редактор показывает предупреждение о качестве |
+| Галерея магазина | JPEG/PNG/WebP до 10 МиБ, до 8 фото. Новый оригинал отдельно в originals/brands; показ — WebP до 4096px с EXIF/прозрачностью. URL оригинала скрыт из публичных DTO/JSON. Старые файлы не переписываются |
+| Wordmark | SVG/WebP до 2 МиБ и отдельная проверка статичного SVG |
+| Баннер администратора | JPEG/PNG/WebP до 10 МиБ, общий storage сохраняет исходник |
+| Возврат | До 5 JPEG/PNG/WebP по 10 МиБ; одинаковый предел записи и защищённого reader. Авторизация, private/no-store/nosniff сохранены |
+| Пакет | Multipart приложения 10 МиБ на файл / 105 МиБ на запрос, безопасная ошибка 413. Внешний proxy требует проверки перед релизом |
+
+Backend проверяет реальное содержимое, читаемость и предел 48 млн пикселей / 16384px по стороне до выделения большого растра. Один decode одновременно, занятость — 503 с повтором. 4К/8К разрешены в бюджете. Клиент не пережимает исходник: общая ранняя проверка imageUploadPolicy, для товара также browser readability/dimensions; сервер проверяет независимо.
+
+Товарные оригиналы и баннеры не перекодируются в storage; показ использует Next/Image/sizes. Просмотрщик 2× не гарантирует выдачу исходного файла, скачивание оригинала не добавлено. Галерея хранит пару original/optimized с очисткой при rollback и удалением после commit. V121 добавляет nullable original_image_url; исторические строки остаются без исходника. Возвраты проверяют весь пакет до записи и компенсируют частичную загрузку.
+
+Проверки frontend: общий lint и TypeScript без ошибок/предупреждений; check-image-upload-policy, check-product-photos, check-product-photo-warning, check-brand-photos, check-seller-store-api, check-account-redesign, check-seller-return-list, check-return-photo-urls, check-admin-categories. Подтверждены точная граница 10 МиБ/+1, пустой/неподдерживаемый файл, 4К/8К/малое разрешение, pixel budget, освобождение object URL и оригинальные multipart-байты.
+
+Browser runner `check-photo-upload-browser.cjs`: актуальный ProductPhotoEditor с реальными CSS на 320/390/1280 без переполнения; предупреждение о малом фото при трёх изображениях не становится ошибкой. Настоящий Edge file chooser и реальный validator приняли JPEG/PNG/WebP 4096×4096 ровно 10 МиБ с совпадением multipart-байтов; +1 байт отклонён без POST. Артефакты — build/photo-upload-browser-2026-10-22. Это SSR-компонент/validator с mock endpoint, не полный E2E редактора.
+
+Backend `PhotoUploadBoundaryTest`: 8 проверок в изолированном процессе с heap 512 МиБ — валидные JPEG/PNG/WebP ровно 10 МиБ, +1, 4К/8К/48Мп JPEG/PNG, ограниченный decoded raster до 2048px, pixel/edge boundary, busy503/освобождение permit после повреждения, APNG/MIME. Ещё 3 unit проверяют безопасный multipart handler. Backend-набор140unit и7integration (5MinIO +2JPA/protectedreturn), bootJar — PASS. Отдельные4actualHTTPmultipart: 10МиБ200, +1байт413, пакет100МиБ200, превышение105МиБ413. Tomcat bounded max-swallow-size120MB; fixture соответствует browser FormData без Expect100-continue. Подтверждены оригинал/производная, commit/rollback/delete, raworiginal403/derived200 на disposable MinIO и приватный WebP ровно10МиБ через storage-reader. HTTP ACL/private-no-store проверен на меньшемWebP: это не10МиБprotectedHTTP E2E. Это управляемые проверки, не нагрузка, приёмка внешнего proxy или рабочего cloud S3.
+
+Локальная активация22 октября22:13 МСК: backend9696 Java45232/dev, ping200/pong, каталог брендов200 безoriginalImageUrl, единственный listener. БД rcmarket_local_20260919 V119→V120/V121/V122 после pg_dump; V121 — H21, V120/V122 соседнего редактора. SHA env/application-local неизменны, frontend3000 PID16572 сохранён. Backup/logs — backend build/photo-policy-local-20261022-220549. Test/prod остаются V118; новая политика не выложена.
+Остаются отдельными задачами H21: reference-aware lifecycle копий товарных фото и позднего rollback ProductService; устойчивая очередь повторов S3-cleanup; доступность просмотрщика/карусели. Новый лимит их не закрывает. Параллельная переработка редактора/идемпотентности не дублируется.
+
+Источники: frontend imageUploadPolicy/productPhotos, ProductPhotoEditor, SellerBrandImages/sellerBrandApi, AdminStorefrontTab/adminApi, AccountReturnRequest/returns; backend PhotoUploadPolicy, FileStorageService, ProductPhotoPolicy, BrandGalleryImageOptimizer, BrandImageService, ReturnFlowService, S3PrivateImageReader, application.yml. Товарные требования — PRODUCT_PHOTO_REQUIREMENTS.md.
+
+## Историческая оценка — 6 октября 2026
+
+Ниже сохранён отчёт исходной реализации6 октября с проверками и статусом на ту дату; он не описывает новые согласованные серверные выпуски21–22 октября.
 
 Основание: чтение текущих frontend `main` и backend `master` с сохранёнными
 параллельными изменениями, адресные проверки новой обработки и UI галереи бренда.

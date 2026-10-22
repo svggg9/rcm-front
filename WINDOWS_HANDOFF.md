@@ -1,5 +1,11 @@
 # Продолжение рцмаркет на Windows
 
+## Локальный H21 — 22 октября 2026, 22:13 МСК
+
+Frontend/backend принимают JPEG/PNG/WebP до 10 МиБ; 4К/8К в техническом бюджете 48Мп/16384px, малое разрешение больше не блокирует модерацию. Новая галерея хранит исходник и WebP до 4096px; возвраты согласованы по записи/защищённому чтению. Проверки и границы — [PHOTO_MODULE_REVIEW.md](PHOTO_MODULE_REVIEW.md).
+
+Backend9696 перезапущен агентом с прежним dev/env: единственный Java PID45232, `/ping`200/pong, каталог брендов200 без originalImageUrl. Локальная rcmarket_local_20260919 обновлена V119→V120/V121/V122, failed0; только V121 относится к H21. Backup и логи — backend `build/photo-policy-local-20261022-220549/`, дамп `rcmarket_local_20260919-before.dump`. SHA `.env`/`application-local.yml` неизменны; frontend3000 PID16572 не перезапускался. Это локальная активация, test/prod остаются V118. Из backend запускать `.\run-local.ps1`, предварительно проверив порт9696.
+
 ## Текущий согласованный выпуск — 22 октября 2026
 
 Frontend/backend выложены на test и production, обе БД **V118 / failed=0**.

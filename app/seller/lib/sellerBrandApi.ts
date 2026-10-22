@@ -1,3 +1,22 @@
+const photoMessages: Readonly<Record<string, string>> = {
+  "A brand can have at most 8 active images": "Можно добавить не больше 8 фотографий",
+  "Выберите фотографию магазина": "Выберите непустую фотографию",
+  "Фото должно быть не больше 8 МБ": "Фото должно быть не больше 10 МБ",
+  "Фото должно быть не больше 10 МБ": "Фото должно быть не больше 10 МБ",
+  "Разрешены только JPEG и WebP": "Разрешены только JPEG, PNG и WebP",
+  "Разрешены только JPEG, PNG и WebP": "Разрешены только JPEG, PNG и WebP",
+  "Не удалось прочитать фотографию магазина": "Не удалось прочитать фотографию",
+  "Не удалось прочитать фото или его содержимое не соответствует JPEG/WebP": "Не удалось прочитать фото или его содержимое не соответствует JPEG/WebP",
+  "Не удалось прочитать фото или его содержимое не соответствует JPEG/PNG/WebP": "Не удалось прочитать фото или его содержимое не соответствует JPEG/PNG/WebP",
+  "Выберите одну статичную фотографию": "Выберите одну статичную фотографию",
+  "Выберите статичную фотографию без анимации": "Выберите статичную фотографию без анимации",
+  "Фото должно быть не больше 48 мегапикселей и 16384 пикселей по стороне": "Фото должно быть не больше 48 мегапикселей и 16384 пикселей по стороне",
+  "Другая фотография ещё обрабатывается, повторите загрузку": "Другая фотография ещё обрабатывается — повторите загрузку",
+  "Обработка фотографий временно недоступна": "Обработка фотографий временно недоступна",
+};
+
+import { readApiError } from "../../lib/apiErrors";
+import { getImageUploadMetadataError, MAX_WORDMARK_UPLOAD_BYTES, WORDMARK_MIME_TYPES } from "../../lib/imageUploadPolicy";
 
 import { API_URL, apiFetch } from "../../lib/api";
 import type {
@@ -43,6 +62,8 @@ export async function uploadSellerBrandLogo(
   brandId: number,
   file: File
 ): Promise<SellerBrand> {
+  const validationMessage = getImageUploadMetadataError(file);
+  if (validationMessage) throw new Error(validationMessage);
   const formData = new FormData();
   formData.append("file", file);
 
@@ -63,6 +84,8 @@ export async function uploadSellerBrandWordmark(
   brandId: number,
   file: File
 ): Promise<SellerBrand> {
+  const validationMessage = getImageUploadMetadataError(file, { maxBytes: MAX_WORDMARK_UPLOAD_BYTES, allowedMimeTypes: WORDMARK_MIME_TYPES, typeMessage: "Для логотипа доступны только SVG и WebP", sizeMessage: "Логотип должен быть не больше 2 МБ" });
+  if (validationMessage) throw new Error(validationMessage);
   const formData = new FormData();
   formData.append("file", file);
 
@@ -93,32 +116,13 @@ export async function getSellerBrandImages(
   return Array.isArray(data) ? (data as SellerBrandImage[]) : [];
 }
 
-export async function uploadSellerBrandImage(
-  brandId: number,
-  file: File
-): Promise<SellerBrandImage> {
-  if (!["image/jpeg", "image/webp"].includes(file.type)) {
-    throw new Error("Разрешены только JPEG и WebP");
-  }
-  if (!file.size) throw new Error("Выберите непустую фотографию");
-  if (file.size > 8 * 1024 * 1024) throw new Error("Исходное фото должно быть не больше 8 МБ");
+export async function uploadSellerBrandImage(brandId: number, file: File): Promise<SellerBrandImage> {
+  const validationMessage = getImageUploadMetadataError(file);
+  if (validationMessage) throw new Error(validationMessage);
   const formData = new FormData();
   formData.append("file", file);
-  const response = await apiFetch(
-    `${API_URL}/api/seller/brands/${brandId}/images`,
-    { method: "POST", body: formData }
-  );
-  if (!response.ok) {
-    const data: unknown = await response.json().catch(() => null);
-    const message = data && typeof data === "object"
-      ? (data as { message?: unknown; detail?: unknown }).message ?? (data as { detail?: unknown }).detail
-      : null;
-    throw new Error(typeof message === "string" && message.trim()
-      ? message
-      : response.status === 413
-        ? "Исходное фото должно быть не больше 8 МБ"
-        : "Не удалось загрузить фотографию бренда");
-  }
+  const response = await apiFetch(`${API_URL}/api/seller/brands/${brandId}/images`, { method: "POST", body: formData });
+  if (!response.ok) throw await readApiError(response, response.status === 413 ? "Фото должно быть не больше 10 МБ" : "Не удалось загрузить фотографию бренда", photoMessages);
   return response.json();
 }
 

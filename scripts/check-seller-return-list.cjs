@@ -22,6 +22,7 @@ const api = load("app/lib/returns.ts", {
   } },
   "./returnPhotoUrls": { resolveReturnPhotoUrl() { throw new Error("List must not process photos"); } },
   "../account/lib/presentation": { accountApiError() { throw new Error("Buyer API must not be involved"); } },
+  "./imageUploadPolicy": load("app/lib/imageUploadPolicy.ts", {}),
 });
 const presentation = load("app/seller/lib/sellerReturnListPresentation.ts", {});
 const row = (id, status = "REQUESTED") => ({ id, orderId: id + 100, productId: 10, variantId: 20,
