@@ -1,5 +1,17 @@
 # Продолжение рцмаркет на Windows
 
+## Текущий согласованный выпуск — 22 октября 2026
+
+Frontend/backend выложены на test и production, обе БД **V118 / failed=0**.
+Frontend source `7532221` (main), backend `a1d0f79`
+(codex/manual-seller-payouts, PR48 пока открыт). Включены H28/H29/H30, списки,
+редактор, ручные выплаты и действительный Telegram-статус заявки. Сохранены
+конфигурация интеграций, контейнеры БД/Redis и мониторинговые таймеры.
+Полные SHA, проверки, резервные копии и границы отката —
+[DEPLOYMENT_APPLICATIONS_2026-10-22.md](../../rcm/DEPLOYMENT_APPLICATIONS_2026-10-22.md).
+Это завершённая техническая выкладка; реальная банковская/мобильная и визуальная
+приёмка не подменяются smoke.
+
 ## Общий выпуск test/production — 21 октября 2026
 
 Обе серверные БД — **V117 / failed=0**. Выгружен зафиксированный общий состав H02/H23/H26/H27 с сохранением Telegram UI, Next 16.4.2/source-map-js 1.2.2 и React 19.2.1. Frontend: test `rcm-frontend:applications-test-20261021-09ed0b4932a6` / `e435dd468994afd0b427198686cd759d5e6d18851085cac02e7c64442780b42e`; production `rcm-frontend:applications-prod-20261021-09ed0b4932a6` / `053bce28569055564c1d38827a9a0c8e12432bcf92f8136a284b53964db3e1c0`.
