@@ -1,4 +1,5 @@
 import { apiFetch, API_URL } from "../../lib/api";
+import { readApiError } from "../../lib/apiErrors";
 
 export type SellerType = "IP" | "OOO" | "SELF_EMPLOYED";
 
@@ -168,8 +169,9 @@ export async function saveSellerLegalInfo(
   });
 
   if (!response.ok) {
-    const text = await response.text().catch(() => "");
-    throw new Error(text || "Не удалось сохранить реквизиты");
+    throw await readApiError(response, "Не удалось сохранить реквизиты", {
+      LEGAL_VERIFIED_LOCKED: "Реквизиты уже подтверждены — отправьте запрос на изменение в поддержку",
+    });
   }
 
   return response.json();

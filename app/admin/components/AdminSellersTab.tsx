@@ -13,6 +13,7 @@ import { toast } from "../../components/ui/toast";
 import { formatRussianPhone } from "../../lib/phone";
 
 import { AdminSellerBrandProfile } from "./AdminSellerBrandProfile";
+import { AdminSellerLegalRequests, AdminSellerLegalReview } from "./AdminSellerLegalReview";
 import styles from "./AdminSellersTab.module.css";
 import type {
   AdminSellerApplication,
@@ -201,7 +202,7 @@ export function AdminSellersTab({
   }
 
   return (
-    <CabinetPanel
+    <><AdminSellerLegalRequests /><CabinetPanel
       items={filterTabs}
       value={status}
       onChange={onStatusChange}
@@ -256,7 +257,7 @@ export function AdminSellersTab({
           />
         </>
       )}
-    </CabinetPanel>
+    </CabinetPanel></>
   );
 }
 
@@ -439,9 +440,7 @@ function SellerApplicationDetails({
           </DetailsSection>
 
           <DetailsSection title="Реквизиты">
-            <p className={styles.emptyText}>
-              Реквизиты не переданы в заявке продавца.
-            </p>
+            <AdminSellerLegalReview key={application.userId} sellerId={application.userId} />
           </DetailsSection>
         </main>
 

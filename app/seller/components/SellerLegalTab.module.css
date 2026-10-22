@@ -15,6 +15,8 @@
   gap: 16px;
 }
 
+.formFields { margin: 0; padding: 0; border: 0; min-width: 0; display: flex; flex-direction: column; gap: 16px; }
+
 .sectionNavigation {
   position: sticky;
   top: var(--site-header-height);

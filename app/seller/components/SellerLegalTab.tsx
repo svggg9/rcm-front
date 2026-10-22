@@ -44,6 +44,9 @@ import {
   useSellerNotificationChannels,
 } from "./SellerNotificationChannels";
 import { SellerReceptionPointPicker } from "./SellerReceptionPointPicker";
+import { InlineEditorGuard } from "../../components/ui/InlineEditorGuard";
+import { LegalChangeDialog, SellerLegalReviewNotice, SellerLegalValues, useSellerLegalReview } from "./SellerLegalReview";
+import reviewStyles from "./SellerLegalReview.module.css";
 import styles from "./SellerLegalTab.module.css";
 
 type FormErrors = Partial<Record<keyof SellerLegalInfoForm, string>>;
@@ -179,6 +182,11 @@ export function SellerLegalTab() {
   }
   const [form, setForm] = useState<SellerLegalInfoForm>(INITIAL_FORM);
   const [savedForm, setSavedForm] = useState<SellerLegalInfoForm>(INITIAL_FORM);
+  const [editing, setEditing] = useState(false);
+  const [changeRequestOpen, setChangeRequestOpen] = useState(false);
+  const reviewState = useSellerLegalReview();
+  const latestForm = useRef(form);
+  useEffect(() => { latestForm.current = form; }, [form]);
   const validation = useFieldValidation(form, validateForm);
   const { errors, setErrors } = validation;
   const [loading, setLoading] = useState(true);
@@ -222,6 +230,7 @@ export function SellerLegalTab() {
 
           setForm(nextForm);
           setSavedForm(nextForm);
+          setEditing(!info);
           setPointQuery(nextForm.shippingAddress || nextForm.cdekShipmentPoint);
         }
       } catch (e) {
@@ -408,6 +417,16 @@ export function SellerLegalTab() {
 
   const hasValidationErrors = Object.keys(errors).length > 0;
   const saving = savingSection !== null || creatingProduct;
+  const dirty = Object.keys(form).some(field => form[field as keyof SellerLegalInfoForm] !== savedForm[field as keyof SellerLegalInfoForm]);
+  const criticalSection = activeSection === "legal" || activeSection === "bank";
+  const canEditSection = !criticalSection || (!reviewState.loading && !reviewState.error && reviewState.review?.verified === false);
+  const showEditor = editing;
+
+  function discardChanges() {
+    setForm(savedForm); validation.reset(); setEditing(false);
+    setPointQuery(savedForm.shippingAddress || savedForm.cdekShipmentPoint);
+    setCityOptionsOpen(false); setPointOptionsOpen(false);
+  }
   const legalChecklistComplete =
     isValidInn(form.inn, form.sellerType) &&
     isNonEmpty(form.legalName) &&
@@ -531,7 +550,7 @@ export function SellerLegalTab() {
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (saving || savePendingRef.current) return;
+    if (saving || savePendingRef.current || !showEditor || !canEditSection) return;
 
     const submitter = (event.nativeEvent as SubmitEvent).submitter;
     const requestedSection =
@@ -566,6 +585,7 @@ export function SellerLegalTab() {
     try {
       const saved = mapLegalInfoToForm(await saveSellerLegalInfo(form));
       setSavedForm(saved);
+      if (JSON.stringify(latestForm.current) === JSON.stringify(form)) setEditing(false);
       setForm(current => {
         const next = { ...current };
         for (const field of Object.keys(form) as (keyof SellerLegalInfoForm)[]) {
@@ -580,6 +600,7 @@ export function SellerLegalTab() {
         action: { label: "Создать товар", onClick: () => void createProductDraft() },
       });
     } catch (e) {
+      void reviewState.load();
       toast.error(e instanceof Error ? e.message : "Не удалось сохранить реквизиты", {
         id: "seller-legal-save", description: undefined, action: undefined,
       });
@@ -615,6 +636,7 @@ export function SellerLegalTab() {
 
   return (
     <section className={styles.page}>
+      <InlineEditorGuard dirty={dirty} busy={saving} onDiscard={discardChanges} />
       <h1 className="visuallyHidden">Данные и документы</h1>
       <Banner tone={checklistComplete ? "success" : "info"}
         className={checklistComplete ? styles.completedBanner : undefined}
@@ -634,13 +656,21 @@ export function SellerLegalTab() {
           {item.complete ? <><Icon name="check" size={18} /><span className="visuallyHidden">Обязательные поля заполнены</span></> : null}
         </button>)}
       </nav>
-      <form ref={formRef} className={styles.form} noValidate onSubmit={submit}>
+      {criticalSection ? <SellerLegalReviewNotice review={reviewState.review} error={reviewState.error} loading={reviewState.loading}
+        onRefresh={() => void reviewState.load()} onRequest={() => setChangeRequestOpen(true)} /> : null}
+      {!showEditor ? <section className={reviewStyles.summary} aria-label="Сохранённые данные">
         {error ? <Banner tone="danger">{error}</Banner> : null}
-
+        <h2>{activeSection === "legal" ? "Юридическая информация" : activeSection === "bank" ? "Банковские реквизиты" : activeSection === "contacts" ? "Контакты продавца" : "Отправка заказов"}</h2>
+        <SellerLegalValues form={savedForm} section={activeSection} />
+        {canEditSection && !error ? <div><Button type="button" variant="secondary" onClick={() => setEditing(true)}>Редактировать</Button></div> : null}
+        {activeSection === "contacts" ? <SellerNotificationChannels controller={notifications} disabled={saving} /> : null}
+      </section> : <form ref={formRef} className={styles.form} noValidate onSubmit={submit}>
+        {error ? <Banner tone="danger">{error}</Banner> : null}
+        <fieldset className={styles.formFields} disabled={saving || !canEditSection}>
         <section id="seller-data-legal" data-legal-section="legal" hidden={activeSection !== "legal"} tabIndex={-1} className={styles.card}>
           <div className={styles.cardHeader}>
             <h2>Юридическая информация</h2>
-            <p>Данные владельца магазина и сведения для оформления документов.</p>
+            <p>Данные владельца магазина и сведения для оформления документов</p>
           </div>
 
           <div className={styles.typeGrid}>
@@ -754,7 +784,7 @@ export function SellerLegalTab() {
         <section id="seller-data-contacts" data-legal-section="contacts" hidden={activeSection !== "contacts"} tabIndex={-1} className={styles.card}>
           <div className={styles.cardHeader}>
             <h2>Контакты продавца</h2>
-            <p>Контактное лицо, телефон и каналы уведомлений магазина.</p>
+            <p>Контактное лицо, телефон и каналы уведомлений магазина</p>
           </div>
 
           <div className={styles.contactsGrid}>
@@ -786,7 +816,7 @@ export function SellerLegalTab() {
                 ) : null}
               </div>
               <p className={styles.contactHint}>
-                Используем имя и телефон для связи по заказам и при оформлении отправлений.
+                Используем имя и телефон для связи по заказам и при оформлении отправлений
               </p>
             </div>
 
@@ -802,7 +832,7 @@ export function SellerLegalTab() {
         <section id="seller-data-shipping" data-legal-section="shipping" hidden={activeSection !== "shipping"} tabIndex={-1} className={styles.card}>
           <div className={styles.cardHeader}>
             <h2>Отправка заказов</h2>
-            <p>Город и пункт, из которого товары передаются в доставку.</p>
+            <p>Город и пункт, из которого товары передаются в доставку</p>
           </div>
 
           <div className={styles.grid}>
@@ -896,7 +926,7 @@ export function SellerLegalTab() {
         <section id="seller-data-bank" data-legal-section="bank" hidden={activeSection !== "bank"} tabIndex={-1} className={styles.card}>
           <div className={styles.cardHeader}>
             <h2>Банковские реквизиты</h2>
-            <p>Счёт, на который будут перечисляться выплаты магазина.</p>
+            <p>Счёт, на который будут перечисляться выплаты магазина</p>
           </div>
 
           <div className={styles.grid}>
@@ -985,19 +1015,14 @@ export function SellerLegalTab() {
 
 
         </section>
+        </fieldset>
+        <p className={reviewStyles.hint}>Проверьте правильность указанных данных перед сохранением</p>
+        {criticalSection ? <p className={reviewStyles.hint}>После подтверждения изменить юридические и банковские реквизиты можно через запрос в поддержку</p> : null}
         <SectionSaveAction section={activeSection} savingSection={savingSection}
           busy={creatingProduct || notifications.busy}
-          dirty={Object.keys(form).some(field => form[field as keyof SellerLegalInfoForm] !== savedForm[field as keyof SellerLegalInfoForm])}
-          onCancel={() => {
-            setForm(savedForm);
-            validation.reset();
-            {
-              setPointQuery(savedForm.shippingAddress || savedForm.cdekShipmentPoint);
-              setCityOptionsOpen(false);
-              setPointOptionsOpen(false);
-            }
-          }} />
-      </form>
+          dirty={dirty} saveDisabled={!canEditSection} onCancel={discardChanges} />
+      </form>}
+      {changeRequestOpen ? <LegalChangeDialog onClose={() => setChangeRequestOpen(false)} onSaved={review => { reviewState.setReview(review); setChangeRequestOpen(false); }} /> : null}
 
       {pointPickerOpen && form.shippingCityCode ? <SellerReceptionPointPicker
         cityCode={Number(form.shippingCityCode)} cityName={form.shippingCityName} currentId={form.cdekShipmentPoint}
@@ -1011,23 +1036,25 @@ function SectionSaveAction({
   savingSection,
   busy = false,
   dirty,
+  saveDisabled = false,
   onCancel,
 }: {
   section: SaveSection;
   savingSection: SaveSection | null;
   busy?: boolean;
   dirty: boolean;
+  saveDisabled?: boolean;
   onCancel: () => void;
 }) {
   return (
     <div className={styles.sectionActions}>
-      <Button type="button" variant="secondary" disabled={!dirty || savingSection !== null || busy} onClick={onCancel}>Отменить</Button>
+      <Button type="button" variant="secondary" disabled={savingSection !== null || busy} onClick={onCancel}>Отменить</Button>
       <Button
         type="submit"
         name="saveSection"
         value={section}
         variant="primary"
-        disabled={!dirty || savingSection !== null || busy}
+        disabled={!dirty || savingSection !== null || busy || saveDisabled}
         loading={savingSection === section}
       >
         Сохранить
