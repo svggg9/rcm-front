@@ -52,6 +52,11 @@ export function productPath(product: ProductUrlSource): string {
   return `/p/${code}/${readableSlug}`;
 }
 
+export function productColorPath(product: ProductUrlSource, colorwayId?: number | null): string {
+  const path = productPath(product);
+  return colorwayId && Number.isSafeInteger(colorwayId) && colorwayId > 0 ? `${path}?color=${colorwayId}` : path;
+}
+
 function normalizePublicId(value?: string | null): string {
   const normalized = (value ?? "").trim().toLowerCase();
 

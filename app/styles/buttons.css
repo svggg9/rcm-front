@@ -32,6 +32,23 @@
   color: var(--white);
 }
 
+/* Shared actions in error states, empty lists and confirmation dialogs. */
+.feedbackAction,
+.emptyStateActions > :is(a, button) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: var(--feedback-action-height);
+  height: auto;
+  padding: 11px 16px;
+  font-size: var(--feedback-action-size);
+  line-height: var(--feedback-line-height);
+  font-weight: 400;
+  text-transform: uppercase;
+  text-decoration: none;
+}
+
 .buttonPrimaryShimmer {
   border: 1px solid var(--black);
   background: var(--black);

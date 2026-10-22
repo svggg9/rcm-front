@@ -1,6 +1,6 @@
 .options { min-width: 0; background: var(--white); color: var(--black); font-size: 12px; line-height: 18px; font-weight: 400; }
 .heading { padding: 16px 10px; text-transform: uppercase; }
-.list { max-height: 274px; overflow-y: auto; overscroll-behavior: contain; padding-bottom: 10px; }
+.list { max-height: var(--size-options-list-max-height, 274px); overflow-y: auto; overscroll-behavior: contain; padding-bottom: 10px; }
 .option { display: block; width: 100%; min-height: 44px; padding: 10px; text-align: left; font: inherit; overflow-wrap: anywhere; }
 .option:hover:not(:disabled), .option[aria-pressed="true"] { background: var(--soft); }
 .option:disabled { color: var(--muted); text-decoration: line-through; cursor: default; }

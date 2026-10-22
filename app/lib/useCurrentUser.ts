@@ -1,41 +1,18 @@
 "use client";
 
-import { useEffect, useState } from "react";
-
-import { AUTH_EVENT } from "./authEvents";
-
-import { getClientSession } from "./client-session";
-
-import type { SessionUser } from "./session";
+import { useEffect, useSyncExternalStore } from "react";
+import { getClientSession, getClientSessionSnapshot, getServerSessionSnapshot, subscribeClientSession } from "./client-session";
 
 export function useCurrentUser() {
-  const [user, setUser] = useState<SessionUser | null>(null);
-
-  const [loading, setLoading] = useState(true);
-
-  async function load() {
-    try {
-      const data = await getClientSession();
-
-      setUser(data);
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  useEffect(() => {
-    void load();
-
-    window.addEventListener(AUTH_EVENT, load);
-
-    return () => {
-      window.removeEventListener(AUTH_EVENT, load);
-    };
-  }, []);
-
+  const state = useSyncExternalStore(subscribeClientSession, getClientSessionSnapshot, getServerSessionSnapshot);
+  useEffect(() => { void getClientSession().catch(() => undefined); }, [state.revision]);
   return {
-    user,
-    loading,
-    isAuthenticated: !!user,
+    ...state,
+    isAuthenticated: state.user !== null,
+    isGuest: state.hasResolved && state.user === null && !state.error,
+    async reload() {
+      try { return await getClientSession({ force: true }); }
+      catch { return undefined; }
+    },
   };
 }

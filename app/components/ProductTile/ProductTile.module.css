@@ -99,7 +99,11 @@
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
+  text-decoration: none;
 }
+
+.title:hover { text-decoration: underline; text-underline-offset: 3px; }
+.title:focus-visible { outline: 1px solid var(--black); outline-offset: 3px; }
 
 .price {
   margin-top: auto;
@@ -170,4 +174,16 @@
   .compact .title { margin-top: 2px; min-height: 0; font-size: 12px; line-height: 15px; }
   .compact .price { margin-top: 0; padding-top: 4px; font-size: 13px; line-height: 18px; font-weight: 500; }
   .compact .like { top: 0; right: 0; }
+}
+
+.storefront .mediaLink { aspect-ratio: 1; background: var(--white); }
+.storefront .imgMain, .storefront .imgHover { object-fit: contain; }
+.storefront .info { min-height: 82px; padding-top: 12px; }
+.storefront .brandText { font-size: 11px; line-height: 16px; font-weight: 400; }
+.storefront .title { font-size: 12px; line-height: 18px; min-height: 36px; margin-top: 2px; }
+.storefront .price { font-size: 13px; line-height: 20px; font-weight: 400; padding-top: 6px; }
+.storefront .like { top: 0; right: 0; }
+
+@media (max-width: 640px) {
+  .storefront .info { padding-top: 10px; }
 }

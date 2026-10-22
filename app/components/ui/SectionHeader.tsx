@@ -5,11 +5,12 @@ type Props = {
   hint?: string;
   actions?: ReactNode;
   large?: boolean;
+  className?: string;
 };
 
-export function SectionHeader({ title, hint, actions, large = false }: Props) {
+export function SectionHeader({ title, hint, actions, large = false, className = "" }: Props) {
   return (
-    <div className={actions ? "sectionHeaderRow" : "sectionHeader"}>
+    <div className={`${actions ? "sectionHeaderRow" : "sectionHeader"} ${className}`.trim()}>
       <div>
         <h1 className={large ? "sectionTitleLarge" : "sectionTitle"}>
           {title}

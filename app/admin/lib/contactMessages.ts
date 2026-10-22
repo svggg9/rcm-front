@@ -7,7 +7,9 @@ export type ContactMessageStatus = "NEW" | "IN_PROGRESS" | "CLOSED";
 export type ContactMessage = {
   id: number;
   name: string;
-  email: string;
+  email: string | null;
+  channel?: "EMAIL" | "TELEGRAM";
+  telegramUsername?: string | null;
   topic: ContactTopic;
   message: string;
   orderNumber?: string | null;
@@ -22,7 +24,10 @@ export type ContactReply = {
   id: number;
   contactMessageId: number;
   body: string;
-  recipientEmail: string;
+  recipientEmail: string | null;
+  channel?: "EMAIL" | "TELEGRAM";
+  recipientChatId?: string | null;
+  deliveryMessageId?: number | null;
   authorId: number;
   authorName: string;
   status: ContactReplyStatus;
@@ -81,7 +86,7 @@ async function readReplyResponse<T>(response: Response, fallback: string): Promi
     throw new Error("Этот запрос уже обработан или повтор недоступен — обновите историю ответов");
   }
   if (response.status === 400) {
-    throw new Error("Проверьте текст ответа — от 1 до 5000 символов");
+    throw new Error("Проверьте текст ответа и доступность канала");
   }
   throw new Error(fallback);
 }

@@ -4,9 +4,6 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useRef, type FocusEvent, type ReactNode } from "react";
 import type { SellerTab } from "../types";
-import { NotificationBadge } from "../../components/ui/NotificationBadge";
-import type { SellerNavigationAttention } from "../lib/sellerNavigationAttention";
-import { useSellerAttention } from "../lib/SellerAttentionContext";
 
 import styles from "./SellerSidebar.module.css";
 
@@ -57,9 +54,7 @@ export function SellerSidebar({
   actions,
 }: Props) {
   const activeTab = currentTab === "returns" ? "orders" : currentTab;
-  const attention = useSellerAttention();
-  const attentionKey = Object.entries(attention.items).map(([tab, item]) => `${tab}:${item.href}:${item.label}:${item.count ?? ""}`).join("|");
-  const navigationRef = useNavigationVisibility(`${activeTab}:${attentionKey}`);
+  const navigationRef = useNavigationVisibility(activeTab);
 
   const primaryItems: NavigationItem[] = [
     {
@@ -96,15 +91,13 @@ export function SellerSidebar({
 
   return (
     <div className={styles.bar}>
-      <nav ref={navigationRef} className={styles.navigation} aria-label="Меню продавца" aria-busy={attention.loading} onFocus={revealFocusedLink}>
+      <nav ref={navigationRef} className={styles.navigation} aria-label="Меню продавца" onFocus={revealFocusedLink}>
         <div className={styles.navigationTrack}>
           {primaryItems.map((item) => (
             <NavigationLink
               key={item.tab}
               item={item}
               active={activeTab === item.tab}
-              attention={attention.items[item.tab]}
-              onRefreshAttention={attention.refresh}
             />
           ))}
         </div>
@@ -119,19 +112,18 @@ export function SellerSectionTabs({ currentTab }: { currentTab: SellerTab }) {
   const collectionsActive = searchParams.get("section") === "collections";
   const financeView = searchParams.get("view");
   const navigationRef = useNavigationVisibility(`${currentTab}:${collectionsActive}:${financeView}`);
-  const items = currentTab === "products" ? [
-    { label: "Товары", href: "/seller/products", active: !collectionsActive },
-    { label: "Подборки", href: "/seller/products?section=collections", active: collectionsActive },
-  ] : currentTab === "orders" || currentTab === "returns" ? [
+  const items = [
+    { label: "Главная", href: "/seller/home", active: currentTab === "home" },
+    { label: "Товары", href: "/seller/products", active: currentTab === "products" && !collectionsActive },
+    { label: "Подборки", href: "/seller/products?section=collections", active: currentTab === "products" && collectionsActive },
     { label: "Заказы", href: "/seller/orders", active: currentTab === "orders" },
     { label: "Возвраты", href: "/seller/returns", active: currentTab === "returns" },
-  ] : currentTab === "finance" ? [
-    { label: "Обзор", href: "/seller/finance", active: financeView !== "operations" && financeView !== "payouts" },
-    { label: "Операции", href: "/seller/finance?view=operations", active: financeView === "operations" },
-    { label: "Выплаты", href: "/seller/finance?view=payouts", active: financeView === "payouts" },
-  ] : [];
-
-  if (items.length === 0) return null;
+    { label: "Обзор финансов", href: "/seller/finance", active: currentTab === "finance" && financeView !== "operations" && financeView !== "payouts" },
+    { label: "Операции", href: "/seller/finance?view=operations", active: currentTab === "finance" && financeView === "operations" },
+    { label: "Выплаты", href: "/seller/finance?view=payouts", active: currentTab === "finance" && financeView === "payouts" },
+    { label: "Магазин", href: "/seller/store", active: currentTab === "brand" },
+    { label: "Данные и документы", href: "/seller/legal", active: currentTab === "legal" },
+  ];
 
   return (
     <nav ref={navigationRef} className={styles.secondary} aria-label="Подразделы кабинета" onFocus={revealFocusedLink}>
@@ -150,13 +142,9 @@ export function SellerSectionTabs({ currentTab }: { currentTab: SellerTab }) {
 function NavigationLink({
   item,
   active,
-  attention,
-  onRefreshAttention,
 }: {
   item: NavigationItem;
   active: boolean;
-  attention?: SellerNavigationAttention;
-  onRefreshAttention: () => void;
 }) {
   return (
     <div className={styles.navigationItem} data-seller-navigation-item>
@@ -164,25 +152,12 @@ function NavigationLink({
         href={item.href}
         className={`${styles.navigationLink} ${
           active ? styles.navigationLinkActive : ""
-        } ${attention ? styles.navigationLinkWithAttention : ""}`}
+        }`}
         aria-current={active ? "page" : undefined}
         prefetch={false}
       >
         <span>{item.label}</span>
       </Link>
-      {attention && (
-        <Link
-          href={attention.href}
-          prefetch={false}
-          className={styles.attentionLink}
-          aria-label={`${item.label}: ${attention.description}`}
-          title={attention.description}
-          onClick={onRefreshAttention}
-          data-seller-attention={item.tab}
-        >
-          <NotificationBadge count={attention.count} muted={attention.tone === "default"} />
-        </Link>
-      )}
     </div>
   );
 }

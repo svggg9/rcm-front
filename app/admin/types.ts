@@ -119,6 +119,12 @@ export type AdminSeller = {
 export type DictionaryItem = {
   id: number;
   name: string;
+  /** Category name is a display path; writes use the local label and parentId. */
+  label?: string;
+  parentId?: number | null;
+  effectiveActive?: boolean;
+  productCount?: number;
+  subtreeProductCount?: number;
   slug?: string | null;
   logoUrl?: string | null;
   wordmarkUrl?: string | null;
@@ -177,7 +183,9 @@ export type AdminFinancialLedgerEntry = {
 
 export type AdminSellerPayoutStatus =
   | "READY"
+  | "IN_PROGRESS"
   | "SENT"
+  | "REVIEW"
   | "PAID"
   | "FAILED"
   | "CANCELLED";
@@ -359,6 +367,9 @@ export type AdminSellerApplication = {
   productionRegion: string | null;
   website: string | null;
   telegram: string | null;
+  /** Current bot binding; absent on older backend versions. */
+  telegramLinked?: boolean;
+  telegramUsername?: string | null;
   contactName: string;
   phone: string;
   email: string;
@@ -393,9 +404,6 @@ export type AdminInitialData = {
   ledgerEntries: AdminFinancialLedgerEntry[];
   totalLedgerEntries: number;
   ledgerLoaded: boolean;
-  sellerPayouts: AdminSellerPayout[];
-  sellerPayoutStats: AdminSellerPayoutStats;
-  sellerPayoutsLoaded: boolean;
   cdekWebhookEvents: AdminCdekWebhookEvent[];
   totalCdekWebhookEvents: number;
   categories: DictionaryItem[];

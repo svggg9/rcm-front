@@ -4,7 +4,8 @@ import { Loader } from "../../components/ui/Loader";
 import Link from "next/link";
 import { useEffect, useState, type ReactNode } from "react";
 import { Button } from "../../components/ui/Button";
-import { Banner } from "../../components/ui/Banner";
+import { EmptyState } from "../../components/ui/EmptyState";
+import { RequestError } from "../../components/ui/RequestError";
 import { DesignSystemIcon as Icon } from "../../components/ui/DesignSystemIcon";
 import { CabinetSkeleton } from "../../components/ui/CabinetSkeleton";
 import { CabinetPanel } from "../../components/ui/CabinetPanel";
@@ -15,7 +16,7 @@ import listItemStyles from "../../components/ui/CabinetListItem.module.css";
 
 type State = { status: "loading" } | { status: "ready"; tasks: SellerTask[]; hasNext: boolean };
 
-export function SellerHomeTasks({ children, hasSetupTasks, active = true }: { children: ReactNode; hasSetupTasks: boolean; active?: boolean }) {
+export function SellerHomeTasks({ children, hasSetupTasks, active = true, variant = "default" }: { children: ReactNode; hasSetupTasks: boolean; active?: boolean; variant?: "default" | "plain" }) {
   const [state, setState] = useState<State>({ status: "loading" });
   const [attempt, setAttempt] = useState(0);
   const [category, setCategory] = useState("all");
@@ -41,12 +42,14 @@ export function SellerHomeTasks({ children, hasSetupTasks, active = true }: { ch
     Promise.resolve().then(() => {
       controller.signal.throwIfAborted();
       setBusy(true);
-      setRefreshError(null);
       return getSellerTasks(controller.signal, category, page);
     }).then(result => {
-      if (!controller.signal.aborted) setState({ status: "ready", tasks: result.content, hasNext: result.hasNext });
-    }).catch(error => {
-      if (!controller.signal.aborted) setRefreshError(error instanceof Error ? error.message : "Не удалось загрузить задачи");
+      if (!controller.signal.aborted) {
+        setState({ status: "ready", tasks: result.content, hasNext: result.hasNext });
+        setRefreshError(null);
+      }
+    }).catch(() => {
+      if (!controller.signal.aborted) setRefreshError("Не удалось загрузить задачи");
     }).finally(() => {
       if (!controller.signal.aborted) setBusy(false);
     });
@@ -54,14 +57,12 @@ export function SellerHomeTasks({ children, hasSetupTasks, active = true }: { ch
   }, [attempt, category, page, active]);
 
   const filteredTasks = state.status === "ready" ? state.tasks.filter(task => category === "all" || task.id.startsWith(`${category}-`)) : [];
-  return <CabinetPanel className={styles.tasksPanel} value={category} ariaLabel="Тип задач"
+  return <CabinetPanel variant={variant} className={variant === "plain" ? styles.plainTasksPanel : styles.tasksPanel} value={category} ariaLabel="Тип задач"
       items={[{ value: "all", label: "Все" }, { value: "order", label: "Заказы" }, { value: "return", label: "Возвраты" }, { value: "product", label: "Товары" }]}
       onChange={value => { setCategory(value); setPage(0); setState({ status: "loading" }); }}>
-    {state.status === "loading" && busy && <CabinetSkeleton variant="list" rows={2} compact />}
-    {refreshError && <Banner tone="danger" role="alert"
-      actions={<Button onClick={() => setAttempt(value => value + 1)}>Повторить</Button>}>
-      <p>{refreshError}</p>
-    </Banner>}
+    {state.status === "loading" && busy && !refreshError && <CabinetSkeleton variant="list" rows={2} compact />}
+    {refreshError && <RequestError variant={state.status === "ready" ? "inline" : "section"}
+      message={refreshError} loading={busy} onRetry={() => setAttempt(value => value + 1)} />}
     {state.status === "ready" && filteredTasks.filter(task => task.action !== "Открыть возврат").map(task => <SellerTaskRow key={task.id} task={task} now={now} />)}
     {state.status === "ready" && category !== "all" && filteredTasks.length === 0 && <p>Задач этого типа пока нет</p>}
     {state.status === "ready" && filteredTasks.some(task => task.action === "Открыть возврат") && <>
@@ -74,9 +75,7 @@ export function SellerHomeTasks({ children, hasSetupTasks, active = true }: { ch
       {page > 0 && <Button disabled={busy} onClick={() => { setState({ status: "loading" }); setPage(value => value - 1); }}>Назад</Button>}
       {state.hasNext && <Button disabled={busy} onClick={() => { setState({ status: "loading" }); setPage(value => value + 1); }}>Следующие задачи</Button>}
     </div>}
-    {state.status === "ready" && category === "all" && !state.tasks.length && !hasSetupTasks && <div className={styles.emptyTasks}>
-      <Icon name="check-circle" role="empty" /><strong>Новых задач пока нет</strong>
-    </div>}
+    {state.status === "ready" && category === "all" && !state.tasks.length && !hasSetupTasks && <EmptyState title="Новых задач пока нет" />}
   </CabinetPanel>;
 }
 

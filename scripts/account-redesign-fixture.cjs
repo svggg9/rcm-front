@@ -3,6 +3,16 @@ const http=require("node:http"),fs=require("node:fs"),path=require("node:path"),
 const origin="http://127.0.0.1:13046",api="http://127.0.0.1:19646";
 const directory=path.resolve("build/account-redesign");fs.mkdirSync(directory,{recursive:true});
 const calls=[],returns=[],saved=new Map();
+// Optional disposable browser scenario: first GET fails, retry succeeds, removal fails.
+const brandsErrorScenario=process.env.RCM_FIXTURE_BRANDS_SCENARIO==="errors";
+let brandReads=0;
+const cartFeedbackScenario=process.env.RCM_FIXTURE_CART_SCENARIO;
+let cartReads=0;
+const orderFeedbackScenario=process.env.RCM_FIXTURE_ORDER_SCENARIO==="errors";
+let orderDetailReads=0,orderListReads=0;
+const sessionRecoveryScenario=process.env.RCM_FIXTURE_SESSION_SCENARIO==="recovery";
+let sessionMode="user",cartReadFailure=false,cartCountFailure=false,favoriteReadFailure=false;
+let feedbackCart=[{productId:407,variantId:901,sellerId:1,title:"Тестовый товар",brand:"Тестовый бренд",article:"100001",size:"M",color:"Бежевый",price:5900,quantity:2,availableQuantity:5,imageUrl:null}];
 const readDelay=Math.min(30000,Math.max(0,Number(process.env.RCM_FIXTURE_ACCOUNT_DELAY_MS)||0));
 const image="https://storage.yandexcloud.net/rcm/products/rcm-demo-20260908/demo-watch-saturn/1-1-98a277ac110647e9.webp";
 const profile={id:1,username:"fixture@example.test",email:"fixture@example.test",emailVerified:true,firstName:"Тест",lastName:"Покупатель",phone:"+79990000000",sellerApproved:false};
@@ -22,7 +32,22 @@ const server=http.createServer(async(req,res)=>{
   const body=multipart?await new Request(api,{method:"POST",headers:{"Content-Type":req.headers["content-type"]},body:raw}).formData():raw.length?JSON.parse(raw.toString()):{};
   const logged={method:req.method,path:url.pathname};if(multipart){logged.quantity=Number(body.get("quantity"));logged.key=body.get("requestKey");logged.productId=Number(body.get("productId"));}calls.push(logged);fs.writeFileSync(path.join(directory,"fixture-calls.json"),JSON.stringify(calls,null,2));
   if(readDelay&&req.method==="GET"&&(url.pathname==="/api/profile"||url.pathname==="/api/orders/my/list"||/^\/api\/orders\/\d+$/.test(url.pathname)||url.pathname==="/api/returns/my/list"||url.pathname==="/api/favorites"||url.pathname.includes("favorite-brands")))await new Promise(resolve=>setTimeout(resolve,readDelay));
-  if(url.pathname==="/api/auth/session")return reply({id:1,username:profile.username,role:"USER"});
+  if(sessionRecoveryScenario&&url.pathname==="/__fixture/recovery"){
+    if(req.method==="POST"){
+      if(["user","other","guest","error"].includes(body.sessionMode))sessionMode=body.sessionMode;
+      for(const key of ["cartReadFailure","cartCountFailure","favoriteReadFailure"])if(Object.hasOwn(body,key)){
+        if(key==="cartReadFailure")cartReadFailure=body[key]===true;
+        if(key==="cartCountFailure")cartCountFailure=body[key]===true;
+        if(key==="favoriteReadFailure")favoriteReadFailure=body[key]===true;
+      }
+    }
+    return reply({sessionMode,cartReadFailure,cartCountFailure,favoriteReadFailure});
+  }
+  if(url.pathname==="/api/auth/session"){
+    if(sessionRecoveryScenario&&sessionMode==="error")return reply({message:"private session fixture detail"},503);
+    if(sessionRecoveryScenario&&sessionMode==="guest"){res.statusCode=204;return res.end();}
+    return reply({id:sessionMode==="other"?2:1,username:sessionMode==="other"?"other@example.test":profile.username,role:"USER"});
+  }
   if(url.pathname==="/api/profile"){
     if(req.method==="PUT")for(const field of ["firstName","lastName","phone","birthDate","gender"])if(Object.hasOwn(body,field))profile[field]=body[field];
     return reply(profile);
@@ -35,7 +60,10 @@ const server=http.createServer(async(req,res)=>{
     if(action==="new/start"){if(body.email===profile.email)return reply({message:"same_email"},400);emailChangeTarget=body.email;return reply({ttlSeconds:600,resendAfterSeconds:60},202);}
     if(action==="complete"){if(body.code!=="000000"||body.email!==emailChangeTarget)return reply({message:"invalid_or_expired_change_code"},400);profile.email=emailChangeTarget;profile.emailVerified=true;emailChangeProof="";return reply({email:profile.email,emailVerified:true});}
   }
-  if(url.pathname==="/api/orders/my/list")return reply(list(url.searchParams.has("deliveryStatus")?[delivered]:[pending,sibling,delivered]));
+  if(url.pathname==="/api/orders/my/list"){
+    if(orderFeedbackScenario&&!url.searchParams.has("deliveryStatus")&&(!req.headers.origin||++orderListReads<=2))return reply({message:"private order list fixture detail"},502);
+    return reply(list(url.searchParams.has("deliveryStatus")?[delivered]:[pending,sibling,delivered]));
+  }
   if(url.pathname==="/api/returns/my/list")return reply({content:returns,totalElements:returns.length,totalPages:1,number:0,size:20});
   if(url.pathname==="/api/orders/701/returns"&&req.method==="POST"){
     const key=body.get("requestKey");
@@ -48,11 +76,37 @@ const server=http.createServer(async(req,res)=>{
   }
   if(/^\/api\/orders\/\d+\/returns$/.test(url.pathname))return reply(url.pathname.includes("/701/")?returns:[]);
   if(url.pathname.endsWith("/group"))return reply(url.pathname.includes("/701/")?[delivered]:[pending,sibling]);
-  if(/^\/api\/orders\/\d+$/.test(url.pathname))return reply(url.pathname.endsWith("/701")?delivered:url.pathname.endsWith("/702")?pending:sibling);
+  if(/^\/api\/orders\/\d+$/.test(url.pathname)){
+    if(orderFeedbackScenario&&url.pathname.endsWith("/702")&&(!req.headers.origin||++orderDetailReads<=2))return reply({message:"private order fixture detail"},502);
+    return reply(url.pathname.endsWith("/701")?delivered:url.pathname.endsWith("/702")?pending:sibling);
+  }
   if(url.pathname.includes("group-last"))return reply({},404);
   if(url.pathname==="/api/payments/group/fixture-pending")return reply({message:"private provider exception"},502);
   if(url.pathname==="/__fixture/calls")return reply(calls);
+  if(sessionRecoveryScenario){
+    const currentItems=sessionMode==="other"?[{...feedbackCart[0],productId:408,variantId:902,title:"Товар другого аккаунта",quantity:1,price:1200,imageUrl:"/icon.png"}]:feedbackCart.map(item=>({...item,imageUrl:"/icon.png"}));
+    if(url.pathname==="/api/cart/new-id")return reply({cartId:"fixture_guest"});
+    if(url.pathname==="/api/cart/me")return cartReadFailure?reply({message:"private cart fixture detail"},502):reply({cartId:sessionMode==="other"?"user_other@example.test":"user_"+profile.username,items:currentItems});
+    if(url.pathname==="/api/cart/me/count")return cartCountFailure?reply({message:"private count fixture detail"},502):reply({count:currentItems.reduce((sum,item)=>sum+item.quantity,0)});
+    if(url.pathname==="/api/cart")return reply([]);
+    if(url.pathname==="/api/cart/count")return reply({count:0});
+    if(url.pathname==="/api/favorites/ids")return favoriteReadFailure?reply({message:"private favorites fixture detail"},502):reply([sessionMode==="other"?408:407]);
+    if(url.pathname==="/api/favorites")return favoriteReadFailure?reply({message:"private favorites fixture detail"},502):reply([{id:sessionMode==="other"?408:407,title:sessionMode==="other"?"Избранное другого аккаунта":"Тестовый товар",brand:"Тестовый бренд",images:["/icon.png"],coverImage:"/icon.png",minPrice:5900}]);
+  }
+  if(cartFeedbackScenario&&url.pathname==="/api/cart/me"){
+    if(cartFeedbackScenario==="error"&&++cartReads===1)return reply({message:"private fixture detail"},502);
+    return reply({cartId:"user_"+profile.username,items:feedbackCart});
+  }
+  if(cartFeedbackScenario&&url.pathname==="/api/cart/me/count")return reply({count:feedbackCart.reduce((sum,item)=>sum+item.quantity,0)});
+  if(cartFeedbackScenario&&url.pathname==="/api/cart/remove"&&req.method==="DELETE"){
+    feedbackCart=feedbackCart.filter(item=>item.variantId!==Number(url.searchParams.get("variantId")));return reply(feedbackCart);
+  }
+  if(cartFeedbackScenario&&url.pathname==="/api/cart")return reply(feedbackCart);
   if(url.pathname==="/api/cart/me")return reply([]);
+  if(url.pathname.includes("favorite-brands")&&brandsErrorScenario){
+    if(req.method!=="GET"||++brandReads===1)return reply({message:"private SQL fixture exception"},502);
+    return reply([{id:7,name:"Тестовый бренд",slug:"fixture",logoUrl:null,country:"Россия",images:[]}]);
+  }
   if(url.pathname==="/api/favorites"||url.pathname.includes("favorite-brands"))return reply([]);
   if(url.pathname.includes("storefront/home"))return reply({sections:[]});
   return reply([]);

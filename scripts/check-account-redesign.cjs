@@ -6,6 +6,11 @@ async function run(){
   const { EmptyState } = load("app/components/ui/EmptyState.tsx", {
     "react/jsx-runtime": jsx, "./Icon": { Icon: ({ name }) => jsx.jsx("svg", { "data-icon": name }) },
   });
+  const { Button } = load("app/components/ui/Button.tsx", { "react/jsx-runtime": jsx, "./Button.module.css": { default: {} } });
+  const { RequestError } = load("app/components/ui/RequestError.tsx", {
+    "react/jsx-runtime": jsx, "./Button": { Button }, "./EmptyState": { EmptyState },
+    "./Icon": { Icon: () => jsx.jsx("svg", {}) }, "./RequestError.module.css": { default: {} },
+  });
   let brands = [];
   const { AccountBrandsTab } = load("app/account/components/AccountBrandsTab.tsx", {
     "react/jsx-runtime": jsx, "next/image": { default: () => null },
@@ -14,7 +19,8 @@ async function run(){
     "./AccountSkeleton": { AccountSkeleton: () => jsx.jsx("div", { role: "status" }) },
     "../../components/ui/EmptyState": { EmptyState },
     "../../components/ui/LikeButton": { LikeButton: props => jsx.jsx("button", { "aria-label": props["aria-label"] }) },
-    "../../lib/favoriteBrands": { useFavoriteBrands: () => ({ brands, loading: false, toggle() {} }) },
+    "../../components/ui/RequestError": { RequestError },
+    "../../lib/favoriteBrands": { useFavoriteBrands: () => ({ brands, loading: false, hasLoaded: true, error: null, pendingIds: [], reload() {}, toggle() {} }) },
     "./AccountBrandsTab.module.css": { default: {} },
   });
   const emptyBrands = renderToStaticMarkup(jsx.jsx(AccountBrandsTab, {}));

@@ -11,6 +11,7 @@ import { Price } from "../ui/Price";
 import { LikeButton } from "../ui/LikeButton";
 import { useFavorites } from "../../lib/FavoritesContext";
 import { productPath } from "../../lib/productUrls";
+import { ProductPhoto } from "../ProductPhoto";
 
 type Product = {
   id: number;
@@ -26,9 +27,11 @@ export function ProductTile({
   product,
   onFavoriteChange,
   compact = false,
+  presentation = "default",
 }: {
   product: Product;
   compact?: boolean;
+  presentation?: "default" | "storefront";
   onFavoriteChange?: (productId: number, isFavorite: boolean) => void;
 }) {
   const router = useRouter();
@@ -108,7 +111,7 @@ export function ProductTile({
   }
 
   return (
-    <li className={`${styles.item} ${compact ? styles.compact : ""}`}>
+    <li className={`${styles.item} ${compact ? styles.compact : ""} ${presentation === "storefront" ? styles.storefront : ""}`}>
       <article className={styles.card}>
         <div className={styles.mediaWrap}>
           <Link
@@ -121,7 +124,10 @@ export function ProductTile({
             onBlur={cancelProductPrefetch}
           >
             {mainImage ? (
-              <Image
+              presentation === "storefront" ? <ProductPhoto
+                src={mainImage} alt={product.title} sizes={imageSizes}
+                className={styles.imgMain} normalizeWhitespace
+              /> : <Image
                 src={mainImage}
                 alt={product.title}
                 fill
@@ -161,7 +167,7 @@ export function ProductTile({
             <span className={styles.brandText}>{product.brand}</span>
           ) : null}
 
-          <div className={styles.title}>{product.title}</div>
+          <Link href={productHref} prefetch={false} className={styles.title}>{product.title}</Link>
 
           <div className={styles.price}>
             {product.minPrice > 0 ? <Price amount={product.minPrice} /> : "Цена по запросу"}

@@ -10,7 +10,7 @@
 .emptyStateLarge {
   width: min(100%, 560px);
   margin-inline: auto;
-  padding: 56px 0;
+  padding: 40px 0;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -18,15 +18,15 @@
 }
 
 .emptyStateIcon {
-  margin-bottom: 16px;
+  margin-bottom: 20px;
   color: var(--danger);
 }
 
 .emptyStateTitle {
   color: var(--black);
   margin: 0;
-  font-size: 14px;
-  line-height: 20px;
+  font-size: var(--feedback-title-size);
+  line-height: var(--feedback-line-height);
   font-weight: 400;
   letter-spacing: normal;
   text-transform: uppercase;
@@ -34,10 +34,10 @@
 
 .emptyStateText {
   max-width: 440px;
-  margin-top: 12px;
+  margin-top: 20px;
   color: var(--muted);
-  font-size: 13px;
-  line-height: 20px;
+  font-size: var(--feedback-body-size);
+  line-height: var(--feedback-line-height);
   overflow-wrap: anywhere;
 }
 
@@ -46,25 +46,11 @@
   display: flex;
   flex-direction: column;
   gap: 12px;
-  margin-top: 28px;
+  margin-top: var(--feedback-action-gap);
 }
 
-.emptyStateActions > a,
-.emptyStateActions > button {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
-  min-height: 44px;
-  height: auto;
-  padding: 12px 16px;
-  font-size: 12px;
-  line-height: 16px;
-  font-weight: 400;
-  text-transform: uppercase;
-  text-decoration: none;
-}
-
-@media (max-width: 640px) {
-  .emptyStateLarge { padding-block: 40px; }
-}
+.emptyStateLarge[data-tone="danger"] .emptyStateActions { max-width: 375px; margin-top: 24px; }
+.emptyStateIllustration { margin-bottom: 24px; color: var(--black); }
+.emptyStateIllustration svg { width: 48px; height: 48px; }
+.emptyStateLarge[data-illustrated] .emptyStateActions { max-width: 375px; margin-top: 24px; }
+.emptyStateLarge[data-illustrated] .emptyStateActions > :is(a, button) { min-height: 50px; }

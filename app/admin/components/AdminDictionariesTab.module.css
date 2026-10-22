@@ -200,6 +200,180 @@
   max-width: 520px;
 }
 
+.categoryToolbar {
+  display: grid;
+  grid-template-columns: minmax(180px, 1fr) auto;
+  align-items: end;
+  gap: 16px;
+}
+
+.categoryTools {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 20px;
+  margin: 16px 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.categoryTools button {
+  min-height: 36px;
+  padding: 4px 0;
+  border: 0;
+  background: none;
+  color: var(--black);
+  font: inherit;
+  cursor: pointer;
+}
+
+.categoryTools button:disabled {
+  color: var(--muted);
+  cursor: default;
+}
+
+.categoryRow {
+  display: grid;
+  grid-template-columns: 36px minmax(130px, 1fr) auto auto;
+  align-items: center;
+  gap: 10px;
+  min-height: 88px;
+  padding: 12px;
+}
+
+.categoryChildren[hidden] {
+  display: none;
+}
+
+.categoryBranch {
+  margin-left: 24px;
+  border-top: 1px solid var(--border, #e7e7e4);
+}
+
+.categoryIdentity {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+}
+
+.categoryIdentity strong {
+  overflow-wrap: anywhere;
+  color: var(--black);
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 400;
+}
+
+.categoryIdentity span,
+.categoryIdentity small,
+.categoryHint {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 18px;
+  font-weight: 400;
+}
+
+.categoryRow[data-disabled="true"] .categoryIdentity strong {
+  color: var(--muted);
+}
+
+.categoryActions {
+  display: flex;
+  gap: 8px;
+}
+
+.categoryActions .rowButton {
+  min-width: 0;
+}
+
+.treeToggle,
+.treeToggleSpace {
+  width: 36px;
+  height: 44px;
+}
+
+.treeToggle {
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--black);
+  cursor: pointer;
+}
+
+.treeToggle svg {
+  width: 18px;
+  height: 18px;
+}
+
+.treeToggle:focus-visible,
+.categoryTools button:focus-visible {
+  outline: 1px solid var(--black);
+  outline-offset: 2px;
+}
+
+.categoryEditor {
+  display: grid;
+  gap: 20px;
+}
+
+.categoryHint {
+  margin: 0;
+}
+
+@media (max-width: 1120px) {
+  .categoryRow {
+    grid-template-columns: 36px minmax(0, 1fr) auto;
+  }
+
+  .categoryActions {
+    grid-column: 2 / -1;
+    flex-wrap: wrap;
+  }
+}
+
+@media (max-width: 560px) {
+  .categoryToolbar {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 12px;
+  }
+
+  .categoryRow {
+    grid-template-columns: 28px minmax(0, 1fr);
+    gap: 8px;
+    padding: 10px;
+  }
+
+  .categoryRow > :nth-child(3) {
+    grid-column: 2;
+    justify-self: start;
+  }
+
+  .treeToggle,
+  .treeToggleSpace {
+    width: 28px;
+  }
+
+  .categoryBranch {
+    margin-left: 12px;
+  }
+
+  .categoryActions {
+    grid-column: 1 / -1;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    width: 100%;
+  }
+
+  .categoryActions .rowButton {
+    width: 100%;
+    padding-right: 8px;
+    padding-left: 8px;
+    font-size: 11px;
+  }
+}
+
 @media (max-width: 1120px) {
   .categoryForm,
   .subcategoryForm {

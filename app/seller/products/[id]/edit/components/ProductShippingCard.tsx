@@ -118,7 +118,7 @@ export function ProductShippingCard({
             ) : null}
           </>
         ) : (
-          <Banner tone="success" icon="info">
+          <Banner tone="info" icon="info">
             Заполните четыре поля, чтобы увидеть расчётный вес СДЭК
           </Banner>
         )}

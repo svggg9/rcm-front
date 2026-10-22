@@ -32,12 +32,22 @@
 
   --success: #216a43;
   --warning: #8a6a2f;
+  --warning-orange: #a45113;
   --danger: #9b2c2c;
 
   --feedback-info-bg: color-mix(in srgb, var(--gold) 10%, var(--white));
   --feedback-success-bg: color-mix(in srgb, var(--success) 8%, var(--white));
   --feedback-warning-bg: color-mix(in srgb, var(--warning) 8%, var(--white));
   --feedback-danger-bg: color-mix(in srgb, var(--danger) 8%, var(--white));
+
+  --feedback-title-size: 14px;
+  --feedback-body-size: 13px;
+  --feedback-line-height: 20px;
+  --feedback-action-size: 14px;
+  --feedback-action-height: 44px;
+  --feedback-action-gap: 40px;
+  --feedback-dialog-title-size: 20px;
+  --feedback-dialog-title-line: 32px;
 
   /* spacing */
 
@@ -54,6 +64,7 @@
   /* layout */
 
   --container: 1440px;
+  --seller-content-width: 1200px;
   --content-width: 1920px;
 
   --page-padding: 24px;

@@ -2,16 +2,13 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-
 import styles from "./Footer.module.css";
 
 const footerGroups = [
   {
-    title: "Для покупателей",
-    ariaLabel: "Покупателям",
+    title: "Покупателям",
     links: [
       { href: "/catalog", label: "Каталог" },
-      { href: "/favorites", label: "Избранное" },
       { href: "/account?tab=orders", label: "Заказы и доставка" },
       { href: "/account?tab=returns", label: "Возврат" },
       { href: "/contacts", label: "Помощь и контакты" },
@@ -19,31 +16,17 @@ const footerGroups = [
   },
   {
     title: "О рцмаркет",
-    ariaLabel: "О площадке рцмаркет",
     links: [
       { href: "/about", label: "О проекте" },
-      { href: "/catalog", label: "Независимые бренды" },
+      { href: "/favorites", label: "Избранное" },
+      { href: "/account", label: "Личный кабинет" },
+    ],
+  },
+  {
+    title: "Продавцам",
+    links: [
       { href: "/seller/apply", label: "Стать продавцом" },
       { href: "/seller/home", label: "Кабинет продавца" },
-      { href: "/contacts", label: "Связаться с нами" },
-    ],
-  },
-  {
-    title: "Откройте новое",
-    ariaLabel: "Разделы каталога",
-    links: [
-      { href: "/catalog?sort=newest", label: "Новые поступления" },
-      { href: "/favorites", label: "Сохранённые вещи" },
-    ],
-  },
-  {
-    title: "Покупайте и продавайте",
-    ariaLabel: "Сервисы рцмаркет",
-    links: [
-      { href: "/auth/register", label: "Создать аккаунт" },
-      { href: "/account", label: "Личный кабинет" },
-      { href: "/seller/apply", label: "Подключить свою марку" },
-      { href: "/terms/seller", label: "Условия для продавцов" },
     ],
   },
 ];
@@ -55,49 +38,35 @@ const legalLinks = [
   { href: "/terms/seller", label: "Условия для продавцов" },
 ];
 
+function GroupLinks({ group }: { group: typeof footerGroups[number] }) {
+  return <nav className={styles.nav} aria-label={group.title}>
+    {group.links.map(link => <Link key={link.href} href={link.href}>{link.label}</Link>)}
+  </nav>;
+}
+
 export function Footer() {
   const pathname = usePathname();
-  const currentYear = new Date().getFullYear();
+  if (pathname === "/account" || pathname === "/cart" || pathname === "/favorites" || pathname.startsWith("/product/") || pathname.startsWith("/p/")) return null;
 
-  if (pathname === "/account" || pathname === "/cart" || pathname === "/favorites" || pathname.startsWith("/product/") || pathname.startsWith("/p/")) {
-    return null;
-  }
-
-  return (
-    <footer className={styles.footer}>
-      <div className={styles.inner}>
-        <div className={styles.grid}>
-          {footerGroups.map((group) => (
-            <section key={group.title} className={styles.column}>
-              <h2 className={styles.columnTitle}>{group.title}</h2>
-              <nav className={styles.nav} aria-label={group.ariaLabel}>
-                {group.links.map((link) => (
-                  <Link key={`${group.title}-${link.label}`} href={link.href}>
-                    {link.label}
-                  </Link>
-                ))}
-              </nav>
-            </section>
-          ))}
-        </div>
-
-        <div className={styles.legal}>
-          <nav className={styles.legalNav} aria-label="Юридическая информация">
-            {legalLinks.map((link) => (
-              <Link key={link.href} href={link.href}>
-                {link.label}
-              </Link>
-            ))}
-          </nav>
-
-          <div className={styles.bottom}>
-            <p>
-              рцмаркет — магазин независимых брендов для жизни, дома и подарков
-            </p>
-            <p>© {currentYear} рцмаркет. Все права защищены.</p>
-          </div>
-        </div>
+  return <footer className={styles.footer}>
+    <div className={styles.inner}>
+      <div className={styles.desktopGroups}>
+        {footerGroups.map(group => <section key={group.title}>
+          <h2 className={styles.columnTitle}>{group.title}</h2><GroupLinks group={group} />
+        </section>)}
       </div>
-    </footer>
-  );
+      <div className={styles.mobileGroups}>
+        {footerGroups.map(group => <details key={group.title}>
+          <summary>{group.title}<span aria-hidden="true" className={styles.plus} /></summary>
+          <GroupLinks group={group} />
+        </details>)}
+      </div>
+      <div className={styles.legal}>
+        <nav className={styles.legalNav} aria-label="Юридическая информация">
+          {legalLinks.map(link => <Link key={link.href} href={link.href}>{link.label}</Link>)}
+        </nav>
+        <p className={styles.bottom}>© {new Date().getFullYear()} рцмаркет</p>
+      </div>
+    </div>
+  </footer>;
 }

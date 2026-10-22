@@ -12,8 +12,9 @@ import { createSellerProductDraft } from "./lib/createSellerProductDraft";
 import { useSessionResourceCache } from "../lib/useSessionResourceCache";
 import { CabinetSkeleton } from "../components/ui/CabinetSkeleton";
 import { Banner } from "../components/ui/Banner";
+import { SectionHeader } from "../components/ui/SectionHeader";
+import listStyles from "../components/ui/CabinetListLayout.module.css";
 
-import { SellerSidebar } from "./components/SellerSidebar";
 import { SellerSectionPanel } from "./components/SellerSectionPanel";
 import { SellerEntityPage } from "./components/SellerEntityPage";
 import { SellerHomeTab } from "./components/SellerHomeTab";
@@ -310,7 +311,6 @@ function SellerPageContent({
       })
       .catch((reason: unknown) => {
         if (mountedRef.current) {
-          setProducts([]);
           setLoadErrors((current) => ({
             ...current,
             products:
@@ -350,7 +350,6 @@ function SellerPageContent({
       })
       .catch((reason: unknown) => {
         if (mountedRef.current) {
-          setOrders([]);
           setLoadErrors((current) => ({
             ...current,
             orders:
@@ -387,7 +386,6 @@ function SellerPageContent({
       })
       .catch((reason: unknown) => {
         if (mountedRef.current) {
-          setFinance(null);
           setLoadErrors((current) => ({
             ...current,
             finance:
@@ -575,7 +573,8 @@ function SellerPageContent({
       }
 
       const id = await createSellerProductDraft();
-      router.push(`/seller/products/${id}/edit`);
+      const returnTo = window.location.pathname === "/seller/products" ? `${window.location.pathname}${window.location.search}` : "/seller/products";
+      router.push(`/seller/products/${id}/create?returnTo=${encodeURIComponent(returnTo)}`);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Не удалось создать товар");
     } finally {
@@ -700,11 +699,6 @@ function SellerPageContent({
     <div className="pageContainer" data-seller-shell>
       <div className={styles.page}>
         <div className={`${styles.layout} ${currentTab === "products" ? styles.attachedPanel : ""}`} onClickCapture={handleSellerNavigation}>
-          <SellerSidebar
-            currentTab={currentTab}
-
-          />
-
           <div className={styles.content} data-seller-content>
             <SellerSectionPanel currentTab={currentTab}>
             {currentTab === "home" || currentTab === "brand" || currentTab === "legal" ? tabLoadError : null}
@@ -775,14 +769,17 @@ function SellerPageContent({
 
             {currentTab === "orders" || currentTab === "returns" ? (
               <section aria-label="Заказы и возвраты">
+                {currentTab === "orders" && visibleOrders.length === 0 && (loadError || !ordersLoaded || ordersLoading) ?
+                  <div className={listStyles.page}><SectionHeader title="Заказы" large className={listStyles.heading} /></div> : null}
                 {tabLoadError}
-                {currentTab === "orders" && !loadError ? (
+                {currentTab === "orders" && (!loadError || visibleOrders.length > 0) ? (
                   <div>
                     {selectedOrderId && linkedOrderError && <Banner tone="danger" role="alert">{linkedOrderError}</Banner>}
-                    {!ordersLoaded || ordersLoading ? (
+                    {(!ordersLoaded || ordersLoading) && visibleOrders.length === 0 ? (
                       <CabinetSkeleton variant="list" compact />
                     ) : (
                       <SellerOrdersTab
+                        presentation="cabinet"
                         orders={visibleOrders}
                         totalElements={ordersTotal}
                         loadingMore={ordersLoadingMore}

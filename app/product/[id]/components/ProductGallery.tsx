@@ -1,19 +1,20 @@
 "use client";
 
-import Image from "next/image";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { ProductImageCarousel } from "../../../components/ProductImageCarousel/ProductImageCarousel";
 import { Icon } from "../../../components/ui/Icon";
+import { ProductPhoto } from "../../../components/ProductPhoto";
 import styles from "../ProductPage.module.css";
 
 type Props = {
   title: string;
   images: string[];
   onOpenImage: (index: number) => void;
+  compact?: boolean;
 };
 
-export function ProductGallery({ title, images, onOpenImage }: Props) {
+export function ProductGallery({ title, images, onOpenImage, compact = false }: Props) {
   const [activeIndex, setActiveIndex] = useState(0);
   const [canScrollUp, setCanScrollUp] = useState(false);
   const [canScrollDown, setCanScrollDown] = useState(false);
@@ -50,7 +51,7 @@ export function ProductGallery({ title, images, onOpenImage }: Props) {
 
   if (images.length === 0) {
     return (
-      <div className={styles.gallery}>
+      <div className={styles.gallery} data-shape={compact ? "square" : "portrait"}>
         <div className={styles.galleryEmpty}>
           <div className={styles.galleryPlaceholder}>Фото отсутствует</div>
         </div>
@@ -59,7 +60,7 @@ export function ProductGallery({ title, images, onOpenImage }: Props) {
   }
 
   return (
-    <div className={styles.gallery}>
+    <div className={styles.gallery} data-shape={compact ? "square" : "portrait"}>
       <div className={styles.galleryThumbsWrap}>
         {hasThumbScroll && canScrollUp ? (
           <button
@@ -87,13 +88,14 @@ export function ProductGallery({ title, images, onOpenImage }: Props) {
               }`.trim()}
               onClick={() => setActiveIndex(index)}
               aria-label={`Показать фото ${index + 1}`}
+              aria-pressed={activeIndex === index}
             >
-              <Image
+              <ProductPhoto
                 src={src}
                 alt=""
-                fill
-                sizes="120px"
+                sizes="72px"
                 className={styles.galleryImg}
+                normalizeWhitespace
               />
             </button>
           ))}
@@ -116,13 +118,14 @@ export function ProductGallery({ title, images, onOpenImage }: Props) {
         className={`${styles.galleryMain} ${styles.galleryButton}`}
         onClick={() => onOpenImage(activeIndex)}
       >
-        <Image
+        <ProductPhoto
+          key={activeImage}
           src={activeImage}
           alt={`${title} ${activeIndex + 1}`}
-          fill
           sizes="(max-width: 1100px) 100vw, 56vw"
           className={styles.galleryImg}
           priority
+          normalizeWhitespace
         />
       </button>
 
@@ -134,6 +137,7 @@ export function ProductGallery({ title, images, onOpenImage }: Props) {
           overlayIndicators
           sizes="(max-width: 1100px) 100vw, 56vw"
           onImageClick={onOpenImage}
+          normalizeWhitespace
         />
       </div>
     </div>

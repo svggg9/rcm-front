@@ -156,7 +156,9 @@ export function AdminContactsTab() {
                     </div>
                     <dl className={styles.facts}>
                       <div><dt>Имя</dt><dd>{row.name}</dd></div>
-                      <div><dt>Email</dt><dd><a href={`mailto:${row.email}`}>{row.email}</a></dd></div>
+                      <div><dt>Канал</dt><dd>{row.channel === "TELEGRAM" ? "Telegram" : "Email"}</dd></div>
+                      {row.channel === "TELEGRAM" ? <div><dt>Аккаунт</dt><dd>{row.telegramUsername ? `@${row.telegramUsername.replace(/^@/, "")}` : "Личный чат"}</dd></div>
+                        : <div><dt>Email</dt><dd>{row.email ? <a href={`mailto:${row.email}`}>{row.email}</a> : "Не указан"}</dd></div>}
                       <div><dt>Тема</dt><dd>{CONTACT_TOPIC_OPTIONS.find((option) => option.value === row.topic)?.label ?? row.topic}</dd></div>
                       {row.orderNumber && <div><dt>Номер заказа</dt><dd>{row.orderNumber}</dd></div>}
                       <div><dt>Получено</dt><dd><time dateTime={row.createdAt}>{formatDate(row.createdAt)}</time></dd></div>
@@ -177,6 +179,8 @@ export function AdminContactsTab() {
                     <AdminContactReplies
                       contactId={row.id}
                       email={row.email}
+                      channel={row.channel}
+                      telegramUsername={row.telegramUsername}
                       draft={replyDrafts[row.id] ?? EMPTY_CONTACT_REPLY_DRAFT}
                       onDraftChange={(update) => setReplyDrafts((current) => ({
                         ...current,
@@ -195,7 +199,7 @@ export function AdminContactsTab() {
               )}
             </>
           ) : (
-            <EmptyState title="Обращений пока нет" text={status === "ALL" ? "Здесь появятся сообщения из формы обратной связи" : "В выбранном статусе нет обращений"} icon="file" />
+            <EmptyState title="Обращений пока нет" text={status === "ALL" ? "Здесь появятся сообщения из формы и Telegram" : "В выбранном статусе нет обращений"} icon="file" />
           )}
         </div>
       </CabinetPanel>

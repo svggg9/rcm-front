@@ -16,7 +16,7 @@ import { StatusBadge } from "../components/ui/StatusBadge";
 import type { IconName } from "../components/ui/Icon";
 import { DesignSystemIcon as Icon } from "./DesignSystemIcon";
 import { CabinetPanel } from "../components/ui/CabinetPanel";
-import { ProductTileSkeleton } from "../components/ui/CommerceSkeleton";
+import { SectionLoader } from "../components/ui/SectionLoader";
 import { OrderDetailsPreview } from "./OrderDetailsPreview";
 import { IconOptionsPreview } from "./IconOptionsPreview";
 import { TypographyComparison } from "./TypographyComparison";
@@ -28,11 +28,12 @@ import { ProductArticleButton } from "../product/[id]/components/ProductArticleB
 import productStyles from "../product/[id]/ProductPage.module.css";
 import { DropdownExamples } from "./DropdownExamples";
 import { ValidationExample } from "./ValidationExample";
+import { ApiErrorsPreview } from "./ApiErrorsPreview";
 
 const sections = [
   ["foundation", "Основа"], ["type", "Типографика"], ["buttons", "Кнопки"],
   ["fields", "Поля"], ["status", "Статусы"], ["feedback", "Баннеры"],
-  ["lists", "Списки"], ["icons", "Иконки"], ["states", "Состояния"],
+  ["lists", "Списки"], ["icons", "Иконки"], ["states", "Состояния"], ["api-errors", "Ошибки и диалоги"],
 ] as const;
 
 const swatches = [
@@ -170,7 +171,7 @@ export function DesignSystemClient() {
       <header className={styles.pageHeader}>
         <p className={styles.kicker}>рцмаркет / рабочий эталон</p>
         <h1>Дизайн-система</h1>
-        <p>Сверяем решения в одном месте. Общие компоненты показаны как есть, без косметических исправлений для этой страницы</p>
+        <p>Сверяем общие компоненты и варианты на утверждение. Новые предложения помечены отдельно</p>
         <p className={styles.note}>Только локальная разработка. Демонстрационные данные. Изменения рабочих экранов — после согласования</p>
       </header>
 
@@ -253,7 +254,7 @@ export function DesignSystemClient() {
         <p className={styles.note}>Применение согласованных статусов на рабочих экранах проверим при переносе ДС</p>
       </Section>
 
-      <Section id="feedback" title="Баннеры" note="Общий компонент для правил, предупреждений, ошибок и успешных действий: цветная заливка, иконка и чёрный текст без рамок">
+      <Section id="feedback" title="Баннеры" note="Общий компонент сообщений: ошибка на белом фоне с тонкой рамкой, остальные типы сохраняют свою смысловую заливку">
         <div className={styles.compareGrid}>
           <div className={styles.stack}>
             <Banner tone="info" title="Перед заполнением">
@@ -266,10 +267,10 @@ export function DesignSystemClient() {
             <Banner tone="danger" title="Не удалось сохранить">Попробуйте ещё раз. Заполненные данные остались в форме.</Banner>
           </div>
         </div>
-        <p className={styles.note}>Жёлто-золотой — пояснение, жёлтый — внимание, зелёный — успех, красный — ошибка. Заголовок и действия добавляются по необходимости; ошибки конкретных полей остаются под полями.</p>
+        <p className={styles.note}>У ошибки красная иконка, белый фон и обычный вес текста. Цвета остальных сообщений сохраняются. Ошибки конкретных полей остаются под полями</p>
         <h3>Всплывающие уведомления</h3>
         <div className={styles.actions}><ToastExamples /></div>
-        <p className={styles.note}>Те же цвета по смыслу: зелёный — успех, красный — ошибка, жёлтый — внимание, золотистый — информация. Снизу справа, с иконкой и крестиком. Все обычные уведомления исчезают через 4 секунды.</p>
+        <p className={styles.note}>Ошибка — белое уведомление с красной иконкой и тонкой серой рамкой. Остальные типы сохраняют свои цвета. Все обычные уведомления исчезают через 4 секунды</p>
       </Section>
 
       <Section id="lists" title="Списки и навигация" note="Макет деталки в три ряда: товары, оплата, доставка. Все данные условные, действия не отправляются на сервер">
@@ -289,6 +290,10 @@ export function DesignSystemClient() {
         <p className={styles.note}>Интерфейсные иконки — 24 px, служебные — 20 px. Пустые списки оформляем текстом и действием, без декоративных иконок</p>
       </Section>
 
+      <Section id="api-errors" title="Ошибки, пустые состояния и диалоги" note="Общие рабочие компоненты по референсам Lime. Тот же вид используется в корзине, брендах и подключённых разделах">
+        <ApiErrorsPreview />
+      </Section>
+
       <Section id="states" title="Состояния экрана" note="Пустой список, загрузка, ошибка и успех. Без настоящих заказов и запросов к серверу">
         <div className={styles.actions} role="group" aria-label="Состояние примера">
           {[["empty", "Пусто"], ["loading", "Загрузка"], ["error", "Ошибка"], ["success", "Успех"]].map(([value, label]) =>
@@ -296,9 +301,7 @@ export function DesignSystemClient() {
               aria-pressed={screenState === value} onClick={() => setScreenState(value)}>{label}</Button>)}
         </div>
         <div className={styles.statePreview} data-state={screenState}>
-          {screenState === "loading" ? <div role="status" aria-label="Загрузка товаров" aria-busy="true"><ul className={styles.skeletonGrid}>
-            <ProductTileSkeleton /><ProductTileSkeleton />
-          </ul></div> : screenState === "error" ? <EmptyState icon="alert" tone="danger" title="Не удалось загрузить товары"
+          {screenState === "loading" ? <SectionLoader label="Загрузка товаров" /> : screenState === "error" ? <EmptyState icon="alert" tone="danger" title="Не удалось загрузить товары"
             actions={<Button type="button" variant="secondary" onClick={() => setScreenState("empty")}>Повторить</Button>} />
             : screenState === "success" ? <EmptyState icon="check-circle" title="Товар отправлен на модерацию" text="Статус проверки доступен в разделе «Товары»" />
               : <EmptyState title="Товаров пока нет" text="Добавьте первый товар в свой магазин" actions={<Button variant="primary" onClick={() => setScreenState("success")}>Добавить товар</Button>} />}

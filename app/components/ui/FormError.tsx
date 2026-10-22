@@ -1,3 +1,5 @@
+import { RequestError } from "./RequestError";
+
 type Props = {
   message?: string | null;
 };
@@ -5,5 +7,5 @@ type Props = {
 export function FormError({ message }: Props) {
   if (!message) return null;
 
-  return <div className="formError" role="alert">{message}</div>;
+  return <RequestError variant="inline" message={message} />;
 }

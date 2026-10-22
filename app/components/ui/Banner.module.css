@@ -10,6 +10,8 @@
 .body a, .actions a { color: inherit; text-decoration: underline; text-underline-offset: 3px; }
 .body a:focus-visible, .actions a:focus-visible { outline: 1px solid var(--black); outline-offset: 3px; }
 .actions { display: flex; align-items: center; flex-wrap: wrap; gap: var(--space-2); margin-top: var(--space-3); }
+.banner[data-tone="danger"] .title { font-size: var(--feedback-title-size); line-height: var(--feedback-line-height); font-weight: 400; text-transform: uppercase; }
+.banner[data-tone="danger"] .body { font-size: var(--feedback-body-size); line-height: var(--feedback-line-height); }
 @media (max-width: 480px) {
   .banner { gap: var(--space-2); }
   .title { font-size: 15px; line-height: 21px; }

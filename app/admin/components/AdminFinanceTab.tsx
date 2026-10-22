@@ -1,48 +1,27 @@
 "use client";
 
+import { useState } from "react";
 import { InputControl } from "../../components/ui/InputControl";
-
-import { useEffect, useState } from "react";
-import { toast } from "@/app/components/ui/toast";
-
 import { EmptyState } from "../../components/ui/EmptyState";
 import { Button } from "../../components/ui/Button";
 import { CabinetPanel } from "../../components/ui/CabinetPanel";
 import { ListLoadMore } from "../../components/ui/ListLoadMore";
-import { StatusBadge, type StatusBadgeTone } from "../../components/ui/StatusBadge";
-import {
-  generateAdminSellerPayouts,
-  updateAdminSellerPayout,
-} from "../lib/adminApi";
-import type {
-  AdminFinancialLedgerEntry,
-  AdminSellerPayout,
-  AdminSellerPayoutStats,
-  AdminSellerPayoutStatus,
-  FinancialLedgerEntryType,
-} from "../types";
-
+import { CabinetSkeleton } from "../../components/ui/CabinetSkeleton";
+import { AdminPayoutRegistry } from "./AdminPayoutRegistry";
+import type { AdminFinancialLedgerEntry, FinancialLedgerEntryType } from "../types";
 import adminStyles from "../Admin.module.css";
 import styles from "./AdminFinanceTab.module.css";
-import { CabinetSkeleton } from "../../components/ui/CabinetSkeleton";
 
 type Props = {
   entries: AdminFinancialLedgerEntry[];
   totalElements: number;
   refreshing: boolean;
   ledgerLoaded: boolean;
-  payouts: AdminSellerPayout[];
-  payoutStats: AdminSellerPayoutStats;
-  payoutsLoading: boolean;
-  payoutsLoadingMore: boolean;
   ledgerLoadingMore: boolean;
   entryType: FinancialLedgerEntryType | "ALL";
   orderGroupId: string;
   onEntryTypeChange: (value: FinancialLedgerEntryType | "ALL") => void;
   onOrderGroupIdChange: (value: string) => void;
-  onLoadPayouts: (force?: boolean) => Promise<void> | void;
-  onPayoutsChange: (payouts: AdminSellerPayout[]) => void;
-  onLoadMorePayouts?: () => void;
   onLoadMoreLedger?: () => void;
   onRefresh: () => void;
 };
@@ -66,288 +45,22 @@ const ENTRY_TYPES: Array<FinancialLedgerEntryType | "ALL"> = [
 ];
 
 export function AdminFinanceTab(props: Props) {
-  const { onLoadPayouts } = props;
   const [view, setView] = useState<FinanceView>(() =>
     props.entryType !== "ALL" || props.orderGroupId.trim() ? "ledger" : "payouts"
   );
-  const [actionKey, setActionKey] = useState<string | null>(null);
-  const [paymentOrders, setPaymentOrders] = useState<Record<number, string>>({});
-
-  useEffect(() => {
-    if (view === "payouts") void onLoadPayouts();
-  }, [onLoadPayouts, view]);
-
-  async function generatePayouts() {
-    setActionKey("generate");
-    try {
-      const result = await generateAdminSellerPayouts();
-      if (result.payouts.length) {
-        toast.success(`Сформировано выплат: ${result.payouts.length}`);
-      } else {
-        toast.info("Нет сумм, доступных для выплаты");
-      }
-      if (result.skipped.length) {
-        toast.warning(`Пропущено продавцов: ${result.skipped.length}`);
-      }
-      await props.onLoadPayouts(true);
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Не удалось сформировать реестр");
-    } finally {
-      setActionKey(null);
-    }
-  }
-
-  async function runPayoutAction(
-    payout: AdminSellerPayout,
-    action: "sent" | "paid" | "failed" | "retry" | "cancel"
-  ) {
-    const key = `${payout.id}:${action}`;
-    if (action === "cancel" && !window.confirm("Отменить этот реестр выплаты?")) return;
-    if (action === "paid" && !window.confirm("Деньги действительно списаны со счета рцмаркет?")) return;
-
-    const paymentOrderNumber = paymentOrders[payout.id]?.trim();
-    if (action === "sent" && !paymentOrderNumber) {
-      toast.error("Укажите номер платежного поручения");
-      return;
-    }
-
-    setActionKey(key);
-    try {
-      const updated = await updateAdminSellerPayout(
-        payout.id,
-        action,
-        action === "sent" ? { paymentOrderNumber } : undefined
-      );
-      props.onPayoutsChange(
-        props.payouts.map((item) =>
-          item.id === updated.id
-            ? { ...updated, orderCount: item.orderCount }
-            : item
-        )
-      );
-      await props.onLoadPayouts(true);
-      toast.success("Статус выплаты обновлен");
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Не удалось обновить выплату");
-    } finally {
-      setActionKey(null);
-    }
-  }
-
-  function refresh() {
-    if (view === "payouts") void props.onLoadPayouts(true);
-    else props.onRefresh();
-  }
-
   function changeView(nextView: FinanceView) {
     setView(nextView);
-    if (nextView === "ledger") {
-      if (!props.ledgerLoaded) props.onRefresh();
-    } else {
-      void props.onLoadPayouts();
-    }
+    if (nextView === "ledger" && !props.ledgerLoaded) props.onRefresh();
   }
-
-  return (
-    <section className={styles.page}>
-      <header className={styles.header}>
-        <div>
-          <h1>Финансы</h1>
-          <p>Выплаты продавцам и финансовый журнал</p>
-        </div>
-      </header>
-
-      <CabinetPanel<FinanceView>
-        items={[
-          { value: "payouts", label: "Выплаты" },
-          { value: "ledger", label: "Журнал операций" },
-        ]}
-        value={view}
-        onChange={changeView}
-        ariaLabel="Разделы финансов админки"
-        actions={
-          <>
-            <Button
-              type="button"
-              variant="secondary"
-              loading={view === "ledger" ? props.refreshing : props.payoutsLoading}
-              onClick={refresh}
-            >
-              Обновить
-            </Button>
-            {view === "payouts" ? (
-              <Button
-                type="button"
-                variant="primary"
-                disabled={actionKey === "generate"}
-                loading={actionKey === "generate"}
-                onClick={() => void generatePayouts()}
-              >
-                Сформировать реестр
-              </Button>
-            ) : null}
-          </>
-        }
-      >
-        {view === "payouts" ? (
-          <PayoutRegistry
-            payouts={props.payouts}
-            stats={props.payoutStats}
-            loading={props.payoutsLoading}
-            loadingMore={props.payoutsLoadingMore}
-            actionKey={actionKey}
-            paymentOrders={paymentOrders}
-            onPaymentOrderChange={(id, value) =>
-              setPaymentOrders((current) => ({ ...current, [id]: value }))
-            }
-            onAction={(payout, action) => void runPayoutAction(payout, action)}
-            onLoadMore={props.onLoadMorePayouts}
-          />
-        ) : !props.ledgerLoaded && props.refreshing ? (
-          <CabinetSkeleton variant="list" rows={4} compact />
-        ) : (
-          <Ledger key={props.orderGroupId} {...props} />
-        )}
-      </CabinetPanel>
-    </section>
-  );
-}
-
-function PayoutRegistry({
-  payouts,
-  stats,
-  loading,
-  loadingMore,
-  actionKey,
-  paymentOrders,
-  onPaymentOrderChange,
-  onAction,
-  onLoadMore,
-}: {
-  payouts: AdminSellerPayout[];
-  stats: AdminSellerPayoutStats;
-  loading: boolean;
-  loadingMore: boolean;
-  actionKey: string | null;
-  paymentOrders: Record<number, string>;
-  onPaymentOrderChange: (id: number, value: string) => void;
-  onAction: (
-    payout: AdminSellerPayout,
-    action: "sent" | "paid" | "failed" | "retry" | "cancel"
-  ) => void;
-  onLoadMore?: () => void;
-}) {
-  if (loading) return <CabinetSkeleton variant="list" rows={3} compact />;
-
-  return (
-    <>
-      <div className={styles.summary}>
-        <div><span>Готово к отправке</span><strong>{formatMoney(stats.readyAmount)}</strong></div>
-        <div><span>Отправлено в банк</span><strong>{formatMoney(stats.sentAmount)}</strong></div>
-        <div><span>Всего реестров</span><strong>{stats.totalCount}</strong></div>
-      </div>
-
-      {payouts.length ? (
-        <>
-          <div className={styles.payoutList}>
-            {payouts.map((payout) => (
-            <article className={styles.payoutCard} key={payout.id}>
-              <div className={styles.payoutMain}>
-                <div className={styles.payoutIdentity}>
-                  <span>Реестр #{payout.id}, {formatDate(payout.scheduledDate)}</span>
-                  <strong>{payout.sellerName}</strong>
-                  <small>ИНН {payout.inn}, продавец #{payout.sellerId}</small>
-                </div>
-                <div className={styles.payoutAmount}>
-                  <span>К выплате</span>
-                  <strong>{formatMoney(payout.payoutAmount)}</strong>
-                  <PayoutStatus status={payout.status} />
-                </div>
-              </div>
-
-              <dl className={styles.payoutDetails}>
-                <div><dt>Продажи</dt><dd>{formatMoney(payout.grossSalesAmount)}</dd></div>
-                <div><dt>Комиссия</dt><dd>−{formatMoney(payout.commissionAmount)}</dd></div>
-                <div><dt>Корректировки</dt><dd>−{formatMoney(payout.adjustmentsAmount)}</dd></div>
-                <div>
-                  <dt>Заказов</dt>
-                  <dd>
-                    {payout.orderCount ??
-                      payout.items?.filter((item) => item.type === "ORDER").length ??
-                      0}
-                  </dd>
-                </div>
-                <div><dt>Банк</dt><dd>{payout.bankName}</dd></div>
-                <div><dt>БИК</dt><dd>{payout.bik}</dd></div>
-                <div><dt>Расчетный счет</dt><dd>{payout.checkingAccount}</dd></div>
-                <div><dt>Платежное поручение</dt><dd>{payout.paymentOrderNumber || "—"}</dd></div>
-              </dl>
-
-              <PayoutActions
-                payout={payout}
-                busy={Boolean(actionKey?.startsWith(`${payout.id}:`))}
-                paymentOrder={paymentOrders[payout.id] ?? ""}
-                onPaymentOrderChange={(value) => onPaymentOrderChange(payout.id, value)}
-                onAction={(action) => onAction(payout, action)}
-              />
-            </article>
-            ))}
-          </div>
-          <ListLoadMore
-            loaded={payouts.length}
-            total={stats.totalCount}
-            loading={loadingMore}
-            onLoadMore={onLoadMore}
-          />
-        </>
-      ) : (
-        <EmptyState icon="wallet" title="Реестров пока нет" text="Сформируйте первый реестр после окончания холда по доставленным заказам" />
-      )}
-    </>
-  );
-}
-
-function PayoutActions({
-  payout,
-  busy,
-  paymentOrder,
-  onPaymentOrderChange,
-  onAction,
-}: {
-  payout: AdminSellerPayout;
-  busy: boolean;
-  paymentOrder: string;
-  onPaymentOrderChange: (value: string) => void;
-  onAction: (action: "sent" | "paid" | "failed" | "retry" | "cancel") => void;
-}) {
-  if (payout.status === "PAID" || payout.status === "CANCELLED") return null;
-
-  return (
-    <div className={styles.payoutActions}>
-      {payout.status === "READY" ? (
-        <InputControl spacePolicy="remove"
-          value={paymentOrder}
-          onChange={(event) => onPaymentOrderChange(event.target.value)}
-          aria-label="Номер платежного поручения"
-        />
-      ) : null}
-      {payout.status === "READY" ? (
-        <button disabled={busy} type="button" onClick={() => onAction("sent")}>Отметить отправленной</button>
-      ) : null}
-      {payout.status === "SENT" ? (
-        <button disabled={busy} type="button" onClick={() => onAction("paid")}>Подтвердить выплату</button>
-      ) : null}
-      {payout.status === "SENT" ? (
-        <button disabled={busy} type="button" className={styles.secondaryButton} onClick={() => onAction("failed")}>Ошибка банка</button>
-      ) : null}
-      {payout.status === "FAILED" ? (
-        <button disabled={busy} type="button" onClick={() => onAction("retry")}>Вернуть в готовые</button>
-      ) : null}
-      {payout.status === "READY" || payout.status === "FAILED" ? (
-        <button disabled={busy} type="button" className={styles.textButton} onClick={() => onAction("cancel")}>Отменить</button>
-      ) : null}
-    </div>
-  );
+  return <section className={styles.page}>
+    <header className={styles.header}><div><h1>Финансы</h1><p>Выплаты продавцам и финансовый журнал</p></div></header>
+    <CabinetPanel<FinanceView> items={[{ value: "payouts", label: "Выплаты" }, { value: "ledger", label: "Журнал операций" }]}
+      value={view} onChange={changeView} ariaLabel="Разделы финансов админки"
+      actions={view === "ledger" ? <Button loading={props.refreshing} onClick={props.onRefresh}>Обновить</Button> : undefined}>
+      {view === "payouts" ? <AdminPayoutRegistry /> : !props.ledgerLoaded && props.refreshing
+        ? <CabinetSkeleton variant="list" rows={4} compact /> : <Ledger key={props.orderGroupId} {...props} />}
+    </CabinetPanel>
+  </section>;
 }
 
 function Ledger({
@@ -441,24 +154,6 @@ function Ledger({
   );
 }
 
-function PayoutStatus({ status }: { status: AdminSellerPayoutStatus }) {
-  const labels: Record<AdminSellerPayoutStatus, string> = {
-    READY: "Готова",
-    SENT: "Отправлена",
-    PAID: "Выплачена",
-    FAILED: "Ошибка",
-    CANCELLED: "Отменена",
-  };
-  const tones: Record<AdminSellerPayoutStatus, StatusBadgeTone> = {
-    READY: "warning",
-    SENT: "default",
-    PAID: "success",
-    FAILED: "danger",
-    CANCELLED: "danger",
-  };
-  return <StatusBadge tone={tones[status]}>{labels[status]}</StatusBadge>;
-}
-
 function formatEntryType(value: FinancialLedgerEntryType | "ALL") {
   const labels: Partial<Record<FinancialLedgerEntryType | "ALL", string>> = {
     ALL: "Все движения",
@@ -483,11 +178,7 @@ function sumByDirection(entries: AdminFinancialLedgerEntry[], direction: "CREDIT
 }
 
 function formatMoney(value: number) {
-  return new Intl.NumberFormat("ru-RU", { style: "currency", currency: "RUB", maximumFractionDigits: 0 }).format(value || 0);
-}
-
-function formatDate(value: string) {
-  return new Date(`${value}T00:00:00`).toLocaleDateString("ru-RU", { day: "numeric", month: "long", year: "numeric" });
+  return new Intl.NumberFormat("ru-RU", { style: "currency", currency: "RUB", minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value || 0);
 }
 
 function formatDateTime(value: string) {

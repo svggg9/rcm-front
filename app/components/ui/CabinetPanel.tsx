@@ -13,20 +13,21 @@ type Props<T extends string> = {
   children: ReactNode;
   disabled?: boolean;
   className?: string;
+  variant?: "default" | "plain";
 };
 
 export function CabinetPanel<T extends string>({
-  items, value, onChange, ariaLabel, actions, children, disabled = false, className,
+  items, value, onChange, ariaLabel, actions, children, disabled = false, className, variant = "default",
 }: Props<T>) {
   const id = useId();
   const tabPrefix = `${id}-tab`;
   const panelId = `${id}-panel`;
 
   return (
-    <section className={`${styles.panel} ${className ?? ""}`.trim()} data-ui="cabinet-panel" aria-label={ariaLabel}>
+    <section className={`${styles.panel} ${variant === "plain" ? styles.plain : ""} ${className ?? ""}`.trim()} data-ui="cabinet-panel" aria-label={ariaLabel}>
       <div className={styles.header}>
         <CabinetTabs items={items} value={value} onChange={onChange} ariaLabel={ariaLabel}
-          appearance="panel" idPrefix={tabPrefix} panelId={panelId} disabled={disabled} />
+          appearance={variant === "plain" ? "line" : "panel"} idPrefix={tabPrefix} panelId={panelId} disabled={disabled} />
         {actions ? <div className={styles.actions}>{actions}</div> : null}
       </div>
       <div className={styles.content} id={panelId} role="tabpanel" aria-labelledby={`${tabPrefix}-${value}`} tabIndex={0}>

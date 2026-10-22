@@ -24,6 +24,7 @@ const sellerLegalSource = fs.readFileSync(path.join(__dirname, "../app/seller/co
 const sellerLegalStyles = fs.readFileSync(path.join(__dirname, "../app/seller/components/SellerLegalTab.module.css"), "utf8");
 const notificationChannelSource = fs.readFileSync(path.join(__dirname, "../app/seller/components/SellerNotificationChannels.tsx"), "utf8");
 const notificationChannelStyles = fs.readFileSync(path.join(__dirname, "../app/seller/components/SellerNotificationChannels.module.css"), "utf8");
+const telegramConnectionSource = fs.readFileSync(path.join(__dirname, "../app/components/TelegramConnection.tsx"), "utf8");
 assert.match(sellerPageSource, /hidden=\{currentTab !== "legal"\}[\s\S]*className=\{styles\.legalContent\}/);
 assert.match(sellerPageStyles, /--seller-form-width:\s*1120px;/);
 assert.doesNotMatch(sellerPageStyles, /\.legalContent\s*\{[^}]*(max-width|margin-inline)/);
@@ -39,12 +40,12 @@ assert.doesNotMatch(notificationChannelSource, /createPortal|<Dialog\b|ConfirmAc
 assert.doesNotMatch(notificationChannelSource, /<Button[^>]*(?:type="submit"|form=)[^>]*>[\s\S]*?Сохранить[\s\S]*?<\/Button>/);
 assert.match(notificationChannelSource, /<h3 id=\{headingId\}>Уведомления<\/h3>/);
 assert.match(notificationChannelSource, /role="group" aria-label="Каналы доставки уведомлений"/);
-assert.match(notificationChannelSource, /<ChoiceMark[^>]*checked=\{controller\.draft\.emailEnabled\}[\s\S]*?<span>Email<\/span>[\s\S]*?<ChoiceMark[^>]*checked=\{controller\.draft\.telegramEnabled && controller\.linked\}[\s\S]*?<span>Telegram<\/span>/);
-assert.match(notificationChannelSource, /Отвязать аккаунт\?[\s\S]*?>Да<\/Button>[\s\S]*?>Нет<\/Button>/);
-assert.match(notificationChannelSource, /event\.key === "Enter"[\s\S]*?onSubmitRequest\(\)/);
+assert.match(notificationChannelSource, /<ChoiceMark[^>]*checked=\{controller\.draft\.emailEnabled\}[\s\S]*?<span>Email<\/span>[\s\S]*?<ChoiceMark[^>]*checked=\{controller\.draft\.telegramEnabled\}[\s\S]*?<span>Telegram<\/span>/);
+assert.match(telegramConnectionSource, /Отвязать аккаунт\?[\s\S]*?>Да<\/Button>[\s\S]*?>Нет<\/Button>/);
+assert.match(notificationChannelSource, /event\.key === "Enter"[\s\S]*?void save\(\)/);
 const legalSubmitSource = sellerLegalSource.slice(sellerLegalSource.indexOf("async function submit"), sellerLegalSource.indexOf("async function createProductDraft"));
-assert.match(legalSubmitSource, /!notifications\.dirty \|\| notifications\.validate\(\)/);
-assert.match(legalSubmitSource, /await saveSellerLegalInfo\(form\)[\s\S]*?if \(notifications\.dirty\)[\s\S]*?await notifications\.savePreferences\(\)/);
+assert.doesNotMatch(legalSubmitSource, /notifications\.(savePreferences|validate)/);
+assert.match(notificationChannelSource, /await controller\.savePreferences\(\)/);
 for (const section of ["legal", "contacts", "shipping", "bank"]) {
   assert.ok(sellerLegalSource.includes(`hidden={activeSection !== "${section}"}`));
 }
@@ -54,7 +55,7 @@ assert.equal(profileContactName({ displayName: "  Анна Петрова  ", fi
 assert.equal(profileContactName({ displayName: "", firstName: "Анна", lastName: "Петрова", middleName: "Игоревна" }), "Петрова Анна Игоревна");
 assert.equal(profileContactName(null), "");
 assert.deepEqual(notificationDraft({ email: "seller@example.ru", emailEnabled: true, telegramEnabled: true,
-  telegramLinked: false, telegramUsername: null }), { email: "seller@example.ru", emailEnabled: true, telegramEnabled: false });
+  telegramLinked: false, telegramUsername: null }), { email: "seller@example.ru", emailEnabled: true, telegramEnabled: true });
 assert.equal(notificationEmailError({ email: "", emailEnabled: true, telegramEnabled: false }), "Укажите почту для уведомлений");
 assert.equal(notificationEmailError({ email: "seller@example.ru", emailEnabled: true, telegramEnabled: false }), null);
 const request = { id: 6, requestedAmount: 120, approvedRefundAmount: null, sellerComment: "Комментарий", resellable: false };
@@ -85,10 +86,56 @@ for (const message of ["Введите название товара", "Введ
 assert.match(general, /aria-describedby="[^"]+-title-error"/);
 assert.match(general, /aria-describedby="[^"]+-description-error"/);
 assert.match(general, /aria-describedby="[^"]+-category-error"/);
-const selectedCategory = render(ProductGeneralCard, { validationErrors: {}, title: "Товар", description: "Описание", composition: "",
-  categoryId: 12, suggestedCategoryName: "", audience: "UNISEX", categories: [{ id: 12, name: "Одежда / Верх / Футболки" }] });
-assert.match(selectedCategory, /role="combobox"[^>]*aria-expanded="false"[^>]*value="Футболки"/);
-assert.doesNotMatch(selectedCategory.slice(selectedCategory.indexOf("Категория"), selectedCategory.indexOf("Кому подходит")), /Одежда|Верх|role="listbox"|Раскрыть список/);
+const categoryBase = { slug: null, sortOrder: 0, isActive: true, effectiveActive: true, productCount: 0, subtreeProductCount: 0 };
+const categories = [
+  { ...categoryBase, id: 1, name: "Одежда", label: "Одежда", parentId: null },
+  { ...categoryBase, id: 2, name: "Одежда / Верх", label: "Верх", parentId: 1 },
+  { ...categoryBase, id: 12, name: "Одежда / Верх / Футболки", label: "Футболки", parentId: 2 },
+];
+const categoryProps = { validationErrors: {}, title: "Товар", description: "Описание", composition: "",
+  categoryId: 12, suggestedCategoryName: "", audience: "UNISEX", categories };
+const selectedCategory = render(ProductGeneralCard, categoryProps);
+assert.match(selectedCategory, /role="combobox"[^>]*aria-expanded="false"[^>]*value="Одежда \/ Верх \/ Футболки"/);
+assert.doesNotMatch(selectedCategory, /Категория недоступна для новых публикаций/);
+const unavailableCategories = categories.map(category => category.id === 12 ? { ...category, isActive: false, effectiveActive: false } : category);
+const unavailableCategory = render(ProductGeneralCard, { ...categoryProps, categories: unavailableCategories });
+assert.match(unavailableCategory, /value="Одежда \/ Верх \/ Футболки"/);
+assert.match(unavailableCategory, /Категория недоступна для новых публикаций/);
+assert.match(unavailableCategory, /role="option" aria-selected="true" disabled=""[^>]*>[\s\S]*?Одежда \/ Верх \/ Футболки/);
+
+// A saved hidden category remains visible, but even a direct option handler cannot assign it again.
+const { CategoryPicker } = require("../app/components/ui/CategoryPicker.tsx");
+function categoryChoice(values) {
+  const picked = CategoryPicker(values).props.children[0];
+  assert.equal(picked.props.value, 12, "The picker retains the category ID, independently of its full display path");
+  assert.equal(picked.props.options.find(option => option.value === 12).label, "Одежда / Верх / Футболки");
+  const filename = path.resolve(__dirname, "../app/components/ui/FormCombobox.tsx");
+  const mod = new Module(filename, module);
+  mod.filename = filename; mod.paths = Module._nodeModulePaths(path.dirname(filename));
+  const originalRequire = mod.require.bind(mod);
+  const react = { useEffect() {}, useId: () => "category-fixture", useMemo: fn => fn(),
+    useRef: initial => ({ current: initial }), useState: initial => [initial, () => {}] };
+  mod.require = id => id === "react" ? react : originalRequire(id);
+  mod._compile(compile(filename), filename);
+  const tree = mod.exports.FormCombobox(picked.props);
+  const options = [];
+  function visit(element) {
+    if (Array.isArray(element)) return element.forEach(visit);
+    if (!element || typeof element !== "object" || !element.props) return;
+    if (element.props.role === "option") options.push(element);
+    visit(element.props.children);
+  }
+  visit(tree);
+  return options.find(option => option.key === "12");
+}
+const categoryChanges = [];
+const activeChoice = categoryChoice({ value: 12, categories, onChange: (...value) => categoryChanges.push(value) });
+activeChoice.props.onClick();
+assert.deepEqual(categoryChanges, [[12, ""]], "An available category is assigned by its stable ID");
+const hiddenChoice = categoryChoice({ value: 12, categories: unavailableCategories, onChange: (...value) => categoryChanges.push(value) });
+assert.equal(hiddenChoice.props.disabled, true);
+hiddenChoice.props.onClick();
+assert.deepEqual(categoryChanges, [[12, ""]], "An unavailable saved option cannot be assigned, including through its event handler");
 const { ProductDescriptionEditor } = require("../app/seller/products/[id]/edit/components/ProductDescriptionEditor.tsx");
 const { ProductDetailsAccordion } = require("../app/product/[id]/components/ProductDetailsAccordion.tsx");
 const compositionProps = { value: "▪ Хлопок — 95%\n▪ Эластан — 5%", onChange() {}, fieldName: "Состав", maxLength: 1000, emptyText: "Состав пока пустой" };
@@ -96,9 +143,24 @@ const compositionEditor = render(ProductDescriptionEditor, compositionProps);
 assert.match(compositionEditor, /role="group" aria-label="Состав"/);
 assert.match(compositionEditor, /Добавить абзац/);
 assert.match(compositionEditor, /Добавить список/);
-assert.match(compositionEditor, /<button class="buttonUtility"[^>]*>[\s\S]*?Добавить абзац[\s\S]*?<\/button>/);
-assert.match(compositionEditor, /<button class="buttonUtility"[^>]*>[\s\S]*?Добавить список[\s\S]*?<\/button>/);
-assert.match(compositionEditor, /<button class="buttonUtility" disabled="" aria-label="Поднять пункт 1"/);
+const descriptionButtons = [...compositionEditor.matchAll(/<button\b[^>]*>[\s\S]*?<\/button>/g)].map(match => match[0]);
+function descriptionButton(label) {
+  const button = descriptionButtons.find(html => html.includes(`aria-label="${label}"`) || html.replace(/<[^>]*>/g, "") === label);
+  assert.ok(button, `Description action is available: ${label}`);
+  return button;
+}
+for (const label of ["Добавить абзац", "Добавить список", "Добавить пункт"]) {
+  assert.match(descriptionButton(label), /class="buttonSecondary(?:\s[^"]*)?"/);
+  assert.match(descriptionButton(label), /<svg\b[^>]*aria-hidden="true"/);
+}
+for (const label of ["Удалить блок 1", "Поднять пункт 1", "Опустить пункт 1", "Удалить пункт 1"]) {
+  assert.match(descriptionButton(label), /class="buttonGhost(?:\s[^"]*)?"/);
+  assert.match(descriptionButton(label), /<svg\b[^>]*aria-hidden="true"/);
+}
+assert.match(descriptionButton("Поднять пункт 1"), /disabled=""/);
+assert.doesNotMatch(descriptionButton("Опустить пункт 1"), /disabled=""/);
+assert.match(descriptionButton("Опустить пункт 2"), /disabled=""/);
+for (const html of descriptionButtons) assert.doesNotMatch(html.replace(/<[^>]*>/g, ""), /[↑↓×▪]/);
 assert.match(compositionEditor, /Предпросмотр в карточке товара/);
 assert.match(compositionEditor, /<li>Хлопок — 95%<\/li>/);
 assert.match(compositionEditor, /<li>Эластан — 5%<\/li>/);
@@ -113,6 +175,59 @@ assert.match(longComposition, /я{1001}/); // No silent truncation, including le
 const defaultDescription = render(ProductDescriptionEditor, {value: "я".repeat(1001), onChange() {}});
 assert.doesNotMatch(defaultDescription, /role="alert"/);
 assert.match(defaultDescription.replace(/<[^>]*>/g, ""), /\/ 2000/);
+
+// Exercise the actual description action handlers with isolated hook state, without API writes.
+{
+  const filename = path.resolve(__dirname, "../app/seller/products/[id]/edit/components/ProductDescriptionEditor.tsx");
+  const mod = new Module(filename, module);
+  mod.filename = filename; mod.paths = Module._nodeModulePaths(path.dirname(filename));
+  const originalRequire = mod.require.bind(mod);
+  const slots = [];
+  let cursor = 0;
+  let value = compositionProps.value;
+  const react = { useId: () => "description-actions", useState(initial) {
+    const index = cursor++;
+    if (!(index in slots)) slots[index] = typeof initial === "function" ? initial() : initial;
+    return [slots[index], next => { slots[index] = typeof next === "function" ? next(slots[index]) : next; }];
+  } };
+  mod.require = id => id === "react" ? react : originalRequire(id);
+  mod._compile(compile(filename), filename);
+  function textContent(node) {
+    if (Array.isArray(node)) return node.map(textContent).join("");
+    if (typeof node === "string" || typeof node === "number") return String(node);
+    return node?.props ? textContent(node.props.children) : "";
+  }
+  function action(label) {
+    cursor = 0;
+    const tree = mod.exports.ProductDescriptionEditor({ ...compositionProps, value, onChange: next => { value = next; } });
+    const buttons = [];
+    function visit(node) {
+      if (Array.isArray(node)) return node.forEach(visit);
+      if (!node?.props) return;
+      if (node.type?.name === "Button") buttons.push(node);
+      visit(node.props.children);
+    }
+    visit(tree);
+    const button = buttons.find(node => node.props["aria-label"] === label || textContent(node.props.children) === label);
+    assert.ok(button, `Description handler is available: ${label}`);
+    return button;
+  }
+  action("Опустить пункт 1").props.onClick();
+  assert.equal(value, "▪ Эластан — 5%\n▪ Хлопок — 95%", "Moving an item preserves its list type and text");
+  action("Поднять пункт 2").props.onClick();
+  assert.equal(value, compositionProps.value);
+  action("Удалить пункт 1").props.onClick();
+  assert.equal(value, "▪ Эластан — 5%");
+  action("Добавить пункт").props.onClick();
+  assert.equal(action("Удалить пункт 2").props.disabled, undefined, "A new empty list item remains editable in draft state");
+  action("Добавить абзац").props.onClick();
+  assert.ok(action("Удалить блок 2"), "The paragraph action adds a separate editable block");
+  action("Удалить блок 2").props.onClick();
+  action("Добавить список").props.onClick();
+  action("Удалить блок 2").props.onClick();
+  action("Удалить блок 1").props.onClick();
+  assert.equal(value, "", "Deleting the last block clears serialized content");
+}
 const details = render(ProductDetailsAccordion, {product: {id: 7, description: "Описание", composition: compositionProps.value},
   selectedVariant: null, openComposition: true, openBrand: false, onToggleComposition() {}, onToggleBrand() {}, isSellerView: false});
 assert.match(details, /<li>Хлопок — 95%<\/li>/);
@@ -184,5 +299,5 @@ async function checkSubmit() {
   await form({ ...values, loading: true }).props.onSubmit(event);
   assert.equal(submitted.length, 1);
 }
-checkSubmit().then(() => console.log("PASS: return validation/submit guard, seller contact prefill, editor utility actions, field errors and associations, upload spinner/stable label, dimension errors"))
+checkSubmit().then(() => console.log("PASS: return validation/submit guard, seller contact prefill, description DS actions and content persistence, field errors and associations, upload spinner/stable label, dimension errors"))
   .catch(error => { console.error(error); process.exitCode = 1; });

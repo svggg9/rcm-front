@@ -57,3 +57,5 @@
   outline: 1px solid var(--black);
   outline-offset: 2px;
 }
+.invalid { border-bottom: 1px solid var(--danger); }
+.input[aria-invalid="true"] { border-color: var(--danger); outline-color: var(--danger); }

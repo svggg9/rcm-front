@@ -1,13 +1,12 @@
 "use client";
 
-import { Loader } from "../../components/ui/Loader";
+import { SectionLoader } from "../../components/ui/SectionLoader";
 import { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { PickupPointMap } from "../../checkout/components/PickupPointMap";
 import { Button } from "../../components/ui/Button";
 import { Banner } from "../../components/ui/Banner";
 import { Dialog } from "../../components/ui/Dialog";
-import { SkeletonBlock } from "../../components/ui/SkeletonBlock";
 import { TextInput } from "../../components/ui/TextInput";
 import { getCdekReceptionPoints, type CdekReceptionPoint } from "../lib/sellerLegalApi";
 import styles from "./SellerReceptionPointPicker.module.css";
@@ -66,7 +65,7 @@ export function SellerReceptionPointPicker({ cityCode, cityName, currentId, onCl
     <div className={styles.content}>
       <p className={styles.intro}>{cityName}. Выберите пункт, в который будете сдавать заказы.</p>
       {loading ? <div className={styles.loader}>
-        <SkeletonBlock className={styles.skeleton} /><Loader inline label="Загрузка пунктов приёма" />
+        <SectionLoader label="Загрузка пунктов приёма" />
       </div> : error ? <Banner tone="danger" actions={
         <Button type="button" variant="secondary" onClick={() => setRetry(value => value + 1)}>Повторить</Button>
       }>{error}</Banner> : points.length === 0 ? <p className={styles.empty}>В этом городе не найдены пункты, принимающие отправления. Выберите другой город.</p> : <>

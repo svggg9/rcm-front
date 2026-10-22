@@ -282,6 +282,8 @@ async function main() {
   window.addEventListener = (event, fn) => listeners.set(event, fn);
   window.removeEventListener = event => listeners.delete(event);
   let cartForPage = cart, mutations = 0, cartSearch = "", cartPaymentStatus = "PENDING", quantityFailure = null;
+  let pageLoader = async () => cartForPage;
+  const sessionState = { isAuthenticated: true, loading: false, error: null, revision: 0, reload: async () => ({ id: 1 }) };
   const cartApi = load("app/cart/lib/cartApi.ts", {
     "../../lib/api": {}, "./quantityLimits": load("app/cart/lib/quantityLimits.ts", {}),
   });
@@ -290,10 +292,12 @@ async function main() {
     react: { ...cartHooks.react, Suspense: "Suspense" }, "react/jsx-runtime": jsx,
     "next/link": { default: "Link" }, "next/navigation": { useRouter: () => cartRouter, useSearchParams: () => new URLSearchParams(cartSearch) },
     "../lib/api": { API_URL: "http://fixture", apiFetch: async () => Response.json({ status: cartPaymentStatus }) },
+    "../lib/apiErrors": load("app/lib/apiErrors.ts", {}),
+    "../lib/client-session": { getClientSessionRevision: () => sessionState.revision },
     "../checkout/lib/pendingPayment": pending,
-    "@/app/components/ui/toast": { toast: { success() {} } }, "../lib/cartAuthority": { loadResolvedCart: async () => cartForPage },
+    "@/app/components/ui/toast": { toast: { success() {} } }, "../lib/cartAuthority": { loadResolvedCart: () => pageLoader() },
     "../lib/cartEvents": { emitCartChanged() {} }, "../lib/authEvents": { AUTH_EVENT: "auth" },
-    "../lib/useCurrentUser": { useCurrentUser: () => ({ isAuthenticated: true, loading: false }) },
+    "../lib/useCurrentUser": { useCurrentUser: () => sessionState },
     "../checkout/CheckoutPageClient": { CheckoutPageClient: "Checkout" },
     "../components/Auth/AuthForm": { AuthForm: "Auth" },
     "./lib/quantityLimits": load("app/cart/lib/quantityLimits.ts", {}), "./lib/cartApi": { ...cartApi,
@@ -303,6 +307,7 @@ async function main() {
     "./components/CartItemRow": { CartItemRow: "Row" }, "./components/CartSummary": { CartSummary: "Summary" },
     "./components/EmptyCart": { EmptyCart: "Empty" }, "../components/ui/CommerceSkeleton": { CartContentSkeleton: "Skeleton" },
     "../components/ui/ConfirmActionButton": { ConfirmActionButton: "Confirm" }, "../components/ui/Button": { Button: "Button" },
+    "../components/ui/RequestError": { RequestError: "RequestError" },
     "./Cart.module.css": { default: {} },
   });
   function renderCart() { const wrapper = cartModule.default().props.children; return cartHooks.render(() => wrapper.type(wrapper.props)); }
@@ -379,8 +384,38 @@ async function main() {
   cartView = renderCart();
   assert.equal(find(cartView, node => node.props?.role === "alert" && node.props.children === cartApi.PRODUCT_QUANTITY_LIMIT_MESSAGE), null);
   assert.equal(find(cartView, node => node.props?.["data-checkout-trigger"] === true).props.disabled, false);
+  cartHooks.reset(); cartSearch = "";
+  pageLoader = async () => { throw new Error("private transport failure"); };
+  for (let i = 0; i < 4; i++) { cartView = renderCart(); await cartHooks.effects(); }
+  const requestError = find(renderCart(), node => node.type === "RequestError");
+  assert(requestError); assert.equal(find(renderCart(), node => node.type === "Empty"), null);
+  let finishReload;
+  pageLoader = () => new Promise(resolve => { finishReload = resolve; });
+  requestError.props.onRetry(); cartView = renderCart(); await cartHooks.effects();
+  cartView = renderCart();
+  assert.equal(find(cartView, node => node.type === "RequestError").props.loading, true);
+  assert.equal(find(cartView, node => node.type === "Skeleton"), null, "Retry keeps the error and spinner instead of replacing them with a skeleton");
+  finishReload(cartForPage); await new Promise(setImmediate);
+  assert.equal(find(renderCart(), node => node.type === "RequestError"), null);
+  pageLoader = async () => { throw new Error("private refresh failure"); };
+  listeners.get("focus")();
+  for (let i = 0; i < 4; i++) { cartView = renderCart(); await cartHooks.effects(); }
+  cartView = renderCart();
+  assert(find(cartView, node => node.type === "Row"), "A failed background refresh preserves the displayed cart");
+  assert.equal(find(cartView, node => node.type === "RequestError").props.variant, "inline");
+  assert.equal(find(cartView, node => node.type === "Row").props.pending, true);
+  const beforeBlockedMutation = mutations;
+  await find(cartView, node => node.type === "Row").props.onChangeQty(10, 1);
+  assert.equal(mutations, beforeBlockedMutation, "Unconfirmed data cannot be changed or checked out");
+  assert.equal(find(cartView, node => node.props?.["data-checkout-trigger"] === true).props.disabled, true);
+  pageLoader = async () => cartForPage;
+  find(cartView, node => node.type === "RequestError").props.onRetry();
+  for (let i = 0; i < 4; i++) { cartView = renderCart(); await cartHooks.effects(); }
+  assert.equal(find(renderCart(), node => node.type === "RequestError"), null);
+  assert.equal(find(renderCart(), node => node.type === "Row").props.pending, false);
   console.log("Cart checkout: retained purchase on Back/refresh, same payment retry, confirmed return, empty cart, slow Init, lost-response idempotency and edits passed");
   console.log("Cart alerts: corrected sibling variant, refreshed stock and actual limit violation lifecycle passed");
+  console.log("Cart error: failure differs from empty, retry keeps its error block and confirmed data replaces it");
   console.log("Checkout recipient: current profile, manual override, changed/cleared profile and committed order isolation passed");
 }
 main().catch(error => { console.error(error); process.exitCode = 1; });

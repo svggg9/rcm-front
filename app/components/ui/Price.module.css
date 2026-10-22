@@ -5,7 +5,7 @@
 }
 
 .currency {
-  color: var(--gold-deep);
+  color: var(--price-currency-color, var(--gold-deep));
 }
 
 .currencySymbol {

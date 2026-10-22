@@ -216,7 +216,7 @@
 .appShell [data-ui="field"] > :is([aria-invalid="true"], .inputError),
 .appShell [data-ui="field"] > :is(div, .phoneInputShell):has([aria-invalid="true"]) { border-color: var(--danger); outline-color: var(--danger); }
 .appShell [data-ui="field"] > .fieldError,
-.fieldError { display: block; margin: 0; color: var(--danger); font-size: 13px; line-height: 18px; font-weight: 400; }
+.fieldError { display: block; margin: 0; color: var(--danger); font-size: var(--feedback-body-size); line-height: var(--feedback-line-height); font-weight: 400; }
 .phoneInputShell { height: 44px; padding: 0 15px; border: 1px solid var(--black); }
 
 /* Profile-style fields share the same underline in read and edit modes. */
@@ -248,5 +248,8 @@
 .appShell [data-ui="field"][data-field-variant="inline"] > input:read-only { cursor: text; }
 .appShell [data-ui="field"][data-field-variant="inline"] > input:read-only::placeholder { color: var(--black); font-size: 16px; }
 .appShell [data-ui="field"][data-field-variant="inline"] .phoneInput:read-only::placeholder { color: var(--black); font-size: 16px; }
-.formError { padding: 16px; border: 0; background: color-mix(in srgb, var(--danger) 8%, var(--white)); color: var(--black); font-size: 15px; line-height: 21px; }
+.formError { padding: 16px; border: 1px solid var(--line); background: var(--white); color: var(--black); font-size: var(--feedback-body-size); line-height: var(--feedback-line-height); }
 :is(.input, .textarea, .select).inputError:focus { border-color: var(--danger); }
+.appShell [data-ui="field"][data-field-variant="inline"] > :is(input, .phoneInputShell):is(.inputError, [aria-invalid="true"], :has([aria-invalid="true"])) { border-bottom-color: var(--danger); }
+.appShell [data-ui="field"][data-field-variant="inline"] > input:is(.inputError, [aria-invalid="true"]):focus-visible,
+.appShell [data-ui="field"][data-field-variant="inline"] > .phoneInputShell:has(> input[aria-invalid="true"]:focus-visible) { outline: 1px solid var(--danger); outline-offset: 2px; }

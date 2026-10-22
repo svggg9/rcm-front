@@ -1,4 +1,5 @@
 import { apiFetch, API_URL } from "../../lib/api";
+import type { TelegramStatus } from "../../lib/telegram";
 
 export type SellerNotificationPreferences = {
   email: string | null;
@@ -14,24 +15,19 @@ export type SellerNotificationDraft = {
   telegramEnabled: boolean;
 };
 
-export type SellerTelegramStatus = {
-  url: string | null;
-  expiresAt: string | null;
-  linked: boolean;
-  telegramUsername: string | null;
-};
+export type SellerTelegramStatus = TelegramStatus;
 
 async function readResponse<T>(response: Response, fallback: string): Promise<T> {
   if (response.ok) return response.json() as Promise<T>;
-  const body = await response.json().catch(() => null) as { message?: string; error?: string } | null;
-  throw new Error(body?.message || body?.error || fallback);
+  throw new Error(response.status === 401 ? "Войдите в аккаунт ещё раз"
+    : response.status === 429 ? "Слишком много запросов — попробуйте позже" : fallback);
 }
 
 export function notificationDraft(preferences: SellerNotificationPreferences): SellerNotificationDraft {
   return {
     email: preferences.email ?? "",
     emailEnabled: preferences.emailEnabled,
-    telegramEnabled: preferences.telegramEnabled && preferences.telegramLinked,
+    telegramEnabled: preferences.telegramEnabled,
   };
 }
 

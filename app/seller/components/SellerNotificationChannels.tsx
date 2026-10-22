@@ -6,26 +6,23 @@ import { toast } from "@/app/components/ui/toast";
 import { Button } from "../../components/ui/Button";
 import { Banner } from "../../components/ui/Banner";
 import { ChoiceMark } from "../../components/ui/ChoiceMark";
-import { SkeletonBlock } from "../../components/ui/SkeletonBlock";
+import { SectionLoader } from "../../components/ui/SectionLoader";
 import { TextInput } from "../../components/ui/TextInput";
+import { TelegramConnection } from "../../components/TelegramConnection";
+import { useTelegramConnection } from "../../lib/useTelegramConnection";
 import {
-  createSellerTelegramLink,
   getSellerNotificationPreferences,
-  getSellerTelegramStatus,
   notificationDraft,
   notificationEmailError,
   saveSellerNotificationPreferences,
-  unlinkSellerTelegram,
   type SellerNotificationDraft,
   type SellerNotificationPreferences,
-  type SellerTelegramStatus,
 } from "../lib/sellerNotificationApi";
 import styles from "./SellerNotificationChannels.module.css";
 
 const EMPTY_DRAFT: SellerNotificationDraft = { email: "", emailEnabled: false, telegramEnabled: false };
-
-function pendingLink(status: SellerTelegramStatus): SellerTelegramStatus | null {
-  return !status.linked && status.url && status.expiresAt && Date.parse(status.expiresAt) > Date.now() ? status : null;
+function requestError(reason: unknown, fallback: string) {
+  return reason instanceof Error && !(reason instanceof TypeError) && !(reason instanceof SyntaxError) ? reason.message : fallback;
 }
 
 export function useSellerNotificationChannels() {
@@ -37,16 +34,10 @@ export function useSellerNotificationChannels() {
   const [action, setAction] = useState<"save" | "link" | "unlink" | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [emailError, setEmailError] = useState<string | null>(null);
-  const [telegramError, setTelegramError] = useState<string | null>(null);
-  const [link, setLink] = useState<SellerTelegramStatus | null>(null);
-  const [confirmingUnlink, setConfirmingUnlink] = useState(false);
   const mutationPending = useRef(false);
-  const checkingTelegram = useRef(false);
-  const awaitingConnection = useRef(false);
-  const telegramRequestVersion = useRef(0);
-  const linked = Boolean(preferences?.telegramLinked);
-  const busy = action !== null;
-  const linkUrl = link?.url ?? null;
+  const telegram = useTelegramConnection();
+  const linked = telegram.status?.linked ?? Boolean(preferences?.telegramLinked);
+  const busy = action !== null || telegram.busy;
 
   const loadPreferences = useCallback(async () => {
     setLoading(true);
@@ -56,51 +47,13 @@ export function useSellerNotificationChannels() {
       setPreferences(loaded);
       setDraft(notificationDraft(loaded));
     } catch (reason) {
-      setLoadError(reason instanceof Error ? reason.message : "Не удалось загрузить каналы уведомлений");
+      setLoadError(requestError(reason, "Не удалось загрузить каналы уведомлений"));
     } finally {
       setLoading(false);
     }
   }, []);
 
   useEffect(() => { void loadPreferences(); }, [loadPreferences]);
-
-  const applyTelegramStatus = useCallback((status: SellerTelegramStatus) => {
-    const enableAfterConnection = awaitingConnection.current;
-    setPreferences(current => current ? { ...current, telegramLinked: status.linked, telegramUsername: status.telegramUsername } : current);
-    setLink(pendingLink(status));
-    setDraft(current => ({ ...current, telegramEnabled: status.linked && (current.telegramEnabled || enableAfterConnection) }));
-    if (status.linked) awaitingConnection.current = false;
-  }, []);
-
-  const refreshTelegram = useCallback(async () => {
-    if (checkingTelegram.current || mutationPending.current || document.visibilityState !== "visible") return;
-    checkingTelegram.current = true;
-    const version = ++telegramRequestVersion.current;
-    try {
-      const status = await getSellerTelegramStatus();
-      if (version !== telegramRequestVersion.current) return;
-      applyTelegramStatus(status);
-      setTelegramError(null);
-    } catch (reason) {
-      if (version === telegramRequestVersion.current) setTelegramError(reason instanceof Error ? reason.message : "Не удалось проверить Telegram");
-    } finally {
-      checkingTelegram.current = false;
-    }
-  }, [applyTelegramStatus]);
-
-  useEffect(() => {
-    if (!linkUrl) return;
-    void refreshTelegram();
-    const refresh = () => { void refreshTelegram(); };
-    window.addEventListener("focus", refresh);
-    document.addEventListener("visibilitychange", refresh);
-    const interval = window.setInterval(refresh, 5000);
-    return () => {
-      window.removeEventListener("focus", refresh);
-      document.removeEventListener("visibilitychange", refresh);
-      window.clearInterval(interval);
-    };
-  }, [linkUrl, refreshTelegram]);
 
   const validate = useCallback(() => {
     if (!preferences) return true;
@@ -119,61 +72,43 @@ export function useSellerNotificationChannels() {
     }
     if (mutationPending.current) throw new Error("Дождитесь завершения текущего действия");
     mutationPending.current = true;
-    ++telegramRequestVersion.current;
     setAction("save");
     setActionError(null);
     try {
-      const saved = await saveSellerNotificationPreferences({ ...draft, telegramEnabled: draft.telegramEnabled && linked });
+      const saved = await saveSellerNotificationPreferences(draft);
       setPreferences(saved);
       setDraft(notificationDraft(saved));
-      awaitingConnection.current = false;
       return true;
     } catch (reason) {
-      setActionError(reason instanceof Error ? reason.message : "Не удалось сохранить каналы уведомлений");
+      setActionError(requestError(reason, "Не удалось сохранить каналы уведомлений"));
       throw reason;
     } finally {
       mutationPending.current = false;
       setAction(null);
     }
-  }, [draft, emailId, linked, preferences]);
+  }, [draft, emailId, preferences]);
 
   async function connectTelegram() {
     if (mutationPending.current) return;
     mutationPending.current = true;
-    ++telegramRequestVersion.current;
-    setAction("link");
-    setTelegramError(null);
-    setConfirmingUnlink(false);
     try {
-      awaitingConnection.current = true;
-      const status = await createSellerTelegramLink();
-      applyTelegramStatus(status);
-      if (status.url) window.open(status.url, "_blank", "noopener,noreferrer");
-    } catch (reason) {
-      awaitingConnection.current = false;
-      setTelegramError(reason instanceof Error ? reason.message : "Не удалось подключить Telegram");
+      await telegram.connect();
     } finally {
       mutationPending.current = false;
-      setAction(null);
     }
   }
 
   async function disconnectTelegram() {
     if (mutationPending.current) return;
     mutationPending.current = true;
-    ++telegramRequestVersion.current;
-    setAction("unlink");
-    setTelegramError(null);
     try {
-      applyTelegramStatus(await unlinkSellerTelegram());
-      awaitingConnection.current = false;
-      setConfirmingUnlink(false);
-      toast.success("Аккаунт Telegram отвязан");
-    } catch (reason) {
-      setTelegramError(reason instanceof Error ? reason.message : "Не удалось отвязать Telegram");
+      const status = await telegram.disconnect();
+      if (status) {
+        setPreferences(current => current ? { ...current, telegramLinked: false, telegramUsername: null } : current);
+        toast.success(linked ? "Аккаунт Telegram отвязан" : "Подключение Telegram отменено");
+      }
     } finally {
       mutationPending.current = false;
-      setAction(null);
     }
   }
 
@@ -183,28 +118,23 @@ export function useSellerNotificationChannels() {
       if (preferences) setDraft(notificationDraft(preferences));
       setEmailError(null);
       setActionError(null);
-      setConfirmingUnlink(false);
     },
     emailId,
     preferences,
     draft,
     loading,
     loadError,
-    action,
+    action: action ?? telegram.action,
     actionError,
     emailError,
-    telegramError,
-    link,
+    telegram,
     linked,
     busy,
-    confirmingUnlink,
     validate,
     savePreferences,
     loadPreferences,
-    refreshTelegram,
     connectTelegram,
     disconnectTelegram,
-    setConfirmingUnlink,
     setEmailEnabled(value: boolean) {
       setDraft(current => ({ ...current, emailEnabled: value }));
       setEmailError(null);
@@ -224,16 +154,17 @@ export function useSellerNotificationChannels() {
 
 export type SellerNotificationChannelsController = ReturnType<typeof useSellerNotificationChannels>;
 
-export function SellerNotificationChannels({ controller, disabled = false, onSubmitRequest }: {
+export function SellerNotificationChannels({ controller, disabled = false }: {
   controller: SellerNotificationChannelsController;
   disabled?: boolean;
-  onSubmitRequest: () => void;
 }) {
   const headingId = useId();
-  const controlsDisabled = disabled || controller.busy;
-  const telegramStatus = controller.linked
-    ? controller.preferences?.telegramUsername ? `@${controller.preferences.telegramUsername}` : "Аккаунт подключён"
-    : controller.link ? "Подтвердите подключение в боте" : "Аккаунт не подключён";
+  const controlsDisabled = disabled || controller.busy || controller.loading;
+  async function save() {
+    try {
+      if (await controller.savePreferences()) toast.success("Настройки уведомлений сохранены");
+    } catch { /* Inline validation and request errors stay in this section. */ }
+  }
 
   return <section className={styles.card} aria-labelledby={headingId}>
     <div className={styles.header}>
@@ -241,12 +172,7 @@ export function SellerNotificationChannels({ controller, disabled = false, onSub
       <p>Email и Telegram можно включить одновременно</p>
     </div>
 
-    {controller.loading ? <div className={styles.loading} role="status">
-      <span className="visuallyHidden">Загрузка каналов уведомлений</span>
-      <SkeletonBlock className={styles.loadingControl} />
-      <SkeletonBlock className={styles.loadingField} />
-      <SkeletonBlock className={styles.loadingControl} />
-    </div> : controller.loadError ? <Banner tone="danger" actions={
+    {controller.loading && !controller.preferences ? <SectionLoader label="Загрузка каналов уведомлений" compact /> : controller.loadError ? <Banner tone="danger" actions={
       <Button type="button" variant="utility" disabled={controlsDisabled}
         onClick={() => void controller.loadPreferences()}>Повторить</Button>
     }>{controller.loadError}</Banner> : <>
@@ -265,50 +191,35 @@ export function SellerNotificationChannels({ controller, disabled = false, onSub
             onKeyDown={event => {
               if (event.key === "Enter" && !event.nativeEvent.isComposing) {
                 event.preventDefault();
-                onSubmitRequest();
+                if (!controlsDisabled && controller.dirty) void save();
               }
             }}
             onChange={event => controller.setEmail(event.target.value)} />
         </div>
 
         <div className={styles.telegramRow}>
-          <label className={`${styles.channel} ${controller.draft.telegramEnabled && controller.linked ? styles.selected : ""} ${!controller.linked ? styles.unavailable : ""}`}>
-            <input type="checkbox" checked={controller.draft.telegramEnabled && controller.linked}
-              disabled={controlsDisabled || !controller.linked}
+          <label className={`${styles.channel} ${controller.draft.telegramEnabled ? styles.selected : ""} ${!controller.linked && !controller.draft.telegramEnabled ? styles.unavailable : ""}`}>
+            <input type="checkbox" checked={controller.draft.telegramEnabled}
+              disabled={controlsDisabled || (!controller.linked && !controller.draft.telegramEnabled)}
               onChange={event => controller.setTelegramEnabled(event.target.checked)} />
-            <ChoiceMark checked={controller.draft.telegramEnabled && controller.linked} appearance="outline-check" />
+            <ChoiceMark checked={controller.draft.telegramEnabled} appearance="outline-check" />
             <Image src="/icons/telegram.svg" alt="" width={18} height={18} aria-hidden="true" />
             <span>Telegram</span>
           </label>
 
-          <p className={styles.telegramStatus}>{telegramStatus}</p>
-
-          <div className={styles.telegramActions}>
-            {controller.linked ? controller.confirmingUnlink ? <div className={styles.inlineConfirm}
-              role="group" aria-label="Подтвердить отвязку Telegram">
-              <span>Отвязать аккаунт?</span>
-              <Button type="button" variant="utility" className={styles.dangerAction}
-                loading={controller.action === "unlink"} disabled={disabled}
-                onClick={() => void controller.disconnectTelegram()}>Да</Button>
-              <Button type="button" variant="utility" disabled={controlsDisabled}
-                onClick={() => controller.setConfirmingUnlink(false)}>Нет</Button>
-            </div> : <Button type="button" variant="utility" disabled={controlsDisabled}
-              onClick={() => controller.setConfirmingUnlink(true)}>Отвязать</Button>
-              : controller.link?.url ? <a className={`buttonUtility ${styles.botLink}`}
-                href={controller.link.url} target="_blank" rel="noopener noreferrer">Открыть бота</a>
-              : <Button type="button" variant="utility" disabled={controlsDisabled}
-                loading={controller.action === "link"}
-                onClick={() => void controller.connectTelegram()}>Подключить</Button>}
-          </div>
+          <TelegramConnection controller={controller.telegram} disabled={disabled || controller.action === "save"}
+            onConnect={() => void controller.connectTelegram()} onDisconnect={() => void controller.disconnectTelegram()} />
         </div>
+        {!controller.linked && controller.draft.telegramEnabled && <p className={styles.hint}>Выбор Telegram сохранён — уведомления возобновятся после подключения аккаунта</p>}
       </div>
 
-      {controller.telegramError ? <Banner tone="danger" actions={
-        <Button type="button" variant="utility" disabled={controlsDisabled}
-          onClick={() => void controller.refreshTelegram()}>Повторить проверку</Button>
-      }>{controller.telegramError}</Banner> : null}
       {controller.actionError ? <Banner tone="danger">{controller.actionError}</Banner> : null}
-      <p className={styles.hint}>Каналы сохраняются вместе с контактными данными</p>
+      <div className={styles.preferenceActions}>
+        <Button type="button" variant="secondary" disabled={controlsDisabled || !controller.dirty} onClick={controller.reset}>Отменить изменения</Button>
+        <Button type="button" variant="primary" disabled={disabled || !controller.dirty || (controller.busy && controller.action !== "save")}
+          loading={controller.action === "save"} onClick={() => void save()}>Сохранить уведомления</Button>
+      </div>
+      <p className={styles.hint}>Настройки уведомлений сохраняются отдельно от реквизитов, подключение аккаунта применяется сразу</p>
     </>}
   </section>;
 }

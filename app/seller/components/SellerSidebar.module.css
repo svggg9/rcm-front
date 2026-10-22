@@ -1,148 +1,25 @@
-.bar {
-  width: 100%;
-  min-width: 0;
-  background: var(--white);
-}
-
+.bar { min-width: 0; width: 100%; }
 .navigation,
-.secondary {
-  min-width: 0;
-  overflow-x: auto;
-  scrollbar-width: none;
-}
-
+.secondary { min-width: 0; overflow-x: auto; scrollbar-width: none; }
 .navigation::-webkit-scrollbar,
-.secondary::-webkit-scrollbar {
-  display: none;
-}
-
-.navigationTrack {
-  display: flex;
-  align-items: stretch;
-  justify-content: center;
-  gap: var(--space-2);
-  width: max-content;
-  min-width: 100%;
-}
-
-.navigation .navigationTrack {
-  padding-block: var(--space-2);
-}
-
-.navigationItem {
-  display: flex;
-  flex: 0 0 auto;
-  align-items: center;
-}
-
-.attentionLink {
-  display: inline-flex;
-  flex: 0 0 auto;
-  align-items: center;
-  justify-content: flex-start;
-  min-width: 44px;
-  min-height: 48px;
-  padding-inline: var(--space-1);
-  color: var(--black);
-  text-decoration: none;
-}
-
-.attentionLink > span {
-  transform: translateY(-7px);
-}
-
-.attentionLink:hover {
-  background: var(--surface-hover);
-  color: var(--black);
-  text-decoration: none;
-}
-
-.attentionLink:focus-visible {
-  outline: 2px solid var(--black);
-  outline-offset: -4px;
-}
-
-.navigationLink {
-  position: relative;
-  display: inline-flex;
-  flex: 0 0 auto;
-  align-items: center;
-  justify-content: center;
-  min-height: 48px;
-  padding: var(--space-3) var(--space-4);
-  background: var(--white);
-  color: var(--black);
-  font-family: inherit;
-  font-size: var(--font-sm);
-  line-height: 21px;
-  font-weight: 400;
-  text-decoration: none;
-  white-space: nowrap;
-}
-
-.navigationLink:hover {
-  background: var(--surface-hover);
-  color: var(--black);
-  text-decoration: none;
-}
-
-.navigationItem .navigationLinkWithAttention {
-  padding-inline: var(--space-2);
-}
-
+.secondary::-webkit-scrollbar { display: none; }
+.navigationTrack { display: flex; align-items: stretch; gap: 24px; width: max-content; min-width: 100%; }
+.navigationItem { display: flex; flex: 0 0 auto; align-items: stretch; }
+.navigationLink { position: relative; display: inline-flex; flex: 0 0 auto; align-items: center; justify-content: center; min-height: 72px; padding: 16px 0; color: var(--muted); font-family: inherit; font-size: 13px; line-height: 20px; font-weight: 400; text-decoration: none; white-space: nowrap; }
+.navigationLink:hover { color: var(--black); text-decoration: none; }
 .navigationLinkActive,
-.navigationLinkActive:hover {
-  background: var(--soft);
-  color: var(--black);
-  font-weight: 500;
+.navigationLinkActive:hover { color: var(--black); }
+.navigationLinkActive::after { position: absolute; right: 0; bottom: 0; left: 0; height: 2px; background: var(--black); content: ""; }
+.navigationLink:focus-visible { outline: 2px solid var(--gold-deep); outline-offset: -3px; }
+.secondary .navigationTrack { gap: 20px; }
+.secondary .navigationLink { min-height: 56px; padding-block: 16px; }
+.actions { display: flex; align-items: center; justify-content: flex-end; padding-block: 8px; }
+@media (max-width: 1120px) {
+  .navigationLink { min-height: 48px; padding-block: 12px; }
+  .secondary .navigationLink { min-height: 48px; padding-block: 12px; }
 }
-
-.navigationLink:focus-visible {
-  outline: 2px solid var(--black);
-  outline-offset: -4px;
-}
-
-.secondary .navigationTrack {
-  gap: var(--space-1);
-}
-
-.secondary .navigationLink {
-  min-height: 44px;
-  padding: var(--space-2) var(--space-5);
-}
-
-.secondary .navigationLinkActive,
-.secondary .navigationLinkActive:hover {
-  background: var(--soft);
-  color: var(--black);
-}
-
-.actions {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  padding-block: var(--space-2);
-}
-
 @media (max-width: 760px) {
-  .navigationTrack {
-    gap: var(--space-1);
-  }
-
-  .navigation .navigationTrack {
-    padding-block: var(--space-1);
-  }
-
-  .navigationLink {
-    min-height: 44px;
-    padding-inline: var(--space-3);
-  }
-
-  .attentionLink {
-    min-height: 44px;
-  }
-
-  .secondary .navigationLink {
-    padding-inline: var(--space-3);
-  }
+  .navigationTrack { gap: 24px; }
+  .navigationLink,
+  .secondary .navigationLink { min-height: 44px; padding-block: 12px; }
 }

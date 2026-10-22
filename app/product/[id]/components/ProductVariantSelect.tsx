@@ -20,12 +20,13 @@ export function ProductVariantSelect({ variants, selectedVariantId, onChange, on
   }, [open]);
   const selected = variants.find(variant => variant.id === selectedVariantId) ?? (variants.length === 1 ? variants[0] : null);
   const available = variants.some(variant => variant.availableQuantity === null || variant.availableQuantity > 0);
+  const hasSizeChoice = variants.some(variant => variant.size?.trim()) || variants.length > 1;
   return <div ref={root} className={styles.field} data-open={open || undefined} onKeyDown={event => {
     if (event.key === "Escape") { event.stopPropagation(); setOpen(false); root.current?.querySelector<HTMLButtonElement>("[data-product-size]")?.focus(); }
   }} onBlur={event => { if (!event.currentTarget.contains(event.relatedTarget as Node)) setOpen(false); }}>
     <Button type="button" variant="primary" className={className} loading={adding} success={success} disabled={!available}
-      data-product-size aria-expanded={open} aria-controls={open ? id : undefined}
-      onClick={() => { if (variants.some(variant => variant.size?.trim()) || variants.length > 1) setOpen(value => !value); else onAdd(selected?.id); }}>
+      data-product-size aria-expanded={hasSizeChoice ? open : undefined} aria-controls={open ? id : undefined}
+      onClick={() => { if (hasSizeChoice) setOpen(value => !value); else onAdd(selected?.id); }}>
       {available ? "В корзину" : "Нет в наличии"}
     </Button>
     {open && <div id={id} className={styles.dropdown}><SizeOptions options={variants} value={selected?.id ?? null} disabled={adding || success} onChange={value => { onChange(value); setOpen(false); root.current?.querySelector<HTMLButtonElement>("[data-product-size]")?.focus(); onAdd(value); }} /></div>}

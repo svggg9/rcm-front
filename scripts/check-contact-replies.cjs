@@ -215,7 +215,7 @@ async function main() {
     uncertain.status = 'UNKNOWN'; uncertain.canRetry = true; uncertain.errorCode = 'EMAIL_SEND_UNCONFIRMED';
     await page.getByRole('button', { name: 'Обновить', exact: true }).click();
     await card.waitFor(); await openReplies();
-    await card.getByText('Результат отправки неизвестен — письмо могло уйти', { exact: true }).waitFor();
+    await card.getByText('Результат отправки неизвестен — сообщение могло уйти', { exact: true }).waitFor();
     await card.getByRole('button', { name: 'Повторить отправку', exact: true }).click();
     await card.locator('[data-contact-reply="'+uncertain.id+'"]').getByText('Отправлено', { exact: true }).waitFor();
     const screenshots = path.join(root, "build", "contact-reply-screenshots");

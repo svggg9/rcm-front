@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState, type CSSProperties } from "react";
 
 import { ProductCarousel } from "../ProductCarousel/ProductCarousel";
 import { ProductTile } from "../ProductTile/ProductTile";
@@ -20,6 +20,9 @@ type Props = {
   actionLabel?: string;
   emptyText?: string;
   className?: string;
+  description?: string | null;
+  presentation?: "default" | "storefront";
+  mobileLayout?: "rail" | "grid";
   onFavoriteChange?: (product: CarouselProduct, isFavorite: boolean) => void;
 };
 
@@ -32,6 +35,9 @@ export function ProductShowcase({
   actionLabel,
   emptyText,
   className,
+  description,
+  presentation = "default",
+  mobileLayout = "rail",
   onFavoriteChange,
 }: Props) {
   const scrollerRef = useRef<HTMLUListElement | null>(null);
@@ -51,11 +57,8 @@ export function ProductShowcase({
     const node = scrollerRef.current;
     if (!node) return;
 
-    const firstItem = node.firstElementChild as HTMLElement | null;
-    if (!firstItem) return;
-
-    const step = firstItem.offsetWidth + 10;
-    const nextIndex = Math.round(node.scrollLeft / step);
+    const maxScroll = node.scrollWidth - node.clientWidth;
+    const nextIndex = maxScroll > 0 ? Math.round(node.scrollLeft / maxScroll * (visibleProducts.length - 1)) : 0;
     setActiveIndex(Math.min(Math.max(nextIndex, 0), visibleProducts.length - 1));
   }, [visibleProducts.length]);
 
@@ -66,13 +69,18 @@ export function ProductShowcase({
 
   return (
     <section
-      className={[styles.section, variantClass, densityClass, className]
+      className={[styles.section, variantClass, densityClass, presentation === "storefront" ? styles.storefront : "", mobileLayout === "grid" ? styles.mobileGrid : "", className]
         .filter(Boolean)
         .join(" ")}
       data-variant={variant}
+      data-presentation={presentation}
+      data-count={visibleProducts.length}
+      data-mobile-layout={mobileLayout}
     >
       <div className={styles.header}>
-        <h2 className={styles.title}>{title}</h2>
+        <div><h2 className={styles.title}>{title}</h2>
+          {description ? <p className={styles.description}>{description}</p> : null}
+        </div>
 
         {href ? (
           <Link href={href} className={styles.headerAction}>
@@ -88,11 +96,13 @@ export function ProductShowcase({
               ref={scrollerRef}
               className={styles.gridList}
               onScroll={handleGridScroll}
+              style={presentation === "storefront" ? { "--showcase-columns": Math.min(4, visibleProducts.length) } as CSSProperties : undefined}
             >
               {visibleProducts.map((product) => (
                 <ProductTile
                   key={product.id}
                   product={product}
+                  presentation={presentation}
                   onFavoriteChange={(_, isFavorite) =>
                     onFavoriteChange?.(product, isFavorite)
                   }
@@ -100,7 +110,7 @@ export function ProductShowcase({
               ))}
             </ul>
 
-            {visibleProducts.length > 1 ? (
+            {visibleProducts.length > 1 && mobileLayout !== "grid" ? (
               <div className={styles.mobileIndicator} aria-hidden="true">
                 {visibleProducts.map((product, index) => (
                   <span

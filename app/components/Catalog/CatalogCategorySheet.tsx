@@ -1,12 +1,12 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
 import { Icon } from "../ui/Icon";
 import styles from "./Catalog.module.css";
 
-export type MobileCategoryChoice = { value: string; label: string };
+export type MobileCategoryChoice = { value: string; label: string; depth?: number; path?: string; parentValue?: string | null };
 
 export function CatalogCategorySheet({
   categories,
@@ -23,6 +23,24 @@ export function CatalogCategorySheet({
 }) {
   const layerRef = useRef<HTMLDivElement>(null);
   const dialogRef = useRef<HTMLElement>(null);
+  const [query, setQuery] = useState("");
+  const [parentValue, setParentValue] = useState<string | null>(() => {
+    const selected = categories.find(category => selectedCategories.includes(category.value));
+    if (!selected) return null;
+    return categories.some(category => category.parentValue === selected.value) ? selected.value : selected.parentValue ?? null;
+  });
+  const currentParent = categories.find(category => category.value === parentValue);
+  const selectionRef = useRef<HTMLButtonElement>(null);
+  const cleanQuery = query.trim().toLocaleLowerCase("ru");
+  const visibleCategories = categories.filter(category => cleanQuery ?
+    (category.path ?? category.label).toLocaleLowerCase("ru").includes(cleanQuery) :
+    (category.parentValue ?? null) === (currentParent?.value ?? null));
+
+  function openLevel(value: string | null) {
+    setParentValue(value);
+    setQuery("");
+    requestAnimationFrame(() => selectionRef.current?.focus());
+  }
 
   useEffect(() => {
     const trigger = document.activeElement instanceof HTMLElement ? document.activeElement : null;
@@ -43,7 +61,7 @@ export function CatalogCategorySheet({
         return;
       }
       if (event.key !== "Tab" || !dialogRef.current) return;
-      const items = Array.from(dialogRef.current.querySelectorAll<HTMLButtonElement>("button:not([disabled])"));
+      const items = Array.from(dialogRef.current.querySelectorAll<HTMLElement>("button:not([disabled]), input:not([disabled])"));
       const first = items[0];
       const last = items.at(-1);
       if (event.shiftKey && (document.activeElement === first || document.activeElement === dialogRef.current)) {
@@ -91,20 +109,41 @@ export function CatalogCategorySheet({
             <Icon name="x" size={22} strokeWidth={1.5} />
           </button>
         </header>
+        <label className={styles.categorySheetSearch}>
+          <Icon name="search" size={18} />
+          <span className={styles.visuallyHidden}>Найти категорию</span>
+          <input type="search" value={query} placeholder="Найти категорию" onChange={event => setQuery(event.target.value)} />
+        </label>
+        {currentParent ? <div className={styles.categorySheetLocation}>
+          <button type="button" className={styles.categorySheetBack} disabled={pending}
+            onClick={() => openLevel(currentParent.parentValue ?? null)}>
+            <Icon name="chevron-left" size={18} />Назад
+          </button>
+          <span>{currentParent.path ?? currentParent.label}</span>
+        </div> : null}
         <div className={styles.categorySheetOptions}>
-          {[{ value: "", label: "Все товары" }, ...categories].map((category) => (
+          <button ref={selectionRef} type="button" className={styles.categorySheetOption}
+            disabled={pending} aria-pressed={currentParent ? selectedCategories.includes(currentParent.value) : selectedCategories.length === 0}
+            onClick={() => onSelect(currentParent?.value ?? "")}>
+            <span>{currentParent ? `Все товары: ${currentParent.label}` : "Все товары"}</span>
+            {(currentParent ? selectedCategories.includes(currentParent.value) : selectedCategories.length === 0) ? <Icon name="check" size={19} strokeWidth={1.5} /> : null}
+          </button>
+          {visibleCategories.map((category) => {
+            const hasChildren = categories.some(child => child.parentValue === category.value);
+            return (
             <button
               key={category.value}
               type="button"
               className={styles.categorySheetOption}
               aria-pressed={category.value ? selectedCategories.includes(category.value) : selectedCategories.length === 0}
               disabled={pending}
-              onClick={() => onSelect(category.value)}
+              onClick={() => hasChildren ? openLevel(category.value) : onSelect(category.value)}
             >
-              <span>{category.label}</span>
-              {(category.value ? selectedCategories.includes(category.value) : selectedCategories.length === 0) ? <Icon name="check" size={19} strokeWidth={1.5} /> : null}
+              <span>{cleanQuery ? category.path ?? category.label : category.label}</span>
+              {hasChildren ? <Icon name="chevron-right" size={19} strokeWidth={1.5} /> : selectedCategories.includes(category.value) ? <Icon name="check" size={19} strokeWidth={1.5} /> : null}
             </button>
-          ))}
+          ); })}
+          {visibleCategories.length === 0 && query.trim() ? <p className="textMuted textSmall" role="status">Категории не найдены</p> : null}
         </div>
       </section>
     </div>,

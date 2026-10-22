@@ -1,6 +1,6 @@
 .editor { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
 .media { position: relative; width: 100%; aspect-ratio: 1; max-height: 420px; background: var(--soft); border: 1px solid var(--line); }
-.title { margin: 0; font-size: 20px; line-height: 28px; font-weight: 400; }
+.title { margin: 0; font-size: 22px; line-height: 30px; font-weight: 650; }
 .image { object-fit: contain; }
 .dragActive { outline: 2px solid var(--gold-deep); outline-offset: -2px; }
 .invalid { border-color: var(--danger); }
@@ -22,7 +22,7 @@
 .orderControls { display: flex; }
 .toolbar > :last-child { margin-left: auto; }
 .toolbar .iconButton { width: 44px; height: 44px; min-width: 44px; padding: 0; border: 0; }
-.toolbar .textButton { padding: 0 8px; border: 0; font-size: 13px; font-weight: 400; }
+.toolbar .textButton { padding: 0 8px; border: 0; font-size: 14px; font-weight: 400; }
 .editor .uploadButton { width: 100%; }
 .editor .hint { margin: 0; font-size: 12px; line-height: 18px; color: var(--muted); }
 .progress { height: 3px; background: var(--line); }

@@ -1,0 +1,28 @@
+.preview { color: var(--black); }
+.toolbar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px 24px; margin-bottom: 24px; }
+.draft, .loadingToggle, .caption, .note { font-size: 13px; line-height: 20px; font-weight: 400; }
+.draft, .caption, .note { color: var(--muted); }
+.loadingToggle { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; cursor: pointer; }
+.loadingToggle input { width: 16px; height: 16px; accent-color: var(--black); }
+.grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 32px; }
+.example { min-width: 0; border-top: 1px solid var(--line); padding-top: 16px; scroll-margin-top: calc(var(--site-header-height) + 24px); }
+.preview .exampleHeader { margin: 0 0 24px; color: var(--muted); font-size: 12px; line-height: 18px; font-weight: 400; text-transform: uppercase; }
+.sectionError, .blockContext, .fieldExample, .toastExample { min-height: 204px; }
+.sectionError > div { width: 100%; }
+.blockContext { display: flex; flex-direction: column; justify-content: center; gap: 16px; }
+.blockContext h4 { margin: 0; font-size: 14px; line-height: 20px; font-weight: 400; text-transform: uppercase; }
+.preserved { margin: 0; color: var(--muted); font-size: 13px; line-height: 20px; }
+.retry { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; padding: 8px 0; border: 0; border-radius: 0; background: transparent; color: var(--black); font: inherit; font-size: 13px; line-height: 20px; font-weight: 400; text-decoration: underline; text-underline-offset: 4px; cursor: pointer; }
+.retry:focus-visible { outline: 1px solid var(--black); outline-offset: 4px; }
+.fieldExample { display: flex; align-items: center; }
+.fieldExample > label { width: 100%; }
+.toastExample { display: flex; flex-direction: column; align-items: flex-start; justify-content: center; gap: 12px; }
+.toastSample { position: relative; }
+.toastSample p { margin: 0; }
+.caption { margin: 16px 0 0; }
+.note { margin: 32px 0 0; max-width: 840px; }
+.emptyState { display: flex; align-items: center; min-height: 316px; }
+.dialogExample { grid-column: 1 / -1; }
+.dialogExample .caption { margin-top: 0; }
+@media (hover: hover) { .retry:hover { text-decoration-thickness: 2px; } }
+@media (max-width: 640px) { .grid { grid-template-columns: minmax(0, 1fr); gap: 28px; } .sectionError, .blockContext, .fieldExample, .toastExample { min-height: 172px; } .emptyState { min-height: 280px; } }

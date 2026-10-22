@@ -157,11 +157,11 @@
 }
 
 .line .itemActive::after {
-  background: var(--gold);
+  background: var(--tabs-active-line, var(--gold));
 }
 
 .line .itemActive:hover::after {
-  background: var(--gold);
+  background: var(--tabs-active-line, var(--gold));
 }
 
 .segmented .shell,

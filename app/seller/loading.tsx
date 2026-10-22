@@ -1,5 +1,5 @@
-import { CabinetPageSkeleton } from "../components/ui/CabinetSkeleton";
+import { CabinetSkeleton } from "../components/ui/CabinetSkeleton";
 
 export default function SellerLoading() {
-  return <CabinetPageSkeleton variant="dashboard" />;
+  return <div className="pageContainer" data-seller-shell><CabinetSkeleton variant="dashboard" /></div>;
 }

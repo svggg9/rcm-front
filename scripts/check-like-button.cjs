@@ -65,19 +65,22 @@ async function main() {
   assert.equal(calls, 1);
 
   let request;
+  const apiErrors = load("app/lib/apiErrors.ts", {});
   const store = load("app/lib/favoriteBrands.ts", {
     react: { useEffect() {}, useSyncExternalStore: (_, getSnapshot) => getSnapshot() },
     "./api": { API_URL: "https://test.invalid", apiFetch: (...args) => request(...args) },
-    "./authEvents": { AUTH_EVENT: "auth" }, "./client-session": { getClientSession: async () => null },
+    "./authEvents": { AUTH_EVENT: "auth" }, "./client-session": { getClientSession: async () => ({ id: 5 }) },
+    "./apiErrors": apiErrors,
   });
   const brand = { id: 1, name: "Тест", slug: "test", logoUrl: null, country: null };
-  request = async () => ({ ok: true });
+  request = async () => ({ ok: true, json: async () => [] });
+  await store.useFavoriteBrands().reload();
   await store.useFavoriteBrands().toggle(brand);
   request = async () => { throw Error("offline"); };
-  await assert.rejects(store.useFavoriteBrands().toggle(brand), /offline/);
+  await assert.rejects(store.useFavoriteBrands().toggle(brand), error => error instanceof apiErrors.ApiRequestError && error.kind === "network" && !error.message.includes("offline"));
   assert.equal(store.useFavoriteBrands().isFavorite(1), true);
   request = async () => ({ ok: false, text: async () => "forbidden" });
-  await assert.rejects(store.useFavoriteBrands().toggle({ ...brand, id: 2 }), /forbidden/);
+  await assert.rejects(store.useFavoriteBrands().toggle({ ...brand, id: 2 }), error => error instanceof apiErrors.ApiRequestError && error.kind === "http" && !error.message.includes("forbidden"));
   assert.equal(store.useFavoriteBrands().isFavorite(2), false);
 
   // A failed brand must not undo a different brand's successful request.
@@ -86,7 +89,7 @@ async function main() {
   const removal = store.useFavoriteBrands().toggle(brand);
   await store.useFavoriteBrands().toggle({ ...brand, id: 2 });
   rejectFirst(Error("offline"));
-  await assert.rejects(removal, /offline/);
+  await assert.rejects(removal, error => error instanceof apiErrors.ApiRequestError && error.kind === "network");
   assert.equal(store.useFavoriteBrands().isFavorite(1), true);
   assert.equal(store.useFavoriteBrands().isFavorite(2), true);
 

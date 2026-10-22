@@ -6,16 +6,21 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 import { usePathname } from "next/navigation";
 
 import { apiFetch, API_URL } from "./api";
-import { getClientSession } from "./client-session";
+import { getClientSession, getClientSessionRevision } from "./client-session";
+import { useCurrentUser } from "./useCurrentUser";
+import { ApiRequestError, readApiError, toApiError } from "./apiErrors";
 import {
   getGuestFavoriteIds,
   addGuestFavorite,
   removeGuestFavorite,
+  FAVORITES_EVENT,
+  emitFavoritesChanged,
 } from "./favorites";
 
 type FavoritesContextType = {
@@ -30,10 +35,6 @@ const FavoritesContext = createContext<FavoritesContextType | null>(null);
 const EMPTY_FAVORITES: number[] = [];
 const NEVER_FAVORITE = () => false;
 
-async function hasSession() {
-  return (await getClientSession()) !== null;
-}
-
 export function FavoritesProvider({
   children,
 }: {
@@ -45,51 +46,50 @@ export function FavoritesProvider({
     pathname.startsWith("/admin/") ||
     pathname === "/seller" ||
     pathname.startsWith("/seller/");
-  const [favoriteIds, setFavoriteIds] = useState<number[]>([]);
+  const session = useCurrentUser();
+  const [confirmed, setConfirmed] = useState<{ revision: number; ids: number[]; hasLoaded: boolean }>({ revision: -1, ids: [], hasLoaded: false });
+  const favoriteIds = confirmed.revision === session.revision ? confirmed.ids : EMPTY_FAVORITES;
+  const requestVersion = useRef(0);
+  const pendingRead = useRef<Promise<void> | null>(null);
+  const mutations = useRef(new Map<number, Promise<void>>());
   const favoriteIdSet = useMemo(() => new Set(favoriteIds), [favoriteIds]);
   const isFavorite = useCallback(
     (id: number) => favoriteIdSet.has(id),
     [favoriteIdSet]
   );
 
-  const refresh = useCallback(async () => {
-    if (skipCommerceLoad) return;
-
-    const authenticated = await hasSession();
-
-    if (!authenticated) {
-      setFavoriteIds(getGuestFavoriteIds());
-      return;
-    }
-
-    try {
-      const response = await apiFetch(`${API_URL}/api/favorites/ids`);
-
-      if (!response.ok) {
-        setFavoriteIds([]);
-        return;
-      }
-
-      const data: unknown = await response.json();
-
-      if (!Array.isArray(data)) {
-        setFavoriteIds([]);
-        return;
-      }
-
-      const ids = data.filter(
-        (id): id is number => typeof id === "number" && Number.isFinite(id)
-      );
-
-      setFavoriteIds(ids);
-    } catch {
-      setFavoriteIds([]);
-    }
+  const refresh = useCallback((): Promise<void> => {
+    if (skipCommerceLoad || mutations.current.size > 0) return Promise.resolve();
+    if (pendingRead.current) return pendingRead.current;
+    const ticket = ++requestVersion.current;
+    const revision = getClientSessionRevision();
+    const request = (async () => {
+      try {
+        const user = await getClientSession();
+        if (ticket !== requestVersion.current || revision !== getClientSessionRevision()) return;
+        let ids = getGuestFavoriteIds();
+        if (user) {
+          const response = await apiFetch(`${API_URL}/api/favorites/ids`, { signal: AbortSignal.timeout(15_000) });
+          if (!response.ok) throw await readApiError(response, "Не удалось загрузить избранное");
+          const data: unknown = await response.json();
+          if (!Array.isArray(data) || !data.every(id => Number.isSafeInteger(id) && id > 0)) throw new ApiRequestError("Не удалось загрузить избранное", "invalid-response");
+          ids = [...new Set(data as number[])];
+        }
+        if (ticket === requestVersion.current && revision === getClientSessionRevision()) setConfirmed({ revision, ids, hasLoaded: true });
+      } catch { /* Keep the confirmed favorites; an unavailable session is never a guest. */ }
+    })().finally(() => { if (pendingRead.current === request) pendingRead.current = null; });
+    pendingRead.current = request;
+    return request;
   }, [skipCommerceLoad]);
 
   useEffect(() => {
-    void Promise.resolve().then(refresh);
-  }, [refresh]);
+    requestVersion.current++;
+    pendingRead.current = null;
+    if (!session.loading && session.hasResolved && !session.error) void refresh();
+  }, [refresh, session.loading, session.hasResolved, session.error, session.revision]);
+
+  useEffect(() => () => { requestVersion.current++; pendingRead.current = null; }, []);
+  useEffect(() => { mutations.current.clear(); }, [session.revision]);
 
   useEffect(() => {
     if (skipCommerceLoad) return;
@@ -98,39 +98,44 @@ export function FavoritesProvider({
       void refresh();
     };
 
-    window.addEventListener("auth-changed", handler);
-    return () => window.removeEventListener("auth-changed", handler);
+    window.addEventListener(FAVORITES_EVENT, handler);
+    return () => window.removeEventListener(FAVORITES_EVENT, handler);
   }, [refresh, skipCommerceLoad]);
 
   const toggle = useCallback(
     async (id: number) => {
+      if (mutations.current.has(id)) return mutations.current.get(id);
       const isFav = favoriteIdSet.has(id);
-      const authenticated = await hasSession();
-
-      if (!authenticated) {
-        const next = isFav
-          ? removeGuestFavorite(id)
-          : addGuestFavorite(id);
-
-        setFavoriteIds(next);
-        return;
-      }
-
-      const method = isFav ? "DELETE" : "POST";
-
-      const response = await apiFetch(`${API_URL}/api/favorites/${id}`, {
-        method,
+      const revision = getClientSessionRevision();
+      const request = (async () => {
+        try {
+          const user = await getClientSession();
+          if (revision !== getClientSessionRevision() || confirmed.revision !== revision || !confirmed.hasLoaded) {
+            throw new ApiRequestError("Не удалось обновить избранное — попробуйте ещё раз", "invalid-response");
+          }
+          requestVersion.current++;
+          pendingRead.current = null;
+          if (!user) {
+            const ids = isFav ? removeGuestFavorite(id) : addGuestFavorite(id);
+            setConfirmed({ revision, ids, hasLoaded: true });
+            return;
+          }
+          const response = await apiFetch(`${API_URL}/api/favorites/${id}`, { method: isFav ? "DELETE" : "POST", signal: AbortSignal.timeout(15_000) });
+          if (!response.ok) throw await readApiError(response, "Не удалось обновить избранное");
+          if (revision !== getClientSessionRevision()) return;
+          setConfirmed(prev => prev.revision !== revision ? prev : { ...prev, ids: isFav ? prev.ids.filter(value => value !== id) : [...new Set([...prev.ids, id])] });
+          emitFavoritesChanged();
+        } catch (failure) { throw toApiError(failure, "Не удалось обновить избранное"); }
+      })().finally(() => {
+        if (mutations.current.get(id) === request) {
+          mutations.current.delete(id);
+          if (mutations.current.size === 0) void refresh();
+        }
       });
-
-      if (!response.ok) {
-        throw new Error("Не удалось обновить избранное");
-      }
-
-      setFavoriteIds((prev) =>
-        isFav ? prev.filter((value) => value !== id) : [...prev, id]
-      );
+      mutations.current.set(id, request);
+      return request;
     },
-    [favoriteIdSet]
+    [favoriteIdSet, confirmed, refresh]
   );
 
   const contextValue = useMemo<FavoritesContextType>(

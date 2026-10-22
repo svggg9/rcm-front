@@ -1,8 +1,10 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Icon } from "../../../components/ui/Icon";
+import { Loader } from "../../../components/ui/Loader";
+import { productImageBounds } from "../../../lib/productImageFrame";
 import styles from "../ProductPage.module.css";
 
 type Props = {
@@ -15,6 +17,21 @@ type Props = {
   onPrev: () => void;
   onNext: () => void;
 };
+
+function centerZoomedPhoto(node: HTMLDivElement | null, src: string) {
+  if (!node) return;
+  const image = node.querySelector("img");
+  const bounds = image ? productImageBounds(image, src) : null;
+  if (!image?.naturalWidth || !bounds) {
+    node.scrollTo({ left: (node.scrollWidth - node.clientWidth) / 2, top: (node.scrollHeight - node.clientHeight) / 2 });
+    return;
+  }
+  const fit = Math.min(image.clientWidth / image.naturalWidth, image.clientHeight / image.naturalHeight);
+  node.scrollTo({
+    left: (image.clientWidth - image.naturalWidth * fit) / 2 + (bounds.x + bounds.width / 2) * image.naturalWidth * fit - node.clientWidth / 2,
+    top: (image.clientHeight - image.naturalHeight * fit) / 2 + (bounds.y + bounds.height / 2) * image.naturalHeight * fit - node.clientHeight / 2,
+  });
+}
 
 export function ProductImageViewer({
   open,
@@ -30,6 +47,22 @@ export function ProductImageViewer({
   const touchStartRef = useRef<{ x: number; y: number } | null>(null);
   const closeButtonRef = useRef<HTMLButtonElement | null>(null);
   const previousFocusRef = useRef<HTMLElement | null>(null);
+  const imageWrapRef = useRef<HTMLDivElement | null>(null);
+  const [zoomedIndex, setZoomedIndex] = useState<number | null>(null);
+  const zoomed = zoomedIndex === currentIndex;
+  const [loadedImages, setLoadedImages] = useState<Set<string>>(() => new Set());
+  const [failedImages, setFailedImages] = useState<Set<string>>(() => new Set());
+  const imageKey = `${images[currentIndex]}:${zoomed ? "zoom" : "original"}`;
+  function markLoaded(key: string) { setLoadedImages(previous => previous.has(key) ? previous : new Set(previous).add(key)); }
+  function markFailed(key: string) { setFailedImages(previous => previous.has(key) ? previous : new Set(previous).add(key)); }
+
+  useEffect(() => {
+    if (!zoomed) return;
+    const frame = requestAnimationFrame(() => {
+      centerZoomedPhoto(imageWrapRef.current, images[currentIndex]);
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [zoomed, images, currentIndex]);
 
   useEffect(() => {
     if (!open) return;
@@ -62,7 +95,7 @@ export function ProductImageViewer({
 
     touchStartRef.current = null;
 
-    if (!start || images.length <= 1) return;
+    if (!start || images.length <= 1 || zoomed) return;
 
     const deltaX = touch.clientX - start.x;
     const deltaY = touch.clientY - start.y;
@@ -95,18 +128,30 @@ export function ProductImageViewer({
       >
         <Icon name="x" size={24} strokeWidth={1.35} />
       </button>
+      <button type="button" className={styles.viewerZoom} aria-label={zoomed ? "Уменьшить фото" : "Увеличить фото"}
+        aria-pressed={zoomed} onClick={event => {
+          event.stopPropagation(); setZoomedIndex(zoomed ? null : currentIndex);
+          if (!zoomed) requestAnimationFrame(() => imageWrapRef.current?.focus({ preventScroll: true }));
+        }}>
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.25" aria-hidden="true">
+          <circle cx="10" cy="10" r="6.5" /><path d="m15 15 6 6M7 10h6" />{!zoomed && <path d="M10 7v6" />}
+        </svg>
+      </button>
 
       <div
         className={styles.viewerBody}
         onClick={(event) => event.stopPropagation()}
       >
         <div className={styles.viewerStage}>
+          {!loadedImages.has(imageKey) && !failedImages.has(imageKey) && <Loader inline label="Загрузка фото" className={styles.viewerLoader} />}
+          {failedImages.has(imageKey) && <p className={styles.viewerError} role="status">Не удалось загрузить фото</p>}
           {images.length > 1 ? (
             <button
               type="button"
               className={`${styles.viewerArrow} ${styles.viewerArrowLeft}`}
               onClick={(event) => {
                 event.stopPropagation();
+                setZoomedIndex(null);
                 onPrev();
               }}
               aria-label="Предыдущее фото"
@@ -118,11 +163,19 @@ export function ProductImageViewer({
           )}
 
           <div
+            ref={imageWrapRef}
             className={styles.viewerImageWrap}
+            data-zoomed={zoomed || undefined}
+            tabIndex={zoomed ? 0 : undefined}
+            aria-label={zoomed ? "Увеличенное фото, используйте прокрутку для просмотра" : undefined}
+            onKeyDown={event => { if (zoomed && ["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) event.stopPropagation(); }}
             onTouchStart={handleTouchStart}
             onTouchEnd={handleTouchEnd}
           >
-            <div
+            {zoomed ? <div className={styles.viewerZoomCanvas}>
+              <Image src={images[currentIndex]} alt={`${title} ${currentIndex + 1} — увеличенное фото`} fill sizes="200vw" className={styles.viewerImage}
+                onLoad={() => { markLoaded(imageKey); centerZoomedPhoto(imageWrapRef.current, images[currentIndex]); }} onError={() => markFailed(imageKey)} />
+            </div> : <div
               className={styles.viewerImageSlider}
               style={{ transform: `translateX(-${currentIndex * 100}%)` }}
             >
@@ -135,10 +188,12 @@ export function ProductImageViewer({
                     sizes="100vw"
                     className={styles.viewerImage}
                     priority={index === currentIndex}
+                    onLoad={() => markLoaded(`${image}:original`)}
+                    onError={() => markFailed(`${image}:original`)}
                   />
                 </div>
               ))}
-            </div>
+            </div>}
           </div>
 
           {images.length > 1 ? (
@@ -147,6 +202,7 @@ export function ProductImageViewer({
               className={`${styles.viewerArrow} ${styles.viewerArrowRight}`}
               onClick={(event) => {
                 event.stopPropagation();
+                setZoomedIndex(null);
                 onNext();
               }}
               aria-label="Следующее фото"

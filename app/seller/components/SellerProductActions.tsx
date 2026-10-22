@@ -13,6 +13,7 @@ import {
 } from "../lib/sellerProductActions";
 import { ProductFailureGroups } from "./ProductFailureGroups";
 import styles from "./SellerProductsTab.module.css";
+import menuStyles from "../../components/ui/ActionMenu.module.css";
 
 type ActionItem = { action: ProductAction; reason?: string | null };
 
@@ -84,7 +85,7 @@ export function ProductActionsMenu({
       onClick={toggle} onKeyDown={event => { if (event.key === "ArrowDown") { event.preventDefault(); toggle(); } }}>
       <Ellipsis size={24} strokeWidth={1.5} aria-hidden="true" />
     </button>
-    <div id={id} ref={menu} popover="auto" role="menu" aria-label={label} className={styles.actionMenu}
+    <div id={id} ref={menu} popover="auto" role="menu" aria-label={label} className={menuStyles.panel}
       onToggle={event => setOpen(event.newState === "open")} onKeyDown={navigate}>
       {onCreateCollection ? <button type="button" role="menuitem" aria-disabled={!!collectionReason}
         onClick={() => { if (!collectionReason) { close(); onCreateCollection(); } }}>
@@ -92,7 +93,7 @@ export function ProductActionsMenu({
         {collectionReason ? <small>{collectionReason}</small> : null}
       </button> : null}
       {items.map(({ action, reason }) => <button key={action} type="button" role="menuitem"
-        className={action === "delete" ? styles.deleteAction : undefined} aria-disabled={!!reason}
+        className={action === "delete" ? menuStyles.danger : undefined} aria-disabled={!!reason}
         onClick={() => { if (!reason) { close(); onAction(action); } }}>
         <span>{productActionLabels[action]}</span>
         {reason ? <small>{reason}</small> : null}

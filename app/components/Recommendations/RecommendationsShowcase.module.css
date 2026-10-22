@@ -1,0 +1,11 @@
+.loading { width: 100%; }
+.heading { width: 140px; height: 20px; margin-bottom: 24px; }
+.grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 20px; }
+.photo { aspect-ratio: 1; }
+.line { width: 75%; height: 16px; margin-top: 16px; margin-bottom: 50px; }
+@media (max-width: 768px) {
+  .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+  .grid > div:nth-child(n + 3) { display: none; }
+  .loading[data-mobile-layout="grid"] .grid { row-gap: 28px; }
+  .loading[data-mobile-layout="grid"] .grid > div:nth-child(n + 3) { display: block; }
+}

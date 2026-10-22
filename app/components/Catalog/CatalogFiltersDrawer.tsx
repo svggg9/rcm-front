@@ -1,4 +1,5 @@
 "use client";
+import { categoryDepth, categoryValue } from "../../lib/categories";
 
 import { NumericInput } from "../ui/NumericInput";
 import { MONEY_RULES, parseNumericInput } from "../../lib/numericInput";
@@ -20,6 +21,7 @@ import { Icon } from "../ui/Icon";
 type Props = {
   open: boolean;
   categoryGroups: CatalogCategoryGroup[];
+  availableCategories?: string[] | null;
   brands: string[];
   sizes: CatalogSize[];
   initialFilters: CatalogFilterSelection;
@@ -40,9 +42,8 @@ function selectedGroupName(
 ): string | undefined {
   return groups.find(
     (group) =>
-      group.name === category ||
-      group.rootCategory?.name === category ||
-      group.categories.some((item) => item.name === category)
+      group.value === category ||
+      group.categories.some((item) => categoryValue(item) === category)
   )?.name;
 }
 
@@ -57,6 +58,7 @@ function CategoryCheckbox({ selected }: { selected: boolean }) {
 export function CatalogFiltersDrawer({
   open,
   categoryGroups,
+  availableCategories = null,
   brands,
   sizes,
   initialFilters,
@@ -78,6 +80,14 @@ export function CatalogFiltersDrawer({
   const [maxPrice, setMaxPrice] = useState(
     initialFilters.maxPrice === undefined ? "" : String(initialFilters.maxPrice)
   );
+  const facetContextMatches = audience === (initialFilters.audience ?? "all") &&
+    selectedBrands.length === initialFilters.brands.length && selectedBrands.every(value => initialFilters.brands.includes(value)) &&
+    selectedSizes.length === initialFilters.sizes.length && selectedSizes.every(value => initialFilters.sizes.includes(value)) &&
+    minPrice === (initialFilters.minPrice === undefined ? "" : String(initialFilters.minPrice)) &&
+    maxPrice === (initialFilters.maxPrice === undefined ? "" : String(initialFilters.maxPrice));
+  // Facets describe the applied URL. A changed draft must not be blocked by another context's counts.
+  const categoryAvailable = (value: string) => !facetContextMatches || availableCategories === null ||
+    availableCategories.includes(value) || categories.includes(value);
   const [brandSearch, setBrandSearch] = useState("");
   const [expandedGroups, setExpandedGroups] = useState<string[]>(() => {
     const activeGroups = initialFilters.categories
@@ -281,7 +291,7 @@ export function CatalogFiltersDrawer({
                 const groupSelected = categoryGroupSelected(categories, group);
 
                 if (!hasChildren) {
-                  const value = group.rootCategory?.name ?? group.name;
+                  const value = group.value;
                   return (
                     <button
                       key={group.name}
@@ -289,6 +299,7 @@ export function CatalogFiltersDrawer({
                       className={styles.categoryOption}
                       data-selected={categories.includes(value)}
                       aria-pressed={categories.includes(value)}
+                      disabled={!categoryAvailable(value)}
                       onClick={() => toggleCategory(value)}
                     >
                       {group.name}
@@ -304,8 +315,9 @@ export function CatalogFiltersDrawer({
                         className={styles.categoryParentChoice}
                         aria-expanded={expanded}
                         aria-pressed={groupSelected}
+                        disabled={!categoryAvailable(group.value) && !groupSelected}
                         onClick={() => {
-                          toggleCategory(group.name);
+                          toggleCategory(group.value);
                           toggleCategoryGroup(group.name);
                         }}
                       >
@@ -334,11 +346,13 @@ export function CatalogFiltersDrawer({
                             key={item.id}
                             type="button"
                             className={styles.categoryOption}
-                            data-selected={categories.includes(item.name)}
-                            aria-pressed={categories.includes(item.name)}
-                            onClick={() => toggleCategory(item.name)}
+                            data-depth={categoryDepth(group.rootCategory ? [group.rootCategory, ...group.categories] : group.categories, item.id)}
+                            data-selected={categories.includes(categoryValue(item))}
+                            aria-pressed={categories.includes(categoryValue(item))}
+                            disabled={!categoryAvailable(categoryValue(item))}
+                            onClick={() => toggleCategory(categoryValue(item))}
                           >
-                            <CategoryCheckbox selected={categories.includes(item.name)} />
+                            <CategoryCheckbox selected={categories.includes(categoryValue(item))} />
                             {item.label}
                           </button>
                         ))}

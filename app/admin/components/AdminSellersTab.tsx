@@ -86,6 +86,14 @@ function formatDate(value: string) {
   }).format(new Date(value));
 }
 
+function formatTelegramConnection(application: AdminSellerApplication) {
+  if (typeof application.telegramLinked !== "boolean") return "Статус недоступен";
+  if (!application.telegramLinked) return "Не подключён";
+
+  const username = application.telegramUsername?.trim().replace(/^@+/, "");
+  return username ? `Подключён · @${username}` : "Подключён";
+}
+
 export function AdminSellersTab({
   applications,
   totalElements,
@@ -397,7 +405,13 @@ function SellerApplicationDetails({
                 value={formatRussianPhone(application.phone)}
               />
               <InfoRow label="Электронная почта" value={application.email} />
-              <InfoRow label="Telegram" value={application.telegram || "—"} />
+              <InfoRow
+                label="Бот Telegram"
+                value={formatTelegramConnection(application)}
+              />
+              {application.telegram?.trim() ? (
+                <InfoRow label="Telegram в заявке" value={application.telegram.trim()} />
+              ) : null}
             </div>
           </DetailsSection>
 

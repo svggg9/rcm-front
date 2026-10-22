@@ -1,30 +1,21 @@
-.bar {
-  min-height: 76px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 20px;
-}
-
-.identity {
-  display: flex;
-  align-items: center;
-  gap: 26px;
-  min-width: 0;
-}
-
-.logo { display: block; width: 200px; }
+.shell { width: 100%; background: var(--surface-subtle, #f4f4f4); color: var(--black); }
+.inner { min-width: 0; }
+.bar { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 32px; min-height: 72px; border-bottom: 1px solid var(--line); }
+.identity { display: flex; flex-direction: column; justify-content: center; gap: 4px; min-width: 0; }
+.logo { display: block; width: 154px; }
 .logo img { display: block; width: 100%; height: auto; }
-.caption { color: var(--white); font-size: 12px; white-space: nowrap; }
-.actions { display: flex; align-items: center; gap: 8px; min-width: 0; }
-.account { display: flex; flex-shrink: 0; align-items: center; justify-content: center; gap: 12px; padding: 10px 16px; color: var(--white); font-size: 15px; line-height: 21px; text-decoration: none; min-width: 0; }
-.brandName { max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.brandWordmark { display: block; width: 144px; height: 36px; object-fit: contain; filter: brightness(0) invert(1); }
-.iconButton { display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; border: 0; background: transparent; color: var(--white); cursor: pointer; }
-.iconButton:hover, .account:hover { background: #ffffff14; text-decoration: none; }
-.iconButton:focus-visible { outline: 2px solid var(--gold); outline-offset: -2px; }
+.caption { color: var(--muted); font-size: 10px; line-height: 14px; white-space: nowrap; }
+.navigation { min-width: 0; }
+.actions { display: flex; align-items: center; justify-content: flex-end; gap: 4px; min-width: 0; }
+.account { display: flex; flex-shrink: 0; align-items: center; justify-content: center; gap: 8px; min-width: 0; min-height: 44px; padding: 8px; color: var(--black); font-size: 12px; line-height: 18px; text-decoration: none; }
+.brandName { max-width: 116px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.brandWordmark { display: block; width: 96px; height: 30px; object-fit: contain; }
+.iconButton { display: inline-flex; align-items: center; justify-content: center; width: 40px; height: 44px; border: 0; background: transparent; color: var(--muted); cursor: pointer; }
+.iconButton:hover,
+.account:hover { color: var(--black); background: var(--surface-hover); text-decoration: none; }
+.iconButton:focus-visible { outline: 2px solid var(--gold-deep); outline-offset: -2px; }
 .notifications { position: relative; }
-.popover { position: absolute; top: calc(100% + 16px); right: 0; width: 360px; max-width: calc(100vw - 32px); max-height: min(520px, 70vh); overflow-y: auto; background: var(--white); color: var(--black); border: 1px solid var(--line); box-shadow: 0 8px 24px #0002; z-index: 100; padding: 16px; }
+.popover { position: absolute; top: calc(100% + 12px); right: 0; width: 360px; max-width: calc(100vw - 32px); max-height: min(520px, 70vh); overflow-y: auto; background: var(--white); color: var(--black); border: 1px solid var(--line); box-shadow: 0 8px 24px #0002; z-index: 100; padding: 16px; }
 .popover h2 { margin: 0 0 12px; font-size: 17px; font-weight: 500; }
 .popover p { font-size: 14px; }
 .event { display: flex; flex-direction: column; gap: 4px; padding: 12px 0; border-top: 1px solid var(--line); color: var(--black); text-decoration: none; font-size: 14px; }
@@ -32,17 +23,22 @@
 .event strong { font-weight: 500; }
 .event time { color: var(--muted); font-size: 12px; }
 .account:focus-visible,
-.logo:focus-visible { outline: 2px solid var(--gold); outline-offset: 4px; }
-
-@media (max-width: 600px) {
-  .bar { min-height: 66px; gap: 16px; }
-  .logo { width: 132px; }
-  .caption { display: none; }
-  .account { font-size: 14px; }
-  .actions { gap: 0; }
-  .account { padding: 8px; gap: 6px; }
-  .brandName { max-width: 74px; }
-  .brandWordmark { width: 80px; height: 30px; }
-  .popover { position: fixed; top: 66px; right: 16px; }
+.logo:focus-visible { outline: 2px solid var(--gold-deep); outline-offset: 2px; }
+@media (max-width: 1240px) { .bar { gap: 24px; } .logo { width: 138px; } .brandName { max-width: 90px; } .brandWordmark { width: 80px; } }
+@media (max-width: 1120px) {
+  .bar { grid-template-columns: minmax(0, 1fr) auto; gap: 0 20px; padding-top: 8px; }
+  .identity { grid-column: 1; grid-row: 1; min-height: 60px; }
+  .actions { grid-column: 2; grid-row: 1; }
+  .navigation { grid-column: 1 / -1; grid-row: 2; }
 }
-@media (max-width: 380px) { .brandName { max-width: 60px; } .brandWordmark { width: 60px; } }
+@media (max-width: 600px) {
+  .bar { gap: 0 8px; padding-top: 0; }
+  .identity { min-height: 64px; }
+  .logo { width: 126px; }
+  .caption { font-size: 9px; line-height: 12px; }
+  .account { padding-inline: 4px; }
+  .actions { gap: 0; }
+  .brandName { max-width: 66px; }
+  .brandWordmark { width: 62px; height: 26px; }
+  .popover { position: fixed; top: 64px; right: 16px; }
+}

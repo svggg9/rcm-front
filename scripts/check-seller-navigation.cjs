@@ -43,12 +43,12 @@ const server = http.createServer(async (req, res) => {
   res.end(JSON.stringify(data));
 });
 
-async function assertCenteredNavigation(navigation, label, required = true) {
+async function assertAlignedNavigation(navigation, label, required = true) {
   const geometry = await navigation.evaluate(node => {
     const container = node.getBoundingClientRect();
     const links = Array.from(node.querySelectorAll("a"), link => link.getBoundingClientRect());
     return {
-      containerCenter: container.left + container.width / 2,
+      containerLeft: container.left,
       containerWidth: container.width,
       left: Math.min(...links.map(link => link.left)),
       right: Math.max(...links.map(link => link.right)),
@@ -57,9 +57,17 @@ async function assertCenteredNavigation(navigation, label, required = true) {
   const fits = geometry.right - geometry.left <= geometry.containerWidth + 1;
   if (required) assert.ok(fits, `${label}: all links should fit inside their navigation container`);
   if (fits) {
-    assert.ok(Math.abs((geometry.left + geometry.right) / 2 - geometry.containerCenter) <= 1,
-      `${label}: links should be centered in their navigation container`);
+    assert.ok(Math.abs(geometry.left - geometry.containerLeft) <= 1,
+      `${label}: links should start at their navigation container's left edge`);
   }
+  assert.equal(await navigation.locator('[data-seller-attention]').count(), 0, `${label}: navigation does not contain counters`);
+  const active = navigation.locator('[aria-current="page"]');
+  assert.equal(await active.evaluate(node => {
+    const underline = getComputedStyle(node, "::after");
+    const box = getComputedStyle(node);
+    return underline.content !== "none" && Number.parseFloat(underline.height) === 2
+      && box.backgroundColor === "rgba(0, 0, 0, 0)";
+  }), true, `${label}: the active link has a thin underline and no filled background`);
 }
 
 async function assertLinkVisible(page, link, label) {
@@ -134,7 +142,9 @@ async function main() {
       if (child.exitCode != null) throw new Error("Test Next server exited: " + logs);
       try { await fetch(origin + "/seller/returns/60", { signal: AbortSignal.timeout(2000) }); break; } catch { await new Promise(r => setTimeout(r, 500)); }
     }
-    browser = await chromium.launch({ headless: true, channel: "msedge" });
+    browser = await chromium.launch(process.env.PLAYWRIGHT_EXECUTABLE_PATH
+      ? { headless: true, executablePath: process.env.PLAYWRIGHT_EXECUTABLE_PATH }
+      : { headless: true, channel: "msedge" });
     page = await browser.newPage({ viewport: { width: 1280, height: 900 } });
     page.on("pageerror", e => errors.push(e.message));
     const sections = [
@@ -142,6 +152,13 @@ async function main() {
       { path: "/seller/orders", label: "Заказы" }, { path: "/seller/returns", label: "Заказы", activePath: "/seller/orders", secondary: "Возвраты" },
       { path: "/seller/finance", label: "Финансы" }, { path: "/seller/store", label: "Магазин" },
       { path: "/seller/legal", label: "Данные и документы" },
+    ];
+    const permanentSubsections = [
+      ["Главная", "/seller/home"], ["Товары", "/seller/products"],
+      ["Подборки", "/seller/products?section=collections"], ["Заказы", "/seller/orders"],
+      ["Возвраты", "/seller/returns"], ["Обзор финансов", "/seller/finance"],
+      ["Операции", "/seller/finance?view=operations"], ["Выплаты", "/seller/finance?view=payouts"],
+      ["Магазин", "/seller/store"], ["Данные и документы", "/seller/legal"],
     ];
     for (const section of sections) {
       await page.goto(origin + section.path);
@@ -155,6 +172,14 @@ async function main() {
         assert.equal(await secondary.getByRole("link", { name: section.secondary, exact: true }).getAttribute("aria-current"), "page");
       }
       assert.match(await page.locator("header").first().innerText(), /Для продавцов/);
+      assert.equal(await page.getByRole("navigation", { name: "Меню продавца" }).count(), 1, "One primary navigation in the header");
+      assert.equal(await page.getByRole("navigation", { name: "Подразделы кабинета" }).count(), 1, "One contextual navigation in the header");
+      const subsections = page.getByRole("navigation", { name: "Подразделы кабинета" });
+      assert.deepEqual(await subsections.getByRole("link").evaluateAll(links => links.map(link => [link.textContent, link.getAttribute("href")])), permanentSubsections,
+        "All subsection links stay present in the same order on every seller route");
+      assert.equal(await subsections.locator('[aria-current="page"]').count(), 1, "Exactly one active subsection on every seller route");
+      assert.equal(await subsections.locator('[aria-current="page"]').getAttribute("href"), section.path);
+      assert.equal(await page.locator('[data-seller-content] nav[aria-label="Меню продавца"], [data-seller-content] nav[aria-label="Подразделы кабинета"]').count(), 0, "No duplicate header navigation in page content");
       await page.reload();
       assert.equal(await navigation.locator('[aria-current="page"]').getAttribute("href"), section.activePath ?? section.path,
         `Reload should preserve ${section.path}`);
@@ -165,6 +190,26 @@ async function main() {
       await page.waitForURL(url => url.pathname + url.search === canonical);
       assert.equal(page.url().replace(origin, ""), canonical, `Legacy route ${legacy} should redirect to ${canonical}`);
     }
+    for (const [route, primary] of [["/seller/products?section=collections", "/seller/products"],
+      ["/seller/finance?view=operations", "/seller/finance"], ["/seller/finance?view=payouts", "/seller/finance"]]) {
+      await page.goto(origin + route);
+      const primaryNavigation = page.getByRole("navigation", { name: "Меню продавца" });
+      const secondaryNavigation = page.getByRole("navigation", { name: "Подразделы кабинета" });
+      await primaryNavigation.waitFor();
+      assert.equal(await primaryNavigation.locator('[aria-current="page"]').getAttribute("href"), primary);
+      assert.equal(await secondaryNavigation.locator('[aria-current="page"]').getAttribute("href"), route);
+      assert.deepEqual(await secondaryNavigation.getByRole("link").evaluateAll(links => links.map(link => [link.textContent, link.getAttribute("href")])), permanentSubsections);
+      await page.reload();
+      assert.equal(await secondaryNavigation.locator('[aria-current="page"]').getAttribute("href"), route, "Refresh keeps the selected permanent subsection");
+    }
+    await page.goto(origin + "/seller/home");
+    const permanentNavigation = page.getByRole("navigation", { name: "Подразделы кабинета" });
+    await permanentNavigation.getByRole("link", { name: "Возвраты", exact: true }).click();
+    await page.waitForURL(origin + "/seller/returns");
+    assert.equal(await permanentNavigation.locator('[aria-current="page"]').getAttribute("href"), "/seller/returns");
+    await page.goBack();
+    await page.waitForURL(origin + "/seller/home");
+    assert.equal(await permanentNavigation.locator('[aria-current="page"]').getAttribute("href"), "/seller/home", "Back restores the active subsection");
     assert.deepEqual(errors, [], "Every canonical route and legacy redirect should render without browser errors");
     console.log("PASS: all seven seller routes open directly and after reload with the seller header and correct active section");
     console.log("PASS: root and legacy tab URLs redirect to canonical routes while preserving section/view parameters");
@@ -173,8 +218,8 @@ async function main() {
       await page.goto(origin + section);
       await page.waitForLoadState("networkidle");
       assert.deepEqual(errors, [], `Seller navigation route ${section} should render without browser errors`);
-      await assertCenteredNavigation(page.getByRole("navigation", { name: "Меню продавца" }), `Primary navigation on ${section}`);
-      await assertCenteredNavigation(page.getByRole("navigation", { name: "Подразделы кабинета" }), `Secondary navigation on ${section}`);
+      await assertAlignedNavigation(page.getByRole("navigation", { name: "Меню продавца" }), `Primary navigation on ${section}`);
+      await assertAlignedNavigation(page.getByRole("navigation", { name: "Подразделы кабинета" }), `Secondary navigation on ${section}`);
     }
     await saveNavigationScreenshot(page, 1280);
 
@@ -213,7 +258,7 @@ async function main() {
       const payouts = secondary.getByRole("link", { name: "Выплаты", exact: true });
       assert.equal(await payouts.getAttribute("aria-current"), "page");
       await assertLinkVisible(page, payouts, `Third finance subsection at ${width}`);
-      await assertCenteredNavigation(secondary, `Finance subsections at ${width}`);
+      await assertAlignedNavigation(secondary, `Finance subsections at ${width}`, false);
       await page.reload();
       await page.waitForLoadState("networkidle");
       await assertLinkVisible(page, payouts, `Reloaded third finance subsection at ${width}`);
@@ -222,7 +267,7 @@ async function main() {
       assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
       await saveNavigationScreenshot(page, width);
     }
-    console.log("PASS: seller navigation centered at 1280; active/edge links, keyboard focus and unchanged page scroll at 390/320; navigation screenshots saved");
+    console.log("PASS: seller header navigation starts at its left edge with active underlines and no counters; active/edge links, keyboard focus and unchanged page scroll at 390/320; navigation screenshots saved");
 
     await page.setViewportSize({ width: 1280, height: 900 });
     await page.goto(origin + "/seller/orders");

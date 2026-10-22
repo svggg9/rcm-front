@@ -545,12 +545,9 @@ export function SellerLegalTab() {
         : "bank";
 
     const nextErrors = validation.validate();
-    const notificationsValid =
-      !notifications.dirty || notifications.validate();
-
     setError(null);
 
-    if (Object.keys(nextErrors).length > 0 || !notificationsValid) {
+    if (Object.keys(nextErrors).length > 0) {
       const firstField = Object.keys(nextErrors)[0] as keyof SellerLegalInfoForm | undefined;
       const invalidSection = firstField
         ? (Object.keys(SECTION_FIELDS) as SaveSection[]).find(section => SECTION_FIELDS[section].includes(firstField))
@@ -578,28 +575,7 @@ export function SellerLegalTab() {
       });
       emitSellerOnboardingChanged();
 
-      if (notifications.dirty) {
-        try {
-          const notificationsSaved = await notifications.savePreferences();
-          if (!notificationsSaved) {
-            toast.warning("Контакты сохранены, уведомления — нет", {
-              id: "seller-legal-save",
-              description: "Повторите загрузку в блоке уведомлений",
-              action: undefined,
-            });
-            return;
-          }
-        } catch (reason) {
-          toast.warning("Контакты сохранены, уведомления — нет", {
-            id: "seller-legal-save",
-            description: reason instanceof Error ? reason.message : "Не удалось сохранить настройки уведомлений",
-            action: undefined,
-          });
-          return;
-        }
-      }
-
-      toast.success(nextSavingSection === "contacts" ? "Контакты и уведомления сохранены" : "Реквизиты сохранены", {
+      toast.success(nextSavingSection === "contacts" ? "Контакты сохранены" : "Реквизиты сохранены", {
         id: "seller-legal-save", description: "Теперь можно добавить товар и отправить карточку на модерацию",
         action: { label: "Создать товар", onClick: () => void createProductDraft() },
       });
@@ -610,16 +586,6 @@ export function SellerLegalTab() {
     } finally {
       savePendingRef.current = false;
       setSavingSection(null);
-    }
-  }
-
-  function requestContactSave() {
-    const currentForm = formRef.current;
-    const submitter = currentForm?.querySelector<HTMLButtonElement>(
-      'button[name="saveSection"][value="contacts"]'
-    );
-    if (currentForm && submitter && !submitter.disabled) {
-      currentForm.requestSubmit(submitter);
     }
   }
 
@@ -634,7 +600,7 @@ export function SellerLegalTab() {
     try {
       const productId = await createSellerProductDraft();
       toast.dismiss("seller-legal-create");
-      router.push(`/seller/products/${productId}/edit`);
+      router.push(`/seller/products/${productId}/create`);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Не удалось создать товар", { id: "seller-legal-create" });
     } finally {
@@ -827,7 +793,6 @@ export function SellerLegalTab() {
             <SellerNotificationChannels
               controller={notifications}
               disabled={saving}
-              onSubmitRequest={requestContactSave}
             />
           </div>
 
@@ -1022,11 +987,10 @@ export function SellerLegalTab() {
         </section>
         <SectionSaveAction section={activeSection} savingSection={savingSection}
           busy={creatingProduct || notifications.busy}
-          dirty={Object.keys(form).some(field => form[field as keyof SellerLegalInfoForm] !== savedForm[field as keyof SellerLegalInfoForm]) || notifications.dirty}
+          dirty={Object.keys(form).some(field => form[field as keyof SellerLegalInfoForm] !== savedForm[field as keyof SellerLegalInfoForm])}
           onCancel={() => {
             setForm(savedForm);
             validation.reset();
-            notifications.reset();
             {
               setPointQuery(savedForm.shippingAddress || savedForm.cdekShipmentPoint);
               setCityOptionsOpen(false);

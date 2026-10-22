@@ -3,6 +3,16 @@
   margin: 0 auto;
 }
 
+/* Clip sideways overflow without creating a body scroll container that traps sticky form navigation. */
+html:has([data-editor-page]),
+body:has([data-editor-page]) { overflow-x: clip; }
+
+.pageContainer[data-seller-shell],
+.pageContainer[data-seller-header-inner] {
+  --container: var(--seller-content-width);
+  width: min(var(--container), calc(100% - 64px));
+}
+
 @media (max-width: 640px) {
   .appShell:has([data-buyer-mobile="true"]) {
     --site-header-height: var(--mobile-buyer-header-height);
@@ -82,6 +92,11 @@
 @media (max-width: 768px) {
   .pageContainer {
     width: min(100%, calc(100% - 32px));
+  }
+
+  .pageContainer[data-seller-shell],
+  .pageContainer[data-seller-header-inner] {
+    width: min(var(--container), calc(100% - 32px));
   }
 }
 

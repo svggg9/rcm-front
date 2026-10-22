@@ -4,18 +4,18 @@ import { useRef, useState } from "react";
 import { Button } from "../../../components/ui/Button";
 import { Dialog } from "../../../components/ui/Dialog";
 import { toast } from "../../../components/ui/toast";
-import { productPath } from "../../../lib/productUrls";
+import { productColorPath } from "../../../lib/productUrls";
 import type { Product } from "../lib/types";
 import styles from "../ProductPage.module.css";
 
-export function ProductShareButton({ product }: { product: Product }) {
+export function ProductShareButton({ product, colorwayId }: { product: Product; colorwayId?: number | null }) {
   const pending = useRef(false);
   const [manualUrl, setManualUrl] = useState<string | null>(null);
 
   async function share() {
     if (pending.current) return;
     pending.current = true;
-    const url = new URL(productPath(product), window.location.origin).href;
+    const url = new URL(productColorPath(product, colorwayId), window.location.origin).href;
     try {
       if (navigator.share) {
         try {

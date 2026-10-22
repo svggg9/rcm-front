@@ -4,6 +4,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { useSearchParams } from "next/navigation";
 import { useSessionResourceCache } from "../lib/useSessionResourceCache";
+import { emitCategoriesChanged } from "../lib/categoryEvents";
+import { createCategoryReadCoordinator } from "./lib/categoryReadCoordinator";
 import {
   CabinetPageSkeleton,
   CabinetSkeleton,
@@ -13,6 +15,8 @@ import {
 import styles from "./Admin.module.css";
 
 import { AdminSidebar } from "./components/AdminSidebar";
+import { AdminProductDetails } from "./components/AdminProductDetails";
+import { AdminDictionariesTab } from "./components/AdminDictionariesTab";
 
 import {
   approveProduct,
@@ -35,8 +39,6 @@ import {
   approveSellerApplication,
   getAdminSellerApplications,
   getAdminLedgerEntries,
-  getAdminSellerPayouts,
-  getAdminSellerPayoutStats,
   getAdminCdekWebhookEvents,
   rejectSellerApplication,
 } from "./lib/adminApi";
@@ -54,8 +56,6 @@ import type {
   AdminSellerApplication,
   SellerApplicationStatus,
   AdminFinancialLedgerEntry,
-  AdminSellerPayout,
-  AdminSellerPayoutStats,
   AdminCdekWebhookEvent,
   FinancialLedgerEntryType,
 } from "./types";
@@ -63,13 +63,6 @@ import type {
 const AdminProductsTab = dynamic(
   () => import("./components/AdminProductsTab").then((module) => module.AdminProductsTab),
   { loading: () => <CabinetSkeleton variant="list" compact /> }
-);
-const AdminProductDetails = dynamic(
-  () =>
-    import("./components/AdminProductDetails").then(
-      (module) => module.AdminProductDetails
-    ),
-  { loading: () => <CabinetSkeleton variant="detail" /> }
 );
 const AdminOrdersTab = dynamic(
   () => import("./components/AdminOrdersTab").then((module) => module.AdminOrdersTab),
@@ -84,13 +77,6 @@ const AdminOrderDetails = dynamic(
 );
 const AdminSellersTab = dynamic(
   () => import("./components/AdminSellersTab").then((module) => module.AdminSellersTab),
-  { loading: () => <CabinetSkeleton variant="form" /> }
-);
-const AdminDictionariesTab = dynamic(
-  () =>
-    import("./components/AdminDictionariesTab").then(
-      (module) => module.AdminDictionariesTab
-    ),
   { loading: () => <CabinetSkeleton variant="form" /> }
 );
 const AdminFinanceTab = dynamic(
@@ -420,29 +406,6 @@ function AdminPageContent({ initialData }: Props) {
   const cdekLoadIdRef = useRef(0);
   const productDetailsLoadIdRef = useRef(0);
   const orderDetailsLoadIdRef = useRef(0);
-  const [sellerPayouts, setSellerPayouts] = useState<AdminSellerPayout[]>(
-    initialData?.sellerPayouts ?? []
-  );
-  const [sellerPayoutStats, setSellerPayoutStats] =
-    useState<AdminSellerPayoutStats>(
-      initialData?.sellerPayoutStats ?? {
-        totalCount: 0,
-        readyAmount: 0,
-        sentAmount: 0,
-      }
-    );
-  const [payoutsLoading, setPayoutsLoading] = useState(false);
-  const [payoutsLoadingMore, setPayoutsLoadingMore] = useState(false);
-  const [payoutsNextPage, setPayoutsNextPage] = useState<number | null>(() =>
-    hasAnotherPage(
-      initialData?.sellerPayouts.length ?? 0,
-      initialData?.sellerPayoutStats.totalCount ?? 0
-    )
-      ? 1
-      : null
-  );
-  const payoutsLoadedRef = useRef(initialData?.sellerPayoutsLoaded ?? false);
-  const payoutsRequestRef = useRef<Promise<void> | null>(null);
   const [ledgerLoaded, setLedgerLoaded] = useState(
     initialData?.ledgerLoaded ?? false
   );
@@ -469,7 +432,9 @@ function AdminPageContent({ initialData }: Props) {
     initialData?.sizes ?? []
   );
   const categoriesLoadedRef = useRef(initialData?.categoriesLoaded ?? false);
-  const categoriesRequestRef = useRef<Promise<DictionaryItem[]> | null>(null);
+  const categoryReadsRef = useRef<ReturnType<typeof createCategoryReadCoordinator<DictionaryItem[]>> | null>(null);
+  const [categoryRefreshError, setCategoryRefreshError] = useState<string | null>(null);
+  const [categoryLoading, setCategoryLoading] = useState(false);
   const [dictionaryActionKey, setDictionaryActionKey] = useState<string | null>(
     null
   );
@@ -489,6 +454,37 @@ function AdminPageContent({ initialData }: Props) {
 
   const [error, setError] = useState<string | null>(initialData?.error ?? null);
 
+  if (!categoryReadsRef.current) {
+    categoryReadsRef.current = createCategoryReadCoordinator(
+      () => getAdminDictionary("categories"),
+      (items) => {
+        setCategories(items);
+        categoriesLoadedRef.current = true;
+        setCategoryRefreshError(null);
+        setCategoryLoading(false);
+      }
+    );
+  }
+
+  const readCategories = useCallback((options?: { reusePending?: boolean; failureMessage?: string }) => {
+    setCategoryLoading(true);
+    return categoryReadsRef.current!.read({
+      reusePending: options?.reusePending,
+      onError: (reason) => {
+        categoriesLoadedRef.current = false;
+        setCategoryLoading(false);
+        const message = options?.failureMessage ?? (reason instanceof Error ? reason.message : "Не удалось загрузить категории");
+        setCategoryRefreshError(message);
+      },
+    });
+  }, []);
+
+  const invalidateCategoryReads = useCallback(() => {
+    categoryReadsRef.current!.invalidate();
+    categoriesLoadedRef.current = false;
+    setCategoryLoading(false);
+  }, []);
+
   useEffect(() => {
     setError(null);
   }, [currentListKey]);
@@ -503,30 +499,12 @@ function AdminPageContent({ initialData }: Props) {
   }, [initialData, seedOrder, seedProduct]);
 
   const ensureCategories = useCallback(async () => {
-    if (categoriesLoadedRef.current) return;
-
-    if (!categoriesRequestRef.current) {
-      categoriesRequestRef.current = getAdminDictionary("categories");
-    }
-
-    try {
-      const nextCategories = await categoriesRequestRef.current;
-      setCategories(nextCategories);
-      categoriesLoadedRef.current = true;
-    } finally {
-      categoriesRequestRef.current = null;
-    }
-  }, []);
+    if (categoriesLoadedRef.current) return true;
+    return readCategories({ reusePending: true });
+  }, [readCategories]);
 
   const ensureProductCategories = useCallback(() => {
-    void ensureCategories().catch((reason: unknown) => {
-      if (currentTabRef.current !== "products") return;
-      setError(
-        reason instanceof Error
-          ? reason.message
-          : "Не удалось загрузить категории"
-      );
-    });
+    void ensureCategories();
   }, [ensureCategories]);
 
   const loadProducts = useCallback(
@@ -766,8 +744,8 @@ function AdminPageContent({ initialData }: Props) {
     setError(null);
 
     try {
-      const [categoriesData, sizesData] = await Promise.all([
-        getAdminDictionary("categories"),
+      const [, sizesData] = await Promise.all([
+        readCategories(),
         getAdminDictionary("sizes"),
       ]);
 
@@ -775,10 +753,9 @@ function AdminPageContent({ initialData }: Props) {
         loadId === dictionariesLoadIdRef.current &&
         currentListKeyRef.current === expectedKey
       ) {
-        setCategories(categoriesData);
-        categoriesLoadedRef.current = true;
         setSizes(sizesData);
-        loadedListKeyByTabRef.current.set("dictionaries", expectedKey);
+        if (categoriesLoadedRef.current) loadedListKeyByTabRef.current.set("dictionaries", expectedKey);
+        else loadedListKeyByTabRef.current.delete("dictionaries");
       }
     } catch (e) {
       if (
@@ -797,7 +774,7 @@ function AdminPageContent({ initialData }: Props) {
         setRefreshing(false);
       }
     }
-  }, []);
+  }, [readCategories]);
 
   const loadLedger = useCallback(
     async (options?: {
@@ -876,81 +853,14 @@ function AdminPageContent({ initialData }: Props) {
     [currentLedgerEntryType, currentLedgerOrderGroupId]
   );
 
-  const loadPayouts = useCallback(async (
-    force = false,
-    options?: { page?: number; append?: boolean }
-  ) => {
-    const page = options?.page ?? 0;
-    const append = options?.append ?? false;
-    if (!force && !append && payoutsLoadedRef.current) return;
-    if (payoutsRequestRef.current) {
-      if (!force) return payoutsRequestRef.current;
-      await payoutsRequestRef.current;
-      if (payoutsRequestRef.current) return payoutsRequestRef.current;
-    }
-
-    if (append) setPayoutsLoadingMore(true);
-    else setPayoutsLoading(true);
-    const request = Promise.all([
-      getAdminSellerPayouts(page, 50),
-      append ? Promise.resolve(null) : getAdminSellerPayoutStats(),
-    ])
-      .then(([data, stats]) => {
-        const nextPayouts = Array.isArray(data.content) ? data.content : [];
-        setSellerPayouts((current) =>
-          append ? appendUniqueById(current, nextPayouts) : nextPayouts
-        );
-        if (stats) {
-          setSellerPayoutStats(stats);
-        } else {
-          setSellerPayoutStats((current) => ({
-            ...current,
-            totalCount: data.totalElements ?? current.totalCount,
-          }));
-        }
-        setPayoutsNextPage(getNextPage(data));
-        payoutsLoadedRef.current = true;
-        if (currentListKeyRef.current === "finance:ALL:") {
-          loadedListKeyByTabRef.current.set("finance", "finance:ALL:");
-        }
-      })
-      .catch((e: unknown) => {
-        const hadLoadedPayouts = payoutsLoadedRef.current;
-        payoutsLoadedRef.current = false;
-        if (!hadLoadedPayouts && !append) {
-          setSellerPayouts([]);
-          setSellerPayoutStats({
-            totalCount: 0,
-            readyAmount: 0,
-            sentAmount: 0,
-          });
-        }
-        if (currentTabRef.current === "finance") {
-          loadedListKeyByTabRef.current.delete("finance");
-          setError(e instanceof Error ? e.message : "Не удалось загрузить выплаты");
-        }
-      })
-      .finally(() => {
-        if (payoutsRequestRef.current === request) {
-          payoutsRequestRef.current = null;
-          setPayoutsLoading(false);
-          setPayoutsLoadingMore(false);
-        }
-      });
-
-    payoutsRequestRef.current = request;
-    return request;
-  }, []);
-
-  const refreshDictionary = useCallback(async (kind: DictionaryKind) => {
-    const items = await getAdminDictionary(kind);
+  const refreshDictionary = useCallback(async (kind: DictionaryKind, failureMessage?: string) => {
     if (kind === "categories") {
-      setCategories(items);
-      categoriesLoadedRef.current = true;
+      return readCategories({ failureMessage });
     } else if (kind === "sizes") {
-      setSizes(items);
+      setSizes(await getAdminDictionary(kind));
     }
-  }, []);
+    return true;
+  }, [readCategories]);
 
   const loadCdekWebhookEvents = useCallback(
     async (options?: {
@@ -1158,7 +1068,6 @@ function AdminPageContent({ initialData }: Props) {
         void loadLedger({ silent: true });
       } else {
         setLoading(false);
-        void loadPayouts();
       }
       return;
     }
@@ -1181,7 +1090,6 @@ function AdminPageContent({ initialData }: Props) {
     loadOrders,
     loadSellerApplications,
     loadLedger,
-    loadPayouts,
     loadCdekWebhookEvents,
     loadDictionaries,
   ]);
@@ -1377,10 +1285,13 @@ function AdminPageContent({ initialData }: Props) {
     setError(null);
 
     try {
-      await createAdminDictionaryItem(kind, item);
-      await refreshDictionary(kind);
+      const created = await createAdminDictionaryItem(kind, item);
+      if (kind === "categories") invalidateCategoryReads();
+      if (kind === "categories") emitCategoriesChanged();
+      if (kind === "categories") setCategories((current) => [...current.filter((category) => category.id !== created.id), created]);
+      await refreshDictionary(kind, "Категория создана, но список не обновился — обновите его перед следующими изменениями");
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Не удалось создать значение");
+      if (kind !== "categories") setError(e instanceof Error ? e.message : "Не удалось создать значение");
       throw e;
     } finally {
       setDictionaryActionKey(null);
@@ -1396,10 +1307,13 @@ function AdminPageContent({ initialData }: Props) {
     setError(null);
 
     try {
-      await updateAdminDictionaryItem(kind, id, item);
-      await refreshDictionary(kind);
+      const updated = await updateAdminDictionaryItem(kind, id, item);
+      if (kind === "categories") invalidateCategoryReads();
+      if (kind === "categories") emitCategoriesChanged();
+      if (kind === "categories") setCategories((current) => current.map((category) => category.id === id ? updated : category));
+      await refreshDictionary(kind, "Категория сохранена, но список не обновился — обновите его перед следующими изменениями");
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Не удалось обновить значение");
+      if (kind !== "categories") setError(e instanceof Error ? e.message : "Не удалось обновить значение");
       throw e;
     } finally {
       setDictionaryActionKey(null);
@@ -1412,9 +1326,12 @@ function AdminPageContent({ initialData }: Props) {
 
     try {
       await deleteAdminDictionaryItem(kind, id);
-      await refreshDictionary(kind);
+      if (kind === "categories") invalidateCategoryReads();
+      if (kind === "categories") emitCategoriesChanged();
+      if (kind === "categories") setCategories((current) => current.map((category) => category.id === id ? { ...category, isActive: false, effectiveActive: false } : category));
+      await refreshDictionary(kind, "Категория отключена, но список не обновился — обновите его перед следующими изменениями");
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Не удалось выключить значение");
+      if (kind !== "categories") setError(e instanceof Error ? e.message : "Не удалось выключить значение");
       throw e;
     } finally {
       setDictionaryActionKey(null);
@@ -1460,6 +1377,7 @@ function AdminPageContent({ initialData }: Props) {
   async function assignSelectedProductCategory(params: {
     categoryId?: number;
     categoryName?: string;
+    parentId?: number | null;
   }) {
     if (!selectedProduct) return;
 
@@ -1472,14 +1390,17 @@ function AdminPageContent({ initialData }: Props) {
       let categoryId = params.categoryId;
 
       if (!categoryId && cleanName) {
+        if (params.parentId === undefined) throw new Error("Выберите раздел для новой категории");
         const created = await createAdminDictionaryItem("categories", {
           name: cleanName,
+          parentId: params.parentId,
           isActive: true,
         });
 
         categoryId = created.id;
+        invalidateCategoryReads();
+        emitCategoriesChanged();
         setCategories((current) => [...current, created]);
-        categoriesLoadedRef.current = true;
       }
 
       if (!categoryId) {
@@ -1487,6 +1408,8 @@ function AdminPageContent({ initialData }: Props) {
       }
 
       await assignProductCategory(selectedProduct.id, categoryId);
+      invalidateCategoryReads();
+      void refreshDictionary("categories", "Категория назначена, но список не обновился — обновите его перед следующими изменениями");
       invalidateProduct(selectedProduct.id);
       loadedListKeyByTabRef.current.delete("products");
       invalidatedListTabsRef.current.add("products");
@@ -1497,13 +1420,6 @@ function AdminPageContent({ initialData }: Props) {
         Number(selectedProductIdRef.current) === selectedProduct.id
       ) {
         await loadSelectedProduct(selectedProduct.id, true);
-      }
-    } catch (e) {
-      if (
-        currentTabRef.current === "products" &&
-        Number(selectedProductIdRef.current) === selectedProduct.id
-      ) {
-        setError(e instanceof Error ? e.message : "Не удалось назначить категорию");
       }
     } finally {
       setActionProductId(null);
@@ -1592,6 +1508,13 @@ function AdminPageContent({ initialData }: Props) {
                 categories={categories}
                 sizes={sizes}
                 actionKey={dictionaryActionKey}
+                categoryError={categoryRefreshError}
+                onRetryCategories={() => {
+                  if (dictionaryActionKey !== null) return;
+                  setDictionaryActionKey("categories:refresh");
+                  void refreshDictionary("categories", "Не удалось обновить категории — попробуйте ещё раз")
+                    .finally(() => setDictionaryActionKey(null));
+                }}
                 onCreate={(kind, item) => createDictionaryItem(kind, item)}
                 onUpdate={(kind, id, item) =>
                   updateDictionaryItem(kind, id, item)
@@ -1604,26 +1527,11 @@ function AdminPageContent({ initialData }: Props) {
                 totalElements={totalLedgerEntries}
                 refreshing={refreshing}
                 ledgerLoaded={ledgerLoaded}
-                payouts={sellerPayouts}
-                payoutStats={sellerPayoutStats}
-                payoutsLoading={payoutsLoading}
-                payoutsLoadingMore={payoutsLoadingMore}
                 ledgerLoadingMore={loadingMoreList === "finance"}
                 entryType={currentLedgerEntryType}
                 orderGroupId={currentLedgerOrderGroupId}
                 onEntryTypeChange={changeLedgerEntryType}
                 onOrderGroupIdChange={changeLedgerOrderGroupId}
-                onLoadPayouts={loadPayouts}
-                onPayoutsChange={setSellerPayouts}
-                onLoadMorePayouts={
-                  payoutsNextPage === null
-                    ? undefined
-                    : () =>
-                        void loadPayouts(false, {
-                          page: payoutsNextPage,
-                          append: true,
-                        })
-                }
                 onLoadMoreLedger={
                   ledgerNextPage === null
                     ? undefined
@@ -1723,11 +1631,14 @@ function AdminPageContent({ initialData }: Props) {
                 key={selectedProduct.id}
                 product={selectedProduct}
                 categories={categories}
+                categoryError={categoryRefreshError}
+                categoryLoading={categoryLoading}
+                onRetryCategories={() => {
+                  if (!categoryLoading) void readCategories();
+                }}
                 actionProductId={actionProductId}
                 onBack={closeProductDetails}
-                onAssignCategory={(params) =>
-                  void assignSelectedProductCategory(params)
-                }
+                onAssignCategory={assignSelectedProductCategory}
                 onApprove={() =>
                   void runProductAction(selectedProduct.id, approveProduct)
                 }

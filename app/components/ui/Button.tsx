@@ -1,4 +1,4 @@
-import type { ButtonHTMLAttributes, ReactNode } from "react";
+import type { ButtonHTMLAttributes, ReactNode, Ref } from "react";
 import styles from "./Button.module.css";
 
 type ButtonVariant =
@@ -16,6 +16,7 @@ type Props = ButtonHTMLAttributes<HTMLButtonElement> & {
   loading?: boolean;
   success?: boolean;
   reserveLabelSpace?: boolean;
+  ref?: Ref<HTMLButtonElement>;
 };
 
 export function Button({

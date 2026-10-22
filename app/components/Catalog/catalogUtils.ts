@@ -1,3 +1,4 @@
+import { buildCategoryTree, categoryDepth, categoryValue, findCategory, flattenCategoryTree } from "../../lib/categories";
 import type {
   CatalogCategory,
   CatalogCategoryGroup,
@@ -21,221 +22,47 @@ export const sortLabels: Record<Exclude<SortValue, "">, string> = {
   "price-desc": "Цена по убыванию",
 };
 
-const CATEGORY_GROUPS = [
-  {
-    name: "Одежда",
-    keywords: [
-      "футбол",
-      "майк",
-      "топ",
-      "лонгслив",
-      "свит",
-      "худи",
-      "толстов",
-      "рубаш",
-      "блуз",
-      "плать",
-      "юбк",
-      "брюк",
-      "джинс",
-      "шорт",
-      "костюм",
-      "пиджак",
-      "жакет",
-      "куртк",
-      "пальто",
-      "жилет",
-      "бель",
-      "купаль",
-      "легинс",
-      "олимп",
-      "поло",
-      "носк",
-      "одежд",
-    ],
-  },
-  {
-    name: "Обувь",
-    keywords: [
-      "кроссов",
-      "кед",
-      "ботин",
-      "сапог",
-      "туфл",
-      "лофер",
-      "сандал",
-      "босонож",
-      "тапоч",
-      "обув",
-    ],
-  },
-  {
-    name: "Аксессуары",
-    keywords: [
-      "сумк",
-      "рюкзак",
-      "кошел",
-      "ремн",
-      "головн",
-      "шапк",
-      "панам",
-      "кепк",
-      "шарф",
-      "перчат",
-      "очк",
-      "аксессуар",
-    ],
-  },
-] as const;
-
-function normalizeCategoryName(value: string): string {
-  return value.trim().toLocaleLowerCase("ru");
+export function groupCatalogCategories(categories: CatalogCategory[]): CatalogCategoryGroup[] {
+  return buildCategoryTree(categories).map(root => ({
+    name: root.label, value: categoryValue(root), rootCategory: root,
+    categories: flattenCategoryTree(root.children),
+  }));
 }
 
-function childLabel(categoryName: string): string {
-  const parts = categoryName.split("/").map((part) => part.trim());
-  return parts.length > 1 ? parts.slice(1).join(" / ") : categoryName.trim();
-}
-
-function dedupeCategoryChildren(
-  categories: CatalogCategory[]
-): Array<CatalogCategory & { label: string }> {
-  const byLabel = new Map<string, CatalogCategory & { label: string }>();
-
-  for (const category of categories) {
-    const label = childLabel(category.name);
-    const key = normalizeCategoryName(label);
-    const previous = byLabel.get(key);
-
-    if (!previous || (previous.name.includes("/") && !category.name.includes("/"))) {
-      byLabel.set(key, { ...category, label });
-    }
-  }
-
-  return Array.from(byLabel.values());
-}
-
-export function groupCatalogCategories(
-  categories: CatalogCategory[]
-): CatalogCategoryGroup[] {
-  const assigned = new Set<number>();
-  const result: CatalogCategoryGroup[] = [];
-  const knownNames = new Set(CATEGORY_GROUPS.map((group) => normalizeCategoryName(group.name)));
-
-  for (const group of CATEGORY_GROUPS) {
-    const groupName = normalizeCategoryName(group.name);
-    const rootCategory = categories.find(
-      (category) => normalizeCategoryName(category.name) === groupName
-    );
-    if (rootCategory) assigned.add(rootCategory.id);
-
-    const matches = categories.filter((category) => {
-      if (category.id === rootCategory?.id) return false;
-      const [parent] = category.name.split("/").map((part) => part.trim());
-      const hasExplicitParent = category.name.includes("/");
-      const normalized = normalizeCategoryName(category.name);
-      const isMatch = hasExplicitParent
-        ? normalizeCategoryName(parent) === groupName
-        : group.keywords.some((keyword) => normalized.includes(keyword));
-
-      if (isMatch) assigned.add(category.id);
-      return isMatch;
-    });
-
-    if (rootCategory || matches.length > 0) {
-      result.push({
-        name: group.name,
-        rootCategory,
-        categories: dedupeCategoryChildren(matches),
-      });
-    }
-  }
-
-  const explicitParents = Array.from(
-    new Set(
-      categories
-        .filter((category) => category.name.includes("/"))
-        .map((category) => category.name.split("/")[0].trim())
-        .filter((parent) => !knownNames.has(normalizeCategoryName(parent)))
-    )
-  );
-
-  for (const parent of explicitParents) {
-    const rootCategory = categories.find(
-      (category) => normalizeCategoryName(category.name) === normalizeCategoryName(parent)
-    );
-    if (rootCategory) assigned.add(rootCategory.id);
-
-    const matches = categories.filter((category) => {
-      if (!category.name.includes("/")) return false;
-      const explicitParent = category.name.split("/")[0].trim();
-      const isMatch = normalizeCategoryName(explicitParent) === normalizeCategoryName(parent);
-      if (isMatch) assigned.add(category.id);
-      return isMatch;
-    });
-
-    result.push({
-      name: parent,
-      rootCategory,
-      categories: dedupeCategoryChildren(matches),
-    });
-  }
-
-  for (const category of categories) {
-    if (assigned.has(category.id)) continue;
-    result.push({ name: category.name, rootCategory: category, categories: [] });
-  }
-
-  return result;
-}
-
-export function expandCategorySelection(
-  selectedCategory: string,
-  groups: CatalogCategoryGroup[]
-): string[] {
-  if (!selectedCategory) return [];
-
-  const group = groups.find(
-    (item) => normalizeCategoryName(item.name) === normalizeCategoryName(selectedCategory)
-  );
-
-  if (!group) return [selectedCategory];
-
-  return Array.from(
-    new Set([
-      ...(group.rootCategory ? [group.rootCategory.name] : []),
-      ...group.categories.map((category) => category.name),
-    ])
-  );
+export function expandCategorySelection(selectedCategory: string, groups: CatalogCategoryGroup[]): string[] {
+  void groups;
+  // The server resolves the stable selection and all descendants, including historical aliases.
+  return selectedCategory ? [selectedCategory] : [];
 }
 
 export function getMobileCategoryChoices(
-  groups: CatalogCategoryGroup[],
-  availableNames: string[] | null,
-  selectedCategories: string[]
-): Array<{ value: string; label: string }> {
-  const dictionary = groups.flatMap((group) => [
-    ...(group.rootCategory ? [group.rootCategory.name] : []),
-    ...group.categories.map((category) => category.name),
-  ]);
-  // Availability uses exact backend values. Grouping may deduplicate a plain
-  // and a prefixed dictionary name; it must not discard a published category.
-  const names = Array.from(new Set(availableNames ?? dictionary));
-  selectedCategories.forEach((category) => {
-    if (!names.includes(category)) names.push(category);
+  groups: CatalogCategoryGroup[], availableValues: string[] | null, selectedCategories: string[],
+  labels: Record<string, string> = {},
+): Array<{ value: string; label: string; depth: number; path?: string; parentValue: string | null }> {
+  const available = availableValues === null ? null : new Set(availableValues);
+  const selected = new Set(selectedCategories);
+  const dictionary = groups.flatMap(group => group.rootCategory ? [group.rootCategory, ...group.categories] : group.categories);
+  const byId = new Map(dictionary.map(category => [category.id, category]));
+  // Keep the navigation path to a selected category even when its facet count is zero.
+  for (const value of selectedCategories) {
+    let current = dictionary.find(category => categoryValue(category) === value);
+    while (current) {
+      selected.add(categoryValue(current));
+      current = current.parentId === null ? undefined : byId.get(current.parentId);
+    }
+  }
+  const choices = groups.flatMap(group => {
+    const root = group.rootCategory;
+    if (!root) return [];
+    const children = group.categories.filter(category => available === null || available.has(categoryValue(category)) || selected.has(categoryValue(category)));
+    if (available !== null && !available.has(group.value) && !selected.has(group.value) && children.length === 0) return [];
+    return [{value: group.value, label: group.name, depth: 0, path: root.name, parentValue: null}, ...children.map(category => ({
+      value: categoryValue(category), label: category.label, depth: categoryDepth(dictionary, category.id) - 1, path: category.name,
+      parentValue: category.parentId === null ? null : categoryValue(byId.get(category.parentId)!),
+    }))];
   });
-  const labelFor = (name: string) => name.split("/").map((part) => part.trim()).filter(Boolean).at(-1) ?? name;
-  const dictionaryIndex = (name: string) => {
-    const index = dictionary.findIndex((item) => item === name || labelFor(item) === labelFor(name));
-    return index < 0 ? dictionary.length : index;
-  };
-  names.sort((a, b) => dictionaryIndex(a) - dictionaryIndex(b) || a.localeCompare(b, "ru"));
-  const labelCounts = new Map<string, number>();
-  names.forEach((name) => labelCounts.set(labelFor(name), (labelCounts.get(labelFor(name)) ?? 0) + 1));
-  return names.map((value) => ({
-    value,
-    label: (labelCounts.get(labelFor(value)) ?? 0) > 1 ? value : labelFor(value),
-  }));
+  return [...choices, ...selectedCategories.filter(value => !choices.some(choice => choice.value === value))
+    .map(value => ({value, label: labels[value] ?? value, depth: 0, path: labels[value] ?? value, parentValue: null}))];
 }
 
 export function firstSearchParam(value: CatalogSearchParamValue): string {
@@ -243,52 +70,53 @@ export function firstSearchParam(value: CatalogSearchParamValue): string {
   return value ?? "";
 }
 
-export function canonicalCategoryName(value: string): string {
-  const name = value.trim();
-  const [root, ...children] = name.split(" / ");
-  return root === "Дом" || root === "Искусство"
-    ? ["Дом и искусство", ...children].join(" / ")
-    : name;
-}
+export function canonicalCategoryName(value: string): string { return value.trim(); }
 
-export function expandCategorySelections(
-  categories: string[],
-  groups: CatalogCategoryGroup[]
-): string[] {
-  return Array.from(new Set(categories.flatMap((category) => expandCategorySelection(category, groups))));
+export function expandCategorySelections(categories: string[], groups: CatalogCategoryGroup[]): string[] {
+  void groups;
+  return [...new Set(categories)];
 }
 
 export function categoryGroupSelected(categories: string[], group: CatalogCategoryGroup): boolean {
-  return categories.some((category) =>
-    category === group.name || category === group.rootCategory?.name ||
-    group.categories.some((child) => child.name === category)
-  );
+  return categories.some(value => value === group.value || group.categories.some(child => categoryValue(child) === value));
 }
 
-export function toggleCategorySelection(
-  categories: string[],
-  category: string,
-  groups: CatalogCategoryGroup[]
-): string[] {
-  const root = groups.find((group) => group.name === category || group.rootCategory?.name === category);
-  if (root) return [root.name];
-  const parent = groups.find((group) => group.categories.some((child) => child.name === category));
+export function toggleCategorySelection(categories: string[], category: string, groups: CatalogCategoryGroup[]): string[] {
+  const root = groups.find(group => group.value === category);
+  if (root) return [root.value];
+  const parent = groups.find(group => group.categories.some(child => categoryValue(child) === category));
   if (!parent) return [category];
-  const siblings = categories.filter((value) => parent.categories.some((child) => child.name === value));
-  const next = siblings.includes(category)
-    ? siblings.filter((value) => value !== category)
-    : [...siblings, category];
-  return next.length > 0 ? next : [parent.name];
+  const dictionary = parent.rootCategory ? [parent.rootCategory, ...parent.categories] : parent.categories;
+  const byId = new Map(dictionary.map(item => [item.id, item]));
+  const target = dictionary.find(item => categoryValue(item) === category)!;
+  const isAncestor = (ancestorId: number, item: CatalogCategory) => {
+    let parentId = item.parentId;
+    while (parentId !== null) {
+      if (parentId === ancestorId) return true;
+      parentId = byId.get(parentId)?.parentId ?? null;
+    }
+    return false;
+  };
+  const siblings = categories.filter(value => {
+    const item = parent.categories.find(child => categoryValue(child) === value);
+    return item && (item.id === target.id || (!isAncestor(item.id, target) && !isAncestor(target.id, item)));
+  });
+  const next = siblings.includes(category) ? siblings.filter(value => value !== category) : [...siblings, category];
+  return next.length ? next : [parent.value];
 }
 
 export function normalizeCategorySelection(categories: string[], groups: CatalogCategoryGroup[]): string[] {
-  if (categories.length === 0) return [];
-  const group = groups.find((item) => categoryGroupSelected([categories[0]], item));
-  if (!group) return [categories[0]];
-  if (categories.some((category) => category === group.name || category === group.rootCategory?.name)) {
-    return [group.name];
-  }
-  return categories.filter((category) => categoryGroupSelected([category], group));
+  const dictionary = groups.flatMap(group => group.rootCategory ? [group.rootCategory, ...group.categories] : group.categories);
+  // Unknown historical aliases stay in the request for the server to resolve; never broaden to all products.
+  return [...new Set(categories.map(value => {
+    const found = findCategory(dictionary, value);
+    return found ? categoryValue(found) : value;
+  }))];
+}
+
+export function categorySelectionLabel(value: string, groups: CatalogCategoryGroup[]): string {
+  const dictionary = groups.flatMap(group => group.rootCategory ? [group.rootCategory, ...group.categories] : group.categories);
+  return findCategory(dictionary, value)?.label ?? value;
 }
 
 export function normalizeSearchList(value: CatalogSearchParamValue): string[] {

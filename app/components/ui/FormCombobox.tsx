@@ -9,6 +9,8 @@ import styles from "./FormControl.module.css";
 type Option = {
   value: number;
   label: string;
+  disabled?: boolean;
+  searchTerms?: string[];
 };
 
 type Props = {
@@ -17,6 +19,7 @@ type Props = {
   customValue: string;
   options: Option[];
   placeholder?: string;
+  showPlaceholderOption?: boolean;
   invalid?: boolean;
   errorId?: string;
   required?: boolean;
@@ -39,6 +42,7 @@ export function FormCombobox({
   customValue,
   options,
   placeholder,
+  showPlaceholderOption = true,
   invalid = false,
   errorId,
   required = false,
@@ -71,13 +75,12 @@ export function FormCombobox({
     if (loading) return [];
     if (!normalizedQuery) return options;
 
-    return options.filter((option) =>
-      option.label.toLowerCase().includes(normalizedQuery)
-    );
+    return options.filter((option) => [option.label, ...(option.searchTerms ?? [])]
+      .some(text => text.toLowerCase().includes(normalizedQuery)));
   }, [loading, normalizedQuery, options]);
 
   const exactMatch = options.some(
-    (option) => option.label.trim().toLowerCase() === normalizedQuery
+    (option) => [option.label, ...(option.searchTerms ?? [])].some(text => text.trim().toLowerCase() === normalizedQuery)
   );
   const canSuggest = !loading && allowCustomValue && normalizedQuery.length > 1 && !exactMatch;
 
@@ -105,19 +108,24 @@ export function FormCombobox({
     };
   }, []);
 
-  function selectExisting(option: Option) {
-    if (disabled) return;
-    onChange(option.value, "");
+  function closeAndFocus() {
+    suppressNextOpenRef.current = true;
     setOpen(false);
     setQuery("");
-    if (suggestionsOnInput) inputRef.current?.focus();
+    inputRef.current?.focus({ preventScroll: true });
+    suppressNextOpenRef.current = false;
+  }
+
+  function selectExisting(option: Option) {
+    if (disabled || option.disabled) return;
+    onChange(option.value, "");
+    closeAndFocus();
   }
 
   function selectEmpty() {
     if (disabled) return;
     onChange("", "");
-    setOpen(false);
-    setQuery("");
+    closeAndFocus();
   }
 
   function selectSuggested() {
@@ -126,8 +134,7 @@ export function FormCombobox({
     if (!nextValue) return;
 
     onChange("", nextValue);
-    setOpen(false);
-    setQuery("");
+    closeAndFocus();
   }
 
   return (
@@ -146,9 +153,16 @@ export function FormCombobox({
         if (event.key === "Escape" && open) {
           event.preventDefault();
           event.stopPropagation();
-          setOpen(false);
-          setQuery("");
-          inputRef.current?.focus();
+          closeAndFocus();
+        }
+        if (event.target instanceof HTMLButtonElement && event.target.getAttribute("role") === "option" &&
+          ["ArrowDown", "ArrowUp", "Home", "End"].includes(event.key)) {
+          const choices = Array.from(rootRef.current?.querySelectorAll<HTMLButtonElement>('[role="option"]:not([disabled])') ?? []);
+          const current = choices.indexOf(event.target);
+          const next = event.key === "Home" ? 0 : event.key === "End" ? choices.length - 1 :
+            (current + (event.key === "ArrowDown" ? 1 : -1) + choices.length) % choices.length;
+          event.preventDefault();
+          choices[next]?.focus();
         }
       }}
     >
@@ -194,9 +208,11 @@ export function FormCombobox({
           onKeyDown={(event) => {
             if (!disabled && event.key === "ArrowDown" && dropdownOpen) {
               event.preventDefault();
-              rootRef.current?.querySelector<HTMLButtonElement>('[role="option"]')?.focus();
+              rootRef.current?.querySelector<HTMLButtonElement>('[role="option"]:not([disabled])')?.focus();
             }
-            const matched = filteredOptions.find(option => option.label.trim().toLowerCase() === normalizedQuery);
+            const exactOptions = filteredOptions.filter(option => !option.disabled && [option.label, ...(option.searchTerms ?? [])]
+              .some(text => text.trim().toLowerCase() === normalizedQuery));
+            const matched = exactOptions.length === 1 ? exactOptions[0] : undefined;
             if (!disabled && event.key === "Enter" && dropdownOpen && (canSuggest || matched)) {
               event.preventDefault();
               if (matched) selectExisting(matched);
@@ -213,6 +229,7 @@ export function FormCombobox({
           type="button"
           className={styles.chevron}
           aria-label={open ? "Свернуть список" : "Раскрыть список"}
+          disabled={disabled}
           tabIndex={-1}
           onMouseDown={(event) => event.preventDefault()}
           onClick={() => {
@@ -224,9 +241,9 @@ export function FormCombobox({
           <Icon name="chevron-down" size={20} strokeWidth={1.5} />
         </button>}
 
-        {(!suggestionsOnInput || dropdownOpen) && <div className={styles.menu} id={listboxId} role="listbox">
+        {(!suggestionsOnInput || dropdownOpen) && <div className={styles.menu} id={listboxId} role="listbox" inert={!dropdownOpen} aria-hidden={!dropdownOpen}>
           <div className={styles.options}>
-            {placeholder && !suggestionsOnInput ? (
+            {placeholder && !suggestionsOnInput && showPlaceholderOption ? (
               <button
                 type="button"
                 className={`${styles.option} ${styles.optionMuted}`}
@@ -266,6 +283,7 @@ export function FormCombobox({
                 className={styles.option}
                 role="option"
                 aria-selected={option.value === value}
+                disabled={option.disabled}
                 onClick={() => selectExisting(option)}
               >
                 <span className={`${styles.optionLabel} ${styles.optionValue}`}>{option.label}</span>

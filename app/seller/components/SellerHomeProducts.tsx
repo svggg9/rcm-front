@@ -6,7 +6,7 @@ import { useEffect, useRef, useState } from "react";
 import { Button } from "../../components/ui/Button";
 import { DesignSystemIcon as Icon } from "../../components/ui/DesignSystemIcon";
 import { Price } from "../../components/ui/Price";
-import { ProductTileSkeleton } from "../../components/ui/CommerceSkeleton";
+import { SectionLoader } from "../../components/ui/SectionLoader";
 import { getSellerActiveProductsClient } from "../lib/sellerClientDataApi";
 import type { SellerProductListItem } from "../types";
 import styles from "./SellerHomeProducts.module.css";
@@ -56,7 +56,7 @@ export function SellerHomeProducts() {
     <header className={styles.heading}>
       <h2 id="seller-home-products-title">Товары</h2>
       <div className={styles.actions}>
-        <Link href="/seller/products" prefetch={false} className={styles.all}>Все товары</Link>
+        <Link href="/seller/products?status=all" prefetch={false} className={styles.all}>Все товары</Link>
         {state.status === "ready" && state.products.length > 0 && <div className={styles.arrows}>
           <button type="button" className={styles.arrow} aria-label="Предыдущие товары" disabled={!scroll.previous} onClick={() => move(-1)}>
             <Icon name="chevron-left" role="utility" />
@@ -67,9 +67,7 @@ export function SellerHomeProducts() {
         </div>}
       </div>
     </header>
-    {state.status === "loading" ? <div role="status" aria-busy="true" aria-label="Загрузка активных товаров">
-      <ul className={styles.rail} aria-hidden="true">{[0, 1, 2, 3].map(key => <ProductTileSkeleton key={key} />)}</ul>
-    </div> : state.status === "error" ? <div role="alert" className={styles.error}>
+    {state.status === "loading" ? <SectionLoader label="Загрузка активных товаров" compact /> : state.status === "error" ? <div role="alert" className={styles.error}>
       <Icon name="alert" />
       <p>Не удалось загрузить товары</p>
       <Button type="button" variant="secondary" onClick={() => { setState({ status: "loading" }); setAttempt(value => value + 1); }}>Повторить</Button>

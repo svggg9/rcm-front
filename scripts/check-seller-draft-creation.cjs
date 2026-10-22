@@ -65,7 +65,7 @@ visit(ast);
   assert.deepEqual(routes, []);
   const next = run(); finish.resolve(456); await next;
   assert.equal(attempts, 2, "Retry is explicit");
-  assert.deepEqual(routes, ["/seller/products/456/edit"]);
+  assert.deepEqual(routes, ["/seller/products/456/create"]);
   assert.equal(pending.current, false);
   console.log("PASS: bounded draft creation, safe errors/IDs, no automatic retry, duplicate guard, spinner replacement, form unlock and explicit retry");
 })().catch(error => { console.error(error); process.exitCode = 1; });

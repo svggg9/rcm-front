@@ -3,7 +3,7 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const http = require("node:http");
 const path = require("node:path");
-const { spawn } = require("node:child_process");
+const { spawn, spawnSync } = require("node:child_process");
 const { chromium } = require(process.env.PLAYWRIGHT_PATH || "playwright");
 const origin = "http://localhost:13052";
 const api = "http://localhost:19652";
@@ -51,8 +51,60 @@ const server = http.createServer(async (req, res) => {
   res.end(JSON.stringify(data));
 });
 
+function checkSharedPresentation() {
+  const ts = require("typescript");
+  const React = require("react");
+  const { renderToStaticMarkup } = require("react-dom/server");
+  const Module = require("node:module");
+  const originalLoad = Module._load;
+  const originalExtensions = Object.fromEntries([".css", ".ts", ".tsx"].map(extension => [extension, require.extensions[extension]]));
+  try {
+    require.extensions[".css"] = module => {
+      module.exports = { __esModule: true, default: new Proxy({}, { get: (_target, key) => key }) };
+    };
+    for (const extension of [".ts", ".tsx"]) {
+      require.extensions[extension] = (module, filename) => {
+        module._compile(ts.transpileModule(fs.readFileSync(filename, "utf8"), {
+          fileName: filename,
+          compilerOptions: { target: ts.ScriptTarget.ES2020, module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX, esModuleInterop: true },
+        }).outputText, filename);
+      };
+    }
+    Module._load = function(name, ...args) {
+      if (name.startsWith("@/")) return originalLoad.call(this, path.resolve(__dirname, "..", name.slice(2)), ...args);
+      return originalLoad.call(this, name, ...args);
+    };
+    const { SellerOrdersTab } = require("../app/seller/components/SellerOrdersTab.tsx");
+    const props = { orders: [], buildSellerStatusLabel: () => "В обработке" };
+    const defaultHtml = renderToStaticMarkup(React.createElement(SellerOrdersTab, props));
+    assert.doesNotMatch(defaultHtml, /<h1\b/, "The shared default presentation used by admin does not add a page heading");
+    assert.match(defaultHtml, /role="tablist"/, "The default presentation keeps its existing tab navigation");
+    assert.match(defaultHtml, /<button(?=[^>]*id="seller-order-filter-ALL")(?=[^>]*aria-selected="true")[^>]*>/, "The shared default/admin presentation still opens with All selected");
+    assert.match(defaultHtml, /placeholder="Номер заказа, товар или получатель"/);
+    for (const presentation of [undefined, "cabinet"]) {
+      const buyerHtml = renderToStaticMarkup(React.createElement(SellerOrdersTab, { ...props, audience: "buyer", presentation }));
+      assert.doesNotMatch(buyerHtml, /<h1\b|role="radiogroup"|role="tablist"|aria-label="Поиск заказов"/, "Buyer presentation does not inherit seller navigation or heading");
+    }
+    const cabinetHtml = renderToStaticMarkup(React.createElement(SellerOrdersTab, { ...props, presentation: "cabinet" }));
+    assert.equal((cabinetHtml.match(/<h1\b/g) || []).length, 1, "Only the seller cabinet adds its section heading");
+    assert.match(cabinetHtml, /role="radiogroup"/);
+    assert.match(cabinetHtml, /<button(?=[^>]*role="radio")(?=[^>]*aria-checked="true")[^>]*>Нужно отправить<\/button>/, "The seller cabinet starts with Needs shipment selected");
+    assert.match(cabinetHtml, /aria-label="Список заказов"/);
+  } finally {
+    Module._load = originalLoad;
+    for (const [extension, handler] of Object.entries(originalExtensions)) {
+      if (handler) require.extensions[extension] = handler;
+      else delete require.extensions[extension];
+    }
+  }
+}
+
 async function main() {
-  await new Promise(resolve => server.listen(19652, "127.0.0.1", resolve));
+  checkSharedPresentation();
+  await new Promise((resolve, reject) => {
+    server.once("error", reject);
+    server.listen(19652, "127.0.0.1", resolve);
+  });
   const child = spawn(process.execPath, [require.resolve("next/dist/bin/next"), "dev", "-p", "13052"], {
     cwd: path.resolve(__dirname, ".."), windowsHide: true,
     env: { ...process.env, RCM_TEST_DIST_DIR: "build/order-worklist-check", SERVER_API_URL: api, NEXT_PUBLIC_API_URL: api, NEXT_PUBLIC_SITE_URL: origin }, stdio: ["ignore", "pipe", "pipe"]
@@ -69,34 +121,51 @@ async function main() {
       catch { await new Promise(resolve => setTimeout(resolve, 500)); }
     }
     assert.ok(ready, "Next must start");
-    browser = await chromium.launch({ headless: true, channel: "msedge" });
+    browser = await chromium.launch({ headless: true, ...(process.env.PLAYWRIGHT_EXECUTABLE_PATH ? { executablePath: process.env.PLAYWRIGHT_EXECUTABLE_PATH } : { channel: "msedge" }) });
     const page = await browser.newPage({ viewport: { width: 1280, height: 1000 } });
+    page.setDefaultTimeout(15000);
     const errors = [];
     page.on("pageerror", error => errors.push(error.message));
     await page.goto(origin + "/seller/orders");
-    const results = page.getByRole("tabpanel", { name: "Все", exact: true });
+    const results = page.getByRole("region", { name: "Список заказов", exact: true });
+    const filters = page.getByRole("radiogroup", { name: "Фильтр заказов", exact: true });
+    await page.getByRole("heading", { name: "Заказы", level: 1, exact: true }).waitFor();
     await page.getByRole("link", { name: /Подготовить отправку заказа/ }).waitFor();
+    assert.equal(await filters.getByRole("radio", { name: "Нужно отправить", exact: true }).getAttribute("aria-checked"), "true", "Needs shipment is the default seller filter");
+    assert.equal(await results.locator("article").count(), 1, "The initial seller worklist only contains the ready order");
+    await filters.getByRole("radio", { name: "Все", exact: true }).click();
     assert.equal(await results.locator("article").count(), 5);
     assert.equal(await page.getByRole("button", { name: /Ещё .* товар/ }).count(), 0, "No inline expansion");
     for (const label of ["Нужно отправить", "Не оплачены", "В доставке", "Завершённые", "Отменённые"]) {
-      await page.getByRole("tab", { name: label, exact: true }).click();
-      assert.equal(await page.getByRole("tabpanel", { name: label, exact: true }).locator("article").count(), 1, label);
+      await filters.getByRole("radio", { name: label, exact: true }).click();
+      assert.equal(await results.locator("article").count(), 1, label);
     }
-    await page.getByRole("tab", { name: "Все", exact: true }).click();
+    await filters.getByRole("radio", { name: "Все", exact: true }).click();
     const search = page.getByPlaceholder("Номер заказа, товар или получатель");
+    const searchTrigger = page.getByRole("button", { name: "Поиск заказов", exact: true });
+    await searchTrigger.click();
+    const searchPanel = page.getByRole("dialog", { name: "Поиск заказов", exact: true });
+    await searchPanel.waitFor();
+    assert.equal(await search.evaluate(element => element === document.activeElement), true, "Opening search focuses its input");
     await search.fill("нет такого заказа");
     await page.getByText("Заказов нет", { exact: true }).waitFor();
     await search.fill("Тестовый");
     assert.equal(await results.locator("article").count(), 5);
-    await page.getByRole("tab", { name: "Нужно отправить", exact: true }).click();
+    await page.keyboard.press("Escape");
+    await searchPanel.waitFor({ state: "hidden" });
+    assert.equal(await searchTrigger.evaluate(element => element === document.activeElement), true, "Escape restores search trigger focus");
+    await filters.getByRole("radio", { name: "Нужно отправить", exact: true }).click();
     await page.keyboard.press("ArrowRight");
-    await page.getByRole("tab", { name: "Не оплачены", exact: true }).waitFor();
-    assert.equal(await page.getByRole("tab", { name: "Не оплачены", exact: true }).getAttribute("aria-selected"), "true");
-    await page.getByRole("tab", { name: "Все", exact: true }).click();
+    assert.equal(await filters.getByRole("radio", { name: "Не оплачены", exact: true }).getAttribute("aria-checked"), "true");
+    assert.equal(await results.locator("article").count(), 1);
+    await filters.getByRole("radio", { name: "Все", exact: true }).click();
     fs.mkdirSync(path.resolve("build/order-worklist-screenshots"), { recursive: true });
     for (const width of [1280, 390, 320]) {
       await page.setViewportSize({ width, height: 1000 });
       assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false, "No overflow at " + width);
+      const headingBox = await page.getByRole("heading", { name: "Заказы", level: 1, exact: true }).boundingBox();
+      const resultsBox = await results.boundingBox();
+      assert.ok(Math.abs(headingBox.x - resultsBox.x) <= 2, "The heading aligns with the list at " + width);
       const action = page.getByRole("link", { name: /Подготовить отправку заказа/ });
       assert.ok((await action.boundingBox()).height >= 44);
       await page.screenshot({ path: "build/order-worklist-screenshots/orders-" + width + ".png", fullPage: true });
@@ -110,16 +179,22 @@ async function main() {
     assert.match(page.url(), /orders\/10$/);
     await page.keyboard.press("Escape");
     await page.getByRole("dialog").waitFor({ state: "detached" });
+    await searchTrigger.click();
+    await searchPanel.waitFor();
     assert.equal(await search.inputValue(), "Тестовый");
+    await page.keyboard.press("Escape");
     assert.match(page.url(), /orders$/);
     assert.deepEqual(errors, []);
-    console.log("PASS: five order filters, search/empty, keyboard, row navigation/Escape/preserved search, no inline expansion, 1280/390/320 overflow and touch targets; mock API only");
+    console.log("PASS: seller defaults to Needs shipment/All restores five orders, radio filters/region, search popover focus/Escape/empty, keyboard, row navigation/Escape/preserved search, no inline expansion, 1280/390/320 overflow/touch targets, shared default/admin All and buyer presentations; mock API only");
   } catch (error) {
     console.error(logs.slice(-3000));
     throw error;
   } finally {
     if (browser) await browser.close();
-    child.kill();
+    if (child.pid && child.exitCode === null) {
+      if (process.platform === "win32") spawnSync("taskkill", ["/pid", String(child.pid), "/t", "/f"], { windowsHide: true, stdio: "ignore" });
+      else child.kill();
+    }
     server.close();
   }
 }

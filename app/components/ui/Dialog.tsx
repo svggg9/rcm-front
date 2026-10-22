@@ -8,7 +8,7 @@ import styles from "./Dialog.module.css";
 import { lockModalScroll } from "./modalScrollLock";
 
 /** Mount only while open. Native modal behaviour keeps the background inert. */
-export function Dialog({ title, children, actions, busy = false, success = false, toastId, size = "default", mobileFullscreen = false, onClose }: {
+export function Dialog({ title, children, actions, busy = false, success = false, toastId, size = "default", mobileFullscreen = false, variant = "default", className = "", onClose }: {
   title: string;
   children: ReactNode;
   actions: ReactNode;
@@ -17,6 +17,8 @@ export function Dialog({ title, children, actions, busy = false, success = false
   toastId?: string;
   size?: "default" | "wide";
   mobileFullscreen?: boolean;
+  variant?: "default" | "confirmation";
+  className?: string;
   onClose: () => void;
 }) {
   const ref = useRef<HTMLDialogElement>(null);
@@ -57,7 +59,7 @@ export function Dialog({ title, children, actions, busy = false, success = false
   }, [toastId, actions]);
 
   return (
-    <dialog ref={ref} className={`${styles.dialog}${toastId ? ` ${styles.withNotifications}` : ""}${size === "wide" ? ` ${styles.wide}` : ""}${mobileFullscreen ? ` ${styles.mobileFullscreen}` : ""}`} aria-labelledby={titleId}
+    <dialog ref={ref} className={`${styles.dialog}${toastId ? ` ${styles.withNotifications}` : ""}${size === "wide" ? ` ${styles.wide}` : ""}${mobileFullscreen ? ` ${styles.mobileFullscreen}` : ""}${variant === "confirmation" ? ` ${styles.confirmation}` : ""} ${className}`.trim()} aria-labelledby={titleId}
       aria-busy={busy || undefined}
       onCancel={(event) => { event.preventDefault(); event.stopPropagation(); if (!busy) onClose(); }}>
       <header className={styles.header}>

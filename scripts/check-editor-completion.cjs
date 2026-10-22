@@ -9,7 +9,9 @@ const ast = ts.createSourceFile("EditorSurface.tsx", source, ts.ScriptTarget.Lat
 let leaveSource;
 let listenersSource;
 let guardSource;
+let beforeUnloadSource;
 function visit(node) {
+  if (ts.isVariableDeclaration(node) && node.name.getText(ast) === "prevent") beforeUnloadSource = node.initializer.getText(ast);
   if (ts.isVariableDeclaration(node) && node.name.getText(ast) === "leave") {
     leaveSource = ts.isCallExpression(node.initializer) ? node.initializer.arguments[0].getText(ast) : node.initializer.getText(ast);
   }
@@ -21,7 +23,7 @@ function visit(node) {
   ts.forEachChild(node, visit);
 }
 visit(ast);
-assert.ok(leaveSource && listenersSource && guardSource, "Test the actual EditorSurface handlers");
+assert.ok(leaveSource && listenersSource && guardSource && beforeUnloadSource, "Test the actual EditorSurface handlers");
 function compile(callback, context) {
   const code = ts.transpileModule(`const callback = ${callback};`, { compilerOptions: { target: ts.ScriptTarget.ES2020 } }).outputText;
   return new Function(...Object.keys(context), `${code}\nreturn callback;`)(...Object.values(context));
@@ -132,6 +134,15 @@ assert.equal(dirty.confirmations(), 1);
 assert.equal(dirtyNavigation, 0);
 dirty.context.leave(dirty.context.leaveAction.current); dirty.flush();
 assert.equal(dirtyNavigation, 1, "Ordinary dirty navigation still needs explicit discard");
+const beforeUnload = compile(beforeUnloadSource, dirty.context);
+const approvedEvent = { prevented: false, preventDefault() { this.prevented = true; }, returnValue: undefined };
+beforeUnload(approvedEvent);
+assert.equal(approvedEvent.prevented, false, "Approved discard does not ask again on full-document navigation");
+const unconfirmed = setup({ busy: false });
+unconfirmed.navigate(() => {});
+const ordinaryEvent = { prevented: false, preventDefault() { this.prevented = true; }, returnValue: undefined };
+compile(beforeUnloadSource, unconfirmed.context)(ordinaryEvent);
+assert.equal(ordinaryEvent.prevented, true, "A pending or cancelled discard still protects dirty reload");
 
 const clean = setup({ dirty: false, busy: false });
 clean.complete(); clean.flush();

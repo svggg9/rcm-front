@@ -39,6 +39,7 @@ export function CabinetTabs<T extends string>({
   const tabRefs = useRef(new Map<T, HTMLButtonElement>());
   const pinnedItem = pinFirst ? items[0] : null;
   const scrollItems = pinFirst ? items.slice(1) : items;
+  const linkedPanel = Boolean(panelId);
 
   function renderItem(item: CabinetTabItem<T>) {
     const active = item.value === value;
@@ -52,7 +53,7 @@ export function CabinetTabs<T extends string>({
         aria-controls={panelId}
         aria-selected={active}
         disabled={disabled}
-        tabIndex={appearance === "panel" ? (active ? 0 : -1) : undefined}
+        tabIndex={linkedPanel ? (active ? 0 : -1) : undefined}
         ref={node => {
           if (node) tabRefs.current.set(item.value, node);
           else tabRefs.current.delete(item.value);
@@ -60,7 +61,7 @@ export function CabinetTabs<T extends string>({
         className={`${styles.item} textSmall ${active ? styles.itemActive : ""}`}
         onClick={() => onChange(item.value)}
         onKeyDown={event => {
-          if (appearance !== "panel" || disabled) return;
+          if (!linkedPanel || disabled) return;
           const index = items.findIndex(candidate => candidate.value === item.value);
           let nextIndex: number;
           if (event.key === "ArrowRight") nextIndex = (index + 1) % items.length;

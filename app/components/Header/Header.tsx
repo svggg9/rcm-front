@@ -21,6 +21,9 @@ import { Dialog } from "../ui/Dialog";
 import { Button } from "../ui/Button";
 import { TextInput } from "../ui/TextInput";
 import { loadMenuCategories, type MenuCategory } from "./menuCategories";
+import { subscribeCategoriesChanged } from "../../lib/categoryEvents";
+import { RequestError } from "../ui/RequestError";
+import { toast } from "../ui/toast";
 
 type HeaderProps = {
   initialCategories: MenuCategory[] | null;
@@ -53,7 +56,7 @@ function HeaderContent({ initialCategories }: HeaderProps) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
 
-  const { user, isAuthenticated: isAuth, loading: authLoading } = useCurrentUser();
+  const { user, isAuthenticated: isAuth, loading: authLoading, error: authError, reload: reloadUser } = useCurrentUser();
   const cartCount = useCartCount();
   const role = user?.role ?? null;
   const { count: favoritesCount } = useFavorites();
@@ -71,6 +74,8 @@ function HeaderContent({ initialCategories }: HeaderProps) {
     };
   }, [menuOpen]);
 
+
+  useEffect(() => subscribeCategoriesChanged(() => setCategoryLoadAttempt(attempt => attempt + 1)), []);
 
   useEffect(() => {
     if (initialCategories !== null && categoryLoadAttempt === 0) {
@@ -163,6 +168,16 @@ function HeaderContent({ initialCategories }: HeaderProps) {
     setMenuOpen(true);
   }
 
+  async function openAccount() {
+    if (authError) {
+      const confirmed = await reloadUser();
+      if (confirmed === undefined) { toast.error("Не удалось проверить вход — попробуйте ещё раз"); return; }
+      setMenuOpen(false);
+      if (confirmed) { router.push("/account"); return; }
+    } else { setMenuOpen(false); }
+    openAuth("login", "/account");
+  }
+
   function handleMobileCatalogClick() {
     setMenuOpen(false);
     router.push("/catalog");
@@ -232,8 +247,8 @@ function HeaderContent({ initialCategories }: HeaderProps) {
                 <HeaderIcon name="user" />
               </Link>
             ) : (
-              <button type="button" className={styles.iconBtn} aria-label="Войти в аккаунт"
-                disabled={authLoading} onClick={() => openAuth("login", "/account")}>
+              <button type="button" className={styles.iconBtn} aria-label={authError ? "Повторить проверку входа" : "Войти в аккаунт"}
+                disabled={authLoading} onClick={() => void openAccount()}>
                 <HeaderIcon name="user" />
               </button>
             )}
@@ -315,8 +330,8 @@ function HeaderContent({ initialCategories }: HeaderProps) {
                 <button
                   key={category.id}
                   type="button"
-                  className={`${styles.mobileCategory} ${activeCategory?.split("/")[0].trim() === category.name ? styles.mobileCategoryActive : ""}`}
-                  onClick={() => handleMobileCategoryClick(category.name)}
+                  className={`${styles.mobileCategory} ${activeCategory && category.values?.includes(activeCategory) ? styles.mobileCategoryActive : ""}`}
+                  onClick={() => handleMobileCategoryClick(category.slug || String(category.id))}
                 >
                   <span>{category.name}</span>
                   <span className={styles.mobileChevron} aria-hidden="true" />
@@ -325,6 +340,7 @@ function HeaderContent({ initialCategories }: HeaderProps) {
             </nav>
 
             <div className={styles.mobileAccount}>
+              {authError ? <RequestError variant="inline" message="Не удалось проверить вход" onRetry={async () => { await reloadUser(); }} loading={authLoading} /> : null}
               {isAuth === true && isAdminRole(role) ? (
                 <Link href="/admin" className={styles.mobileProfileLink} onClick={() => setMenuOpen(false)}>
                   <span>Администрирование</span>
@@ -344,10 +360,7 @@ function HeaderContent({ initialCategories }: HeaderProps) {
                   <HeaderIcon name="user" /><span>Профиль</span>
                 </Link>
               ) : (
-                <button type="button" className={styles.mobileProfileLink} disabled={authLoading} onClick={() => {
-                  setMenuOpen(false);
-                  openAuth("login", "/account");
-                }}>
+                <button type="button" className={styles.mobileProfileLink} disabled={authLoading} onClick={() => void openAccount()}>
                   <HeaderIcon name="user" /><span>Профиль</span>
                 </button>
               )}

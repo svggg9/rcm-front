@@ -1,6 +1,7 @@
 .root {
   width: 100%;
 }
+.root[data-normalized] .slide { background: var(--white); }
 
 .track {
   display: flex;
@@ -21,7 +22,7 @@
   position: relative;
   width: 100%;
   min-width: 100%;
-  aspect-ratio: 3 / 4;
+  aspect-ratio: var(--product-image-aspect-ratio, 3 / 4);
   padding: 0;
   border: 0;
   overflow: hidden;

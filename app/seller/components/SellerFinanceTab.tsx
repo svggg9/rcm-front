@@ -15,22 +15,25 @@ import type { PageResponse, SellerFinanceOperation, SellerFinanceSummary, Seller
 import styles from "./SellerFinanceTab.module.css";
 
 type Props = { finance: SellerFinanceSummary | null; loading?: boolean; error?: ReactNode; onRefresh?: () => void; onPrefetchOrder?: (orderId: number) => void };
-const labels: Record<SellerPayoutStatus, string> = { READY: "Готова к отправке", SENT: "Отправлена", PAID: "Выплачена", FAILED: "Требует внимания", CANCELLED: "Отменена" };
+const labels: Record<SellerPayoutStatus, string> = { READY: "Готова к отправке", IN_PROGRESS: "В обработке", SENT: "Отправлена в банк", REVIEW: "На сверке", PAID: "Выплачена", FAILED: "Отказ подтверждён", CANCELLED: "Отменена" };
 const operationLabels = { SALE: "Продажа", SELLER_DEBIT: "Возврат / удержание", SELLER_PAYOUT: "Выплата" };
 
 function useFinanceData<T>(path: string) {
   const [attempt, setAttempt] = useState(0);
   const key = `${path}:${attempt}`;
-  const [result, setResult] = useState<{ key: string; data?: T; error?: string }>();
+  const [result, setResult] = useState<{ key: string; path: string; data?: T; error?: string }>();
   useEffect(() => {
     const controller = new AbortController();
     getFinanceData<T>(path, controller.signal).then(
-      data => { if (!controller.signal.aborted) setResult({ key, data }); },
-      error => { if (!controller.signal.aborted) setResult({ key, error: error instanceof Error ? error.message : "Не удалось загрузить данные" }); }
+      data => { if (!controller.signal.aborted) setResult({ key, path, data }); },
+      error => { if (!controller.signal.aborted) setResult(current => ({
+        key, path, data: current?.path === path ? current.data : undefined,
+        error: error instanceof Error ? error.message : "Не удалось загрузить данные",
+      })); }
     );
     return () => controller.abort();
   }, [path, key]);
-  return { data: result?.key === key ? result.data : undefined, error: result?.key === key ? result.error : undefined,
+  return { data: result?.path === path ? result.data : undefined, error: result?.path === path ? result.error : undefined,
     loading: result?.key !== key, retry: () => setAttempt(value => value + 1) };
 }
 
@@ -41,8 +44,9 @@ export function SellerFinanceTab({ finance, loading, error, onRefresh, onPrefetc
   return <section className={styles.root} aria-label="Финансы">
     {view === "operations" ? <Operations onPrefetchOrder={onPrefetchOrder} />
       : view === "payouts" ? <Payouts />
-      : loading ? <CabinetSkeleton variant="dashboard" rows={3} compact />
-      : error ? error : finance ? <><div className={styles.heading}><h2>Обзор финансов</h2><button className={styles.textButton} onClick={onRefresh}>Обновить</button></div><Overview finance={finance} onPrefetchOrder={onPrefetchOrder} /></>
+      : loading && !finance ? <CabinetSkeleton variant="dashboard" rows={3} compact />
+      : finance ? <>{error}<div className={styles.heading}><h2>Обзор финансов</h2><Button variant="utility" loading={loading} onClick={onRefresh}>Обновить</Button></div><Overview finance={finance} onPrefetchOrder={onPrefetchOrder} /></>
+      : error ? error
       : <p className={styles.empty}>Финансовая сводка временно недоступна</p>}
     {payoutId && /^\d+$/.test(payoutId) ? <PayoutDetails key={payoutId} id={payoutId} /> : null}
   </section>;
@@ -63,8 +67,11 @@ function Overview({ finance, onPrefetchOrder }: { finance: SellerFinanceSummary;
     </Banner>}
     {finance.failedPayoutAmount > 0 && <Banner tone="warning">
       <Link href="/seller/finance?view=payouts">
-        Выплаты требуют внимания: <strong>{money(finance.failedPayoutAmount)}</strong>. Эти средства остаются в реестрах с ошибкой.
+        Выплаты требуют внимания: <strong>{money(finance.failedPayoutAmount)}</strong>. Проверьте статусы реестров — средства остаются закреплены до решения оператора.
       </Link>
+    </Banner>}
+    {finance.payouts.some(payout => payout.status === "REVIEW") && <Banner tone="warning">
+      <Link href="/seller/finance?view=payouts">Есть выплата на банковской сверке. Повторный перевод заблокирован до подтверждения результата.</Link>
     </Banner>}
     {!finance.bankDetailsReady && <Banner tone="warning">
       <Link href="/seller/legal">Заполните банковские реквизиты, чтобы получать выплаты.</Link>
@@ -122,8 +129,9 @@ function Operations({ onPrefetchOrder }: { onPrefetchOrder?: Props["onPrefetchOr
       <Link href="/seller/finance?view=operations" className={styles.textButton}>Сбросить</Link>
     </form>
     {validation && <p role="alert" className={styles.error}>{validation}</p>}
-    <div className={styles.heading}><h2>Операции</h2><button className={styles.textButton} onClick={state.retry} disabled={state.loading}>Обновить</button></div>
-    <RemoteState {...state} />
+    <div className={styles.heading}><h2>Операции</h2><Button variant="utility" onClick={state.retry} disabled={state.loading}
+      loading={state.loading && Boolean(state.data) && !state.error}>Обновить</Button></div>
+    <RemoteState {...state} hasData={Boolean(state.data)} />
     {state.data && <><div className={styles.heading}><span className={styles.caption}>Найдено: {state.data.totalElements}. Даты — московское время.</span>
       <ExportButton key={query.toString()} query={query.toString()} disabled={!state.data.totalElements} /></div>
       <OperationTable operations={state.data.content} onPrefetchOrder={onPrefetchOrder} /><Pagination data={state.data} /></>}
@@ -145,8 +153,9 @@ function OperationTable({ operations, onPrefetchOrder }: { operations: SellerFin
 function Payouts() {
   const params = useSearchParams();
   const state = useFinanceData<PageResponse<SellerPayout>>(`payouts?page=${pageNumber(params.get("page"))}&size=20`);
-  return <><div className={styles.heading}><h2>Выплаты</h2><button className={styles.textButton} onClick={state.retry} disabled={state.loading}>Обновить</button></div>
-    <RemoteState {...state} />
+  return <><div className={styles.heading}><h2>Выплаты</h2><Button variant="utility" onClick={state.retry} disabled={state.loading}
+    loading={state.loading && Boolean(state.data) && !state.error}>Обновить</Button></div>
+    <RemoteState {...state} hasData={Boolean(state.data)} />
     {state.data && <>{state.data.content.length ? <div className={styles.tableScroll}><table className={styles.table}>
       <thead><tr><th>Реестр</th><th>Плановая дата</th><th>Статус</th><th>Счёт</th><th>Заказов</th><th className={styles.numeric}>Сумма</th></tr></thead>
       <tbody>{state.data.content.map(p => <tr key={p.id}><td><Link href={`/seller/finance?${new URLSearchParams({ ...Object.fromEntries(params), payout: String(p.id) })}`}>Выплата №{p.id}</Link></td>
@@ -171,9 +180,10 @@ function PayoutDetails({ id }: { id: string }) {
   const payout = state.data;
   return <dialog ref={ref} className={styles.drawer} aria-labelledby="finance-payout-title" onCancel={e => { e.preventDefault(); close(); }}>
     <div className={styles.heading}><h2 id="finance-payout-title">Выплата №{id}</h2><button className={styles.textButton} onClick={close} aria-label="Закрыть детализацию выплаты"><Icon name="x" size={22} /></button></div>
-    <RemoteState {...state} />
+    <RemoteState {...state} hasData={Boolean(state.data)} />
     {payout && <><p>{labels[payout.status]}</p><strong className={styles.payoutTotal}>{money(payout.payoutAmount, payout.currency)}</strong>
-      {payout.status === "FAILED" && <Banner tone="warning">Отправку выплаты необходимо проверить. Средства остаются закреплены за этим реестром до решения оператора.</Banner>}
+      {payout.status === "FAILED" && <Banner tone="warning">Банк подтвердил отказ. Средства остаются в реестре до новой попытки или отмены оператором.</Banner>}
+      {payout.status === "REVIEW" && <Banner tone="warning">Результат банковского перевода уточняется. Повторный перевод заблокирован до сверки.</Banner>}
       <dl className={styles.breakdown}><div><dt>Плановая дата</dt><dd>{date(payout.scheduledDate)}</dd></div><div><dt>Отправлено</dt><dd>{payout.sentAt ? dateTime(payout.sentAt) : "—"}</dd></div>
         <div><dt>Выплачено</dt><dd>{payout.paidAt ? dateTime(payout.paidAt) : "—"}</dd></div><div><dt>Платёжное поручение</dt><dd>{payout.paymentOrderNumber || "—"}</dd></div>
         <div><dt>Банк</dt><dd>{payout.bankName}</dd></div><div><dt>Счёт</dt><dd>{payout.checkingAccount}</dd></div></dl>
@@ -188,9 +198,9 @@ function PayoutDetails({ id }: { id: string }) {
 }
 
 function Figure({ label, value, currency = "RUB" }: { label: string; value: number; currency?: string }) { return <div><dt>{label}</dt><dd>{money(value, currency)}</dd></div>; }
-function RemoteState({ loading, error, retry }: { loading: boolean; error?: string; retry: () => void }) {
-  return loading ? <div role="status" aria-label="Загрузка финансов"><CabinetSkeleton variant="list" rows={3} compact /></div>
-    : error ? <div role="alert" className={styles.error}>{error} <button className={styles.textButton} onClick={retry}>Повторить</button></div> : null;
+function RemoteState({ loading, error, retry, hasData }: { loading: boolean; error?: string; retry: () => void; hasData: boolean }) {
+  return error ? <div role="alert" className={styles.error}>{error} <Button variant="utility" loading={loading} onClick={retry}>Повторить</Button></div>
+    : loading && !hasData ? <CabinetSkeleton variant="list" rows={3} compact /> : null;
 }
 function Pagination({ data }: { data: PageResponse<unknown> }) {
   const params = useSearchParams();

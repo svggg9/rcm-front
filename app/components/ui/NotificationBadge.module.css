@@ -24,6 +24,9 @@
   line-height: 18px;
 }
 
-.muted {
+.badge.muted {
   background: var(--muted);
 }
+.success { background: var(--success); }
+.warning { background: var(--warning); }
+.danger { background: var(--danger); }

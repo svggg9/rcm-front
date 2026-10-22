@@ -27,6 +27,38 @@
   font-weight: 300;
 }
 
+.queueTools { display: flex; align-items: flex-end; flex-wrap: wrap; gap: 12px; margin: 0 0 20px; }
+.filterField { display: flex; flex-direction: column; gap: 8px; font-size: 13px; min-width: 0; }
+.filterField select, .filterField input { min-height: 44px; padding: 10px 12px; color: var(--black); background: var(--white); border: 1px solid var(--line); font: inherit; border-radius: 0; width: 100%; }
+.filterField select { min-width: 220px; }
+.filterField select:focus-visible, .filterField input:focus-visible, .detailTableScroll:focus-visible { outline: 2px solid var(--black); outline-offset: 2px; }
+.caption { color: var(--muted); font-size: 13px; line-height: 20px; margin: 12px 0; }
+.queueStatus { display: inline-block; color: var(--black) !important; border: 1px solid var(--line); padding: 5px 8px; }
+.cardFooter { display: flex; justify-content: space-between; align-items: center; gap: 16px; margin-top: 16px; }
+.generationResult { border: 1px solid var(--line); padding: 16px; margin: 16px 0; font-size: 13px; line-height: 20px; }
+.generationResult ul { padding-left: 18px; margin-bottom: 0; }
+.generationResult li { padding: 6px 0; }
+.generationResult strong, .generationResult span { display: block; font-weight: 400; overflow-wrap: anywhere; }
+.detailContent { display: grid; gap: 24px; min-width: 0; }
+.detailContent section { min-width: 0; }
+.detailContent h3 { margin: 0 0 16px; font-weight: 400; font-size: 14px; text-transform: uppercase; }
+.detailAmount { font-variant-numeric: tabular-nums; font-weight: 400; font-size: 24px; line-height: 30px; overflow-wrap: anywhere; }
+.detailFigures { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin: 0; }
+.detailFigures dt, .summary dt { font-size: 12px; line-height: 18px; color: var(--muted); }
+.detailFigures dd, .summary dd { margin: 5px 0 0; font-size: 14px; overflow-wrap: anywhere; }
+.summary dd { font-size: 20px; font-variant-numeric: tabular-nums; }
+.detailTableScroll { overflow-x: auto; max-width: 100%; }
+.detailTable { width: 100%; border-collapse: collapse; font-size: 12px; line-height: 18px; font-variant-numeric: tabular-nums; }
+.detailTable th, .detailTable td { border-bottom: 1px solid var(--line); padding: 12px 8px; text-align: right; white-space: nowrap; font-weight: 400; }
+.detailTable th:first-child, .detailTable td:first-child { text-align: left; }
+.detailTable a { text-decoration: underline; text-underline-offset: 3px; }
+.history { padding: 0; margin: 0; list-style: none; display: grid; gap: 12px; }
+.history li { border: 1px solid var(--line); padding: 14px; display: grid; gap: 5px; font-size: 12px; line-height: 18px; overflow-wrap: anywhere; }
+.history strong { font-size: 13px; font-weight: 400; }
+.history span { color: var(--muted); }
+.history p { white-space: pre-wrap; }
+.actionForm { display: grid; gap: 16px; padding-top: 24px; border-top: 1px solid var(--line); }
+
 .payoutActions {
   display: flex;
   align-items: center;
@@ -215,8 +247,12 @@
   .payoutAmount { text-align: left; }
   .payoutActions { align-items: stretch; flex-direction: column; }
   .payoutActions input { min-width: 0; width: 100%; }
+  .cardFooter { align-items: stretch; flex-direction: column; }
+  .queueTools { align-items: stretch; flex-direction: column; }
+  .filterField select { min-width: 0; }
 }
 
 @media (max-width: 480px) {
   .payoutDetails { grid-template-columns: 1fr; }
+  .detailFigures { grid-template-columns: 1fr; }
 }

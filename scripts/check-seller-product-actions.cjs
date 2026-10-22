@@ -19,8 +19,9 @@ for (const extension of [".ts", ".tsx"]) {
   };
 }
 const originalLoad = Module._load;
+let productsQuery = "";
 Module._load = function(name, ...args) {
-  if (name === "next/navigation") return { useRouter: () => ({ push() {} }), useSearchParams: () => new URLSearchParams() };
+  if (name === "next/navigation") return { useRouter: () => ({ push() {} }), useSearchParams: () => new URLSearchParams(productsQuery) };
   if (name.startsWith("@/")) return originalLoad.call(this, path.resolve(__dirname, "..", name.slice(2)), ...args);
   return originalLoad.call(this, name, ...args);
 };
@@ -82,7 +83,21 @@ assert.match(draftBar, /В подборку — только активные т
 
 assert.match(activeBar, /class="buttonSecondary"(?! disabled)/);
 const product = (id, status = "DRAFT") => ({ id, title: `Карточка ${id}`, status, brandName: null, categoryName: null, coverImage: null, minPrice: 1000, totalStock: 5, variantsCount: 1 });
+const mixedProducts = [product(1), product(2, "ACTIVE")];
+const publishedHtml = renderToStaticMarkup(React.createElement(SellerProductsTab, { products: mixedProducts, loading: false }));
+assert.match(publishedHtml, /<button(?=[^>]*role="radio")(?=[^>]*aria-checked="true")[^>]*>Опубликованы<\/button>/, "Published products are selected on the plain products URL");
+assert.match(publishedHtml, /href="\/seller\/products\/2\/edit\?[^"]*returnTo=/);
+assert.doesNotMatch(publishedHtml, /href="\/seller\/products\/1\/edit\?/, "Drafts are excluded from the default published list");
+assert.doesNotMatch(publishedHtml, />Сбросить<\/button>/, "The default published state does not suggest resetting filters");
+productsQuery = "status=DRAFT";
+const draftHtml = renderToStaticMarkup(React.createElement(SellerProductsTab, { products: mixedProducts, loading: false }));
+assert.match(draftHtml, /<button(?=[^>]*role="radio")(?=[^>]*aria-checked="true")[^>]*>Черновики<\/button>/, "A direct draft URL keeps its requested selection");
+assert.match(draftHtml, /href="\/seller\/products\/1\/edit\?[^"]*returnTo=/);
+assert.doesNotMatch(draftHtml, /href="\/seller\/products\/2\/edit\?/);
+productsQuery = "status=all";
 const html = renderToStaticMarkup(React.createElement(SellerProductsTab, { products: [product(1), product(2, "ACTIVE")], loading: false }));
+assert.match(html, /<button(?=[^>]*role="radio")(?=[^>]*aria-checked="true")[^>]*>Все<\/button>/, "The explicit all URL preserves all product statuses");
+assert.match(html, /href="\/seller\/products\/2\/edit\?[^"]*returnTo=/);
 assert.equal((html.match(/type="checkbox"/g) || []).length, 3);
 assert.doesNotMatch(html, /Подборки товаров/, "Подразделы выводит SellerSidebar");
 assert.match(html, /aria-label="Выбрать все показанные товары \(2\)"/);
@@ -91,12 +106,13 @@ assert.match(html, /Действия с товаром «Карточка 1»/);
 assert.doesNotMatch(html, /Сначала перенесите товар в архив/);
 assert.doesNotMatch(html, /Действия с выбранными товарами/);
 assert.doesNotMatch(html, /<span[^>]*>ID /);
-assert.match(html, /href="\/seller\/products\/1\/edit\?returnTo=/, "Rows use real links, including a safe return destination");
+assert.match(html, /href="\/seller\/products\/1\/edit\?[^"]*returnTo=/, "Rows use real links, including a safe return destination");
 const longListHtml = renderToStaticMarkup(React.createElement(SellerProductsTab, {
   products: Array.from({ length: 60 }, (_, index) => product(index + 1)), loading: false,
 }));
 assert.equal((longListHtml.match(/type="checkbox"/g) || []).length, 51, "Select all refers only to the 50 visible rows");
 assert.match(longListHtml, /Выбрать все показанные товары \(50\)/);
+productsQuery = "";
 
 const bar = renderToStaticMarkup(React.createElement(ProductSelectionBar, {
   products: [product(1, "ARCHIVED")], busy: false, allSelected: true,

@@ -14,26 +14,15 @@ export type HomeProduct = {
   variants?: ProductVariant[];
 };
 
-export type HeroBlock = {
-  eyebrow?: string;
-  title: string;
-  text?: string;
-  buttonLabel: string;
-  buttonHref: string;
-  image: string;
-  imageAlt: string;
-  imagePositionX?: number;
-  imagePositionY?: number;
-};
-
 export type ProductShowcaseData = {
   title: string;
   href: string;
+  description?: string | null;
   products: HomeProduct[];
 };
 
 export type HomePageData = {
-  brandShowcase: ProductShowcaseData;
-  categoryShowcase: ProductShowcaseData;
-  latestShowcase: ProductShowcaseData;
+  products: HomeProduct[];
+  blocks: ProductShowcaseData[];
+  status: "ready" | "error";
 };

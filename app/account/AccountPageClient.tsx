@@ -8,6 +8,7 @@ import { toast } from "@/app/components/ui/toast";
 import { apiFetch, API_URL } from "../lib/api";
 import { logout as logoutAuth } from "../lib/auth";
 import { useSessionResourceCache } from "../lib/useSessionResourceCache";
+import { RequestError } from "../components/ui/RequestError";
 
 import type { AccountTab } from "./components/AccountSidebar";
 import { AccountFrame } from "./components/AccountFrame";
@@ -150,7 +151,9 @@ type Props = {
 };
 
 async function fetchAccountOrder(orderId: number): Promise<Order> {
-  const response = await apiFetch(`${API_URL}/api/orders/${orderId}`);
+  const response = await apiFetch(`${API_URL}/api/orders/${orderId}`, {
+    signal: AbortSignal.timeout(15000),
+  });
 
   if (!response.ok) {
     throw new Error(await accountApiError(response, "Не удалось загрузить заказ"));
@@ -188,7 +191,10 @@ function AccountPageContent({
 
   const [detailsLoading, setDetailsLoading] = useState(false);
   const [profileSaving, setProfileSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [detailsError, setDetailsError] = useState<{ orderId: number; message: string } | null>(null);
+  const [ordersError, setOrdersError] = useState<string | null>(null);
+  const [detailsRetry, setDetailsRetry] = useState(0);
+  const [ordersRetry, setOrdersRetry] = useState(0);
 
   const tabParam = searchParams.get("tab");
   const ordersScroll = useRef(0);
@@ -224,12 +230,14 @@ function AccountPageContent({
   useEffect(() => {
     if (currentTab !== "orders" || !selectedOrderId) {
       setSelectedOrder(null);
+      setDetailsLoading(false);
       return;
     }
 
     const orderId = Number(selectedOrderId);
-    if (!Number.isFinite(orderId)) {
+    if (!Number.isInteger(orderId) || orderId <= 0) {
       setSelectedOrder(null);
+      setDetailsLoading(false);
       return;
     }
 
@@ -237,6 +245,7 @@ function AccountPageContent({
     if (cached) {
       setSelectedOrder(cached);
       setDetailsLoading(false);
+      setDetailsError(null);
       return;
     }
 
@@ -245,19 +254,17 @@ function AccountPageContent({
     async function loadOrderDetails() {
       setSelectedOrder(null);
       setDetailsLoading(true);
-      setError(null);
 
       try {
         const data = await getOrderDetails(orderId);
 
         if (!cancelled) {
           setSelectedOrder(data);
+          setDetailsError(null);
         }
       } catch {
         if (!cancelled) {
-          setError(
-            "Не удалось загрузить заказ",
-          );
+          setDetailsError({ orderId, message: "Не удалось загрузить заказ" });
         }
       } finally {
         if (!cancelled) {
@@ -271,7 +278,7 @@ function AccountPageContent({
     return () => {
       cancelled = true;
     };
-  }, [currentTab, getOrderDetails, peekOrderDetails, selectedOrderId]);
+  }, [currentTab, getOrderDetails, peekOrderDetails, selectedOrderId, detailsRetry]);
 
   useEffect(() => {
     setMe(initialMe);
@@ -288,7 +295,7 @@ function AccountPageContent({
   }, [initialOrders, initialOrdersLoaded]);
 
   useEffect(() => {
-    if (ordersLoaded || currentTab !== "orders") {
+    if (ordersLoaded || currentTab !== "orders" || selectedOrderId) {
       return;
     }
 
@@ -300,7 +307,8 @@ function AccountPageContent({
     async function loadInitialOrders() {
       try {
         const response = await apiFetch(
-          `${API_URL}/api/orders/my/list?page=0&size=20`
+          `${API_URL}/api/orders/my/list?page=0&size=20`,
+          { signal: AbortSignal.timeout(15000) }
         );
         if (!response.ok) throw new Error("Не удалось загрузить заказы");
         const page = (await response.json()) as PageResponse<OrderListItem>;
@@ -310,13 +318,10 @@ function AccountPageContent({
         setOrdersTotal(page.totalElements ?? 0);
         setOrdersNextPage((page.number ?? 0) + 1);
         setOrdersLoaded(true);
-      } catch (loadError) {
+        setOrdersError(null);
+      } catch {
         if (!cancelled && requestId === ordersRequestIdRef.current) {
-          setError(
-            loadError instanceof Error
-              ? loadError.message
-              : "Не удалось загрузить заказы"
-          );
+          setOrdersError("Не удалось загрузить заказы");
         }
       } finally {
         if (!cancelled && requestId === ordersRequestIdRef.current) {
@@ -330,7 +335,7 @@ function AccountPageContent({
     return () => {
       cancelled = true;
     };
-  }, [currentTab, ordersLoaded]);
+  }, [currentTab, ordersLoaded, selectedOrderId, ordersRetry]);
 
   async function loadMoreOrders() {
     if (ordersLoadingMoreRef.current || orders.length >= ordersTotal) return;
@@ -379,7 +384,6 @@ function AccountPageContent({
     if (profileSaving) return false;
 
     setProfileSaving(true);
-    setError(null);
 
     try {
       const response = await apiFetch(`${API_URL}/api/profile`, {
@@ -469,7 +473,6 @@ function AccountPageContent({
     }
 
     requestEditorNavigation(() => {
-      setError(null);
       window.history.pushState(null, "", href);
       window.scrollTo({top:0,behavior:"auto"});
     });
@@ -477,14 +480,24 @@ function AccountPageContent({
 
 
   const orderId = selectedOrderId && Number.isInteger(Number(selectedOrderId)) && Number(selectedOrderId) > 0 ? Number(selectedOrderId) : null;
+  const currentDetailsError = detailsError?.orderId === orderId ? detailsError.message : null;
 
   return <AccountFrame currentTab={currentTab} orderId={orderId} showSellerCabinet={Boolean(me?.sellerApproved)} onNavigate={navigateAccount} onLogout={() => void logout()}>
-      {error ? <div className={styles.errorText} role="alert">{error}<button className="buttonGhost" onClick={() => { setError(null); router.refresh(); }}>Повторить</button></div> : null}
-
       {currentTab === "orders" || visitedTabs.has("orders") ? <div hidden={currentTab !== "orders"} aria-busy={detailsLoading || ordersLoadingMore}>
         {selectedOrder && selectedOrder.id === Number(selectedOrderId) ? <AccountOrderDetails key={selectedOrder.id} order={selectedOrder} onOrderUpdated={updateOrder} formatOrderStatus={formatOrderStatus} formatPaymentStatus={formatPaymentStatus} formatDeliveryStatus={formatDeliveryStatus} buildOrderStatusLabel={buildOrderStatusLabel} />
-          : orderId && !error ? <AccountSkeleton variant="detail" />
-          : !selectedOrderId && !ordersLoaded && !error ? <AccountSkeleton variant="orders" />
+          : orderId && currentDetailsError ? <div className={styles.ordersContent}><RequestError message={currentDetailsError} text="Попробуйте ещё раз немного позже" loading={detailsLoading} onRetry={() => {
+              if (detailsLoading) return;
+              setDetailsLoading(true);
+              setDetailsRetry(value => value + 1);
+            }} /></div>
+          : orderId ? <AccountSkeleton variant="detail" />
+          : !selectedOrderId && !ordersLoaded && ordersError ? <RequestError message={ordersError} text="Попробуйте ещё раз немного позже" loading={ordersLoadingMore} onRetry={() => {
+              if (ordersLoadingMoreRef.current) return;
+              ordersLoadingMoreRef.current = true;
+              setOrdersLoadingMore(true);
+              setOrdersRetry(value => value + 1);
+            }} />
+          : !selectedOrderId && !ordersLoaded ? <AccountSkeleton variant="orders" />
           : !selectedOrderId ? <AccountOrdersTab orders={orders} totalElements={ordersTotal} loadingMore={ordersLoadingMore} onLoadMore={orders.length < ordersTotal ? loadMoreOrders : undefined} buildOrderStatusLabel={buildOrderStatusLabel} onOpenOrder={openOrder} onLoadOrder={getOrderDetails} onPrefetchOrder={prefetchOrderDetails} /> : null}
       </div> : null}
       {currentTab === "returns" || visitedTabs.has("returns") ? <div hidden={currentTab !== "returns"}><AccountReturnsTab onOpenOrders={() => openTab("orders")} onOpenOrder={id=>openOrder(id,"returns")} /></div> : null}

@@ -15,12 +15,13 @@ export function requestEditorNavigation(action: () => void, { completed = false 
   if (window.dispatchEvent(event)) action();
 }
 
-/** Full editor surface; mount only while open. */
-export function EditorSurface({ title, headerMeta, subtitle, children, actions, navigation, className = "", dirty = false, busy = false, compact = false, centered = false, toastId, closeLabel = "Закрыть редактор", guardNavigation = false, discardHint, onClose }: {
+/** Full editor surface; dialog by default, or an ordinary document page. */
+export function EditorSurface({ title, headerMeta, subtitle, children, actions, navigation, className = "", dirty = false, busy = false, compact = false, centered = false, presentation = "dialog", toastId, closeLabel = "Закрыть редактор", backLabel = "Назад", guardNavigation = false, discardHint, onClose }: {
   title: ReactNode; headerMeta?: ReactNode; subtitle?: ReactNode; children: ReactNode; actions?: ReactNode; navigation?: ReactNode;
-  className?: string; dirty?: boolean; busy?: boolean; compact?: boolean; centered?: boolean; guardNavigation?: boolean; discardHint?: string; toastId?: string; closeLabel?: string; onClose: () => void;
+  className?: string; dirty?: boolean; busy?: boolean; compact?: boolean; centered?: boolean; presentation?: "dialog" | "page"; guardNavigation?: boolean; discardHint?: string; toastId?: string; closeLabel?: string; backLabel?: string; onClose: () => void;
 }) {
   const ref = useRef<HTMLDialogElement>(null);
+  const pageRef = useRef<HTMLElement>(null);
   const footerRef = useRef<HTMLElement>(null);
   const titleId = useId();
   const [confirmClose, setConfirmClose] = useState(false);
@@ -33,6 +34,9 @@ export function EditorSurface({ title, headerMeta, subtitle, children, actions, 
   const current = useRef({dirty,busy,onClose});
   useEffect(()=>{current.current={dirty,busy,onClose};},[dirty,busy,onClose]);
   const leave = useCallback((action:()=>void) => {
+    // An explicit discard or completed mutation already authorizes leaving.
+    // Native beforeunload must not ask again for full-document link navigation.
+    completing.current = true;
     if(historyGuard.current && window.history.state?.rcmEditorGuard === titleId){
       afterPop.current=action; historyGuard.current=false; window.history.back();
     } else action();
@@ -90,6 +94,7 @@ export function EditorSurface({ title, headerMeta, subtitle, children, actions, 
     if(!dirty && !busy && historyGuard.current && window.history.state?.rcmEditorGuard === titleId){historyGuard.current=false;afterPop.current=()=>{};window.history.back();}
   },[dirty,busy,guardNavigation,titleId]);
   useEffect(() => {
+    if (presentation === "page") return;
     const dialog = ref.current!;
     const focus = document.activeElement;
     dialog.showModal();
@@ -99,7 +104,7 @@ export function EditorSurface({ title, headerMeta, subtitle, children, actions, 
       unlock();
       if (focus instanceof HTMLElement && focus.isConnected) focus.focus({ preventScroll: true });
     };
-  }, []);
+  }, [presentation]);
   useEffect(() => {
     if (!toastId) return;
     return () => {
@@ -108,18 +113,18 @@ export function EditorSurface({ title, headerMeta, subtitle, children, actions, 
     };
   }, [toastId]);
   useEffect(() => {
-    if (!toastId || !footerRef.current || !ref.current) return;
-    const dialog = ref.current;
+    const surface = presentation === "page" ? pageRef.current : ref.current;
+    if (!toastId || !footerRef.current || !surface) return;
     const footer = footerRef.current;
-    const update = () => dialog.style.setProperty("--editor-actions-height", `${footer.getBoundingClientRect().height}px`);
+    const update = () => surface.style.setProperty("--editor-actions-height", `${footer.getBoundingClientRect().height}px`);
     update();
     const observer = new ResizeObserver(update);
     observer.observe(footer);
     return () => observer.disconnect();
-  }, [toastId, actions]);
+  }, [toastId, actions, presentation]);
   useEffect(() => {
     if (!dirty && !busy) return;
-    const prevent = (event: BeforeUnloadEvent) => { event.preventDefault(); event.returnValue = ""; };
+    const prevent = (event: BeforeUnloadEvent) => { if (completing.current) return; event.preventDefault(); event.returnValue = ""; };
     window.addEventListener("beforeunload", prevent);
     return () => window.removeEventListener("beforeunload", prevent);
   }, [dirty, busy]);
@@ -128,28 +133,32 @@ export function EditorSurface({ title, headerMeta, subtitle, children, actions, 
     if (dirty) { leaveAction.current=onClose; setConfirmClose(true); }
     else leave(onClose);
   };
-    return <>
-    <dialog ref={ref} className={`${styles.surface} ${compact ? styles.compact : ""} ${centered ? styles.centered : ""} ${className}`}
-      role="dialog" aria-labelledby={titleId} aria-busy={busy || undefined}
-      onCancel={(event) => { event.preventDefault(); event.stopPropagation(); if(event.target === event.currentTarget) requestClose(); }}
-      onMouseDown={(event) => {
-        if (event.target === event.currentTarget) {
-          requestClose();
-        }
-      }}>
+  const content = <>
+      {presentation === "page" ? <Button type="button" variant="ghost" className={styles.back} reserveLabelSpace={false} disabled={busy} onClick={requestClose}>
+        <Icon name="chevron-left" size={18} />{backLabel}
+      </Button> : null}
       <header className={styles.header}>
         <div className={styles.heading}>
           {headerMeta ? <div className={styles.headerMeta}>{headerMeta}</div> : null}
           <h1 id={titleId}>{title}</h1>
           {subtitle ? <div className={styles.subtitle} title={typeof subtitle === "string" ? subtitle : undefined}>{subtitle}</div> : null}
         </div>
-        <Button variant="ghost" className={styles.close} aria-label={closeLabel} disabled={busy} onClick={requestClose}><Icon name="x" /></Button>
+        {presentation === "dialog" ? <Button variant="ghost" className={styles.close} aria-label={closeLabel} disabled={busy} onClick={requestClose}><Icon name="x" /></Button> : null}
       </header>
-      {navigation ? <div className={styles.navigation}>{navigation}</div> : null}
+      {navigation ? <div className={styles.navigation} data-editor-navigation>{navigation}</div> : null}
       <div className={styles.body} data-editor-body>{children}</div>
       {actions ? <footer ref={footerRef} className={styles.footer}>{actions}</footer> : null}
       {toastId ? <RcmToaster id={toastId} /> : null}
-    </dialog>
+    </>;
+  return <>
+    {presentation === "page" ? <section ref={pageRef} className={`${styles.page} ${className}`} data-editor-page
+      aria-labelledby={titleId} aria-busy={busy || undefined}>{content}</section> :
+      <dialog ref={ref} className={`${styles.surface} ${compact ? styles.compact : ""} ${centered ? styles.centered : ""} ${className}`}
+        role="dialog" aria-labelledby={titleId} aria-busy={busy || undefined}
+        onCancel={(event) => { event.preventDefault(); event.stopPropagation(); if(event.target === event.currentTarget) requestClose(); }}
+        onMouseDown={(event) => {
+          if (event.target === event.currentTarget) requestClose();
+        }}>{content}</dialog>}
     {confirmClose ? <Dialog title="Есть несохранённые изменения" onClose={() => setConfirmClose(false)}
       actions={<><Button variant="secondary" onClick={() => setConfirmClose(false)}>Вернуться к редактированию</Button><Button variant="primary" onClick={() => { setConfirmClose(false); const action=leaveAction.current ?? onClose; leaveAction.current=null; leave(action); }}>Закрыть без сохранения</Button></>}>
       <p>Если закрыть сейчас, внесённые изменения не сохранятся</p>{discardHint && <p>{discardHint}</p>}

@@ -32,7 +32,9 @@ export const EMPTY_CONTACT_REPLY_DRAFT: ContactReplyDraft = {
 
 type Props = {
   contactId: number;
-  email: string;
+  email: string | null;
+  channel?: "EMAIL" | "TELEGRAM";
+  telegramUsername?: string | null;
   draft: ContactReplyDraft;
   onDraftChange: (update: (current: ContactReplyDraft) => ContactReplyDraft) => void;
 };
@@ -62,7 +64,8 @@ function upsertReply(rows: ContactReply[] | null, reply: ContactReply) {
     .sort((a, b) => a.createdAt.localeCompare(b.createdAt) || a.id - b.id);
 }
 
-export function AdminContactReplies({ contactId, email, draft, onDraftChange }: Props) {
+export function AdminContactReplies({ contactId, email, channel = "EMAIL", telegramUsername, draft, onDraftChange }: Props) {
+  const maximumLength = channel === "TELEGRAM" ? 4000 : 5000;
   const [open, setOpen] = useState(Boolean(draft.body || draft.requestId || Object.keys(draft.retryRequestIds).length));
   const [history, setHistory] = useState<{ rows: ContactReply[] | null; error: string }>({ rows: null, error: "" });
   const [revision, setRevision] = useState(0);
@@ -126,8 +129,8 @@ export function AdminContactReplies({ contactId, email, draft, onDraftChange }: 
     event.preventDefault();
     if (controllerRef.current) return;
     const body = draft.body.trim();
-    if (!body || body.length > 5000) {
-      setFieldError("Введите ответ от 1 до 5000 символов");
+    if (!body || body.length > maximumLength) {
+      setFieldError(`Введите ответ от 1 до ${maximumLength} символов`);
       contentRef.current?.querySelector<HTMLTextAreaElement>("textarea")?.focus();
       return;
     }
@@ -221,16 +224,16 @@ export function AdminContactReplies({ contactId, email, draft, onDraftChange }: 
                   <li className={styles.reply} key={reply.id} data-contact-reply={reply.id}>
                     <div className={styles.replyHeading}>
                       <span className={styles.author}>{reply.authorName || `Администратор №${reply.authorId}`}</span>
-                      <StatusBadge tone={statuses[reply.status].tone}>{statuses[reply.status].label}</StatusBadge>
+                      <StatusBadge tone={statuses[reply.status].tone}>{reply.channel === "TELEGRAM" && reply.status === "SENT" ? "Принято Telegram" : statuses[reply.status].label}</StatusBadge>
                     </div>
                     <p className={styles.metadata}>
                       <time dateTime={reply.createdAt}>{formatDate(reply.createdAt)}</time>
                       {reply.sentAt && <> · Отправлено <time dateTime={reply.sentAt}>{formatDate(reply.sentAt)}</time></>}
                     </p>
                     <p className={styles.body}>{reply.body}</p>
-                    <p className={styles.metadata}>Получатель: {reply.recipientEmail} · Попыток: {reply.attempts}</p>
+                    <p className={styles.metadata}>Получатель: {reply.channel === "TELEGRAM" ? "Личный чат в Telegram" : reply.recipientEmail || "Email не указан"} · Попыток: {reply.attempts}</p>
                     {reply.status === "FAILED" && <Banner tone="danger">{reply.errorMessage || "Не удалось отправить ответ"}</Banner>}
-                    {reply.status === "UNKNOWN" && <Banner tone="warning">Результат отправки неизвестен — письмо могло уйти</Banner>}
+                    {reply.status === "UNKNOWN" && <Banner tone="warning">Результат отправки неизвестен — сообщение могло уйти</Banner>}
                     {reply.canRetry && (
                       <div className={styles.retry}>
                         <Button variant="secondary" disabled={busy !== null} loading={busy === reply.id} onClick={() => void retry(reply)}>
@@ -252,8 +255,8 @@ export function AdminContactReplies({ contactId, email, draft, onDraftChange }: 
               label="Ответ на обращение"
               required
               rows={5}
-              maxLength={5000}
-              hint="До 5000 символов"
+              maxLength={maximumLength}
+              hint={`До ${maximumLength} символов`}
               value={draft.body}
               error={fieldError}
               disabled={busy !== null}
@@ -266,12 +269,13 @@ export function AdminContactReplies({ contactId, email, draft, onDraftChange }: 
               }}
             />
             <div className={styles.actions}>
-              <span className={styles.hint}>На {email}</span>
+              <span className={styles.hint}>{channel === "TELEGRAM" ? `В Telegram${telegramUsername ? ` · @${telegramUsername.replace(/^@/, "")}` : ""}` : `На ${email || "email не указан"}`}</span>
               <Button type="submit" variant="primary" disabled={busy !== null} loading={busy === "send"}>
                 Отправить ответ
               </Button>
             </div>
           </form>
+          {channel === "TELEGRAM" && <p className={styles.hint}>Принятие Telegram подтверждает отправку в чат, но не прочтение пользователем</p>}
         </div>
       )}
     </div>

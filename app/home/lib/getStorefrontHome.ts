@@ -28,7 +28,7 @@ export type StorefrontHomeProduct = {
 };
 
 function normalizeStorefrontHome(data: unknown): StorefrontHome | null {
-  if (!data || typeof data !== "object") return null;
+  if (!data || typeof data !== "object" || !("collections" in data) || !Array.isArray(data.collections)) return null;
 
   const raw = data as Record<string, unknown>;
   const heroImageUrl =
@@ -91,6 +91,7 @@ export async function getStorefrontHome(): Promise<StorefrontHome | null> {
   try {
     const response = await fetch(`${API_URL}/api/storefront/home`, {
       next: { revalidate: 30 },
+      signal: AbortSignal.timeout(5000),
     });
 
     if (!response.ok) return null;
@@ -99,12 +100,4 @@ export async function getStorefrontHome(): Promise<StorefrontHome | null> {
   } catch {
     return null;
   }
-}
-
-export function getVersionedHeroImageUrl(home: StorefrontHome | null): string | null {
-  if (!home?.heroImageUrl) return null;
-  if (!home.updatedAt) return home.heroImageUrl;
-
-  const separator = home.heroImageUrl.includes("?") ? "&" : "?";
-  return `${home.heroImageUrl}${separator}v=${encodeURIComponent(home.updatedAt)}`;
 }

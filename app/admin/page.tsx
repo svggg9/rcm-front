@@ -1,4 +1,6 @@
 import { redirect } from "next/navigation";
+import { Suspense } from "react";
+import { CabinetPageSkeleton } from "../components/ui/CabinetSkeleton";
 
 import { getServerSession } from "../lib/session";
 import { AdminPageClient } from "./AdminPageClient";
@@ -10,8 +12,6 @@ import {
   getAdminProductServer,
   getAdminProductStatusCountsServer,
   getAdminProductsServer,
-  getAdminSellerPayoutsServer,
-  getAdminSellerPayoutStatsServer,
   getAdminCdekWebhookEventsServer,
   getAdminSellerApplicationStatusCountsServer,
   getAdminSellerApplicationsServer,
@@ -140,13 +140,6 @@ async function getInitialData(params: Awaited<Props["searchParams"]>) {
     ledgerEntries: [],
     totalLedgerEntries: 0,
     ledgerLoaded: false,
-    sellerPayouts: [],
-    sellerPayoutStats: {
-      totalCount: 0,
-      readyAmount: 0,
-      sentAmount: 0,
-    },
-    sellerPayoutsLoaded: false,
     cdekWebhookEvents: [],
     totalCdekWebhookEvents: 0,
     categories: [],
@@ -255,21 +248,8 @@ async function getInitialData(params: Awaited<Props["searchParams"]>) {
         initialData.ledgerLoaded = ledgerData !== null;
         initialData.tabDataLoaded = initialData.ledgerLoaded;
       } else {
-        const [payoutsData, payoutStats] = await Promise.all([
-          getAdminSellerPayoutsServer(0, 50),
-          getAdminSellerPayoutStatsServer(),
-        ]);
-        initialData.sellerPayouts = Array.isArray(payoutsData?.content)
-          ? payoutsData.content
-          : [];
-        initialData.sellerPayoutStats = payoutStats ?? {
-          totalCount: payoutsData?.totalElements ?? 0,
-          readyAmount: 0,
-          sentAmount: 0,
-        };
-        initialData.sellerPayoutsLoaded =
-          payoutsData !== null && payoutStats !== null;
-        initialData.tabDataLoaded = initialData.sellerPayoutsLoaded;
+        // The queue owns filtered reads, errors and refresh; do not load a second unfiltered register here.
+        initialData.tabDataLoaded = true;
       }
     }
 
@@ -290,7 +270,15 @@ async function getInitialData(params: Awaited<Props["searchParams"]>) {
   return initialData;
 }
 
-export default async function AdminPage({ searchParams }: Props) {
+export default function AdminPage(props: Props) {
+  return (
+    <Suspense fallback={<CabinetPageSkeleton variant="list" />}>
+      <AdminPageData {...props} />
+    </Suspense>
+  );
+}
+
+async function AdminPageData({ searchParams }: Props) {
   const sessionPromise = getServerSession();
   const params = searchParams ? await searchParams : undefined;
   const initialDataPromise = getInitialData(params);

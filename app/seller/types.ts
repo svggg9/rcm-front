@@ -217,6 +217,7 @@ export type SellerDashboardSummary = {
   inPayoutAmount: number;
   failedPayouts: number;
   telegramLinked: boolean;
+  telegramEnabled?: boolean;
   supportTelegramUrl: string | null;
   recentEvents: SellerDashboardEvent[];
 };
@@ -285,7 +286,9 @@ export type SellerFinanceOperation = {
 
 export type SellerPayoutStatus =
   | "READY"
+  | "IN_PROGRESS"
   | "SENT"
+  | "REVIEW"
   | "PAID"
   | "FAILED"
   | "CANCELLED";

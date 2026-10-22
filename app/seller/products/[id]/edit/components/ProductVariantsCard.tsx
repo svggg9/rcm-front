@@ -2,7 +2,7 @@ import { VariantNumberInput } from "./VariantNumberInput";
 import { useFieldValidation } from "../../../../../lib/useFieldValidation";
 import { useId } from "react";
 import { Button } from "../../../../../components/ui/Button";
-import { Icon } from "../../../../../components/ui/Icon";
+import { DesignSystemIcon as Icon } from "../../../../../components/ui/DesignSystemIcon";
 
 import { variantColorGroupKey, inconsistentColorPriceIndexes } from "../utils";
 import type { ProductVariant } from "../types";
@@ -151,12 +151,13 @@ export function ProductVariantsCard({
                   <label className="label" htmlFor={`${fieldId}-${index}-quantity`}>На складе (необязательно)</label>
                   <Button
                     type="button"
+                    variant="ghost"
                     disabled={variantStructureDisabled}
                     onClick={() => removeSizeRow(index)}
                     className={styles.variantSizeDeleteBtn}
                     aria-label="Удалить размер"
                   >
-                    <Icon name="x" size={14} strokeWidth={1.5} />
+                    <Icon name="trash" role="utility" />
                   </Button>
                   <VariantNumberInput integer value={variant.availableQuantity} disabled={operationalDisabled}
                     aria-invalid={errors.availableQuantity || !!numericValidation.errors["quantity-" + index] || undefined}
@@ -178,7 +179,7 @@ export function ProductVariantsCard({
           <Button type="button" variant="ghost" reserveLabelSpace={false} className={styles.addVariantAction}
             aria-label={`Добавить размер: ${group.rows[0].variant.color || "без цвета"}`}
             disabled={variantStructureDisabled} onClick={()=>onAddVariant({...group.rows[0].variant,groupKey:group.key,id:null,clientKey:crypto.randomUUID(),sku:"",size:"",sizeId:""})}>
-            <Icon name="plus" size={16} strokeWidth={2.5} /><span>Добавить размер</span>
+            <Icon name="plus" role="utility" /><span>Добавить размер</span>
           </Button>
           </section>)}
 
@@ -190,7 +191,7 @@ export function ProductVariantsCard({
             onClick={()=>onAddVariant({groupKey:crypto.randomUUID(),colorwayId:null,colorId:"",color:"",price:baseVariant?.price ?? 0})}
             className={`${styles.addVariantAction} ${styles.addColorAction}`}
           >
-            <Icon name="plus" size={16} strokeWidth={2.5} /><span>Добавить цвет</span>
+            <Icon name="plus" role="utility" /><span>Добавить цвет</span>
           </Button>
         </div>
       </div>

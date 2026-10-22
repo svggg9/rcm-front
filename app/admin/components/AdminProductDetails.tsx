@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from "react";
+import { useRef, useState, type ReactNode } from "react";
 import Image from "next/image";
 
 import styles from "../Admin.module.css";
@@ -6,16 +6,26 @@ import type { AdminProduct, DictionaryItem } from "../types";
 import { Price } from "../../components/ui/Price";
 import { StatusBadge } from "../../components/ui/StatusBadge";
 import { Banner } from "../../components/ui/Banner";
+import { Button } from "../../components/ui/Button";
+import { CategoryPicker } from "../../components/ui/CategoryPicker";
+import { FormSelect } from "../../components/ui/FormSelect";
+import { TextInput } from "../../components/ui/TextInput";
+import { RequestError } from "../../components/ui/RequestError";
+import { eligibleCategoryParents, normalizeCategories } from "../../lib/categories";
 
 type Props = {
   product: AdminProduct;
   categories: DictionaryItem[];
+  categoryError?: string | null;
+  categoryLoading?: boolean;
+  onRetryCategories?: () => void;
   actionProductId: number | null;
   onBack: () => void;
   onAssignCategory: (params: {
     categoryId?: number;
     categoryName?: string;
-  }) => void;
+    parentId?: number | null;
+  }) => Promise<void>;
   onApprove: () => void;
   onReturnToRevision: (comment: string) => void;
   onBlock: () => void;
@@ -68,6 +78,9 @@ function formatDate(value?: string | null) {
 export function AdminProductDetails({
   product,
   categories,
+  categoryError,
+  categoryLoading = false,
+  onRetryCategories,
   actionProductId,
   onBack,
   onAssignCategory,
@@ -79,12 +92,43 @@ export function AdminProductDetails({
   const loading = actionProductId === product.id;
 
   const [revisionComment, setRevisionComment] = useState("");
-  const [selectedCategoryId, setSelectedCategoryId] = useState<number | "">(
-    product.categoryId ?? ""
-  );
+  const [categorySelection, setCategorySelection] = useState<{ savedId: number | null; value: number | "" }>({
+    savedId: product.categoryId, value: product.categoryId ?? "",
+  });
+  let selectedCategoryId = categorySelection.value;
+  if (categorySelection.savedId !== product.categoryId) {
+    selectedCategoryId = product.categoryId ?? "";
+    setCategorySelection({ savedId: product.categoryId, value: selectedCategoryId });
+  }
   const [newCategoryName, setNewCategoryName] = useState(
     product.suggestedCategoryName ?? ""
   );
+  const [newParentId, setNewParentId] = useState<number | "root" | "">("");
+  const [assignmentError, setAssignmentError] = useState<string | null>(null);
+  const [assigning, setAssigning] = useState(false);
+  const categoryInFlight = useRef(false);
+  const categoryOptions = normalizeCategories(categories);
+  const parentCategories = eligibleCategoryParents(categoryOptions).filter((category) => category.effectiveActive);
+  const selectedCategory = categoryOptions.find((category) => category.id === selectedCategoryId);
+  const cleanCategoryName = newCategoryName.trim().replace(/\s+/g, " ");
+  const newParent = newParentId === "root" ? null : newParentId;
+  const duplicate = categoryOptions.some((category) => category.parentId === newParent && category.label.toLocaleLowerCase("ru") === cleanCategoryName.toLocaleLowerCase("ru"));
+  const newCategoryError = cleanCategoryName.includes("/") ? "Введите название без пути, раздел выберите отдельно" : duplicate ? "В этом разделе уже есть такая категория — выберите её выше" : null;
+  const categoryUnavailable = loading || assigning || categoryLoading || Boolean(categoryError);
+
+  async function assignCategory(create = false) {
+    if (categoryUnavailable || categoryInFlight.current) return;
+    if (create ? !cleanCategoryName || newCategoryError || newParentId === "" : !selectedCategory?.effectiveActive) return;
+    categoryInFlight.current = true;
+    setAssigning(true);
+    setAssignmentError(null);
+    try {
+      await onAssignCategory(create ? { categoryName: cleanCategoryName, parentId: newParentId === "root" ? null : Number(newParentId) } : { categoryId: Number(selectedCategoryId) });
+      if (create) { setNewCategoryName(""); setNewParentId(""); }
+    } catch (reason) {
+      setAssignmentError(reason instanceof Error ? reason.message : "Не удалось назначить категорию");
+    } finally { categoryInFlight.current = false; setAssigning(false); }
+  }
 
   function handleReturnToRevision() {
     const cleanComment = revisionComment.trim();
@@ -225,73 +269,27 @@ export function AdminProductDetails({
                   </div>
                 </div>
 
-                <button
-                  type="button"
-                  className={`${styles.secondaryBtn} textButton`}
-                  disabled={loading}
-                  onClick={() =>
-                    onAssignCategory({
-                      categoryName: product.suggestedCategoryName?.trim(),
-                    })
-                  }
-                >
-                  Создать и привязать
-                </button>
+                <span className="textMuted textSmall">Выберите существующую категорию или укажите раздел для новой</span>
               </div>
             ) : null}
 
             <div className={styles.moderationGrid}>
-              <label className={styles.adminField} data-ui="field">
-                <span className="textCaption">Привязать к существующей</span>
-                <select
-                  value={selectedCategoryId}
-                  onChange={(event) =>
-                    setSelectedCategoryId(
-                      event.target.value ? Number(event.target.value) : ""
-                    )
-                  }
-                  className={`${styles.adminSelect} textSmall`}
-                >
-                  <option value="">Выберите категорию</option>
-                  {categories.map((category) => (
-                    <option key={category.id} value={category.id}>
-                      {category.name}
-                    </option>
-                  ))}
-                </select>
-              </label>
-
-              <button
-                type="button"
-                className={`${styles.secondaryBtn} textButton`}
-                disabled={loading || !selectedCategoryId}
-                onClick={() =>
-                  onAssignCategory({ categoryId: Number(selectedCategoryId) })
-                }
-              >
-                Привязать
-              </button>
-
-              <label className={styles.adminField} data-ui="field">
-                <span className="textCaption">Создать новую категорию</span>
-                <input
-                  value={newCategoryName}
-                  onChange={(event) => setNewCategoryName(event.target.value)}
-                  className={`${styles.adminInput} textSmall`}
-                />
-              </label>
-
-              <button
-                type="button"
-                className={`${styles.primaryBtn} textButton`}
-                disabled={loading || !newCategoryName.trim()}
-                onClick={() =>
-                  onAssignCategory({ categoryName: newCategoryName.trim() })
-                }
-              >
-                Создать и привязать
-              </button>
+              <CategoryPicker label="Привязать к существующей" value={selectedCategoryId} categories={categoryOptions}
+                currentLabel={product.category} allowCustomValue={false} disabled={categoryUnavailable}
+                loading={categoryLoading} error={categoryError} onRetry={onRetryCategories}
+                onChange={(value) => { setCategorySelection({ savedId: product.categoryId, value }); setAssignmentError(null); }} />
+              <Button variant="secondary" disabled={categoryUnavailable || !selectedCategory?.effectiveActive}
+                loading={assigning} onClick={() => void assignCategory()}>Привязать</Button>
+              <TextInput label="Создать новую категорию" fieldVariant="boxed" value={newCategoryName} maxLength={120}
+                disabled={categoryUnavailable} error={newCategoryError} onChange={(event) => { setNewCategoryName(event.target.value); setAssignmentError(null); }} />
+              <FormSelect<number | "root"> label="Расположение новой категории" value={newParentId} required
+                placeholder="Выберите родительскую категорию" disabled={categoryUnavailable}
+                options={[{ value: "root", label: "Создать основной раздел" }, ...parentCategories.map((category) => ({ value: category.id, label: category.name }))]}
+                onChange={(value) => { setNewParentId(value); setAssignmentError(null); }} />
+              <Button variant="primary" disabled={categoryUnavailable || !cleanCategoryName || newParentId === "" || !!newCategoryError}
+                loading={assigning} onClick={() => void assignCategory(true)}>Создать и привязать</Button>
             </div>
+            {assignmentError && !categoryError ? <RequestError variant="inline" message={assignmentError} /> : null}
 
             <label className={styles.adminTextareaField} data-ui="field">
               <span className="textCaption">Комментарий модератора</span>

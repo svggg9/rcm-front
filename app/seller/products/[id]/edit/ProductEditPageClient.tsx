@@ -8,6 +8,10 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
 import { apiFetch, API_URL } from "../../../../lib/api";
+import { createSellerProductDraft } from "../../../lib/createSellerProductDraft";
+import { normalizeCategories, type CategoryOption } from "../../../../lib/categories";
+import { isRequestCancelled, toApiError } from "../../../../lib/apiErrors";
+import { subscribeCategoriesChanged } from "../../../../lib/categoryEvents";
 import { Button } from "../../../../components/ui/Button";
 import { Banner } from "../../../../components/ui/Banner";
 import { Dialog } from "../../../../components/ui/Dialog";
@@ -64,9 +68,11 @@ const MODAL_FOCUSABLE_SELECTOR = [
 
 type Props = {
   intercepted?: boolean;
+  presentation?: "dialog" | "page";
   productId: number;
   initialProduct: SellerProduct;
-  initialCategories: Option[];
+  initialCategories: CategoryOption[];
+  initialCategoryError?: boolean;
   initialBrands: Option[];
 };
 
@@ -159,9 +165,11 @@ function productListHref() {
 
 export function ProductEditPageClient({
   intercepted = false,
+  presentation = "dialog",
   productId,
   initialProduct,
   initialCategories,
+  initialCategoryError = false,
   initialBrands,
 }: Props) {
   const router = useRouter();
@@ -188,10 +196,15 @@ export function ProductEditPageClient({
   const publishRequestRef = useRef(false);
 
   const [product, setProduct] = useState<SellerProduct | null>(initialProduct);
-  const [categories, setCategories] = useState<Option[]>(initialCategories);
+  const [categories, setCategories] = useState<CategoryOption[]>(initialCategories);
+  const [categoryError, setCategoryError] = useState<string | null>(initialCategoryError ? "Не удалось загрузить категории" : null);
+  const [categoryLoading, setCategoryLoading] = useState(false);
+  const [categoryLoadAttempt, setCategoryLoadAttempt] = useState(0);
+  useEffect(() => subscribeCategoriesChanged(() => setCategoryLoadAttempt(attempt => attempt + 1)), []);
   const [brands] = useState<Option[]>(initialBrands);
 
   const [title, setTitle] = useState(() => getInitialTitle(initialProduct));
+  const [titleDraftDirty, setTitleDraftDirty] = useState(false);
   const [description, setDescription] = useState(initialProduct.description ?? "");
   const [composition, setComposition] = useState(initialProduct.composition ?? "");
   const [categoryId, setCategoryId] = useState<number | "">(
@@ -260,7 +273,9 @@ export function ProductEditPageClient({
     const onScroll = () => {
       cancelAnimationFrame(frame);
       frame = requestAnimationFrame(() => {
-        const top = body.getBoundingClientRect().top + 80;
+        const top = presentation === "page"
+          ? parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--site-header-height")) + 96
+          : body.getBoundingClientRect().top + 80;
         let current: ProductEditorStep = "general";
         for (const step of PRODUCT_EDITOR_STEPS) {
           if (step.id === "photos") continue;
@@ -270,9 +285,10 @@ export function ProductEditPageClient({
         setActiveStep(current);
       });
     };
-    body.addEventListener("scroll", onScroll, { passive: true });
-    return () => { body.removeEventListener("scroll", onScroll); cancelAnimationFrame(frame); };
-  }, [mobileEditor]);
+    const scrollTarget = presentation === "page" ? window : body;
+    scrollTarget.addEventListener("scroll", onScroll, { passive: true });
+    return () => { scrollTarget.removeEventListener("scroll", onScroll); cancelAnimationFrame(frame); };
+  }, [mobileEditor, presentation]);
   const editRevisionRef = useRef(0);
   const publishSuccessDialogRef = useRef<HTMLDivElement | null>(null);
   const publishSuccessCloseRef = useRef<HTMLButtonElement | null>(null);
@@ -310,40 +326,22 @@ export function ProductEditPageClient({
   }, [onboardingRetry]);
 
   useEffect(() => {
-    if (initialCategories.length > 0) return;
-
-    let cancelled = false;
-
-    void apiFetch(`${API_URL}/api/catalog/categories`)
-      .then(async (response) => {
-        if (!response.ok) return [];
-        const data: unknown = await response.json();
-        return Array.isArray(data) ? (data as Option[]) : [];
-      })
-      .then((nextCategories) => {
-        if (!cancelled) setCategories(nextCategories);
-      })
-      .catch(() => undefined);
-
-    return () => {
-      cancelled = true;
-    };
-  }, [initialCategories.length]);
-
-  useEffect(() => {
-    if (!dirty) return;
-
-    function handleBeforeUnload(event: BeforeUnloadEvent) {
-      event.preventDefault();
-      event.returnValue = "";
-    }
-
-    window.addEventListener("beforeunload", handleBeforeUnload);
-
-    return () => {
-      window.removeEventListener("beforeunload", handleBeforeUnload);
-    };
-  }, [dirty]);
+    if (categoryLoadAttempt === 0) return;
+    const controller = new AbortController();
+    setCategoryLoading(true);
+    void apiFetch(`${API_URL}/api/catalog/categories`, { signal: AbortSignal.any([controller.signal, AbortSignal.timeout(8000)]) })
+      .then(async response => {
+        if (!response.ok) throw new Error("Category dictionary unavailable");
+        return normalizeCategories(await response.json());
+      }).then(items => {
+        if (controller.signal.aborted) return;
+        setCategories(items);
+        setCategoryError(null);
+      }).catch(error => {
+        if (!isRequestCancelled(error) && !controller.signal.aborted) setCategoryError(toApiError(error, "Не удалось загрузить категории").message);
+      }).finally(() => { if (!controller.signal.aborted) setCategoryLoading(false); });
+    return () => controller.abort();
+  }, [categoryLoadAttempt]);
 
   useEffect(() => {
     if (!publishSuccessOpen) return;
@@ -478,6 +476,15 @@ export function ProductEditPageClient({
   }
 
   function scrollToFirstValidationError(errors: ValidationErrors) {
+    if (errors.title && presentation === "page") {
+      setActiveStep("general");
+      window.requestAnimationFrame(() => {
+        const heading = document.querySelector<HTMLElement>("[data-editor-page] [data-product-title]");
+        heading?.scrollIntoView({ behavior: "auto", block: "center" });
+        heading?.focus({ preventScroll: true });
+      });
+      return;
+    }
     const errorStep = getProductEditorErrorStep(errors);
     if (errorStep) setActiveStep(errorStep);
     window.requestAnimationFrame(() => {
@@ -1071,24 +1078,15 @@ export function ProductEditPageClient({
   }
 
   async function createNextProductDraft() {
-    if (creatingNextProduct) return;
+    if (creatingNextProductRef.current) return;
 
     creatingNextProductRef.current = true;
     setCreatingNextProduct(true);
 
     try {
-      const response = await apiFetch(`${API_URL}/api/seller/products/draft`, {
-        method: "POST",
-      });
-
-      if (!response.ok) {
-        const text = await response.text().catch(() => "");
-        throw new Error(text || "Не удалось создать товар");
-      }
-
-      const nextProductId: number = await response.json();
+      const nextProductId = await createSellerProductDraft();
       if (!productPageMountedRef.current) return;
-      router.push(`/seller/products/${nextProductId}/edit`);
+      requestEditorNavigation(() => router.push(`/seller/products/${nextProductId}/create?returnTo=${encodeURIComponent(productListHref())}`), { completed: true });
     } catch (error) {
       toast.error(
         error instanceof Error ? error.message : "Не удалось создать товар"
@@ -1349,15 +1347,18 @@ export function ProductEditPageClient({
   const stepNavigationDisabled = productMutationBusy || creatingNextProduct;
   const deleteAvailable = product !== null && canDeleteProduct(product.status);
   const brandName = brands.find(brand => brand.id === brandId)?.name?.trim() || product?.brand?.trim() || null;
+  const FieldsContainer = presentation === "page" ? "div" : "main";
 
   return (
-    <EditorSurface className={styles.productSurface} title={<ProductEditableTitle value={title} disabled={contentControlsDisabled || creatingNextProduct} onChange={updateTitle} />}
-      headerMeta={product && <StatusBadge tone={getProductStatusTone(product.status)} size="regular">{formatProductStatus(product.status)}</StatusBadge>}
-      subtitle={brandName}
+    <EditorSurface presentation={presentation} backLabel="Товары" className={styles.productSurface}
+      title={<ProductEditableTitle value={title} disabled={contentControlsDisabled || creatingNextProduct} onChange={updateTitle} onDraftDirtyChange={setTitleDraftDirty}
+        placeholder={presentation === "page" ? "Наименование товара" : undefined} invalid={Boolean(validationErrors.title)} errorId="product-title-error" />}
+      headerMeta={product && <span className={styles.editorIdentity}><StatusBadge tone={getProductStatusTone(product.status)} size="regular">{formatProductStatus(product.status)}</StatusBadge>{presentation === "page" && brandName ? <span>{brandName}</span> : null}</span>}
+      subtitle={validationErrors.title ? <span id="product-title-error" className="fieldError">Введите название товара</span> : presentation === "page" ? undefined : brandName}
       guardNavigation
       discardHint="Изменения фотографий уже сохранены и не будут отменены"
       toastId="product-editor"
-      dirty={dirty} busy={productMutationBusy || creatingNextProduct}
+      dirty={dirty || titleDraftDirty} busy={productMutationBusy || creatingNextProduct}
       onClose={() => { if (intercepted) router.back(); else router.replace(productListHref()); }}
       navigation={<nav className={styles.editorSectionNav} role={mobileEditor ? "tablist" : undefined} aria-label={mobileEditor ? "Шаги заполнения товара" : "Разделы товара"}>
         {PRODUCT_EDITOR_STEPS.map((step,index)=><button type="button" key={step.id} id={`editor-tab-${step.id}`} role={mobileEditor ? "tab" : undefined} aria-selected={mobileEditor ? activeStep === step.id : undefined} aria-current={!mobileEditor && activeStep === step.id ? "location" : undefined}
@@ -1380,13 +1381,13 @@ export function ProductEditPageClient({
       actions={<div className={styles.wizardActions}>
         <div className={styles.wizardSecondaryActions}>
           <Button variant="ghost" disabled={productMutationBusy} onClick={()=>setDraftPreviewOpen(true)}>Предпросмотр</Button>
-          <Button onClick={() => void saveProduct()} disabled={!dirty || productMutationBusy || saveSucceeded || !operationalEditingAllowed} loading={saving} success={saveSucceeded} variant="secondary">Сохранить</Button>
+          <Button onClick={() => void saveProduct()} disabled={(!dirty && !titleDraftDirty) || productMutationBusy || (saveSucceeded && !titleDraftDirty) || !operationalEditingAllowed} loading={saving} success={saveSucceeded && !titleDraftDirty} variant="secondary">Сохранить</Button>
         </div>
         <div className={styles.wizardPager}>
           <Button className={styles.mobileOnly} variant="ghost" disabled={stepNavigationDisabled || stepIndex === 0} onClick={()=>selectEditorStep(PRODUCT_EDITOR_STEPS[stepIndex - 1].id, true)}>Назад</Button>
           {mobileEditor && stepIndex < PRODUCT_EDITOR_STEPS.length - 1
             ? <Button variant="primary" disabled={stepNavigationDisabled} onClick={()=>selectEditorStep(PRODUCT_EDITOR_STEPS[stepIndex + 1].id, true)}>Далее</Button>
-            : <Button onClick={() => void publishProduct()} disabled={productMutationBusy || !isProductStatusPublishable(product?.status)} loading={publishing || reviewLoading} variant="primary">Отправить на модерацию</Button>}
+            : <Button onClick={() => void publishProduct()} disabled={productMutationBusy || !isProductStatusPublishable(product?.status)} loading={publishing || reviewLoading} variant="secondary">Отправить на модерацию</Button>}
         </div>
       </div>}>
     <div className={styles.panelContent}>
@@ -1477,13 +1478,14 @@ export function ProductEditPageClient({
         ) : null}
 
         <div className={styles.wizardLayout}>
-          <main className={`${styles.main} ${styles.stepPanel}`} hidden={mobileEditor && activeStep === "photos"}>
+          <FieldsContainer className={`${styles.main} ${styles.stepPanel}`} hidden={mobileEditor && activeStep === "photos"}>
             <fieldset
               className={`${styles.lockedFieldset} ${styles.stepPanel}`}
               hidden={mobileEditor && activeStep !== "general" && activeStep !== "description"}
               disabled={contentControlsDisabled}
             >
               <ProductGeneralCard
+                showTitle={presentation !== "page"}
                 activeSection={mobileEditor ? (activeStep === "general" ? "general" : "description") : undefined}
                 validationErrors={validationErrors}
                 title={title}
@@ -1493,6 +1495,10 @@ export function ProductEditPageClient({
                 suggestedCategoryName={suggestedCategoryName}
                 audience={audience}
                 categories={categories}
+                categoryError={categoryError}
+                categoryLoading={categoryLoading}
+                currentCategoryLabel={product?.category}
+                onRetryCategories={() => setCategoryLoadAttempt(attempt => attempt + 1)}
                 onTitleChange={updateTitle}
                 onDescriptionChange={(value) => {
                   setDescription(value);
@@ -1590,7 +1596,7 @@ export function ProductEditPageClient({
               </div>
             ) : null}
 
-          </main>
+          </FieldsContainer>
 
             <div id="product-step-photos" className={`${styles.stepPanel} ${styles.photoStep}`} role={mobileEditor ? "tabpanel" : "region"} aria-labelledby="editor-tab-photos"
               data-editor-step="photos" tabIndex={-1} hidden={mobileEditor && activeStep !== "photos"}>
@@ -1621,7 +1627,7 @@ export function ProductEditPageClient({
 
       {revisionReviewSource && <Dialog title="Проверьте изменения карточки" onClose={() => setRevisionReviewSource(null)}
         actions={<><Button variant="secondary" onClick={() => setRevisionReviewSource(null)}>Вернуться к редактированию</Button>
-          <Button variant="primary" disabled={productMutationBusy} onClick={() => void publishProduct(true)}>Отправить изменения</Button></>}>
+          <Button variant="secondary" disabled={productMutationBusy} onClick={() => void publishProduct(true)}>Отправить изменения</Button></>}>
         <ProductRevisionReview source={revisionReviewSource} current={{ title, description, composition,
           category: suggestedCategoryName.trim() || categories.find(c => c.id === categoryId)?.name || product?.category || null,
           audience, packageWidthCm: numberOrNull(packageWidthCm), packageHeightCm: numberOrNull(packageHeightCm),

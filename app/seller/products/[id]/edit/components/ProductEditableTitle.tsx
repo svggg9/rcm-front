@@ -8,9 +8,13 @@ type Props = {
   value: string;
   disabled: boolean;
   onChange: (value: string) => void;
+  onDraftDirtyChange?: (dirty: boolean) => void;
+  placeholder?: string;
+  invalid?: boolean;
+  errorId?: string;
 };
 
-export function ProductEditableTitle({ value, disabled, onChange }: Props) {
+export function ProductEditableTitle({ value, disabled, onChange, onDraftDirtyChange, placeholder = "Название товара", invalid = false, errorId }: Props) {
   const [draft, setDraft] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
@@ -32,13 +36,18 @@ export function ProductEditableTitle({ value, disabled, onChange }: Props) {
     if (!editingRef.current) return;
     editingRef.current = false;
     restoreFocusRef.current = restoreFocus;
+    onDraftDirtyChange?.(false);
     if (commit && !disabled && draft !== null && draft !== value) onChange(draft);
     setDraft(null);
   }
 
   if (editing) {
-    return <input ref={inputRef} className={styles.input} aria-label="Название товара"
-      value={draft} disabled={disabled} onChange={event => setDraft(event.target.value)}
+    return <input ref={inputRef} className={styles.input} aria-label="Название товара" placeholder={placeholder}
+      data-product-title aria-invalid={invalid || undefined} aria-describedby={invalid ? errorId : undefined}
+      value={draft} disabled={disabled} onChange={event => {
+        setDraft(event.target.value);
+        onDraftDirtyChange?.(event.target.value !== value);
+      }}
       onBlur={() => finish(true)} onKeyDown={event => {
         if (event.nativeEvent.isComposing || !["Enter", "Escape"].includes(event.key)) return;
         event.preventDefault();
@@ -47,11 +56,12 @@ export function ProductEditableTitle({ value, disabled, onChange }: Props) {
       }} />;
   }
 
-  const label = value.trim() || "Название товара";
+  const label = value.trim() || placeholder;
   const labelClass = `${styles.text} ${value.trim() ? "" : styles.placeholder}`.trim();
   if (disabled) return <span className={labelClass} title={label}>{label}</span>;
 
-  return <button ref={triggerRef} type="button" className={styles.trigger}
+  return <button ref={triggerRef} type="button" className={`${styles.trigger} ${invalid ? styles.invalid : ""}`}
+    data-product-title data-validation-error={invalid || undefined} aria-describedby={invalid ? errorId : undefined}
     aria-label={`Изменить название товара: ${label}`} title="Нажмите, чтобы изменить название"
     onClick={() => { editingRef.current = true; setDraft(value); }}>
     <span className={labelClass}>{label}</span>

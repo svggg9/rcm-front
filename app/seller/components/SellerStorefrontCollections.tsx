@@ -324,7 +324,7 @@ export function SellerStorefrontCollections({ brandId, renderPanel }: Props) {
   const draftDirty = title !== initialDraft.title || description !== initialDraft.description
     || selectedIds.length !== initialDraft.productIds.length
     || selectedIds.some((id, index) => id !== initialDraft.productIds[index]);
-  return renderPanel(null,
+  return renderPanel(addCollectionAction,
     <section className={`${styles.section} ${selectedCollectionIds.size ? styles.hasSelection : ""}`}>
       {error ? <div className={pageStyles.error} role="alert">{error}</div> : null}
       {editing ? (
@@ -429,7 +429,6 @@ export function SellerStorefrontCollections({ brandId, renderPanel }: Props) {
       ) : null}
 
         <div className={styles.collectionToolbar}>
-          <div className={styles.toolbarAction}>{addCollectionAction}</div>
           <TextInput label="Название подборки" hideLabel type="search" placeholder="Название подборки"
             value={collectionQuery} disabled={bulkBusy || removingId !== null}
             onChange={event => { setCollectionQuery(event.target.value); setSelectedCollectionIds(new Set()); }} />

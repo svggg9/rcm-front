@@ -3,14 +3,16 @@
 import Link from "next/link";
 
 import { EmptyState } from "../../components/ui/EmptyState";
+import { HeaderIcon } from "../../components/Header/HeaderIcon";
 
 export function EmptyCart() {
   return (
       <EmptyState
-        title="Корзина пуста"
+        title="Ваша корзина пуста"
+        illustration={<HeaderIcon name="bag" />}
         actions={
             <Link href="/catalog" className="buttonPrimary">
-              Перейти в каталог
+              В магазин
             </Link>
         }
       />

@@ -384,7 +384,7 @@
   gap: 14px;
 }
 
-.shippingGuideTitle { color: var(--gold-deep); }
+.shippingGuideTitle { color: var(--black); font-weight: 650; }
 
 .shippingWeightMetric strong {
   color: var(--black);
@@ -1035,9 +1035,7 @@
 .uploadAction { flex-shrink: 0; }
 .addVariantAction { justify-self: start; align-self: flex-start; min-height: 42px; padding: 0 12px; font-size: var(--font-sm); }
 .addVariantAction > span { gap: 8px; }
-.addVariantAction svg { color: var(--gold-deep); }
-.variantSizeDeleteBtn svg { color: var(--gold-deep); }
-.addColorAction { margin-top: 4px; width: 100%; border-color: var(--line); }
+.addColorAction { margin-top: 4px; width: 100%; }
 .variantImageDropZone.dropZoneInvalid { outline: 1px solid var(--danger); }
 .imageDeleteBtn:focus-visible, .variantSizeDeleteBtn:focus-visible { outline: 2px solid var(--black); outline-offset: 2px; }
 @media (prefers-reduced-motion: reduce) { .uploadProgress span { animation: none; } }
@@ -1114,27 +1112,15 @@
 }
 
 .variantSizeDeleteBtn {
-  position: absolute;
-  top: -4px;
-  right: 0;
-  z-index: 80;
-  width: 24px;
-  height: 24px;
+  position: static;
+  grid-column: 2;
+  grid-row: 2;
+  align-self: start;
+  width: 44px;
+  min-width: 44px;
+  height: 44px;
   border: 0;
-  background: transparent;
-  color: #000;
   padding: 0;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  pointer-events: auto;
-  touch-action: manipulation;
-}
-
-.variantSizeDeleteBtn:hover {
-  background: transparent;
-  color: #000;
 }
 
 .quantityField {
@@ -1836,8 +1822,6 @@
 
 .draftPreview { display: grid; gap: 12px; min-width: 0; }
 .draftPreviewImage { position: relative; width: 100%; aspect-ratio: 3 / 4; max-height: 420px; }
-.draftPreview button { border: .5px solid var(--line); background: var(--white); padding: 8px; font: inherit; }
-.draftPreview button[aria-pressed="true"] { background: var(--black); color: var(--white); }
 
 .editorSectionNav { display: flex; min-width: 0; overflow-x: auto; overscroll-behavior-x: contain; scroll-padding-inline: 4px; background: var(--white); border: .5px solid var(--black); }
 .editorSectionNav button { flex: 1 0 auto; min-height: 44px; padding: 10px 14px; border: 0; border-right: .5px solid var(--line); background: transparent; color: var(--black); font: inherit; font-size: 13px; font-weight: 400; white-space: nowrap; cursor: pointer; }
@@ -1882,6 +1866,11 @@
 
 /* One continuous desktop form, compact steps on phones. */
 .productSurface.productSurface { width: min(1320px, 96vw); }
+.productSurface.productSurface[data-editor-page] { width: 100%; }
+.productSurface[data-editor-page] > [data-editor-navigation] { position: sticky; top: var(--site-header-height); z-index: 40; padding-block: 8px; margin-bottom: 24px; background: var(--white); box-shadow: 0 6px 14px rgb(0 0 0 / 4%); }
+.productSurface[data-editor-page] .pageContent,
+.productSurface[data-editor-page] .stepPanel[id],
+.productSurface[data-editor-page] .panelContent section[id] { scroll-margin-top: calc(var(--site-header-height) + 96px); }
 .productSurface > header { padding-block: 16px; }
 .productSurface > footer { padding-block: 12px; padding-bottom: max(12px, env(safe-area-inset-bottom)); }
 .productSurface .panelContent { max-width: none; }
@@ -1896,7 +1885,8 @@
 .productSurface .card { gap: 20px; }
 .productSurface .card + .card { padding-top: 32px; }
 .productSurface .photoStep { position: sticky; top: 0; margin: 0; width: 100%; max-height: calc(100dvh - 260px); overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; padding-right: 8px; }
-.sectionTitle { margin: 0; font-size: 20px; line-height: 28px; font-weight: 400; }
+.productSurface[data-editor-page] .photoStep { top: calc(var(--site-header-height) + 96px); }
+.sectionTitle { margin: 0; font-size: 22px; line-height: 30px; font-weight: 650; }
 .mobileOnly { display: none; }
 .productSurface .wizardActions { justify-content: flex-end; }
 .productSurface .wizardPager { margin-left: 0; }
@@ -1910,6 +1900,32 @@
 .comparisonColumns span { font-size: 12px; color: var(--muted); }
 .comparisonColumns p { margin: 8px 0 0; white-space: pre-wrap; overflow-wrap: anywhere; }
 .comparisonPhotos { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+
+/* Product forms share the same hierarchy in the page and panel presentations. */
+.editorIdentity { display: inline-flex; align-items: center; flex-wrap: wrap; gap: 8px 12px; }
+.editorIdentity > span:last-child:not(:first-child) { color: var(--muted); font-size: 13px; line-height: 20px; }
+.productSurface[data-editor-page] { padding-top: 16px; }
+.productSurface[data-editor-page] > button:first-child { margin-bottom: 8px; }
+.productSurface[data-editor-page] > header { padding-block: 0; margin-bottom: 12px; }
+.productSurface[data-editor-page] > header h1 { font-size: 28px; line-height: 36px; font-weight: 550; }
+.productSurface[data-editor-page] > header > div { gap: 4px; }
+.productSurface.productSurface .field > span:first-child,
+.productSurface.productSurface .fieldFull > span:first-child,
+.productSurface.productSurface [data-ui="field"] > :is(:global(.label), span:first-child) { font-size: 15px; line-height: 22px; font-weight: 500; letter-spacing: 0; }
+.productSurface .shippingGuide > [data-tone="info"] { padding: 18px; border: 1px solid color-mix(in srgb, var(--gold-deep) 38%, var(--white)); border-left: 4px solid var(--gold-deep); background: color-mix(in srgb, var(--gold) 17%, var(--white)); color: var(--black); }
+.productSurface .shippingGuide p { color: var(--black); font-size: 15px; line-height: 23px; }
+.productSurface .shippingGuideExample { margin-top: 10px; }
+.productSurface .shippingWeightGrid { padding: 16px; border: 1px solid var(--line); background: var(--soft); gap: 12px; }
+.productSurface .shippingWeightMetric > span { color: var(--black-soft); font-size: 14px; line-height: 20px; }
+.productSurface .shippingWeightMetric > strong { font-size: 20px; line-height: 28px; font-weight: 650; }
+.productSurface .quantityField { display: grid; grid-template-columns: minmax(0, 1fr) 44px; gap: 7px 8px; }
+.productSurface .quantityField > :global(.label), .productSurface .quantityField > span { grid-column: 1 / -1; }
+.productSurface .quantityField > input { grid-column: 1; grid-row: 2; }
+.productSurface .addVariantAction { min-height: 44px; font-size: 15px; font-weight: 500; gap: 8px; }
+
+@media (max-width: 700px) {
+  .productSurface[data-editor-page] > header h1 { font-size: 24px; line-height: 32px; }
+}
 .comparisonPhotos img { max-width: 100%; object-fit: contain; }
 .productSurface .desktopOnly + section { padding-top: 16px; }
 .noticeDetails summary { cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }

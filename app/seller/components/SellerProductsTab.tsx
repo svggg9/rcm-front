@@ -7,7 +7,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 
 import styles from "./SellerProductsTab.module.css";
 import { EmptyState } from "../../components/ui/EmptyState";
-import { CabinetSkeleton } from "../../components/ui/CabinetSkeleton";
+import { SectionLoader } from "../../components/ui/SectionLoader";
 import Link from "next/link";
 import { getSellerProductCatalogueClient } from "../lib/sellerClientDataApi";
 import { Banner } from "../../components/ui/Banner";
@@ -18,6 +18,9 @@ import { formatProductCreatedAt } from "../lib/sellerProductSort";
 import { ListLoadMore } from "../../components/ui/ListLoadMore";
 import { FormSelect } from "../../components/ui/FormSelect";
 import { TextInput } from "../../components/ui/TextInput";
+import { SectionHeader } from "../../components/ui/SectionHeader";
+import { PopoverPanel } from "../../components/ui/PopoverPanel";
+import { SegmentedControl, type SegmentedControlItem } from "../../components/ui/SegmentedControl";
 import { Button } from "../../components/ui/Button";
 import { DesignSystemIcon } from "../../components/ui/DesignSystemIcon";
 import { Dialog } from "../../components/ui/Dialog";
@@ -93,15 +96,20 @@ export function SellerProductsTab({
   const [actionReport, setActionReport] = useState<ProductActionResult | null>(null);
   const [items, setItems] = useState(products);
   const requestedStatus = searchParams.get("status");
-  const filter = (["ACTIVE", "MODERATION", "NEEDS_REVISION", "DRAFT", "ARCHIVED", "BLOCKED", "attention"].includes(requestedStatus ?? "") ? requestedStatus : "") as ProductFilter | "";
+  const filter = (requestedStatus === "all" ? "" : ["ACTIVE", "MODERATION", "NEEDS_REVISION", "DRAFT", "ARCHIVED", "BLOCKED", "attention"].includes(requestedStatus ?? "") ? requestedStatus : "ACTIVE") as ProductFilter | "";
   function setFilter(value: ProductFilter | "") {
     const params = new URLSearchParams(searchParams.toString());
-    if (value) params.set("status", value); else params.delete("status");
+    if (value === "ACTIVE") params.delete("status"); else params.set("status", value || "all");
     window.history.replaceState(null, "", `/seller/products?${params.toString()}`);
   }
   const [categoryFilter, setCategoryFilter] = useState(searchParams.get("category") ?? "");
   const [searchQuery, setSearchQuery] = useState(searchParams.get("q") ?? "");
+  const [searchOpen, setSearchOpen] = useState(Boolean(searchParams.get("q")));
+  const searchInput = useRef<HTMLInputElement>(null);
+  const searchToggle = useRef<HTMLButtonElement>(null);
+  const filterToggle = useRef<HTMLButtonElement>(null);
   const filtersId = useId();
+  const searchId = useId();
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [catalogLoading, setCatalogLoading] = useState(false);
   const [catalogError, setCatalogError] = useState(false);
@@ -157,13 +165,23 @@ export function SellerProductsTab({
 
   const productStatusOptions = [
     { value: "attention", label: "Требуют внимания" },
-    { value: "ACTIVE", label: "Активные" },
+    { value: "ACTIVE", label: "Опубликованы" },
     { value: "MODERATION", label: "На модерации" },
     { value: "NEEDS_REVISION", label: "Нужны исправления" },
     { value: "DRAFT", label: "Черновики" },
     { value: "ARCHIVED", label: "В архиве" },
     { value: "BLOCKED", label: "Заблокированные" },
   ] satisfies { value: ProductFilter; label: string }[];
+
+  const statusSegments: SegmentedControlItem<ProductFilter | "">[] = [
+    { value: "", label: "Все" },
+    { value: "ACTIVE", label: "Опубликованы" },
+    { value: "DRAFT", label: "Черновики" },
+    { value: "attention", label: "Требуют внимания" },
+  ];
+  if (filter && !statusSegments.some(item => item.value === filter)) {
+    statusSegments.push({ value: filter, label: productStatusOptions.find(item => item.value === filter)!.label });
+  }
 
   const categoryOptions = useMemo(() => {
     const categories = new Set<string>();
@@ -192,7 +210,8 @@ export function SellerProductsTab({
   const visibleProducts = filteredProducts.slice(0, visibleCount);
   const selectedProducts = visibleProducts.filter(product => selected.has(product.id));
   const allSelected = filteredProducts.length > 0 && selectedProducts.length === visibleProducts.length;
-  const controlsDisabled = busy || loadingMore || sorting || catalogLoading || catalogError;
+  const controlsDisabled = busy || loading || loadingMore || sorting || catalogLoading || catalogError || Boolean(error);
+  const initialLoading = (loading || catalogLoading) && items.length === 0;
   useEffect(() => {
     if (selectAllRef.current) selectAllRef.current.indeterminate = selectedProducts.length > 0 && !allSelected;
   }, [selectedProducts.length, allSelected, loading]);
@@ -246,7 +265,11 @@ export function SellerProductsTab({
     }
   }
 
-  const sectionPanel = (_action: ReactNode, content: ReactNode) => <>{content}</>;
+  const sectionPanel = (action: ReactNode, content: ReactNode) => <>
+    <SectionHeader title={section === "collections" ? "Подборки" : "Товары"} large className={styles.pageHeader}
+      actions={action ? <div className={styles.headerActions}>{action}</div> : undefined} />
+    {content}
+  </>;
 
   if (section === "collections") return <div className={styles.productsPage}>
     <SellerCollectionsTab brands={brands} renderPanel={sectionPanel} />
@@ -256,7 +279,8 @@ export function SellerProductsTab({
     <Button
       type="button"
       variant="primary"
-      aria-busy={creatingProduct || undefined}
+      aria-label="Добавить товар"
+      loading={creatingProduct}
       onClick={() => {
         if (!pending.current && !creatingProduct) onCreateProduct();
       }}
@@ -271,8 +295,24 @@ export function SellerProductsTab({
       </Dialog> : null}
       {sectionPanel(createProductAction, <>
       <div className={styles.productsToolbar}>
+        <div className={styles.statusControl}>
+          <SegmentedControl items={statusSegments} value={filter} ariaLabel="Статус товара"
+            disabled={controlsDisabled} onChange={next => {
+              if (!pending.current) { setFilter(next); setSelected(new Set()); }
+            }} />
+        </div>
+        <div className={styles.toolbarTools}>
+          <Button ref={filterToggle} variant="secondary" className={`${styles.toolButton} ${filtersOpen || categoryFilter || filter !== "ACTIVE" || sort.key !== "createdAt" || sort.direction !== "desc" ? styles.toolActive : ""}`}
+            aria-label="Фильтры товаров" title="Фильтры" aria-expanded={filtersOpen} aria-controls={filtersId}
+            onClick={() => { setSearchOpen(false); setFiltersOpen(value => !value); }}><DesignSystemIcon name="sliders" role="utility" /></Button>
+          <Button ref={searchToggle} variant="secondary" className={`${styles.toolButton} ${searchOpen || searchQuery ? styles.toolActive : ""}`}
+            aria-label="Поиск товаров" title={searchQuery ? `Поиск: ${searchQuery}` : "Поиск"} aria-expanded={searchOpen} aria-controls={searchId}
+            onClick={() => { setFiltersOpen(false); setSearchOpen(value => !value); }}><DesignSystemIcon name="search" role="utility" /></Button>
+        </div>
+        <PopoverPanel id={searchId} title="Поиск товаров" open={searchOpen} onClose={() => setSearchOpen(false)} anchorRef={searchToggle} initialFocusRef={searchInput}>
         <div className={styles.productSearch}>
           <TextInput
+            ref={searchInput}
             label="Название товара или артикул"
             hideLabel
             type="search"
@@ -289,10 +329,11 @@ export function SellerProductsTab({
             }}
           />
         </div>
-        <div className={styles.toolbarAction}>{createProductAction}</div>
-        <Button variant="secondary" className={styles.filterToggle} aria-expanded={filtersOpen} aria-controls={filtersId} onClick={() => setFiltersOpen(value => !value)}>Фильтры{filter || categoryFilter ? " · Выбраны" : ""}</Button>
-        <div id={filtersId} className={`${styles.filters} ${filtersOpen ? styles.filtersOpen : ""}`}>
+        </PopoverPanel>
+        <PopoverPanel id={filtersId} title="Фильтры товаров" open={filtersOpen} onClose={() => setFiltersOpen(false)} anchorRef={filterToggle}>
+        <div className={styles.filters}>
         <FormSelect<ProductFilter>
+          label="Статус товара"
           ariaLabel="Статус товара"
           placeholder="Статус товара"
           emptyOptionLabel="Все товары"
@@ -307,9 +348,10 @@ export function SellerProductsTab({
           }}
         />
         <FormSelect<string>
+          label="Категория"
           ariaLabel="Категория товара"
           placeholder="Категория"
-          emptyOptionLabel="Все товары"
+          emptyOptionLabel="Все категории"
           options={categoryOptions}
           value={categoryFilter}
           disabled={busy || loadingMore || sorting || categoryOptions.length === 0}
@@ -321,29 +363,27 @@ export function SellerProductsTab({
             }
           }}
         />
-        <FormSelect<ProductSortKey> ariaLabel="Сортировка товаров" placeholder="Сортировка"
+        <FormSelect<ProductSortKey> label="Сортировка" ariaLabel="Сортировка товаров" placeholder="Сортировка"
           value={sort?.key ?? "createdAt"} disabled={controlsDisabled}
           options={[{ value: "createdAt", label: "По дате" }, { value: "title", label: "По названию" }, { value: "minPrice", label: "По цене" }, { value: "totalStock", label: "По остатку" }, { value: "variantsCount", label: "По числу вариантов" }, { value: "status", label: "По статусу" }]}
           onChange={key => { if (key) { setSelected(new Set()); onSort(key); } }} />
         <Button variant="tertiary" disabled={controlsDisabled} aria-label={`Сортировка ${sort.direction === "asc" ? "по возрастанию" : "по убыванию"} — изменить направление`}
           onClick={() => onSort(sort?.key ?? "createdAt")}>{sort?.direction === "asc" ? "По возрастанию ↑" : "По убыванию ↓"}</Button>
         </div>
+        </PopoverPanel>
       </div>
       <div className={styles.listSummary}>
-        {catalogLoading ? <Loader inline label="Загрузка товаров для поиска" /> : <span role="status">{catalogError ? `Загружено ${items.length} из ${totalElements}` : `Найдено ${filteredProducts.length}`}</span>}
-        {searchQuery || filter || categoryFilter ? <button type="button" disabled={controlsDisabled} onClick={() => {
-          setSearchQuery(""); setCategoryFilter(""); setSelected(new Set());
-          updateQuery("q", ""); updateQuery("category", ""); updateQuery("status", "");
-        }}>Сбросить</button> : null}
+        {loading || catalogLoading ? initialLoading ? null : <Loader inline label="Обновление товаров" /> : <span role="status">{catalogError ? `Загружено ${items.length} из ${totalElements}` : `Найдено ${filteredProducts.length}`}</span>}
       </div>
 
       {catalogError ? <Banner tone="warning" title="Список загружен не полностью">
         <p>Поиск пока учитывает только загруженные товары</p>
         <Button variant="secondary" onClick={() => setRetry(value => value + 1)}>Повторить</Button>
       </Banner> : null}
-      {loading || catalogLoading ? (
-        <CabinetSkeleton variant="list" compact />
-      ) : error ? error : items.length === 0 ? (
+      {error && items.length > 0 ? error : null}
+      {initialLoading ? (
+        <SectionLoader compact label="Загрузка товаров" />
+      ) : error && items.length === 0 ? error : items.length === 0 ? (
         <EmptyState
           icon="package"
           title="Товаров пока нет"
@@ -382,8 +422,7 @@ export function SellerProductsTab({
           <ListLoadMore
             loaded={Math.min(visibleCount, filteredProducts.length)}
             total={filteredProducts.length}
-            loading={catalogLoading}
-            onLoadMore={busy || visibleCount >= filteredProducts.length ? undefined : () => { const next = visibleCount + 50; setVisibleCount(next); updateQuery("shown", String(next)); }}
+            onLoadMore={controlsDisabled || visibleCount >= filteredProducts.length ? undefined : () => { const next = visibleCount + 50; setVisibleCount(next); updateQuery("shown", String(next)); }}
           />
         </>
       )}
@@ -431,7 +470,7 @@ function ProductRow({
           <strong>{product.title.trim() || "Без названия"}</strong>
           <StatusBadge tone={getProductStatusTone(product.status)}>{formatProductStatus(product.status)}</StatusBadge>
         </span>
-        <span className={styles.productMeta}>{[product.brandName, product.article, product.categoryName].filter(Boolean).join(" · ")}</span>
+        <span className={styles.productMeta}>{[product.brandName, product.article, product.categoryName].filter(Boolean).join(" | ")}</span>
       </span>
       <span className={styles.productFacts}><span className={styles.productPrice}>{product.minPrice == null ? "Без цены" : <Price amount={product.minPrice} />}</span>
       <span className={styles.productStock} aria-label={`Остаток: ${product.totalStock == null ? "без учёта" : `${product.totalStock} шт`}`}>{product.totalStock == null ? "Без учёта" : `${product.totalStock} шт`}</span>

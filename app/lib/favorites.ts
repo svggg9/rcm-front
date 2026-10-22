@@ -4,7 +4,7 @@ import { getClientSession } from "./client-session";
 const GUEST_FAVORITES_KEY = "guest_favorite_ids";
 export const FAVORITES_EVENT = "favorites-changed";
 
-function emitFavoritesChanged(): void {
+export function emitFavoritesChanged(): void {
   if (typeof window !== "undefined") window.dispatchEvent(new Event(FAVORITES_EVENT));
 }
 
@@ -134,18 +134,11 @@ export async function toggleFavorite(
 
 export async function syncFavoritesAfterLogin(ids: number[]): Promise<boolean> {
   if (!ids.length) return true;
-
-  const authenticated = await hasSession();
-
-  if (!authenticated) return false;
-
-  const uniqueIds = Array.from(new Set(ids)).filter(
-    (x): x is number => typeof x === "number"
-  );
-
-  if (!uniqueIds.length) return true;
-
   try {
+    const authenticated = await hasSession();
+    if (!authenticated) return false;
+    const uniqueIds = Array.from(new Set(ids)).filter((x): x is number => typeof x === "number");
+    if (!uniqueIds.length) return true;
     const response = await apiFetch(`${API_URL}/api/favorites/sync`, {
       method: "POST",
       body: JSON.stringify({ ids: uniqueIds }),

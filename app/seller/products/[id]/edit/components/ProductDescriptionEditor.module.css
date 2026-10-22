@@ -1,0 +1,54 @@
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 12px;
+  border-bottom: 0.5px solid var(--line);
+}
+
+.action {
+  min-height: 44px;
+}
+
+.action :global(.buttonContent) {
+  gap: 8px;
+}
+
+.itemRow {
+  display: grid;
+  grid-template-columns: 20px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.marker {
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.itemActions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.iconAction {
+  width: 44px;
+  min-width: 44px;
+  height: 44px;
+  padding: 0;
+}
+
+@media (max-width: 600px) {
+  .itemRow {
+    grid-template-columns: 20px minmax(0, 1fr);
+    row-gap: 4px;
+  }
+
+  .itemActions {
+    grid-column: 2;
+    justify-content: flex-end;
+  }
+}

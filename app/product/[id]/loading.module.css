@@ -1,20 +1,22 @@
 .layout {
+  margin-top: 24px;
   display: grid;
-  grid-template-columns: minmax(0, 1.45fr) minmax(320px, 0.55fr);
-  gap: clamp(32px, 5vw, 76px);
+  grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
+  gap: clamp(32px, 4vw, 64px);
   align-items: start;
 }
 
 .gallery {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 8px;
+  grid-template-columns: 72px minmax(0, 1fr);
+  gap: 16px;
 }
 
 .image {
   width: 100%;
-  aspect-ratio: 3 / 4;
+  height: min(760px, calc(100svh - var(--site-header-height) - 48px));
 }
+.gallery .image:first-child { height: 96px; }
 
 .info {
   display: flex;
@@ -30,7 +32,7 @@
 .title {
   width: 74%;
   height: 24px;
-  margin-top: 18px;
+  margin-top: 8px;
 }
 
 .price {
@@ -42,7 +44,7 @@
 .optionLabel {
   width: 22%;
   height: 11px;
-  margin-top: 38px;
+  margin-top: 24px;
 }
 
 .options {
@@ -68,17 +70,21 @@
   margin-top: 12px;
 }
 
-@media (max-width: 800px) {
+@media (max-width: 1040px) {
   .layout {
     grid-template-columns: 1fr;
     gap: 28px;
   }
 
+}
+@media (max-width: 700px) {
+  .layout { margin-top: 16px; gap: 20px; }
   .gallery {
     grid-template-columns: 1fr;
   }
 
-  .gallery .image:nth-child(2) {
+  .gallery .image:first-child {
     display: none;
   }
+  .image { height: auto; aspect-ratio: 4 / 5; }
 }

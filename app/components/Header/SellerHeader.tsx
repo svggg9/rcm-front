@@ -3,11 +3,13 @@
 import { Loader } from "../ui/Loader";
 import Image from "next/image";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { Bell, Headset } from "lucide-react";
 import { getSellerBrands } from "../../seller/lib/sellerBrandApi";
 import { getSellerDashboardSummaryClient } from "../../seller/lib/sellerClientDataApi";
-import type { SellerBrand, SellerDashboardSummary } from "../../seller/types";
+import type { SellerBrand, SellerDashboardSummary, SellerTab } from "../../seller/types";
+import { SellerSidebar, SellerSectionTabs } from "../../seller/components/SellerSidebar";
 
 import styles from "./SellerHeader.module.css";
 
@@ -16,6 +18,10 @@ export function isSellerCabinetPath(pathname: string | null) {
 }
 
 export function SellerHeader() {
+  const pathname = usePathname();
+  const section = pathname?.split("/")[2];
+  const currentTab: SellerTab = section === "store" ? "brand"
+    : section === "products" || section === "orders" || section === "returns" || section === "finance" || section === "legal" ? section : "home";
   const [brand, setBrand] = useState<SellerBrand | null>(null);
   const [imageFailed, setImageFailed] = useState(false);
   const [open, setOpen] = useState(false);
@@ -44,13 +50,16 @@ export function SellerHeader() {
     return () => { active = false; document.removeEventListener("pointerdown", outside); document.removeEventListener("keydown", escape); };
   }, [open, attempt]);
   return (
-    <div className={`pageContainer ${styles.bar}`}>
+    <div className={styles.shell} data-seller-header>
+    <div className={`pageContainer ${styles.inner}`} data-seller-header-inner>
+    <div className={styles.bar}>
       <div className={styles.identity}>
         <Link href="/" className={styles.logo} aria-label="рцмаркет — главная">
-          <Image src="/brand/wordmark-gold-white.svg" alt="рцмаркет" width={794} height={100} priority />
+          <Image src="/brand/wordmark-black.svg" alt="рцмаркет" width={794} height={100} priority />
         </Link>
         <span className={styles.caption}>Для продавцов</span>
       </div>
+      <div className={styles.navigation}><SellerSidebar currentTab={currentTab} /></div>
       <div className={styles.actions}>
         <Link href="/contacts" className={styles.iconButton} aria-label="Поддержка" title="Поддержка"><Headset size={22} strokeWidth={1.5} aria-hidden="true" /></Link>
         <div ref={panel} className={styles.notifications}>
@@ -71,6 +80,9 @@ export function SellerHeader() {
             : <span className={styles.brandName}>{brand?.name || "Магазин"}</span>}
         </Link>
       </div>
+    </div>
+    <SellerSectionTabs currentTab={currentTab} />
+    </div>
     </div>
   );
 }

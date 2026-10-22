@@ -1,9 +1,10 @@
 import { useId } from "react";
 
-import { FormCombobox } from "../../../../../components/ui/FormCombobox";
+import { CategoryPicker } from "../../../../../components/ui/CategoryPicker";
 import { FormSelect } from "../../../../../components/ui/FormSelect";
 import { ProductDescriptionEditor } from "./ProductDescriptionEditor";
-import type { Audience, Option } from "../types";
+import type { Audience } from "../types";
+import type { CategoryOption } from "../../../../../lib/categories";
 import styles from "../ProductEditPage.module.css";
 
 type ValidationErrors = {
@@ -16,6 +17,7 @@ type ValidationErrors = {
 
 type Props = {
   activeSection?: "general" | "description";
+  showTitle?: boolean;
   validationErrors: ValidationErrors;
 
   title: string;
@@ -26,7 +28,11 @@ type Props = {
   suggestedCategoryName: string;
   audience: Audience;
 
-  categories: Option[];
+  categories: CategoryOption[];
+  categoryError?: string | null;
+  categoryLoading?: boolean;
+  currentCategoryLabel?: string | null;
+  onRetryCategories?: () => void;
 
   onTitleChange: (value: string) => void;
   onDescriptionChange: (value: string) => void;
@@ -39,6 +45,7 @@ type Props = {
 
 export function ProductGeneralCard({
   activeSection,
+  showTitle = true,
   validationErrors,
   title,
   description,
@@ -47,6 +54,10 @@ export function ProductGeneralCard({
   suggestedCategoryName,
   audience,
   categories,
+  categoryError,
+  categoryLoading,
+  currentCategoryLabel,
+  onRetryCategories,
   onTitleChange,
   onDescriptionChange,
   onCompositionChange,
@@ -62,7 +73,7 @@ export function ProductGeneralCard({
         aria-labelledby={activeSection ? "editor-tab-general" : undefined} data-editor-step="general" tabIndex={-1}>
         {!activeSection && <h2 className={styles.sectionTitle}>Основные данные</h2>}
         <div className={styles.formGrid}>
-          <label className={styles.fieldFull} data-ui="field">
+          {showTitle && <label className={styles.fieldFull} data-ui="field">
             <span className={styles.required}>Название</span>
 
             <input
@@ -80,22 +91,21 @@ export function ProductGeneralCard({
                 Введите название товара
               </span>
             ) : null}
-          </label>
+          </label>}
 
           <div className={styles.field}>
-          <FormCombobox
+          <CategoryPicker
             label="Категория"
             value={categoryId}
             customValue={suggestedCategoryName}
             required
             invalid={validationErrors.categoryId}
             errorId={`${fieldId}-category-error`}
-            suggestionsOnInput
-            showModerationBadge={false}
-            options={categories.map((category) => ({
-              value: category.id,
-              label: category.name.split(/\s+\/\s+/).at(-1)?.trim() || category.name,
-            }))}
+            categories={categories}
+            currentLabel={currentCategoryLabel}
+            error={categoryError}
+            loading={categoryLoading}
+            onRetry={onRetryCategories}
             onChange={(value, customValue) => {
               onCategoryIdChange(value);
               onSuggestedCategoryNameChange(customValue);

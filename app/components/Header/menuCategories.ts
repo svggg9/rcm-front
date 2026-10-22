@@ -1,36 +1,23 @@
 import { API_URL } from "../../lib/config";
+import { buildCategoryTree, categoryValue, flattenCategoryTree, normalizeCategories } from "../../lib/categories";
 
 export type MenuCategory = {
   id: number;
   name: string;
+  slug?: string | null;
+  values?: string[];
 };
 
 export function normalizeMenuCategories(data: unknown): MenuCategory[] {
-  if (!Array.isArray(data)) throw new Error("Invalid menu categories response");
-
-  return data.flatMap((item: unknown) => {
-    if (!item || typeof item !== "object") return [];
-    const category = item as Record<string, unknown>;
-    if (
-      typeof category.id !== "number" ||
-      !Number.isFinite(category.id) ||
-      typeof category.name !== "string" ||
-      !category.name.trim() ||
-      category.isActive === false ||
-      category.status === "DISABLED" ||
-      category.name.includes("/")
-    ) return [];
-
-    return [{ id: category.id, name: category.name }];
-  });
+  return buildCategoryTree(normalizeCategories(data)).filter(category => category.effectiveActive)
+    .map(category => ({id: category.id, name: category.label, slug: category.slug,
+      values: flattenCategoryTree([category]).flatMap(item => [categoryValue(item), String(item.id), item.name, ...(item.aliases ?? [])]) }));
 }
 
 export async function loadMenuCategories(): Promise<MenuCategory[]> {
   // Public navigation only: never forward user cookies into the shared cache.
   const response = await fetch(`${API_URL}/api/catalog/categories`, {
-    ...(process.env.NODE_ENV === "development"
-      ? { cache: "no-store" as const }
-      : { next: { revalidate: 300 } }),
+    cache: "no-store",
     signal: AbortSignal.timeout(2500),
   });
   if (!response.ok) throw new Error("Failed to load menu categories");

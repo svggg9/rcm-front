@@ -1,6 +1,6 @@
 "use client";
 
-import Image from "next/image";
+import { ProductPhoto } from "../ProductPhoto";
 import { useEffect, useRef, useState } from "react";
 
 import styles from "./ProductImageCarousel.module.css";
@@ -13,6 +13,7 @@ type Props = {
   fit?: "cover" | "contain";
   sizes?: string;
   overlayIndicators?: boolean;
+  normalizeWhitespace?: boolean;
 };
 
 export function ProductImageCarousel({
@@ -23,6 +24,7 @@ export function ProductImageCarousel({
   fit = "cover",
   overlayIndicators = false,
   sizes = "(max-width: 768px) 100vw, 240px",
+  normalizeWhitespace = false,
 }: Props) {
   const [activeIndex, setActiveIndex] = useState(0);
   const trackRef = useRef<HTMLDivElement | null>(null);
@@ -62,7 +64,7 @@ export function ProductImageCarousel({
   }
 
   return (
-    <div className={`${styles.root} ${overlayIndicators ? styles.overlay : ""} ${className}`.trim()}>
+    <div className={`${styles.root} ${overlayIndicators ? styles.overlay : ""} ${className}`.trim()} data-normalized={normalizeWhitespace || undefined}>
       <div
         ref={trackRef}
         className={styles.track}
@@ -84,15 +86,15 @@ export function ProductImageCarousel({
             onClick={() => onImageClick?.(index)}
             aria-label={onImageClick ? `Открыть фото ${index + 1}` : undefined}
           >
-            <Image
+            <ProductPhoto
               src={src}
               alt={`${title} ${index + 1}`}
-              fill
               sizes={sizes}
               className={`${styles.image} ${
                 fit === "contain" ? styles.imageContain : ""
               }`.trim()}
               priority={index === 0}
+              normalizeWhitespace={normalizeWhitespace}
             />
           </button>
         ))}

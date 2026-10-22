@@ -1,4 +1,5 @@
 import styles from "./Catalog.module.css";
+import { categoryFacetTotals, categoryValue, findCategory, normalizeCategories, normalizeCategoryFacets } from "../../lib/categories";
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { cache, type ReactNode } from "react";
@@ -203,15 +204,21 @@ export async function generateMetadata({
     (collection) => collection.id === normalized.selectedCollectionId
   );
   const selectedCollectionId = selectedCollection?.id;
+  const categoryDictionary = await getCatalogCategories();
+  const selectedContext = await getSelectedCategoryContext(JSON.stringify(normalized.selectedCategories));
+  const seoCategories = normalized.selectedCategories.map(value => {
+    const item = findCategory([...categoryDictionary.categories, ...selectedContext.categories], value);
+    return item?.name ?? value;
+  }).join(", ");
   const title = buildCatalogSeoTitle({
-    category: normalized.selectedCategories.join(", "),
+    category: seoCategories,
     audience: normalized.selectedAudience,
     q: normalized.searchQuery,
     view: normalized.selectedView,
     collectionTitle: selectedCollection?.title,
   });
   const description = buildCatalogSeoDescription({
-    category: normalized.selectedCategories.join(", "),
+    category: seoCategories,
     audience: normalized.selectedAudience,
     q: normalized.searchQuery,
     view: normalized.selectedView,
@@ -267,28 +274,48 @@ async function getCatalogProducts(params: CatalogProductsQuery): Promise<{
   }
 }
 
-/**
- * The dictionary has no availability counts. A complete small-catalog snapshot
- * lets mobile omit empty choices without guessing from one filtered page.
- * Larger catalogs and unavailable responses retain the full dictionary.
- */
-const getMobileAvailableCategories = cache(async (): Promise<string[] | null> => {
+const getCatalogCategories = cache(async (): Promise<{categories: CatalogCategory[]; hasError: boolean}> => {
   try {
-    const response = await fetch(`${API_URL}/api/products/page?page=0&size=96`, {
-      next: { revalidate: 60 },
-    });
-    if (!response.ok) return null;
-    const data: unknown = await response.json();
-    if (!data || typeof data !== "object") return null;
-    const page = data as { content?: unknown; totalElements?: unknown };
-    if (!Array.isArray(page.content) || typeof page.totalElements !== "number") return null;
-    const products = normalizeProducts(page.content);
-    if (products.length !== page.totalElements) return null;
-    return Array.from(new Set(products.map((product) => product.category).filter(Boolean)));
+    const response = await fetch(`${API_URL}/api/catalog/categories`, { cache: "no-store", signal: AbortSignal.timeout(5000) });
+    if (!response.ok) throw new Error("Categories unavailable");
+    return { categories: normalizeCategories(await response.json()), hasError: false };
+  } catch {
+    return { categories: [], hasError: true };
+  }
+});
+
+const getSelectedCategoryContext = cache(async (valuesJson: string): Promise<{categories: CatalogCategory[]; hasError: boolean}> => {
+  const values = JSON.parse(valuesJson) as string[];
+  if (!values.length) return {categories: [], hasError: false};
+  const dictionary = await getCatalogCategories();
+  if (values.every(value => findCategory(dictionary.categories, value))) return {categories: [], hasError: false};
+  try {
+    const query = new URLSearchParams();
+    values.forEach(value => query.append("values", value));
+    const response = await fetch(`${API_URL}/api/catalog/categories/selection?${query}`, {cache: "no-store", signal: AbortSignal.timeout(5000)});
+    if (!response.ok) throw new Error("Selected category unavailable");
+    const result: unknown = await response.json();
+    if (!result || typeof result !== "object" || !("categories" in result)) throw new Error("Invalid selected categories");
+    return {categories: normalizeCategories(result.categories), hasError: false};
+  } catch {
+    return {categories: [], hasError: true};
+  }
+});
+
+async function getAvailableCategories(params: NormalizedCatalogParams, categories: CatalogCategory[]): Promise<string[] | null> {
+  try {
+    const query = new URLSearchParams(buildCatalogProductsQuery({ audience: params.selectedAudience, categories: [],
+      brands: params.selectedBrands, sizes: params.selectedSizes, minPrice: params.minPrice, maxPrice: params.maxPrice,
+      q: params.searchQuery, sort: "", page: 1, collectionId: params.selectedCollectionId }));
+    query.delete("page"); query.delete("size"); query.delete("sort");
+    const response = await fetch(`${API_URL}/api/catalog/category-facets?${query}`, {cache: "no-store", signal: AbortSignal.timeout(5000)});
+    if (!response.ok) throw new Error("Category facets unavailable");
+    const totals = categoryFacetTotals(categories, normalizeCategoryFacets(await response.json()));
+    return categories.filter(category => (totals.get(category.id) ?? 0) > 0).map(categoryValue);
   } catch {
     return null;
   }
-});
+}
 
 async function getCatalogArray(path: string): Promise<unknown[]> {
   try {
@@ -307,20 +334,15 @@ async function getCatalogOptions(): Promise<{
   categories: CatalogCategory[];
   brands: string[];
   sizes: CatalogSize[];
+  categoryError: boolean;
 }> {
-  const [rawCategories, rawBrands, rawSizes] = await Promise.all([
-    getCatalogArray("/api/catalog/categories"),
+  const [categoryResult, rawBrands, rawSizes] = await Promise.all([
+    getCatalogCategories(),
     getCatalogArray("/api/products/brands"),
     getCatalogArray("/api/sizes"),
   ]);
 
-  const categories = rawCategories.filter(
-    (item): item is CatalogCategory =>
-      typeof item === "object" &&
-      item !== null &&
-      typeof (item as CatalogCategory).id === "number" &&
-      typeof (item as CatalogCategory).name === "string"
-  );
+  const categories = categoryResult.categories;
   const brands = rawBrands.filter((item): item is string => typeof item === "string" && item.trim().length > 0);
   const sizes = rawSizes.filter(
     (item): item is CatalogSize =>
@@ -330,7 +352,7 @@ async function getCatalogOptions(): Promise<{
       typeof (item as CatalogSize).name === "string"
   );
 
-  return { categories, brands, sizes };
+  return { categories, brands, sizes, categoryError: categoryResult.hasError };
 }
 
 export async function CatalogPageContent({
@@ -368,11 +390,10 @@ export async function CatalogPageContent({
       })
     : Promise.resolve(null);
 
-  const [options, collections, prefetchedProducts, mobileAvailableCategories] = await Promise.all([
+  const [options, collections, prefetchedProducts] = await Promise.all([
     getCatalogOptions(),
     getActiveCatalogCollections(),
     earlyProducts,
-    brandName ? fetch(`${API_URL}/api/brands/${encodeURIComponent(basePath.split("/").at(-1) ?? "")}/categories`, { cache: "no-store" }).then(async response => response.ok ? await response.json() as string[] : null).catch(() => null) : getMobileAvailableCategories(),
   ]);
   const selectedCollection = collections.find(
     (collection) => collection.id === normalized.selectedCollectionId
@@ -388,7 +409,11 @@ export async function CatalogPageContent({
   }
 
   const categoryGroups = groupCatalogCategories(options.categories);
-  const selectedCategories = normalizeCategorySelection(normalized.selectedCategories, categoryGroups);
+  const selectedContext = await getSelectedCategoryContext(JSON.stringify(normalized.selectedCategories));
+  const contextDictionary = [...new Map([...options.categories, ...selectedContext.categories].map(category => [category.id, category])).values()];
+  const mobileAvailableCategories = options.categoryError ? null : await getAvailableCategories(effectiveNormalized, options.categories);
+  const selectedCategories = normalizeCategorySelection(normalized.selectedCategories, groupCatalogCategories(contextDictionary));
+  const categoryLabels = Object.fromEntries(contextDictionary.map(category => [categoryValue(category), category.label]));
   if (categoryGroups.length > 0 && selectedCategories.join("\n") !== normalized.selectedCategories.join("\n")) {
     redirect(canonical({ ...effectiveNormalized, selectedCategories }));
   }
@@ -423,11 +448,14 @@ export async function CatalogPageContent({
         lockedBrand={brandName}
         products={products}
         categoryGroups={categoryGroups}
+        categoryError={options.categoryError || selectedContext.hasError}
+        categoryLabels={categoryLabels}
+        facetsError={!options.categoryError && mobileAvailableCategories === null}
         mobileAvailableCategories={mobileAvailableCategories}
         brands={options.brands}
         sizes={options.sizes}
         collections={collections}
-        selectedCategories={normalized.selectedCategories}
+        selectedCategories={selectedCategories}
         selectedAudience={normalized.selectedAudience}
         selectedBrands={normalized.selectedBrands}
         selectedSizes={normalized.selectedSizes}

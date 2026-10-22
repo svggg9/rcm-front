@@ -1,10 +1,17 @@
-.section {
-  margin: 0;
-  padding: 64px 0 0;
-}
-
-@media (max-width: 768px) {
-  .section {
-    padding-top: 48px;
-  }
+.section { margin: 0; padding: 0; }
+.spotlight { display: grid; grid-template-columns: minmax(0, 0.8fr) minmax(0, 1fr); gap: 40px; max-width: 900px; margin: 0 auto; align-items: center; }
+.spotlightPhoto { position: relative; display: block; height: 320px; overflow: hidden; background: var(--white); }
+.image { object-fit: contain; }
+.spotlightInfo { display: flex; flex-direction: column; gap: 12px; align-items: flex-start; font-size: 13px; line-height: 20px; }
+.spotlightInfo h2 { font-size: 18px; line-height: 26px; font-weight: 400; text-transform: uppercase; }
+.description { color: var(--muted); font-size: 13px; line-height: 20px; }
+.brand { font-size: 11px; line-height: 16px; text-transform: uppercase; color: var(--muted); }
+.productName { color: var(--black); text-decoration: none; }
+.productName:hover { text-decoration: underline; }
+.more { min-height: 44px; display: inline-flex; align-items: center; color: var(--black); font-size: 12px; text-underline-offset: 5px; }
+@media (max-width: 640px) {
+  .spotlight { gap: 20px; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  .spotlightPhoto { height: 210px; }
+  .spotlightInfo { gap: 8px; font-size: 12px; line-height: 18px; }
+  .spotlightInfo h2 { font-size: 14px; line-height: 20px; }
 }

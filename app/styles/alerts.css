@@ -4,7 +4,7 @@
 .alert { background: var(--feedback-info-bg); }
 .alertSuccess { background: var(--feedback-success-bg); }
 .alertWarning { background: var(--feedback-warning-bg); }
-.alertDanger { background: var(--feedback-danger-bg); }
+.alertDanger { background: var(--white); border: 1px solid var(--line); font-size: var(--feedback-body-size); line-height: var(--feedback-line-height); }
 .alert > svg { color: var(--gold-deep); }
 .alertSuccess > svg { color: var(--success); }
 .alertWarning > svg { color: var(--warning); }

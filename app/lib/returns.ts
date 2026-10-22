@@ -269,27 +269,39 @@ export async function getSellerReturns(params: {
     `${API_URL}/api/seller/returns/list?page=${page}&size=${size}`,
     { signal: params.signal }
   );
-  if (response.status === 404) {
-    return { items: [], page, totalPages: 0, totalItems: 0 };
-  }
   if (!response.ok) throw new Error("Не удалось загрузить возвраты");
-  const data: unknown = await response.json();
-  if (!data || typeof data !== "object") {
-    return { items: [], page, totalPages: 0, totalItems: 0 };
+  const data: unknown = await response.json().catch(() => {
+    throw new Error("Не удалось загрузить возвраты");
+  });
+  const fail = () => { throw new Error("Не удалось загрузить возвраты"); };
+  if (!data || typeof data !== "object" || Array.isArray(data)) return fail();
+  const payload = data as Record<string, unknown>;
+  const integer = (value: unknown): value is number => typeof value === "number" && Number.isSafeInteger(value) && value >= 0;
+  if (!Array.isArray(payload.content)
+    || !integer(payload.number) || payload.number !== page
+    || (payload.size !== undefined && (!integer(payload.size) || payload.size !== size))
+    || !integer(payload.totalPages) || !integer(payload.totalElements)
+    || payload.totalPages !== Math.ceil(payload.totalElements / size)
+    || payload.content.length > size || payload.content.length > payload.totalElements
+    || (payload.numberOfElements !== undefined && payload.numberOfElements !== payload.content.length)) return fail();
+  const ids = new Set<number>();
+  for (const item of payload.content) {
+    if (!item || typeof item !== "object" || Array.isArray(item)) return fail();
+    const row = item as Record<string, unknown>;
+    if (![row.id, row.orderId, row.productId, row.variantId, row.quantity].every(value => integer(value) && value > 0)
+      || typeof row.productTitle !== "string"
+      || typeof row.status !== "string" || !Object.hasOwn(returnStatusLabels, row.status)
+      || typeof row.reason !== "string" || !Object.hasOwn(returnReasonLabels, row.reason)
+      || (row.sku != null && typeof row.sku !== "string")
+      || (row.cdekNumber != null && typeof row.cdekNumber !== "string")
+      || ids.has(row.id as number)) return fail();
+    ids.add(row.id as number);
   }
-  const payload = data as {
-    content?: SellerReturnListItem[];
-    number?: number;
-    totalPages?: number;
-    totalElements?: number;
-  };
   return {
-    items: Array.isArray(payload.content) ? payload.content : [],
-    page: typeof payload.number === "number" ? payload.number : page,
-    totalPages:
-      typeof payload.totalPages === "number" ? payload.totalPages : 0,
-    totalItems:
-      typeof payload.totalElements === "number" ? payload.totalElements : 0,
+    items: payload.content as SellerReturnListItem[],
+    page: payload.number,
+    totalPages: payload.totalPages,
+    totalItems: payload.totalElements,
   };
 }
 

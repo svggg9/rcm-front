@@ -4,7 +4,8 @@ import {
   getGuestCartId,
   rememberUserCartId,
 } from "./auth";
-import { getClientSession } from "./client-session";
+import { getClientSession, getClientSessionRevision } from "./client-session";
+import { ApiRequestError, readApiError, toApiError } from "./apiErrors";
 import type { CartItem } from "../cart/lib/types";
 
 export type ResolvedCart = {
@@ -13,42 +14,71 @@ export type ResolvedCart = {
   checkoutOrderId?: number | null;
 };
 
+function assertCurrentSession(revision: number) {
+  if (revision !== getClientSessionRevision()) throw new DOMException("Аккаунт изменился — повторите действие", "AbortError");
+}
+
+async function resolveGuestCartId(revision: number): Promise<string> {
+  try {
+    const cartId = await ensureGuestCartId();
+    assertCurrentSession(revision);
+    return cartId;
+  } catch (failure) {
+    assertCurrentSession(revision);
+    throw toApiError(failure, "Не удалось создать корзину — попробуйте ещё раз");
+  }
+}
+
+async function readCart(url: string, revision: number): Promise<unknown> {
+  try {
+    const response = await apiFetch(url, { signal: AbortSignal.timeout(15_000) });
+    if (!response.ok) throw await readApiError(response, "Не удалось загрузить корзину");
+    const data: unknown = await response.json();
+    assertCurrentSession(revision);
+    return data;
+  } catch (failure) {
+    assertCurrentSession(revision);
+    throw toApiError(failure, "Не удалось загрузить корзину");
+  }
+}
+
+function rememberCart(cartId: string) {
+  try { rememberUserCartId(cartId); } catch { /* The confirmed cart remains usable without browser storage. */ }
+}
+
 export async function resolveCartId(): Promise<string> {
+  const revision = getClientSessionRevision();
   const session = await getClientSession();
-  if (!session) return ensureGuestCartId();
+  assertCurrentSession(revision);
+  if (!session) return resolveGuestCartId(revision);
 
   const cartId = `user_${session.username}`;
-  rememberUserCartId(cartId);
+  rememberCart(cartId);
   return cartId;
 }
 
 export async function loadResolvedCart(): Promise<ResolvedCart> {
   const session = await getClientSession();
+  const revision = getClientSessionRevision();
 
   if (session) {
-    const response = await apiFetch(`${API_URL}/api/cart/me`);
-    if (!response.ok) throw new Error("Не удалось загрузить корзину");
-
-    const cart = (await response.json()) as ResolvedCart;
-    if (!cart || typeof cart.cartId !== "string" || !Array.isArray(cart.items)) {
-      throw new Error("Backend вернул некорректную корзину");
+    const cart = await readCart(`${API_URL}/api/cart/me`, revision) as ResolvedCart;
+    if (!cart || typeof cart.cartId !== "string" || !cart.cartId.trim() || !Array.isArray(cart.items)) {
+      throw new ApiRequestError("Не удалось загрузить корзину", "invalid-response");
     }
-    rememberUserCartId(cart.cartId);
+    rememberCart(cart.cartId);
     return cart;
   }
 
-  const cartId = await ensureGuestCartId();
-  const response = await apiFetch(
-    `${API_URL}/api/cart?cartId=${encodeURIComponent(cartId)}`
-  );
-  if (!response.ok) throw new Error("Не удалось загрузить корзину");
-
-  const items = (await response.json()) as CartItem[];
-  return { cartId, items: Array.isArray(items) ? items : [] };
+  const cartId = await resolveGuestCartId(revision);
+  const items = await readCart(`${API_URL}/api/cart?cartId=${encodeURIComponent(cartId)}`, revision);
+  if (!Array.isArray(items)) throw new ApiRequestError("Не удалось загрузить корзину", "invalid-response");
+  return { cartId, items };
 }
 
 export async function loadResolvedCartCount(): Promise<number> {
   const session = await getClientSession();
+  const revision = getClientSessionRevision();
   const guestCartId = session ? "" : getGuestCartId();
 
   if (!session && !guestCartId) return 0;
@@ -56,15 +86,13 @@ export async function loadResolvedCartCount(): Promise<number> {
   const url = session
     ? `${API_URL}/api/cart/me/count`
     : `${API_URL}/api/cart/count?cartId=${encodeURIComponent(guestCartId)}`;
-  const response = await apiFetch(url);
-  if (!response.ok) return 0;
-
-  const data: unknown = await response.json();
-  return data !== null &&
+  const data = await readCart(url, revision);
+  if (!(data !== null &&
     typeof data === "object" &&
     "count" in data &&
     typeof data.count === "number" &&
-    Number.isFinite(data.count)
-    ? data.count
-    : 0;
+    Number.isSafeInteger(data.count) && data.count >= 0)) {
+    throw new ApiRequestError("Не удалось обновить количество товаров", "invalid-response");
+  }
+  return data.count;
 }

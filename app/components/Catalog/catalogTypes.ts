@@ -12,12 +12,7 @@ export type CatalogCollectionOption = {
   title: string;
 };
 
-export type CatalogCategory = {
-  id: number;
-  name: string;
-  slug?: string | null;
-  sortOrder?: number | null;
-};
+export type CatalogCategory = import("../../lib/categories").CategoryOption;
 
 export type CatalogSize = {
   id: number;
@@ -27,6 +22,7 @@ export type CatalogSize = {
 
 export type CatalogCategoryGroup = {
   name: string;
+  value: string;
   rootCategory?: CatalogCategory;
   categories: Array<CatalogCategory & { label: string }>;
 };

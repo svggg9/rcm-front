@@ -6,8 +6,7 @@ import { Dialog } from "../../components/ui/Dialog";
 import { Button } from "../../components/ui/Button";
 import { Icon } from "../../components/ui/Icon";
 import { CdekLogo } from "../../components/Delivery/CdekLogo";
-import { Loader } from "../../components/ui/Loader";
-import { SkeletonBlock } from "../../components/ui/SkeletonBlock";
+import { SectionLoader } from "../../components/ui/SectionLoader";
 import { PickupPointMap } from "./PickupPointMap";
 import styles from "./PickupPointModal.module.css";
 
@@ -27,8 +26,7 @@ function PickupPointPicker({ loading, points, selectedId, cityField, cityKey, er
       {cityField}
       {error && <div role="alert" className={styles.error}>{error}{onRetry && <button type="button" onClick={onRetry} className={styles.textButton}>Повторить</button>}</div>}
       {loading ? <div className={`${styles.map} ${styles.loading}`}>
-        <SkeletonBlock className={styles.skeleton} />
-        <Loader inline label="Загрузка пунктов выдачи" />
+        <SectionLoader label="Загрузка пунктов выдачи" />
       </div> : !cityKey ? <p className={styles.muted}>Выберите город из списка</p> : <>
         {points.length > 0 && <div className={styles.map}><PickupPointMap points={points} selectedId={selected?.id ?? ""} onSelect={setCandidateId} /></div>}
         {selected ? <div className={styles.details}>

@@ -35,7 +35,7 @@ export function getBuyerMobilePage(
   if (pathname.startsWith("/brand/")) {
     const returnTo = search.get("returnTo");
     const isProductReturn = returnTo !== null &&
-      /^\/(?:product\/[^/?#]+|p\/[^/?#]+\/[^/?#]+)\/?$/.test(returnTo) &&
+      /^\/(?:product\/[^/?#]+|p\/[^/?#]+\/[^/?#]+)\/?(?:\?color=[1-9]\d*)?$/.test(returnTo) &&
       !returnTo.includes("\\");
     return { backHref: isProductReturn ? returnTo : "/catalog" };
   }

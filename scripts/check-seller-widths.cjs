@@ -70,12 +70,14 @@ async function main() {
       catch { await new Promise(resolve => setTimeout(resolve, 500)); }
     }
     assert.ok(ready);
-    browser = await chromium.launch({ headless: true, channel: "msedge" });
+    browser = await chromium.launch(process.env.PLAYWRIGHT_EXECUTABLE_PATH
+      ? { headless: true, executablePath: process.env.PLAYWRIGHT_EXECUTABLE_PATH }
+      : { headless: true, channel: "msedge" });
     const page = await browser.newPage();
     const errors = [];
     page.on("pageerror", error => errors.push(error.message));
     fs.mkdirSync(path.resolve("build/seller-width-screenshots"), { recursive: true });
-    for (const width of [1600, 1280, 768, 390, 320]) {
+    for (const width of [1920, 1280, 768, 390, 320]) {
       await page.setViewportSize({ width, height: 1000 });
       for (const section of ["home", "products", "orders", "returns", "finance", "store", "legal"]) {
         await page.goto(origin + "/seller/" + section);
@@ -85,12 +87,12 @@ async function main() {
           const body = shell.querySelector("[data-seller-section-body]");
           const rect = node => { const box = node.getBoundingClientRect(); return { left: box.left, width: box.width }; };
           const children = [...body.children].filter(node => !node.hidden && node.getClientRects().length).map(rect);
-          return { shell: rect(shell), content: rect(content), body: rect(body), children, availableWidth: document.body.getBoundingClientRect().width, overflow: document.documentElement.scrollWidth > innerWidth };
+          return { shell: rect(shell), content: rect(content), body: rect(body), header: rect(document.querySelector('[data-seller-header-inner]')), children, availableWidth: document.body.getBoundingClientRect().width, overflow: document.documentElement.scrollWidth > innerWidth };
         });
         const gutter = width <= 768 ? 16 : 32;
-        const expected = Math.min(1440, geometry.availableWidth - gutter * 2);
+        const expected = Math.min(1200, geometry.availableWidth - gutter * 2);
         assert.ok(Math.abs(geometry.shell.width - expected) < 1, section + " shell width at " + width + ": " + JSON.stringify(geometry));
-        for (const box of [geometry.content, geometry.body, ...geometry.children]) {
+        for (const box of [geometry.header, geometry.content, geometry.body, ...geometry.children]) {
           assert.ok(Math.abs(box.width - geometry.shell.width) < 1, section + " content width at " + width + ": " + JSON.stringify(geometry));
           assert.ok(Math.abs(box.left - geometry.shell.left) < 1, section + " left edge at " + width);
         }
@@ -108,11 +110,11 @@ async function main() {
           assert.ok(Math.abs(form.x - geometry.shell.left) < 1, "Legal form left");
           assert.ok(form.width <= 1120);
         }
-        if (width === 1280 || width === 390) await page.screenshot({ path: "build/seller-width-screenshots/" + section + "-" + width + ".png" });
+        if (width === 1920 || width === 1280 || width === 390 || (section === "home" && width === 320)) await page.screenshot({ path: "build/seller-width-screenshots/" + section + "-" + width + ".png" });
       }
     }
     assert.deepEqual(errors, []);
-    console.log("PASS: seven seller sections share shell/content edges and width at 1600/1280/768/390/320; no overflow; compact left-aligned forms and store fixed actions; mock API only");
+    console.log("PASS: seven seller sections share header/shell/content edges with a 1200px maximum at 1920/1280/768/390/320; no overflow; compact left-aligned forms and store fixed actions; mock API only");
   } catch (error) { console.error(logs.slice(-2500)); throw error; }
   finally { if (browser) await browser.close(); child.kill(); server.close(); }
 }

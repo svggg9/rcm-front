@@ -1,13 +1,15 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import styles from "./Favorites.module.css";
 import { apiFetch, API_URL } from "../lib/api";
 import { getClientSession } from "../lib/client-session";
 import { getGuestFavoriteIds } from "../lib/favorites";
 import { EmptyState } from "../components/ui/EmptyState";
-import { ProductTileSkeleton } from "../components/ui/CommerceSkeleton";
+import { RequestError } from "../components/ui/RequestError";
+import { AUTH_EVENT, SESSION_IDENTITY_EVENT } from "../lib/authEvents";
+import { SectionLoader } from "../components/ui/SectionLoader";
 import Link from "next/link";
 import { FavoriteCard } from "./FavoriteCard";
 import { Button } from "../components/ui/Button";
@@ -100,16 +102,19 @@ export default function FavoritesPage() {
   const [loadError, setLoadError] = useState(false);
   const [reload, setReload] = useState(0);
   const [collectionsOpen, setCollectionsOpen] = useState(false);
+  const readVersion = useRef(0);
 
   useEffect(() => {
     let alive = true;
 
     async function load() {
+      const requestId = ++readVersion.current;
+      const current = () => alive && requestId === readVersion.current;
       setLoading(true);
-      setLoadError(false);
 
       try {
         const session = await getClientSession();
+        if (!current()) return;
 
         if (session) {
           const response = await apiFetch(`${API_URL}/api/favorites`);
@@ -118,17 +123,19 @@ export default function FavoritesPage() {
           }
 
           const data: ProductApi[] = await response.json();
-          if (!alive) return;
-
-          setProducts(Array.isArray(data) ? data.map(toTileProduct) : []);
+          if (!current()) return;
+          if (!Array.isArray(data)) throw new Error("Invalid favorites");
+          setProducts(data.map(toTileProduct));
+          setLoadError(false);
           return;
         }
 
         const guestIds = getGuestFavoriteIds();
 
         if (!guestIds.length) {
-          if (!alive) return;
+          if (!current()) return;
           setProducts([]);
+          setLoadError(false);
           return;
         }
 
@@ -140,7 +147,8 @@ export default function FavoritesPage() {
         }
 
         const data: ProductApi[] = await response.json();
-        if (!alive) return;
+        if (!current()) return;
+        if (!Array.isArray(data)) throw new Error("Invalid favorites");
 
         const idSet = new Set(guestIds);
         const filtered = (Array.isArray(data) ? data : [])
@@ -149,27 +157,32 @@ export default function FavoritesPage() {
           .map(toTileProduct);
 
         setProducts(filtered);
+        setLoadError(false);
       } catch {
-        if (!alive) return;
+        if (!current()) return;
 
         setLoadError(true);
       } finally {
-        if (!alive) return;
+        if (!current()) return;
         setLoading(false);
       }
     }
 
-    load();
+    void load();
 
     function handleAuthChanged() {
-      load();
+      setProducts([]);
+      setLoadError(false);
+      void load();
     }
 
-    window.addEventListener("auth-changed", handleAuthChanged);
+    window.addEventListener(AUTH_EVENT, handleAuthChanged);
+    window.addEventListener(SESSION_IDENTITY_EVENT, handleAuthChanged);
 
     return () => {
       alive = false;
-      window.removeEventListener("auth-changed", handleAuthChanged);
+      window.removeEventListener(AUTH_EVENT, handleAuthChanged);
+      window.removeEventListener(SESSION_IDENTITY_EVENT, handleAuthChanged);
     };
   }, [reload]);
 
@@ -209,11 +222,7 @@ export default function FavoritesPage() {
       if (!alive) return;
 
       const seenProductIds = new Set<number>();
-      const fallbackCandidates = [
-        fallback.brandShowcase,
-        fallback.categoryShowcase,
-        fallback.latestShowcase,
-      ];
+      const fallbackCandidates = fallback.blocks;
       const automatic = fallbackCandidates.flatMap((collection, index) => {
         const uniqueProducts = collection.products.filter(
           (product) => !seenProductIds.has(product.id)
@@ -231,12 +240,13 @@ export default function FavoritesPage() {
         }];
       });
 
-      if (automatic.length === 0 && fallback.latestShowcase.products.length > 0) {
+      const firstFallback = fallback.blocks[0];
+      if (automatic.length === 0 && firstFallback?.products.length) {
         automatic.push({
           key: "automatic-latest",
-          title: fallback.latestShowcase.title,
-          href: fallback.latestShowcase.href,
-          products: fallback.latestShowcase.products,
+          title: firstFallback.title,
+          href: firstFallback.href,
+          products: firstFallback.products,
         });
       }
 
@@ -281,18 +291,12 @@ export default function FavoritesPage() {
         </div>
 
         <div>
-          {loading ? (
-            <ul
-              className={styles.grid}
-              aria-label="Загрузка избранного"
-              aria-busy="true"
-            >
-              {Array.from({ length: 8 }).map((_, index) => (
-                <ProductTileSkeleton key={index} />
-              ))}
-            </ul>
-          ) : loadError ? (
-            <div className={styles.errorState} role="alert"><p>Не удалось загрузить избранное</p><Button variant="secondary" onClick={() => setReload(value => value + 1)}>Повторить</Button></div>
+          {loadError && products.length > 0 ? <RequestError variant="inline" message="Не удалось обновить избранное"
+            text="Показаны последние загруженные данные" loading={loading} onRetry={() => setReload(value => value + 1)} /> : null}
+          {loading && !products.length && !loadError ? (
+            <SectionLoader label="Загрузка избранного" />
+          ) : loadError && !products.length ? (
+            <RequestError message="Не удалось загрузить избранное" loading={loading} onRetry={() => setReload(value => value + 1)} />
           ) : products.length === 0 ? (
             <EmptyState title="В избранном пока пусто" text="Сохраняйте товары, чтобы вернуться к ним позже" actions={<Link href="/catalog" className="buttonPrimary">Перейти в каталог</Link>} />
           ) : (

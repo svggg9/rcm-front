@@ -1,88 +1,48 @@
 "use client";
 
+import type { ReactNode } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
 import { Icon } from "../../../components/ui/Icon";
-import styles from "../ProductPage.module.css";
 import { ProductDescriptionText } from "./ProductDescriptionText";
-
+import styles from "../ProductPage.module.css";
 import type { Product } from "../lib/types";
 
-type Props = {
-  product: Product;
-  openComposition: boolean;
-  openBrand: boolean;
-  onToggleComposition: () => void;
-  onToggleBrand: () => void;
-};
-
-function ChevronIcon() {
-  return (
-    <span className={styles.accIcon} aria-hidden="true">
-      <Icon name="chevron-down" size={20} strokeWidth={1.5} />
-    </span>
-  );
+function DetailSection({ title, children }: { title: string; children: ReactNode }) {
+  return <details className={styles.accItem}>
+    <summary className={styles.accBtn}><span>{title}</span><Icon name="chevron-down" size={18} strokeWidth={1.25} /></summary>
+    <div className={styles.accBody}>{children}</div>
+  </details>;
 }
 
-export function ProductDetailsAccordion({
-  product,
-  openComposition,
-  openBrand,
-  onToggleComposition,
-  onToggleBrand,
-}: Props) {
-  const pathname = usePathname();
+export function ProductDetailsAccordion({ product, showDescription, brandHref }: {
+  product: Product; showDescription: boolean; brandHref: string | null;
+}) {
   const composition = product.composition?.trim();
   const brandDescription = product.brandDescription?.trim();
-  if (!composition && !brandDescription) return null;
+  const category = product.category?.split("/").map(part => part.trim()).filter(Boolean).at(-1);
+  const audience = /одежд|обувь|аксессуар/i.test(product.category) && product.audience ? {
+    MEN: "Для мужчин", WOMEN: "Для женщин", UNISEX: "Унисекс",
+  }[product.audience] : null;
 
-  return (
-    <div className={styles.accordion}>
-      {composition ? (
-        <section className={styles.accItem}>
-          <button
-            type="button"
-            className={styles.accBtn}
-            onClick={onToggleComposition}
-            aria-expanded={openComposition}
-          >
-            <span>Состав</span>
-            <ChevronIcon />
-          </button>
-          {openComposition ? (
-            <div className={styles.accBodyOpen}>
-              <ProductDescriptionText text={composition} fallback="" />
-            </div>
-          ) : null}
-        </section>
-      ) : null}
-
-      {brandDescription ? (
-        <section className={styles.accItem}>
-          <button
-            type="button"
-            className={styles.accBtn}
-            onClick={onToggleBrand}
-            aria-expanded={openBrand}
-          >
-            <span>О бренде</span>
-            <ChevronIcon />
-          </button>
-
-          {openBrand ? (
-            <div className={styles.accBody}>
-              <div className={styles.brandAboutText}>
-                <ProductDescriptionText text={brandDescription} fallback="" />
-                {product.brandSlug ? (
-                  <Link href={`/brand/${product.brandSlug}?returnTo=${encodeURIComponent(pathname)}`}>
-                    Все товары бренда
-                  </Link>
-                ) : null}
-              </div>
-            </div>
-          ) : null}
-        </section>
-      ) : null}
-    </div>
-  );
+  return <div className={styles.accordion}>
+    {showDescription && <DetailSection title="Описание"><ProductDescriptionText text={product.description} fallback="" /></DetailSection>}
+    {composition && <DetailSection title="Состав"><ProductDescriptionText text={composition} fallback="" /></DetailSection>}
+    {(category || audience) && <DetailSection title="Характеристики">
+      <dl className={styles.characteristics}>
+        {category && <div><dt>Категория</dt><dd>{category}</dd></div>}
+        {audience && <div><dt>Для кого</dt><dd>{audience}</dd></div>}
+      </dl>
+    </DetailSection>}
+    <DetailSection title="Доставка">
+      <p className={styles.text}>Доставка в пункт выдачи СДЭК. Стоимость и срок появятся после выбора пункта при оформлении.</p>
+      <Link href="/contacts" className={styles.detailLink}>Задать вопрос</Link>
+    </DetailSection>
+    <DetailSection title="Оплата">
+      <p className={styles.text}>Онлайн на защищённой странице Т-Банка. Доступные способы оплаты будут показаны на стороне банка.</p>
+    </DetailSection>
+    {brandDescription && <DetailSection title="О бренде">
+      <ProductDescriptionText text={brandDescription} fallback="" />
+      {brandHref && <Link href={brandHref} className={styles.detailLink}>Все товары бренда</Link>}
+    </DetailSection>}
+  </div>;
 }

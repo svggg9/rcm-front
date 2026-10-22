@@ -1,4 +1,7 @@
 import { API_URL, apiFetch } from "../../lib/api";
+import { ApiRequestError, readApiError, toApiError } from "../../lib/apiErrors";
+import { CATEGORY_API_MESSAGES } from "../../lib/categoryErrors";
+import { normalizeCategories } from "../../lib/categories";
 import type {
   AdminProduct,
   AdminProductListItem,
@@ -27,6 +30,23 @@ import type {
 async function readError(response: Response, fallback: string) {
   const text = await response.text().catch(() => "");
   return text || fallback;
+}
+
+async function categoryFetch(url: string, options: RequestInit = {}): Promise<Response> {
+  try { return await apiFetch(url, { ...options, signal: AbortSignal.timeout(20_000) }); }
+  catch (reason) { throw toApiError(reason, "Не удалось связаться с сервером — попробуйте ещё раз"); }
+}
+
+async function categoryJson(response: Response): Promise<DictionaryItem> {
+  try {
+    const data: unknown = await response.json();
+    if (!data || typeof data !== "object") throw new Error();
+    const raw = data as Record<string, unknown>;
+    if (!(raw.parentId === null || typeof raw.parentId === "number" && Number.isSafeInteger(raw.parentId) && raw.parentId > 0)) throw new Error();
+    const normalized = normalizeCategories([{ ...raw, parentId: null }])[0];
+    if (raw.parentId === normalized.id) throw new Error();
+    return { ...normalized, parentId: raw.parentId };
+  } catch { throw new ApiRequestError("Не удалось прочитать категорию — обновите список", "invalid-response"); }
 }
 
 export async function getAdminProducts(
@@ -119,12 +139,12 @@ export async function cancelAdminOrderDelivery(id: number): Promise<void> {
 }
 
 export async function approveProduct(id: number): Promise<void> {
-  const response = await apiFetch(`${API_URL}/api/admin/products/${id}/approve`, {
+  const response = await categoryFetch(`${API_URL}/api/admin/products/${id}/approve`, {
     method: "POST",
   });
 
   if (!response.ok) {
-    throw new Error(await readError(response, "Не удалось одобрить товар"));
+    throw await readApiError(response, "Не удалось одобрить товар", CATEGORY_API_MESSAGES);
   }
 }
 
@@ -209,12 +229,17 @@ export async function rejectSeller(id: number): Promise<void> {
 export async function getAdminDictionary(
   kind: DictionaryKind
 ): Promise<DictionaryItem[]> {
-  const response = await apiFetch(`${API_URL}/api/admin/dictionaries/${kind}`);
+  const response = await (kind === "categories" ? categoryFetch : apiFetch)(`${API_URL}/api/admin/dictionaries/${kind}`);
 
   if (!response.ok) {
+    if (kind === "categories") throw await readApiError(response, "Не удалось загрузить категории", CATEGORY_API_MESSAGES);
     throw new Error(await readError(response, "Не удалось загрузить справочник"));
   }
 
+  if (kind === "categories") {
+    try { return normalizeCategories(await response.json()); }
+    catch { throw new ApiRequestError("Не удалось прочитать категории — попробуйте ещё раз", "invalid-response"); }
+  }
   return response.json();
 }
 
@@ -222,16 +247,17 @@ export async function createAdminDictionaryItem(
   kind: DictionaryKind,
   item: Partial<DictionaryItem>
 ): Promise<DictionaryItem> {
-  const response = await apiFetch(`${API_URL}/api/admin/dictionaries/${kind}`, {
+  const response = await (kind === "categories" ? categoryFetch : apiFetch)(`${API_URL}/api/admin/dictionaries/${kind}`, {
     method: "POST",
     body: JSON.stringify(item),
   });
 
   if (!response.ok) {
+    if (kind === "categories") throw await readApiError(response, "Не удалось создать категорию", CATEGORY_API_MESSAGES);
     throw new Error(await readError(response, "Не удалось создать значение"));
   }
 
-  return response.json();
+  return kind === "categories" ? categoryJson(response) : response.json();
 }
 
 export async function updateAdminDictionaryItem(
@@ -239,7 +265,7 @@ export async function updateAdminDictionaryItem(
   id: number,
   item: Partial<DictionaryItem>
 ): Promise<DictionaryItem> {
-  const response = await apiFetch(
+  const response = await (kind === "categories" ? categoryFetch : apiFetch)(
     `${API_URL}/api/admin/dictionaries/${kind}/${id}`,
     {
       method: "PUT",
@@ -248,17 +274,18 @@ export async function updateAdminDictionaryItem(
   );
 
   if (!response.ok) {
+    if (kind === "categories") throw await readApiError(response, "Не удалось сохранить категорию", CATEGORY_API_MESSAGES);
     throw new Error(await readError(response, "Не удалось обновить значение"));
   }
 
-  return response.json();
+  return kind === "categories" ? categoryJson(response) : response.json();
 }
 
 export async function deleteAdminDictionaryItem(
   kind: DictionaryKind,
   id: number
 ): Promise<void> {
-  const response = await apiFetch(
+  const response = await (kind === "categories" ? categoryFetch : apiFetch)(
     `${API_URL}/api/admin/dictionaries/${kind}/${id}`,
     {
       method: "DELETE",
@@ -266,6 +293,7 @@ export async function deleteAdminDictionaryItem(
   );
 
   if (!response.ok) {
+    if (kind === "categories") throw await readApiError(response, "Не удалось отключить категорию", CATEGORY_API_MESSAGES);
     throw new Error(await readError(response, "Не удалось отключить значение"));
   }
 }
@@ -453,13 +481,13 @@ export async function assignProductCategory(
   id: number,
   categoryId: number
 ): Promise<void> {
-  const response = await apiFetch(`${API_URL}/api/admin/products/${id}/category`, {
+  const response = await categoryFetch(`${API_URL}/api/admin/products/${id}/category`, {
     method: "POST",
     body: JSON.stringify({ categoryId }),
   });
 
   if (!response.ok) {
-    throw new Error(await readError(response, "Не удалось назначить категорию"));
+    throw await readApiError(response, "Не удалось назначить категорию", CATEGORY_API_MESSAGES);
   }
 }
 

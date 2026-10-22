@@ -1,11 +1,16 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useId, useMemo, useRef, useState } from "react";
 
 import { CabinetTabs } from "../../components/ui/CabinetTabs";
 import { TextInput } from "../../components/ui/TextInput";
 import { EmptyState } from "../../components/ui/EmptyState";
 import { ListLoadMore } from "../../components/ui/ListLoadMore";
+import { Button } from "../../components/ui/Button";
+import { DesignSystemIcon } from "../../components/ui/DesignSystemIcon";
+import { PopoverPanel } from "../../components/ui/PopoverPanel";
+import { SectionHeader } from "../../components/ui/SectionHeader";
+import { SegmentedControl } from "../../components/ui/SegmentedControl";
 
 import {
   SellerOrderCard,
@@ -15,6 +20,7 @@ import {
   type SellerOrderCardListItem,
 } from "./SellerOrderCard";
 import styles from "./SellerOrdersTab.module.css";
+import listStyles from "../../components/ui/CabinetListLayout.module.css";
 
 import type { SellerOrderListItem } from "../types";
 
@@ -32,6 +38,7 @@ type Props<TOrder extends SellerOrderCardListItem = SellerOrderListItem> = {
   audience?: OrderCardAudience;
   showDeliveryLabel?: boolean;
   openButtonLabel?: string;
+  presentation?: "default" | "cabinet";
 };
 
 type OrderFilter =
@@ -58,9 +65,15 @@ export function SellerOrdersTab<
   audience = "seller",
   showDeliveryLabel = true,
   openButtonLabel,
+  presentation = "default",
 }: Props<TOrder>) {
-  const [filter, setFilter] = useState<OrderFilter>("ALL");
+  const cabinet = audience === "seller" && presentation === "cabinet";
+  const [filter, setFilter] = useState<OrderFilter>(cabinet ? "READY" : "ALL");
   const [search, setSearch] = useState("");
+  const [searchOpen, setSearchOpen] = useState(false);
+  const searchId = useId();
+  const searchTrigger = useRef<HTMLButtonElement>(null);
+  const searchInput = useRef<HTMLInputElement>(null);
 
   const orderTabs: { value: OrderFilter; label: string; count?: number }[] = [
     { value: "ALL", label: "Все", count: totalElements },
@@ -109,8 +122,31 @@ export function SellerOrdersTab<
   );
 
   return (
-    <section className={styles.page}>
-      {audience !== "buyer" ? <div className={styles.ordersToolbar}>
+    <section className={cabinet ? listStyles.page : styles.page}>
+      {cabinet ? <>
+        <SectionHeader title="Заказы" large className={listStyles.heading} />
+        <div className={listStyles.toolbar}>
+          <div className={listStyles.segments}>
+            <SegmentedControl items={orderTabs} value={filter} onChange={setFilter} ariaLabel="Фильтр заказов" />
+          </div>
+          <div className={listStyles.tools}>
+            <Button ref={searchTrigger} variant="secondary" className={`${listStyles.iconButton} ${searchOpen || search ? listStyles.iconButtonActive : ""}`}
+              aria-label="Поиск заказов" title="Поиск заказов" aria-haspopup="dialog" aria-expanded={searchOpen} aria-controls={searchId}
+              onClick={() => setSearchOpen(value => !value)}>
+              <DesignSystemIcon name="search" role="utility" />
+            </Button>
+          </div>
+        </div>
+        <PopoverPanel id={searchId} title="Поиск заказов" open={searchOpen} onClose={() => setSearchOpen(false)}
+          anchorRef={searchTrigger} initialFocusRef={searchInput}>
+          <div className={listStyles.search}>
+            <TextInput ref={searchInput} type="search" label="Номер заказа, товар или получатель" hideLabel
+              placeholder="Номер заказа, товар или получатель" maxLength={200} value={search}
+              onChange={event => setSearch(event.target.value)} />
+            {onLoadMore ? <p className={listStyles.caption}>Поиск по загруженным заказам</p> : null}
+          </div>
+        </PopoverPanel>
+      </> : audience !== "buyer" ? <div className={styles.ordersToolbar}>
         <CabinetTabs items={orderTabs} value={filter} onChange={setFilter}
           appearance="panel" ariaLabel="Фильтр заказов" idPrefix="seller-order-filter" panelId="seller-order-results" />
         <div className={styles.search}><TextInput type="search" hideLabel
@@ -118,9 +154,11 @@ export function SellerOrdersTab<
           value={search} onChange={event => setSearch(event.target.value)} /></div>
       </div> : null}
 
-      {audience === "seller" && onLoadMore ? <p className={styles.searchHint}>Поиск и фильтры — по загруженным заказам</p> : null}
-      <div id="seller-order-results" role={audience === "seller" ? "tabpanel" : undefined}
-        aria-labelledby={audience === "seller" ? `seller-order-filter-${filter}` : undefined} tabIndex={audience === "seller" ? 0 : undefined}>
+      {audience === "seller" && onLoadMore ? <p className={cabinet ? listStyles.caption : styles.searchHint}>Поиск и фильтры — по загруженным заказам</p> : null}
+      <div id="seller-order-results" className={cabinet ? listStyles.results : undefined}
+        role={cabinet ? "region" : audience === "seller" ? "tabpanel" : undefined}
+        aria-label={cabinet ? "Список заказов" : undefined}
+        aria-labelledby={!cabinet && audience === "seller" ? `seller-order-filter-${filter}` : undefined} tabIndex={audience === "seller" ? 0 : undefined}>
 
       {orders.length === 0 ? (
         <EmptyState

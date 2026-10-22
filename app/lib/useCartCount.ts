@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { CART_EVENT } from "./cartEvents";
 import { loadResolvedCartCount } from "./cartAuthority";
+import { useCurrentUser } from "./useCurrentUser";
 
 export function useCartCount() {
   const pathname = usePathname();
@@ -12,10 +13,11 @@ export function useCartCount() {
     pathname.startsWith("/admin/") ||
     pathname === "/seller" ||
     pathname.startsWith("/seller/");
-  const [count, setCount] = useState<number>(0);
+  const session = useCurrentUser();
+  const [confirmed, setConfirmed] = useState({ revision: -1, count: 0 });
 
   useEffect(() => {
-    if (skipCommerceLoad) return;
+    if (skipCommerceLoad || session.loading || !session.hasResolved || session.error) return;
 
     let active = true;
     let requestId = 0;
@@ -26,13 +28,9 @@ export function useCartCount() {
         const total = await loadResolvedCartCount();
 
         if (active && currentRequestId === requestId) {
-          setCount(total);
+          setConfirmed({ revision: session.revision, count: total });
         }
-      } catch {
-        if (active && currentRequestId === requestId) {
-          setCount(0);
-        }
-      }
+      } catch { /* Keep the last confirmed count for this identity. */ }
     };
 
     void load();
@@ -43,7 +41,7 @@ export function useCartCount() {
       active = false;
       window.removeEventListener(CART_EVENT, load);
     };
-  }, [skipCommerceLoad]);
+  }, [skipCommerceLoad, session.loading, session.hasResolved, session.error, session.revision]);
 
-  return skipCommerceLoad ? 0 : count;
+  return skipCommerceLoad || confirmed.revision !== session.revision ? 0 : confirmed.count;
 }

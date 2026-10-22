@@ -8,15 +8,17 @@ import {
 } from "../../../lib/sellerServerApi";
 import { ProductEditPageClient } from "./ProductEditPageClient";
 import type { Option, SellerProduct } from "./types";
+import { normalizeCategories, type CategoryOption } from "../../../../lib/categories";
 
 type Props = {
   intercepted?: boolean;
+  presentation?: "dialog" | "page";
   params: Promise<{
     id: string;
   }>;
 };
 
-export default async function ProductEditor({ params, intercepted = false }: Props) {
+export default async function ProductEditor({ params, intercepted = false, presentation = "dialog" }: Props) {
   const { id } = await params;
   const productId = Number(id);
 
@@ -38,7 +40,7 @@ export default async function ProductEditor({ params, intercepted = false }: Pro
     const session = await getServerSession();
 
     if (!session) {
-      redirect(`/auth/login?next=/seller/products/${productId}/edit`);
+      redirect(`/auth/login?next=/seller/products/${productId}/${presentation === "page" ? "create" : "edit"}`);
     }
 
     redirect("/");
@@ -54,43 +56,39 @@ export default async function ProductEditor({ params, intercepted = false }: Pro
   }
 
   if (productResult.product.status === "DELETED" && !productResult.product.revisionSourceId) notFound();
+  if (presentation === "page" && productResult.product.status !== "DRAFT") redirect(`/seller/products/${productId}/edit`);
 
   const sellerBrands: Option[] = accessAndBrands.brands.map((brand) => ({
     id: brand.id,
     name: brand.name,
   }));
-  return (
+  const editor = (
     <ProductEditPageClient
       intercepted={intercepted}
+      presentation={presentation}
       key={productId}
       productId={productId}
       initialProduct={productResult.product}
-      initialCategories={categories}
+      initialCategories={categories.items}
+      initialCategoryError={categories.error}
       initialBrands={sellerBrands}
     />
   );
+  return presentation === "page" ? <div className="pageContainer" data-seller-shell>{editor}</div> : editor;
 }
 
-async function getProductEditorCategories(): Promise<Option[]> {
+async function getProductEditorCategories(): Promise<{items: CategoryOption[]; error: boolean}> {
   try {
     const response = await fetch(`${API_URL}/api/catalog/categories`, {
-      next: { revalidate: 300 },
+      cache: "no-store", signal: AbortSignal.timeout(5000),
     });
 
-    if (!response.ok) return [];
+    if (!response.ok) throw new Error("Category dictionary unavailable");
 
     const data: unknown = await response.json();
 
-    return Array.isArray(data)
-      ? data.filter(
-          (item): item is Option =>
-            typeof item === "object" &&
-            item !== null &&
-            typeof (item as Option).id === "number" &&
-            typeof (item as Option).name === "string"
-        )
-      : [];
+    return {items: normalizeCategories(data), error: false};
   } catch {
-    return [];
+    return {items: [], error: true};
   }
 }

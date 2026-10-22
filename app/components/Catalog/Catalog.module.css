@@ -967,6 +967,32 @@
   padding: 8px 16px 16px;
 }
 
+.categorySheetSearch {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 12px;
+  padding: 0 16px;
+  border-bottom: 1px solid var(--line, #e5e5e5);
+}
+
+.categorySheetSearch input {
+  width: 100%;
+  min-height: 44px;
+  border: 0;
+  background: transparent;
+  font: inherit;
+  font-size: 14px;
+}
+
+.categoryChoice:disabled,
+.categoryParentChoice:disabled,
+.categoryOption:disabled,
+.subcategories button:disabled {
+  color: var(--muted);
+  cursor: default;
+}
+
 .categorySheetOption {
   width: 100%;
   min-height: 48px;
@@ -984,6 +1010,44 @@
   line-height: 1.4;
   text-align: left;
   cursor: pointer;
+}
+
+.categorySheetLocation {
+  display: grid;
+  gap: 4px;
+  padding: 0 16px 8px;
+  border-bottom: 1px solid var(--line);
+}
+
+.categorySheetLocation > span {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 18px;
+  overflow-wrap: anywhere;
+}
+
+.categorySheetBack {
+  display: inline-flex;
+  align-items: center;
+  justify-self: start;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--black);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.categorySheetBack:focus-visible {
+  outline: 1px solid var(--black);
+  outline-offset: 2px;
+}
+
+.categoryOption[data-depth="3"] {
+  padding-left: 40px;
 }
 
 .categorySheetOption[aria-pressed="true"] {

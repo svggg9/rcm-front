@@ -5,7 +5,7 @@ import Link from "next/link";
 import { toast } from "@/app/components/ui/toast";
 
 import { EmptyState } from "../../components/ui/EmptyState";
-import { ProductTileSkeleton } from "../../components/ui/CommerceSkeleton";
+import { SectionLoader } from "../../components/ui/SectionLoader";
 import { FavoriteCard } from "../../favorites/FavoriteCard";
 import { apiFetch, API_URL } from "../../lib/api";
 
@@ -117,15 +117,7 @@ export function AccountFavoritesTab() {
     <section className={styles.page}>
 
       {loading ? (
-        <ul
-          className={styles.grid}
-          aria-label="Загрузка избранного"
-          aria-busy="true"
-        >
-          {Array.from({ length: 6 }).map((_, index) => (
-            <ProductTileSkeleton key={index} />
-          ))}
-        </ul>
+        <SectionLoader label="Загрузка избранного" />
       ) : products.length === 0 ? (
         <EmptyState
           title="В избранном пока пусто"

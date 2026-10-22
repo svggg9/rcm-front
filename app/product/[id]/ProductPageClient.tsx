@@ -2,7 +2,7 @@
 
 import dynamic from "next/dynamic";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 
 import styles from "./ProductPage.module.css";
 import { resolveCartId } from "../../lib/cartAuthority";
@@ -17,6 +17,7 @@ import type { Product } from "./lib/types";
 import { useCurrentUser } from "../../lib/useCurrentUser";
 import { addVariantToCart } from "./lib/productPageApi";
 import { getMinPrice } from "./lib/productPageUtils";
+import { compactProductMedia, productColorVariants, resolveProductColorway } from "../../lib/productPresentation";
 import { toast } from "@/app/components/ui/toast";
 import type { CarouselProduct } from "../../components/ProductCarousel/types";
 
@@ -40,6 +41,7 @@ export default function ProductPageClient({
   sellerPreview = false,
 }: Props) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { user } = useCurrentUser();
 
   const isAdmin = user?.role === "ADMIN";
@@ -55,45 +57,25 @@ export default function ProductPageClient({
   const addInFlightRef = useRef(false);
   const favoriteInFlightRef = useRef(false);
   const addErrorToastId = `product-cart-add-${product.id}`;
-  const [openComposition, setOpenComposition] = useState(false);
-  const [openBrand, setOpenBrand] = useState(false);
 
   const [selectedVariantId, setSelectedVariantId] = useState<number | null>(null);
 
   const [viewerOpen, setViewerOpen] = useState(false);
   const [viewerIndex, setViewerIndex] = useState(0);
-  const [selectedColorwayId, setSelectedColorwayId] = useState<number | null>(() => {
-    const defaultColorway =
-      product.colorways?.find((colorway) => colorway.isDefault) ??
-      product.colorways?.[0];
-
-    return defaultColorway?.id ?? product.variants[0]?.colorwayId ?? null;
-  });
+  const [previewColorwayId, setPreviewColorwayId] = useState<number | null>(null);
+  const selectedColorway = resolveProductColorway(product.colorways ?? [], sellerPreview
+    ? previewColorwayId?.toString() ?? null : searchParams.get("color"));
+  const selectedColorwayId = selectedColorway?.id ?? null;
 
   const { isFavorite, toggle } = useFavorites();
   const isFav = isFavorite(product.id);
-
-  const selectedColorway = useMemo(() => {
-    return (
-      product.colorways?.find((colorway) => colorway.id === selectedColorwayId) ??
-      null
-    );
-  }, [product.colorways, selectedColorwayId]);
 
   const displayImages = useMemo(() => {
     return selectedColorway?.images?.length ? selectedColorway.images : product.images;
   }, [product.images, selectedColorway]);
 
   const visibleVariants = useMemo(() => {
-    if (!selectedColorwayId) {
-      return product.variants;
-    }
-
-    const filtered = product.variants.filter(
-      (variant) => variant.colorwayId === selectedColorwayId
-    );
-
-    return filtered.length ? filtered : product.variants;
+    return productColorVariants(product.variants, selectedColorwayId);
   }, [product.variants, selectedColorwayId]);
 
   const selectedVariant = useMemo(() => {
@@ -171,18 +153,23 @@ export default function ProductPageClient({
   }, [addErrorToastId]);
 
   function handleChangeColorway(colorwayId: number) {
-    setSelectedColorwayId(colorwayId);
+    if (adding || !product.colorways?.some(color => color.id === colorwayId) || colorwayId === selectedColorwayId) return;
     setSelectedVariantId(null);
+    setAddSuccess(false);
+    if (sellerPreview) {
+      setPreviewColorwayId(colorwayId);
+      return;
+    }
+    const url = new URL(window.location.href);
+    url.searchParams.set("color", String(colorwayId));
+    window.history.pushState(null, "", `${url.pathname}${url.search}${url.hash}`);
   }
 
   function handleChangeVariant(variantId: number) {
     const nextVariant = product.variants.find((variant) => variant.id === variantId);
 
+    if (!nextVariant || !visibleVariants.some(variant => variant.id === variantId)) return;
     setSelectedVariantId(variantId);
-
-    if (nextVariant?.colorwayId) {
-      setSelectedColorwayId(nextVariant.colorwayId);
-    }
   }
 
   async function handleAddToCart(variantId?: number) {
@@ -297,6 +284,7 @@ export default function ProductPageClient({
               title={product.title}
               images={displayImages}
               onOpenImage={openViewer}
+              compact={compactProductMedia(product.category)}
             />
 
             <ProductInfoPanel
@@ -318,10 +306,6 @@ export default function ProductPageClient({
               }
               selectedColorwayId={selectedColorwayId}
               onChangeColorway={handleChangeColorway}
-              openComposition={openComposition}
-              openBrand={openBrand}
-              onToggleComposition={() => setOpenComposition((prev) => !prev)}
-              onToggleBrand={() => setOpenBrand((prev) => !prev)}
             />
           </div>
 

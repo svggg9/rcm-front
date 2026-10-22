@@ -1,0 +1,8 @@
+.connection { display: grid; gap: 10px; min-width: 0; }
+.title { margin: 0; font-size: 15px; line-height: 21px; font-weight: 500; }
+.description, .status, .hint { margin: 0; font-size: 12px; line-height: 18px; color: var(--muted); overflow-wrap: anywhere; }
+.status { color: var(--black); }
+.actions, .confirm { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 12px; min-width: 0; }
+.confirm { font-size: 12px; line-height: 18px; }
+.botLink { display: inline-flex; align-items: center; justify-content: center; text-align: center; text-decoration: none; min-height: 44px; }
+@media (max-width: 360px) { .actions { align-items: stretch; flex-direction: column; } .confirm { justify-content: flex-start; } }

@@ -31,16 +31,16 @@
 }
 
 .tone-success {
-  background: #d7f4df;
-  color: var(--black);
+  background: var(--badge-success-bg, #d7f4df);
+  color: var(--badge-success-color, var(--black));
 }
 
 .tone-warning {
-  background: color-mix(in srgb, var(--gold) 30%, var(--white));
-  color: var(--black);
+  background: var(--badge-warning-bg, color-mix(in srgb, var(--gold) 30%, var(--white)));
+  color: var(--badge-warning-color, var(--black));
 }
 
 .tone-danger {
-  background: #ffd9d9;
-  color: var(--black);
+  background: var(--badge-danger-bg, #ffd9d9);
+  color: var(--badge-danger-color, var(--black));
 }

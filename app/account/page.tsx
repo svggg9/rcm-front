@@ -41,16 +41,17 @@ export default async function AccountPage({ searchParams: rawSearchParams }: Pro
       : Promise.resolve(null),
   ]);
 
-  if (!session || !initialMe) {
+  if (!session) {
     const next = shouldLoadOrder ? `/account?tab=orders&orderId=${parsedOrderId}` : "/account";
     redirect(`/auth/login?next=${encodeURIComponent(next)}`);
   }
+  if (!initialMe) throw new Error("Не удалось загрузить профиль");
 
   return (
     <AccountPageClient
       initialMe={initialMe}
-      initialOrders={initialOrders}
-      initialOrdersLoaded={shouldLoadOrders}
+      initialOrders={initialOrders ?? { content: [], totalPages: 0, totalElements: 0, size: 20, number: 0 }}
+      initialOrdersLoaded={shouldLoadOrders && initialOrders !== null}
       initialSelectedOrder={initialSelectedOrder}
     />
   );

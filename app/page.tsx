@@ -1,109 +1,50 @@
+import Link from "next/link";
 import styles from "./HomePage.module.css";
-import { HOME_HERO } from "./home/constants";
 import { getHomePageData } from "./home/lib/getHomePageData";
-import {
-  getStorefrontHome,
-  getVersionedHeroImageUrl,
-} from "./home/lib/getStorefrontHome";
-import { HeroSection } from "./home/sections/HeroSection";
+import { getHomeCategories } from "./home/lib/getHomeCategories";
+import { getStorefrontHome } from "./home/lib/getStorefrontHome";
+import { buildHomeBlocks, homeCatalogHref } from "./home/lib/homePresentation";
 import { ProductRailSection } from "./home/sections/ProductRailSection";
+import { HomeRequestError } from "./home/sections/HomeRequestError";
+import { CategoriesRefresh } from "./home/sections/CategoriesRefresh";
 import { RecommendationsShowcase } from "./components/Recommendations/RecommendationsShowcase";
-import type { ProductShowcaseData } from "./home/types";
+import { EmptyState } from "./components/ui/EmptyState";
 
-type HomePageProps = {
-  searchParams?: Promise<{
-    audience?: string;
-  }>;
-};
-
-function normalizeAudience(value?: string): "men" | "women" | "all" {
-  if (value === "men" || value === "women") return value;
-  return "all";
-}
-
-function buildCatalogHref(
-  audience: "men" | "women" | "all",
-  collectionId?: number
-) {
-  const search = new URLSearchParams();
-  if (audience !== "all") search.set("audience", audience);
-  if (collectionId !== undefined) search.set("collection", String(collectionId));
-  const query = search.toString();
-  return query ? `/catalog?${query}` : "/catalog";
-}
+type HomePageProps = { searchParams?: Promise<{ audience?: string }> };
 
 export default async function HomePage({ searchParams }: HomePageProps) {
   const params = searchParams ? await searchParams : undefined;
-  const audience = normalizeAudience(params?.audience);
+  const audience = params?.audience === "men" || params?.audience === "women" ? params.audience : "all";
+  const [storefront, catalog, categoryLinks] = await Promise.all([getStorefrontHome(), getHomePageData(audience), getHomeCategories(audience)]);
+  const collections = storefront?.collections ?? [];
+  const blocks = buildHomeBlocks(catalog.products, audience, collections);
+  const shownIds = [...new Set(blocks.flatMap(block => block.products.map(product => product.id)))];
+  const hasContent = shownIds.length > 0;
+  const hasError = storefront === null || catalog.status === "error";
 
-  const storefrontHome = await getStorefrontHome();
-
-  const heroBlock = {
-    ...HOME_HERO,
-    buttonHref: buildCatalogHref(audience),
-    image: getVersionedHeroImageUrl(storefrontHome) ?? HOME_HERO.image,
-    imagePositionX: storefrontHome?.heroPositionX ?? 50,
-    imagePositionY: storefrontHome?.heroPositionY ?? 50,
-  };
-  const managedBlocks: ProductShowcaseData[] = (storefrontHome?.collections ?? [])
-    .map((collection) => ({
-      title: collection.title,
-      href: buildCatalogHref(audience, collection.id),
-      products: collection.products
-        .filter((product) =>
-          audience === "all" ||
-          product.audience === "UNISEX" ||
-          (audience === "men" && product.audience === "MEN") ||
-          (audience === "women" && product.audience === "WOMEN")
-        )
-        .map((product) => ({
-          id: product.id,
-          publicId: product.publicId,
-          title: product.title,
-          brand: product.brand,
-          category: product.category,
-          audience: product.audience,
-          minPrice: product.minPrice,
-          images: [product.coverImage, product.hoverImage].filter(
-            (image): image is string => Boolean(image)
-          ),
-        })),
-    }))
-    .filter((collection) => collection.products.length > 0);
-  let productBlocks = managedBlocks;
-  if (productBlocks.length === 0) {
-    const data = await getHomePageData(audience);
-    productBlocks = [data.brandShowcase, data.categoryShowcase, data.latestShowcase];
-  }
-
-  return (
-    <div className={styles.page}>
-      <HeroSection block={heroBlock} />
-
-      <div className="pageContainer">
-        <ProductRailSection block={productBlocks[0]} />
-
-        {productBlocks.slice(1).map((block, index) => (
-          <ProductRailSection key={`${block.title}-${index}`} block={block} />
-        ))}
-
-        <RecommendationsShowcase audience={audience} />
-
-        <section className={styles.serviceStrip} aria-label="Преимущества магазина">
-          <div>
-            <strong>Оригинальные товары</strong>
-            <span>Напрямую от независимых брендов</span>
-          </div>
-          <div>
-            <strong>Единая доставка</strong>
-            <span>Удобное оформление заказа</span>
-          </div>
-          <div>
-            <strong>Поддержка</strong>
-            <span>Поможем с заказом и возвратом</span>
-          </div>
-        </section>
+  return <div className={styles.page} data-home-page>
+    <CategoriesRefresh />
+    <h1 className="visuallyHidden">Товары и подборки рцмаркет</h1>
+    <div className="pageContainer">
+      <nav className={styles.categories} aria-label="Категории товаров">
+        {categoryLinks.categories.map(category => <Link key={category.href} href={category.href}>
+          {category.title}
+        </Link>)}
+        <Link href={homeCatalogHref(audience)}>Весь каталог</Link>
+      </nav>
+      <div className={styles.sections}>
+        {categoryLinks.status === "error" ? <HomeRequestError partial message="Не удалось загрузить категории" /> : null}
+        {hasError ? <HomeRequestError partial={hasContent} /> : null}
+        {blocks.map(block => <ProductRailSection key={block.href} block={block} />)}
+        {!hasContent && !hasError ? <EmptyState title="Новые товары скоро появятся"
+          text="Загляните к нам чуть позже" /> : null}
+        {catalog.status === "ready" && catalog.products.some(product => !shownIds.includes(product.id)) ?
+          <RecommendationsShowcase audience={audience} excludeIds={shownIds} presentation="storefront" mobileLayout="grid" className={styles.recommendations} /> : null}
       </div>
+      <section className={styles.serviceStrip} aria-label="О покупках">
+        <div><strong>Доставка в ПВЗ</strong><span>Стоимость рассчитывается при оформлении</span></div>
+        <div><strong>Помощь с заказом</strong><Link href="/contacts">Связаться с нами</Link></div>
+      </section>
     </div>
-  );
+  </div>;
 }

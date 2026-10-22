@@ -1,7 +1,6 @@
 "use client";
 
 import { Loader } from "../../components/ui/Loader";
-import Image from "next/image";
 import Link from "next/link";
 import {
   useCallback,
@@ -22,6 +21,9 @@ import { API_URL, apiFetch } from "../../lib/api";
 import { useFieldValidation } from "../../lib/useFieldValidation";
 import { scrollToFirstValidationError } from "../../lib/formValidation";
 import { useCurrentUser } from "../../lib/useCurrentUser";
+import { useTelegramConnection } from "../../lib/useTelegramConnection";
+import { TelegramConnection } from "../../components/TelegramConnection";
+import { RequestError } from "../../components/ui/RequestError";
 import {
   cleanText,
   isNonEmpty,
@@ -37,13 +39,6 @@ import type { SellerApplication, SellerApplicationForm } from "./types";
 import styles from "./SellerApplyPage.module.css";
 
 type FormErrors = Partial<Record<keyof SellerApplicationForm, string>>;
-
-type TelegramStatus = {
-  url: string | null;
-  expiresAt: string | null;
-  linked: boolean;
-  telegramUsername: string | null;
-};
 
 type ProfilePrefill = {
   email: string | null;
@@ -79,7 +74,7 @@ function formatApplicationDate(value: string): string | null {
 }
 
 export function SellerApplyPageClient() {
-  const { user, loading: userLoading, isAuthenticated } = useCurrentUser();
+  const { user, loading: userLoading, isAuthenticated, error: sessionError, reload: reloadSession } = useCurrentUser();
   const { openAuth } = useAuthModal();
   const pendingSubmitRef = useRef(false);
   const formRef = useRef<HTMLFormElement | null>(null);
@@ -91,10 +86,8 @@ export function SellerApplyPageClient() {
   const [loadingApplication, setLoadingApplication] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
-  const [telegramStatus, setTelegramStatus] = useState<TelegramStatus | null>(
-    null
-  );
-  const [telegramLinking, setTelegramLinking] = useState(false);
+  const telegram = useTelegramConnection(isAuthenticated);
+  const telegramStatus = telegram.status;
 
   const isSeller = user?.role === "SELLER";
   const isAdmin = user?.role === "ADMIN";
@@ -169,34 +162,11 @@ export function SellerApplyPageClient() {
   }, [isAuthenticated]);
 
   useEffect(() => {
-    if (!isAuthenticated || userLoading || !pendingSubmitRef.current) return;
+    if (!isAuthenticated || userLoading || sessionError || !pendingSubmitRef.current) return;
 
     pendingSubmitRef.current = false;
     void sendApplication();
-  }, [isAuthenticated, sendApplication, userLoading]);
-
-  useEffect(() => {
-    if (!isAuthenticated) {
-      setTelegramStatus(null);
-      return;
-    }
-
-    void loadTelegramStatus();
-  }, [isAuthenticated]);
-
-  useEffect(() => {
-    if (!isAuthenticated || telegramStatus?.linked) return;
-
-    function refreshTelegramStatus() {
-      void loadTelegramStatus();
-    }
-
-    window.addEventListener("focus", refreshTelegramStatus);
-
-    return () => {
-      window.removeEventListener("focus", refreshTelegramStatus);
-    };
-  }, [isAuthenticated, telegramStatus?.linked]);
+  }, [isAuthenticated, sendApplication, userLoading, sessionError]);
 
   useEffect(() => {
     const username = user?.username?.trim();
@@ -286,41 +256,9 @@ export function SellerApplyPageClient() {
     return nextErrors;
   }
 
-  async function loadTelegramStatus() {
-    try {
-      const response = await apiFetch(`${API_URL}/api/profile/telegram`);
-      if (!response.ok) return;
-      setTelegramStatus((await response.json()) as TelegramStatus);
-    } catch {
-      setTelegramStatus(null);
-    }
-  }
-
-  async function connectTelegram() {
-    if (telegramLinking) return;
-
-    setTelegramLinking(true);
-
-    try {
-      const response = await apiFetch(`${API_URL}/api/profile/telegram/link`, {
-        method: "POST",
-      });
-
-      if (!response.ok) return;
-
-      const data = (await response.json()) as TelegramStatus;
-      setTelegramStatus(data);
-
-      if (data.url) {
-        window.open(data.url, "_blank", "noopener,noreferrer");
-      }
-    } finally {
-      setTelegramLinking(false);
-    }
-  }
-
   async function submitApplication(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (userLoading || sessionError) return;
 
     const nextErrors = validation.validate();
     setFormError(null);
@@ -380,6 +318,9 @@ export function SellerApplyPageClient() {
               <p>Обязательные поля отмечены звёздочкой</p>
             </div>
 
+            {sessionError ? <RequestError variant="inline" message="Не удалось проверить вход" loading={userLoading}
+              onRetry={async () => { await reloadSession(); }} /> : null}
+
             {userLoading || loadingApplication ? (
               <Loader className={styles.statusLoading} label="Проверка статуса заявки" />
             ) : isSeller ? (
@@ -435,12 +376,8 @@ export function SellerApplyPageClient() {
                 }
               >
                 {application.status === "NEW" ? (
-                  <TelegramConnect
-                    linked={Boolean(telegramStatus?.linked)}
-                    username={telegramStatus?.telegramUsername ?? null}
-                    linking={telegramLinking}
-                    onConnect={() => void connectTelegram()}
-                  />
+                  <TelegramConnection controller={telegram} title="Получить решение в Telegram"
+                    description="Подключите личный аккаунт — напишем, когда рассмотрим заявку" />
                 ) : null}
               </StatusBlock>
             ) : (
@@ -573,12 +510,12 @@ export function SellerApplyPageClient() {
                     variant="primary"
                     className={styles.submitButton}
                     loading={submitting}
-                    disabled={submitting}
+                    disabled={submitting || userLoading || Boolean(sessionError)}
                   >
                     Отправить заявку
                   </Button>
 
-                  {!isAuthenticated ? (
+                  {!isAuthenticated && !sessionError ? (
                     <p className={styles.authNote}>
                       Для отправки откроем вход или регистрацию — заполненные данные
                       останутся в форме.
@@ -641,58 +578,5 @@ function StatusBlock({
         </Link>
       ) : null}
     </div>
-  );
-}
-
-function TelegramConnect({
-  linked,
-  username,
-  linking,
-  onConnect,
-}: {
-  linked: boolean;
-  username: string | null;
-  linking: boolean;
-  onConnect: () => void;
-}) {
-  const content = (
-    <>
-      <Image
-        src="/icons/telegram.svg"
-        alt=""
-        width={20}
-        height={20}
-        aria-hidden="true"
-        className={styles.telegramIcon}
-      />
-      <span className={styles.telegramCopy}>
-        <strong>Получить решение в Telegram</strong>
-        <span>
-          {linked
-            ? username
-              ? `Подключён @${username}`
-              : "Telegram подключён"
-            : "Подключите бота — напишем, когда рассмотрим заявку"}
-        </span>
-      </span>
-      <span className={styles.telegramAction}>
-        {linked ? "Подключено" : linking ? "Открываем…" : "Подключить"}
-      </span>
-    </>
-  );
-
-  if (linked) {
-    return <div className={styles.telegramPanel}>{content}</div>;
-  }
-
-  return (
-    <button
-      type="button"
-      className={styles.telegramPanel}
-      onClick={onConnect}
-      disabled={linking}
-    >
-      {content}
-    </button>
   );
 }

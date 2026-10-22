@@ -1,6 +1,7 @@
 import { cookies } from "next/headers";
 
 import { API_URL } from "../../lib/config";
+import { normalizeCategories } from "../../lib/categories";
 import type {
   AdminOrder,
   AdminOrderListItem,
@@ -90,7 +91,11 @@ export async function getAdminDictionaryServer(
     `/api/admin/dictionaries/${kind}`
   );
 
-  return data === null ? null : Array.isArray(data) ? data : [];
+  if (data === null) return null;
+  if (kind === "categories") {
+    try { return normalizeCategories(data); } catch { return null; }
+  }
+  return Array.isArray(data) ? data : [];
 }
 
 export async function getAdminSellerApplicationsServer(

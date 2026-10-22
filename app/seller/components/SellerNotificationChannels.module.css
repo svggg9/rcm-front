@@ -51,8 +51,8 @@
 }
 
 .telegramRow {
-  grid-template-columns: 112px minmax(0, 1fr) auto;
-  align-items: center;
+  grid-template-columns: 112px minmax(0, 1fr);
+  align-items: start;
 }
 
 .channel {
@@ -136,6 +136,8 @@
 }
 
 .dangerAction { color: var(--danger); }
+.preferenceActions { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: 8px; }
+@media (max-width: 360px) { .preferenceActions { flex-direction: column; align-items: stretch; } }
 
 @media (max-width: 480px) {
   .loading,

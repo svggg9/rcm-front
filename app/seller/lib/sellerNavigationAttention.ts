@@ -197,7 +197,7 @@ export async function loadSellerNavigationAttention(signal: AbortSignal): Promis
     items.finance = {
       label: "Проверить", href: "/seller/finance?view=payouts", tone: "danger",
       count: dashboard.failedPayouts,
-      description: "Посмотрите выплаты с ошибкой",
+      description: "Выплаты требуют внимания",
     };
   } else if (finance && Math.abs(finance.reconciliationDifference) >= 0.005) {
     items.finance = {

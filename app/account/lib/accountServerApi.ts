@@ -22,14 +22,15 @@ export async function getAccountMeServer(): Promise<Me | null> {
   return serverFetch<Me>("/api/profile");
 }
 
-export async function getAccountOrdersServer(): Promise<PageResponse<OrderListItem>> {
-  const data = await serverFetch<PageResponse<OrderListItem>>(
-    "/api/orders/my/list?page=0&size=20"
-  );
-
-  return data && Array.isArray(data.content)
-    ? data
-    : { content: [], totalPages: 0, totalElements: 0, size: 20, number: 0 };
+export async function getAccountOrdersServer(): Promise<PageResponse<OrderListItem> | null> {
+  try {
+    const data = await serverFetch<PageResponse<OrderListItem>>(
+      "/api/orders/my/list?page=0&size=20"
+    );
+    return data && Array.isArray(data.content) ? data : null;
+  } catch {
+    return null;
+  }
 }
 
 export async function getAccountOrderServer(orderId: number): Promise<Order | null> {
