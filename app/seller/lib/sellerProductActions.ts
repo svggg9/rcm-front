@@ -23,7 +23,7 @@ const nextStatus: Record<ProductAction, SellerProductListItem["status"]> = {
 };
 
 // These hints mirror seller permissions; the server still checks ownership,
-// current status, seller readiness and the full publication requirements.
+// current status and product requirements. Seller readiness is required at approval.
 export function productActionBlockedReason(action: ProductAction, status: SellerProductListItem["status"]): string | null {
   if (status === "BLOCKED") return "Товар заблокирован — обратитесь в поддержку";
   if (status === "DELETED") return "Товар уже удалён";

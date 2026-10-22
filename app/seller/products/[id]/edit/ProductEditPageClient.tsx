@@ -994,29 +994,6 @@ export function ProductEditPageClient({
       return;
     }
 
-    if (!isSellerReadyForPublish()) {
-      if (onboardingError) {
-        toast.error("Не удалось проверить готовность магазина", {
-          action: {
-            label: "Повторить",
-            onClick: () => {
-              setOnboardingStatus(null);
-              setOnboardingRetry((current) => current + 1);
-            },
-          },
-        });
-      } else if (onboardingStatus !== null) {
-        toast.warning("Сначала заполните реквизиты и примите оферту продавца", {
-          action: {
-            label: "Заполнить",
-            onClick: () => requestEditorNavigation(() => router.push("/seller/legal")),
-          },
-        });
-      }
-
-      return;
-    }
-
     if (product.revisionSourceId && !reviewed) {
       if (reviewRequestRef.current) return;
       reviewRequestRef.current = true;
@@ -1045,7 +1022,9 @@ export function ProductEditPageClient({
     setPublishing(true);
 
     try {
+      const publishRevision = editRevisionRef.current;
       if (dirty && !(await saveProduct(true))) return;
+      if (editRevisionRef.current !== publishRevision) return;
       const response = await apiFetch(`${API_URL}/api/seller/products/${productId}/publish`, {
         method: "POST",
       });
@@ -1067,7 +1046,6 @@ export function ProductEditPageClient({
       setPublishSucceeded(true);
       setPublishSuccessOpen(true);
       emitSellerNavigationChanged();
-      toast.success("Товар отправлен на модерацию");
       window.setTimeout(() => setPublishSucceeded(false), 1200);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Не удалось опубликовать товар");
@@ -1097,14 +1075,6 @@ export function ProductEditPageClient({
         setCreatingNextProduct(false);
       }
     }
-  }
-
-  function isSellerReadyForPublish() {
-    return (
-      onboardingStatus !== null &&
-      onboardingStatus.legalCompleted &&
-      onboardingStatus.agreementAccepted
-    );
   }
 
   function updateVariant(index: number, patch: Partial<ProductVariant>) {
@@ -1461,13 +1431,13 @@ export function ProductEditPageClient({
             >
               Повторить
             </Button>}>
-            Повторите проверку перед отправкой товара на модерацию
+            Товар можно отправить на модерацию — данные магазина проверим перед публикацией
           </Banner>
         ) : onboardingRequirementsPending ? (
-          <Banner tone="warning" title="Магазин не готов к публикации" className={styles.editorNotice}
-            actions={<Link href="/seller/legal">Перейти к реквизитам</Link>}>
-            Заполните юридические данные и примите оферту продавца, чтобы отправлять
-            товары на модерацию
+          <Banner tone="warning" title="Заполните данные магазина до публикации" className={styles.editorNotice}
+            actions={<Link href="/seller/legal">Заполнить данные</Link>}>
+            Товар можно отправить на модерацию сейчас. Для публикации заполните реквизиты,
+            банковские данные и пункт отправления, затем примите оферту продавца
           </Banner>
         ) : null}
 
@@ -1583,17 +1553,8 @@ export function ProductEditPageClient({
               />
             </fieldset>
 
-            {onboardingStatusPending ? (
+            {onboardingStatusPending && !onboardingError ? (
               <div className={styles.publishRequirementHint}><Loader inline label="Проверка готовности магазина" /></div>
-            ) : onboardingRequirementsPending ? (
-              <div className={styles.publishRequirementHint}>
-                Для публикации сначала заполните реквизиты и примите оферту.{" "}
-                <Link href="/seller/legal">Перейти к реквизитам</Link>
-              </div>
-            ) : onboardingError ? (
-              <div className={styles.publishRequirementHint}>
-                Не удалось проверить готовность магазина. Нажмите «Повторить» выше.
-              </div>
             ) : null}
 
           </FieldsContainer>
@@ -1707,6 +1668,13 @@ export function ProductEditPageClient({
               <p className={styles.publishSuccessText}>
                 {product?.revisionSourceId ? "Опубликованный товар остаётся в продаже. Изменения появятся после одобрения" : "Карточка получила статус «На модерации». Пока мы её проверяем, можно добавить следующий товар"}
               </p>
+              {onboardingRequirementsPending ? (
+                <Banner tone="warning" title="Заполните данные магазина до публикации"
+                  actions={<Link href="/seller/legal">Заполнить данные</Link>}>
+                  Пока товар на проверке, заполните реквизиты, банковские данные и пункт отправления,
+                  затем примите оферту продавца
+                </Banner>
+              ) : null}
               <Link
                 href={`/seller/products/${productId}/preview`}
                 className={styles.publishPreviewLink}
