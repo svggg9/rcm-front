@@ -1903,6 +1903,9 @@
 
 /* Product forms share the same hierarchy in the page and panel presentations. */
 .editorIdentity { display: inline-flex; align-items: center; flex-wrap: wrap; gap: 8px 12px; }
+.titleRow { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.titleRow > [data-product-title] { flex: 0 1 auto; width: auto; }
+.titleRow > :last-child { flex-shrink: 0; }
 .editorIdentity > span:last-child:not(:first-child) { color: var(--muted); font-size: 13px; line-height: 20px; }
 .productSurface[data-editor-page] { padding-top: 16px; }
 .productSurface[data-editor-page] > button:first-child { margin-bottom: 8px; }

@@ -46,16 +46,18 @@
 }
 
 .input {
-  padding: 8px 12px;
-  border: .5px solid var(--line);
+  padding: 8px 0;
+  border: 0;
+  border-bottom: 1px solid var(--line);
   border-radius: 0;
   background: var(--white);
 }
 
 .input:focus {
   border-color: var(--black);
-  outline: 1px solid var(--black);
-  outline-offset: 2px;
+  outline: none;
+  box-shadow: 0 1px 0 var(--black);
 }
 .invalid { border-bottom: 1px solid var(--danger); }
-.input[aria-invalid="true"] { border-color: var(--danger); outline-color: var(--danger); }
+.input[aria-invalid="true"] { border-color: var(--danger); }
+.input[aria-invalid="true"]:focus { box-shadow: 0 1px 0 var(--danger); }

@@ -246,6 +246,10 @@ async function main() {
       assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false, 'No overflow at ' + width);
       await page.screenshot({ path: outputFile(`form-${width}.png`), fullPage: true });
       await page.locator('#editor-tab-variants').click();
+      await page.waitForFunction(() => {
+        const section = document.querySelector('#product-step-variants');
+        return Math.abs(section.getBoundingClientRect().top - parseFloat(getComputedStyle(section).scrollMarginTop)) < 2;
+      });
       const topbar = await page.locator('[data-editor-topbar]').evaluate(element => {
         const bounds = element.getBoundingClientRect();
         return { top: bounds.top, expected: parseFloat(getComputedStyle(element).top), bottom: bounds.bottom,

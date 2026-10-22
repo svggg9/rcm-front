@@ -498,7 +498,10 @@ export function ProductEditPageClient({
     window.requestAnimationFrame(() => {
       const panelId = PRODUCT_EDITOR_STEPS.find(item => item.id === step)?.panelId;
       const panel = panelId ? document.getElementById(panelId) : null;
-      panel?.scrollIntoView({ behavior: "auto", block: "start" });
+      panel?.scrollIntoView({
+        behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth",
+        block: "start",
+      });
       if (focusPanel) panel?.focus({ preventScroll: true });
     });
   }
@@ -1298,13 +1301,16 @@ export function ProductEditPageClient({
 
   return (
     <EditorSurface presentation={presentation} stickyHeader backLabel="Товары" className={styles.productSurface}
-      title={<ProductEditableTitle value={title} disabled={contentControlsDisabled || creatingNextProduct} onChange={updateTitle} onDraftDirtyChange={setTitleDraftDirty}
-        placeholder={presentation === "page" ? "Наименование товара" : undefined} invalid={Boolean(validationErrors.title)} errorId="product-title-error" />}
-      headerMeta={product && <span className={styles.editorIdentity}><StatusBadge tone={getProductStatusTone(product.status)} size="regular">{formatProductStatus(product.status)}</StatusBadge>{presentation === "page" && brandName ? <span>{brandName}</span> : null}
-        {autosaveAllowed && <span role="status" aria-live="polite" className={styles.saveStatus} data-state={displayedSaveState} title={saveState === "error" ? saveError : undefined}>
-          {displayedSaveState === "saving" ? "Сохраняем…" : displayedSaveState === "error" ? "Не удалось сохранить" : displayedSaveState === "manual" ? "Цены и остатки не сохранены" : displayedSaveState === "saved" ? "Сохранено" : displayedSaveState === "pending" ? "Есть изменения" : productId ? "Сохранено" : "Нет изменений"}
-        </span>}
+      title={<span className={styles.titleRow}>
+        <ProductEditableTitle value={title} disabled={contentControlsDisabled || creatingNextProduct} onChange={updateTitle} onDraftDirtyChange={setTitleDraftDirty}
+          placeholder={presentation === "page" ? "Наименование товара" : undefined} invalid={Boolean(validationErrors.title)} errorId="product-title-error" />
+        {product && <StatusBadge tone={getProductStatusTone(product.status)} size="regular">{formatProductStatus(product.status)}</StatusBadge>}
       </span>}
+      headerMeta={product && autosaveAllowed && displayedSaveState !== "idle" ? <span className={styles.editorIdentity}>
+        <span role="status" aria-live="polite" className={styles.saveStatus} data-state={displayedSaveState} title={saveState === "error" ? saveError : undefined}>
+          {displayedSaveState === "saving" ? "Сохраняем…" : displayedSaveState === "error" ? "Не удалось сохранить" : displayedSaveState === "manual" ? "Цены и остатки не сохранены" : displayedSaveState === "saved" ? "Сохранено" : "Есть изменения"}
+        </span>
+      </span> : null}
       subtitle={validationErrors.title ? <span id="product-title-error" className="fieldError">Введите название товара</span> : presentation === "page" ? undefined : brandName}
       guardNavigation
       beforeLeave={autosaveAllowed ? flushBeforeLeave : undefined}

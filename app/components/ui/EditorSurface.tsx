@@ -163,11 +163,14 @@ export function EditorSurface({ title, headerMeta, subtitle, headerActions, chil
     observer.observe(topbar);
     return () => observer.disconnect();
   }, [stickyHeader, presentation]);
+  const inlineBack = presentation === "page" && stickyHeader;
+  const back = presentation === "page" && showBack ? <Button type="button" variant="ghost" className={styles.back} aria-label={backLabel} reserveLabelSpace={false} disabled={busy} onClick={requestClose}>
+        <Icon name="chevron-left" size={18} /><span className={styles.backText}>{backLabel}</span>
+      </Button> : null;
   const header = <>
-      {presentation === "page" && showBack ? <Button type="button" variant="ghost" className={styles.back} reserveLabelSpace={false} disabled={busy} onClick={requestClose}>
-        <Icon name="chevron-left" size={18} />{backLabel}
-      </Button> : null}
+      {!inlineBack ? back : null}
       <header className={styles.header} data-editor-header>
+        {inlineBack ? back : null}
         <div className={styles.heading}>
           {headerMeta ? <div className={styles.headerMeta}>{headerMeta}</div> : null}
           <h1 id={titleId}>{title}</h1>
