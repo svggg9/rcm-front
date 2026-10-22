@@ -20,7 +20,6 @@ import { CabinetSkeleton } from "../../components/ui/CabinetSkeleton";
 import { ChoiceMark } from "../../components/ui/ChoiceMark";
 import { Icon } from "../../components/ui/Icon";
 import { PhoneInput } from "../../components/ui/PhoneInput";
-import { createSellerProductDraft } from "../lib/createSellerProductDraft";
 import { getRussianPhoneDigits } from "../../lib/phone";
 import { scrollToFirstValidationError } from "../../lib/formValidation";
 import { isNonEmpty } from "../../lib/validation";
@@ -619,9 +618,8 @@ export function SellerLegalTab() {
     toast.dismiss("seller-legal-save");
 
     try {
-      const productId = await createSellerProductDraft();
       toast.dismiss("seller-legal-create");
-      router.push(`/seller/products/${productId}/create`);
+      router.push("/seller/products/new");
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Не удалось создать товар", { id: "seller-legal-create" });
     } finally {

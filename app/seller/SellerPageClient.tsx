@@ -8,7 +8,6 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "@/app/components/ui/toast";
 
 import { apiFetch, API_URL } from "../lib/api";
-import { createSellerProductDraft } from "./lib/createSellerProductDraft";
 import { useSessionResourceCache } from "../lib/useSessionResourceCache";
 import { CabinetSkeleton } from "../components/ui/CabinetSkeleton";
 import { Banner } from "../components/ui/Banner";
@@ -572,9 +571,8 @@ function SellerPageContent({
         return;
       }
 
-      const id = await createSellerProductDraft();
       const returnTo = window.location.pathname === "/seller/products" ? `${window.location.pathname}${window.location.search}` : "/seller/products";
-      router.push(`/seller/products/${id}/create?returnTo=${encodeURIComponent(returnTo)}`);
+      router.push(`/seller/products/new?returnTo=${encodeURIComponent(returnTo)}`);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Не удалось создать товар");
     } finally {

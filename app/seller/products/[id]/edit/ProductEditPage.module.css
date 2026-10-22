@@ -1947,3 +1947,70 @@
   .productSurface .wizardPager { grid-template-columns: minmax(0, 1fr) minmax(0, 2fr); }
   .productSurface .editorNotice { padding: 12px; font-size: 12px; line-height: 18px; }
 }
+/* Product form: continuous sections, explicit variant groups and compact controls. */
+.productSurface .wizardLayout { display: flex; flex-direction: column; gap: 40px; width: 100%; max-width: 880px; margin-inline: auto; }
+.productSurface .main { width: 100%; gap: 40px; }
+.productSurface .photoStep { position: static; width: 100%; max-width: none; max-height: none; padding: 0; overflow: visible; }
+.productSurface .sectionTitle { display: block; margin-bottom: 20px; font-size: 24px; font-weight: 650; line-height: 32px; }
+.productSurface .card + .card { padding-top: 40px; }
+.productSurface .editorSectionNav button { font-size: 14px; min-height: 48px; padding-inline: 20px; }
+.productSurface .stepNumber, .productSurface .wizardProgress { display: none; }
+.productSurface .wizardContext { justify-content: flex-end; }
+.productSurface .wizardPager { display: flex; }
+.productSurface .wizardSecondaryActions { display: flex; }
+.productSurface .input { min-height: 56px; border: 1px solid var(--line); background: var(--soft); border-radius: 12px; padding: 14px 16px; font-size: 16px; line-height: 24px; }
+.productSurface .input:focus-visible { border-color: var(--black); outline: 1px solid var(--black); outline-offset: 0; }
+.productSurface .input[aria-invalid="true"] { border-color: var(--danger); }
+.productSurface .formGrid { gap: 20px; align-items: start; }
+.productSurface .variantSizeList { display: grid; gap: 20px; }
+.productSurface .variantColorGroup { display: grid; gap: 20px; padding: 24px; border: 1px solid var(--line); border-radius: 16px; }
+.variantGroupHeader { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.variantGroupHeader h3 { font-size: 18px; font-weight: 600; line-height: 26px; margin: 0; overflow-wrap: anywhere; }
+.variantGroupHeader button { flex-shrink: 0; font-size: 13px; }
+.sectionIntro { margin: 0; color: var(--black-soft); font-size: 14px; line-height: 22px; }
+.sizeTable { display: grid; gap: 20px; }
+.sizeTableRow { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 44px; align-items: start; gap: 12px; }
+.productSurface .sizeTableRow .removeSizeButton { width: 44px; min-width: 44px; height: 56px; margin-top: 30px; padding: 0; }
+.productSurface .stockToggle { display: flex; gap: 12px; align-items: center; cursor: pointer; min-height: 44px; font-size: 15px; }
+.stockToggle input { appearance: auto; width: 20px; height: 20px; accent-color: var(--black); flex: 0 0 20px; }
+.stockToggle input:focus-visible { outline: 2px solid var(--gold-deep); outline-offset: 3px; }
+.stockToggle span { display: grid; gap: 4px; }
+.stockToggle small { color: var(--muted); font-size: 12px; }
+.untrackedStock { display: flex; align-items: center; min-height: 56px; color: var(--muted); font-size: 14px; }
+.productSurface .fieldHint { font-size: 12px; font-weight: 400; line-height: 18px; color: var(--muted); }
+.productSurface .field > span > small { display: inline; }
+.optionalSection { min-width: 0; font-size: 14px; line-height: 22px; }
+.optionalSection summary { min-height: 44px; display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 15px; font-weight: 500; }
+.optionalSection summary::before { content: '+'; width: 18px; font-size: 20px; font-weight: 400; }
+.optionalSection[open] > summary::before { content: '−'; }
+.optionalSection summary:focus-visible { outline: 2px solid var(--gold-deep); outline-offset: 2px; }
+.optionalSection > :not(summary) { margin-top: 12px; }
+.productSurface .shippingGuide { display: grid; gap: 12px; }
+.productSurface .shippingIntro { margin: 0; font-size: 14px; }
+@media (max-width: 700px) {
+  .productSurface .main { gap: 32px; }
+  .productSurface .card + .card { padding-top: 32px; }
+  .productSurface .sectionTitle { font-size: 22px; line-height: 30px; margin-bottom: 16px; }
+  .productSurface .variantColorGroup { padding: 16px; gap: 16px; border-radius: 12px; }
+  .productSurface .formGrid { grid-template-columns: minmax(0, 1fr); gap: 16px; }
+  .productSurface .editorSectionNav button { padding-inline: 14px; font-size: 13px; }
+  .sizeTableRow { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 44px; gap: 8px; }
+  .productSurface .sizeTableRow .removeSizeButton { width: 44px; min-width: 44px; }
+  .productSurface .sizeTableRow .field > span:first-child { font-size: 13px; line-height: 20px; min-height: 40px; }
+  .productSurface .sizeTableRow .removeSizeButton { margin-top: 48px; }
+  .productSurface .sizeTableRow .input { padding-inline: 10px; }
+  .productSurface .field > span > small { display: block; }
+  .productSurface .wizardActions { display: flex; flex-wrap: wrap; gap: 8px; }
+  .productSurface .wizardSecondaryActions { flex: 1 1 100%; gap: 8px; }
+  .productSurface .wizardSecondaryActions button:first-child { flex: 0 0 auto; width: auto; }
+  .productSurface .wizardSecondaryActions button:last-child { flex: 1; }
+  .productSurface .wizardPager { flex: 1 1 100%; }
+  .productSurface .wizardPager button { width: 100%; }
+}
+
+.saveStatus { font-size: 13px; font-weight: 400; color: var(--text-secondary, #666); }
+.saveStatus[data-state=error] { color: var(--color-danger, #b42318); }
+
+.productSurface { --field-control-background: var(--soft); --field-control-radius: 12px; --field-control-border-color: var(--line); --field-control-height: 56px; --select-border-color: var(--line); }
+.productSurface .optionalSection { display: block; }
+.productSurface .optionalSection > summary { list-style: none; }

@@ -87,12 +87,11 @@ export function ProductShippingCard({
       </div>
 
       <div className={styles.shippingGuide}>
-        <Banner tone="info" icon="package" title={<span className={styles.shippingGuideTitle}>Измеряйте внешнюю упаковку</span>}>
-          <p>СДЭК сравнивает фактический вес с объёмным: длина × ширина × высота / 5000</p>
-          <p className={styles.shippingGuideExample}>
-            Например, футболка в упаковке 30 × 25 × 4 см весит 0,3 кг. Объёмный вес — 0,6 кг, поэтому СДЭК рассчитает доставку по объёмному весу
-          </p>
-        </Banner>
+        <p className={styles.shippingIntro}>Укажите вес и размеры товара во внешней упаковке</p>
+        <details className={styles.optionalSection}><summary>Как СДЭК рассчитывает вес</summary>
+          <p>Объёмный вес: длина × ширина × высота / 5000. СДЭК использует больший из двух весов — фактический или объёмный.</p>
+          <p>Например, футболка в упаковке 30 × 25 × 4 см весит 0,3 кг. Её объёмный вес — 0,6 кг, по нему рассчитают доставку.</p>
+        </details>
 
         {dimensionsReady && volumetricWeightKg !== null && chargedWeightKg !== null ? (
           <>
@@ -117,11 +116,7 @@ export function ProductShippingCard({
               </Banner>
             ) : null}
           </>
-        ) : (
-          <Banner tone="info" icon="info">
-            Заполните четыре поля, чтобы увидеть расчётный вес СДЭК
-          </Banner>
-        )}
+        ) : null}
       </div>
     </section>
   );

@@ -21,6 +21,7 @@ export function NumberField({ label, value, invalid = false, decimal = false, on
     <span className={styles.required}>{label}</span>
     <NumericInput {...(decimal ? WEIGHT_RULES : { ...INTEGER_RULES, min: 1 })}
       value={value === "" ? null : value} onBlur={() => validation.touch("value")}
+      aria-label={label}
       onValueChange={next => { if (externalInvalid) validation.touch("value"); onChange(next ?? ""); }}
       aria-invalid={invalid || undefined} aria-required="true" aria-describedby={invalid ? errorId : undefined}
       className={[styles.input, invalid ? "inputError" : "", value === "" ? styles.requiredEmpty : ""].join(" ")} />

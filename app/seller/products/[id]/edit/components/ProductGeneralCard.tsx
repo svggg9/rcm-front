@@ -1,7 +1,7 @@
 import { useId } from "react";
 
 import { CategoryPicker } from "../../../../../components/ui/CategoryPicker";
-import { FormSelect } from "../../../../../components/ui/FormSelect";
+import { SegmentedControl } from "../../../../../components/ui/SegmentedControl";
 import { ProductDescriptionEditor } from "./ProductDescriptionEditor";
 import type { Audience } from "../types";
 import type { CategoryOption } from "../../../../../lib/categories";
@@ -116,11 +116,10 @@ export function ProductGeneralCard({
           </span> : null}
           </div>
 
-          <FormSelect<Audience>
-            label="Кому подходит"
-            required
+          <div className={styles.field}><span>Кому подходит</span><SegmentedControl<Audience>
+            ariaLabel="Кому подходит"
             value={audience}
-            options={[
+            items={[
               { value: "MEN", label: "Мужское" },
               { value: "WOMEN", label: "Женское" },
               { value: "UNISEX", label: "Для всех" },
@@ -128,7 +127,7 @@ export function ProductGeneralCard({
             onChange={(value) => {
               if (value) onAudienceChange(value);
             }}
-          />
+          /></div>
 
         </div>
       </section>
@@ -149,8 +148,8 @@ export function ProductGeneralCard({
             ) : null}
           </div>
 
-          <div className={styles.fieldFull} data-ui="field">
-            <span>Состав (необязательно)</span>
+          <details className={`${styles.fieldFull} ${styles.optionalSection}`} open={composition.trim() || validationErrors.composition ? true : undefined}>
+            <summary>Состав <span className={styles.fieldHint}>необязательно</span></summary>
             <ProductDescriptionEditor
               value={composition}
               onChange={onCompositionChange}
@@ -159,7 +158,8 @@ export function ProductGeneralCard({
               emptyText="Состав пока пустой"
               invalid={validationErrors.composition}
             />
-          </div>
+            {validationErrors.composition && <span className="fieldError">Не больше 1000 символов</span>}
+          </details>
         </div>
       </section>
     </>

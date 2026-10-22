@@ -8,7 +8,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
 import { apiFetch, API_URL } from "../../../../lib/api";
-import { createSellerProductDraft } from "../../../lib/createSellerProductDraft";
+import { createAutosaveQueue, hasOperationalChanges, reconcileSavedVariants } from "./productAutosave";
 import { normalizeCategories, type CategoryOption } from "../../../../lib/categories";
 import { isRequestCancelled, toApiError } from "../../../../lib/apiErrors";
 import { subscribeCategoriesChanged } from "../../../../lib/categoryEvents";
@@ -27,6 +27,7 @@ import { ProductEditableTitle } from "./components/ProductEditableTitle";
 import { ProductVariantsCard } from "./components/ProductVariantsCard";
 import { ProductShippingCard } from "./components/ProductShippingCard";
 import { ProductPhotoEditor } from "./components/ProductPhotoEditor";
+import { commitProductMedia, readSavedProduct, type PendingPhoto } from "./productMediaDraft";
 import { StatusBadge } from "../../../../components/ui/StatusBadge";
 import { PRODUCT_EDITOR_STEPS, getProductEditorErrorStep, type ProductEditorStep } from "./editorSteps";
 import { EditorSurface, requestEditorNavigation } from "../../../../components/ui/EditorSurface";
@@ -45,7 +46,7 @@ import type {
   ProductVariant,
   SellerProduct,
 } from "./types";
-import { numberOrNull, formatProductStatus, getProductStatusTone, inconsistentColorPriceIndexes } from "./utils";
+import { numberOrNull, formatProductStatus, getProductStatusTone, inconsistentColorPriceIndexes, variantColorGroupKey } from "./utils";
 
 import styles from "./ProductEditPage.module.css";
 
@@ -117,8 +118,8 @@ function createEmptyVariant(): ProductVariant {
     color: "",
     colorHex: null,
     price: 0,
-    availableQuantity: null,
-    sku: "",
+    availableQuantity: 0,
+    sku: `draft-${crypto.randomUUID()}`,
     sellerArticle: "",
     stockTrackingEnabled: true,
   };
@@ -136,8 +137,9 @@ function mapProductVariants(productData: SellerProduct): ProductVariant[] {
         color: variant.color ?? "",
         colorHex: variant.colorHex ?? null,
         price: Number(variant.price ?? 0),
-        availableQuantity: variant.stockQuantity === undefined ? variant.availableQuantity : variant.stockQuantity,
-        initialQuantity: variant.stockQuantity === undefined ? variant.availableQuantity : variant.stockQuantity,
+        availableQuantity: variant.stockTrackingEnabled ? (variant.stockQuantity ?? variant.availableQuantity ?? 0) : null,
+        initialQuantity: variant.stockTrackingEnabled ? (variant.stockQuantity ?? variant.availableQuantity ?? 0) : null,
+        initialStockTrackingEnabled: variant.stockTrackingEnabled,
         reservedQuantity: variant.reservedQuantity ?? 0,
         initialPrice: Number(variant.price ?? 0),
         initialSellerArticle: variant.sellerArticle ?? "",
@@ -166,13 +168,22 @@ function productListHref() {
 export function ProductEditPageClient({
   intercepted = false,
   presentation = "dialog",
-  productId,
+  productId: initialProductId,
   initialProduct,
   initialCategories,
   initialCategoryError = false,
   initialBrands,
 }: Props) {
   const router = useRouter();
+  const [productId, setProductId] = useState(initialProductId);
+  const persistedProduct = useRef(initialProduct);
+  const creationRequest = useRef<{ clientDraftId: string; product: unknown } | null>(null);
+  const dirtyRef = useRef(false);
+  const [editGeneration, setEditGeneration] = useState(0);
+  const [saveState, setSaveState] = useState<"idle" | "pending" | "saving" | "saved" | "error" | "manual">("idle");
+  const [saveError, setSaveError] = useState("");
+  const saveCallback = useRef<() => Promise<boolean>>(async () => true);
+  const [autosaveQueue] = useState(() => createAutosaveQueue(() => saveCallback.current()));
   const [dirty, setDirty] = useState(false);
   const [draftPreviewOpen, setDraftPreviewOpen] = useState(false);
   useEffect(() => {
@@ -180,14 +191,7 @@ export function ProductEditPageClient({
       router.replace(`/seller/products/${initialProduct.revisionSourceId}/edit?returnTo=${encodeURIComponent(productListHref())}`);
     }
   }, [initialProduct.status, initialProduct.revisionSourceId, router]);
-  const [mobileEditor, setMobileEditor] = useState(false);
-  useEffect(() => {
-    const media = window.matchMedia("(max-width: 700px)");
-    const update = () => setMobileEditor(media.matches);
-    update();
-    media.addEventListener("change", update);
-    return () => media.removeEventListener("change", update);
-  }, []);
+  // All widths use the same continuous form and anchor navigation.
   const [activeStep, setActiveStep] = useState<ProductEditorStep>("general");
   const [revisionReviewSource, setRevisionReviewSource] = useState<SellerProduct | null>(null);
   const [reviewLoading, setReviewLoading] = useState(false);
@@ -241,12 +245,22 @@ export function ProductEditPageClient({
   );
 
   const [dragImageId, setDragImageId] = useState<number | null>(null);
-  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const pendingPhotos = useRef(new Map<number, PendingPhoto>());
+  const deletedPhotos = useRef(new Set<number>());
+  const photoUrls = useRef(new Set<string>());
+  const nextPhotoId = useRef(-1);
+  const photoStaging = useRef(false);
+  const [photoGroupKey, setPhotoGroupKey] = useState("");
+  useEffect(() => {
+    const urls = photoUrls.current;
+    return () => { urls.forEach(url => URL.revokeObjectURL(url)); urls.clear(); };
+  }, []);
 
   const [saving, setSaving] = useState(false);
+  const [automaticSaving, setAutomaticSaving] = useState(false);
   const [saveSucceeded, setSaveSucceeded] = useState(false);
   const [uploading, setUploading] = useState(false);
-  const [reordering, setReordering] = useState(false);
+  const reordering = false;
   const [publishing, setPublishing] = useState(false);
   const [, setPublishSucceeded] = useState(false);
   const [publishSuccessOpen, setPublishSuccessOpen] = useState(false);
@@ -266,7 +280,6 @@ export function ProductEditPageClient({
   const [validationErrors, setValidationErrors] = useState<ValidationErrors>({});
   const pageContentRef = useRef<HTMLDivElement | null>(null);
   useEffect(() => {
-    if (mobileEditor) return;
     const body = pageContentRef.current?.closest<HTMLElement>("[data-editor-body]");
     if (!body) return;
     let frame = 0;
@@ -274,11 +287,10 @@ export function ProductEditPageClient({
       cancelAnimationFrame(frame);
       frame = requestAnimationFrame(() => {
         const top = presentation === "page"
-          ? parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--site-header-height")) + 96
+          ? (document.querySelector("[data-editor-page] [data-editor-navigation]")?.getBoundingClientRect().bottom ?? 0) + 48
           : body.getBoundingClientRect().top + 80;
         let current: ProductEditorStep = "general";
         for (const step of PRODUCT_EDITOR_STEPS) {
-          if (step.id === "photos") continue;
           const panel = document.getElementById(step.panelId);
           if (panel && panel.getBoundingClientRect().top <= top) current = step.id;
         }
@@ -287,8 +299,9 @@ export function ProductEditPageClient({
     };
     const scrollTarget = presentation === "page" ? window : body;
     scrollTarget.addEventListener("scroll", onScroll, { passive: true });
-    return () => { scrollTarget.removeEventListener("scroll", onScroll); cancelAnimationFrame(frame); };
-  }, [mobileEditor, presentation]);
+    window.addEventListener("resize", onScroll);
+    return () => { scrollTarget.removeEventListener("scroll", onScroll); window.removeEventListener("resize", onScroll); cancelAnimationFrame(frame); };
+  }, [presentation]);
   const editRevisionRef = useRef(0);
   const publishSuccessDialogRef = useRef<HTMLDivElement | null>(null);
   const publishSuccessCloseRef = useRef<HTMLButtonElement | null>(null);
@@ -302,10 +315,23 @@ export function ProductEditPageClient({
     });
 
   useEffect(() => {
+    productPageMountedRef.current = true;
     return () => {
       productPageMountedRef.current = false;
     };
   }, []);
+
+  const autosaveAllowed = canEditProductContent(product?.status);
+  useEffect(() => {
+    saveCallback.current = () => dirtyRef.current ? saveProduct(false, true) : Promise.resolve(true);
+  });
+  useEffect(() => { if (product) persistedProduct.current = product; }, [product]);
+  useEffect(() => {
+    if (editGeneration && autosaveAllowed) autosaveQueue.schedule();
+  }, [editGeneration, autosaveAllowed, autosaveQueue]);
+  useEffect(() => {
+    return () => autosaveQueue.cancel();
+  }, [autosaveQueue]);
 
   useEffect(() => {
     let cancelled = false;
@@ -424,6 +450,9 @@ export function ProductEditPageClient({
 
   function markDirty() {
     editRevisionRef.current += 1;
+    dirtyRef.current = true;
+    setEditGeneration(value => value + 1);
+    setSaveState("pending");
     setDirty(true);
   }
 
@@ -437,7 +466,7 @@ export function ProductEditPageClient({
   function updateTitle(value: string) {
     setTitle(value);
     clearValidationError("title", !value.trim());
-    markDirty();
+    if (value.trim() !== title.trim()) markDirty();
   }
 
   function clearVariantValidationError(
@@ -469,8 +498,7 @@ export function ProductEditPageClient({
     window.requestAnimationFrame(() => {
       const panelId = PRODUCT_EDITOR_STEPS.find(item => item.id === step)?.panelId;
       const panel = panelId ? document.getElementById(panelId) : null;
-      if (mobileEditor) pageContentRef.current?.scrollIntoView({ behavior: "auto", block: "start" });
-      else panel?.scrollIntoView({ behavior: "auto", block: "start" });
+      panel?.scrollIntoView({ behavior: "auto", block: "start" });
       if (focusPanel) panel?.focus({ preventScroll: true });
     });
   }
@@ -565,9 +593,7 @@ export function ProductEditPageClient({
           : variant.color.trim()
             ? `color-name-${variant.color.trim().toLowerCase()}`
             : "no-color");
-    const colorKey = variant.colorId
-      ? `id-${variant.colorId}`
-      : variant.color.trim()
+    const colorKey = variant.color.trim()
         ? `name-${variant.color.trim().toLowerCase()}`
         : "no-color";
 
@@ -606,7 +632,7 @@ export function ProductEditPageClient({
       sizeKeysByGroup.set(groupKey, groupSizeKeys);
     }
 
-    if (variant.availableQuantity !== null && (!Number.isSafeInteger(variant.availableQuantity) || variant.availableQuantity < 0)) {
+    if (variant.stockTrackingEnabled && (variant.availableQuantity === null || !Number.isSafeInteger(variant.availableQuantity) || variant.availableQuantity < 0)) {
       current.availableQuantity = true;
     }
 
@@ -635,17 +661,16 @@ export function ProductEditPageClient({
   };
   }
 
-  async function saveProduct(forModeration = false): Promise<boolean> {
+  async function saveProduct(forModeration = false, automatic = false): Promise<boolean> {
     if (
       saveRequestRef.current ||
       (publishRequestRef.current && !forModeration) ||
-      saving ||
       (publishing && !forModeration) ||
       archiving ||
       deleting ||
       uploading ||
       reordering ||
-      mediaActionPending
+      (mediaActionPending && !automatic)
     ) return false;
 
     if (!canEditProductOperations(product?.status)) {
@@ -662,37 +687,50 @@ export function ProductEditPageClient({
     variants.forEach((variant, index) => {
       const fields: NonNullable<ValidationErrors["variants"]>[number] = {};
       if (!Number.isFinite(variant.price) || variant.price < 0) fields.price = true;
-      if (variant.availableQuantity !== null && (!Number.isSafeInteger(variant.availableQuantity) || variant.availableQuantity < 0)) fields.availableQuantity = true;
+      if (variant.stockTrackingEnabled && (variant.availableQuantity === null || !Number.isSafeInteger(variant.availableQuantity) || variant.availableQuantity < 0)) fields.availableQuantity = true;
       if (Object.keys(fields).length) draftErrors.variants = { ...draftErrors.variants, [index]: fields };
     });
     inconsistentColorPriceIndexes(variants).forEach(index => {
       draftErrors.variants = { ...draftErrors.variants, [index]: { ...draftErrors.variants?.[index], price: true } };
     });
+    const shadeGroups = new Map<string, string>();
+    variants.forEach((variant, index) => {
+      const shade = variant.color.trim().toLocaleLowerCase();
+      const group = variantColorGroupKey(variant);
+      if (shadeGroups.has(shade) && shadeGroups.get(shade) !== group) {
+        draftErrors.variants = { ...draftErrors.variants, [index]: { ...draftErrors.variants?.[index], colorId: true } };
+      }
+      shadeGroups.set(shade, group);
+    });
     if (Object.keys(draftErrors).length) {
       setValidationErrors(draftErrors);
-      scrollToFirstValidationError(draftErrors);
+      setSaveState("error");
+      setSaveError("Проверьте выделенные поля — изменения ещё не сохранены");
+      if (!automatic) scrollToFirstValidationError(draftErrors);
       return false;
     }
     setValidationErrors({});
     saveRequestRef.current = true;
     setSaveSucceeded(false);
     setSaving(true);
+    setAutomaticSaving(automatic);
+    setSaveState("saving");
+    setSaveError("");
     const saveRevision = editRevisionRef.current;
+    const preserveOperations = automatic && Boolean(product?.revisionSourceId);
+    const snapshotImages = [...images];
+    let metadataSaved = false;
 
     try {
-      const variantsToSave = await resolveVariantsForSave();
-      if (editRevisionRef.current !== saveRevision) return false;
-
-      const response = await apiFetch(`${API_URL}/api/seller/products/${productId}`, {
-        method: "PUT",
-        body: JSON.stringify({
-          expectedVersion: product?.version,
+      const variantsToSave = variants;
+      const payload = {
+          expectedVersion: persistedProduct.current.version,
           title: product?.status === "ACTIVE" ? product.title : title.trim(),
           description: product?.status === "ACTIVE" ? product.description : description.trim(),
           composition: composition.trim(),
           categoryId: categoryId ? Number(categoryId) : null,
           suggestedCategoryName: suggestedCategoryName.trim() || null,
-          brandId: Number(brandId),
+          brandId: brandId === "" ? null : Number(brandId),
           audience,
           packageWidthCm: numberOrNull(packageWidthCm),
           packageHeightCm: numberOrNull(packageHeightCm),
@@ -704,34 +742,76 @@ export function ProductEditPageClient({
             sizeId: variant.sizeId ? Number(variant.sizeId) : null,
             suggestedSizeName: variant.sizeId ? null : variant.size.trim() || null,
             colorId: variant.colorId ? Number(variant.colorId) : null,
-            suggestedColorName: variant.colorId ? null : variant.color.trim() || null,
-            price: Number(variant.price),
-            stockQuantity: variant.id !== null && variant.availableQuantity === variant.initialQuantity
+            suggestedColorName: variant.color.trim() || null,
+            price: preserveOperations && variant.id !== null ? variant.initialPrice : Number(variant.price),
+            stockQuantity: (preserveOperations && variant.id !== null) || (variant.id !== null && variant.availableQuantity === variant.initialQuantity)
               ? null : variant.availableQuantity,
-            operationalChanged: variant.id === null || variant.price !== variant.initialPrice ||
+            operationalChanged: !preserveOperations && (variant.id === null || variant.price !== variant.initialPrice ||
+              variant.stockTrackingEnabled !== variant.initialStockTrackingEnabled ||
               variant.availableQuantity !== variant.initialQuantity ||
-              (variant.sellerArticle ?? "") !== (variant.initialSellerArticle ?? ""),
+              (variant.sellerArticle ?? "") !== (variant.initialSellerArticle ?? "")),
             priceChanged: variant.id === null || variant.price !== variant.initialPrice,
             sellerArticleChanged: variant.id === null ||
               (variant.sellerArticle ?? "") !== (variant.initialSellerArticle ?? ""),
             stockTrackingChanged: variant.id === null ||
-              (variant.availableQuantity !== null) !== (variant.initialQuantity !== null),
+              variant.stockTrackingEnabled !== variant.initialStockTrackingEnabled,
             sku: variant.sku.trim() || null,
-            sellerArticle: variant.sellerArticle?.trim() || null,
-            stockTrackingEnabled: variant.availableQuantity !== null,
+            sellerArticle: preserveOperations && variant.id !== null ? variant.initialSellerArticle : variant.sellerArticle?.trim() || null,
+            stockTrackingEnabled: preserveOperations && variant.id !== null ? variant.initialStockTrackingEnabled : variant.stockTrackingEnabled,
           })),
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error(await productActionResponseError(response));
+      };
+      let savedProduct: SellerProduct;
+      let targetId = persistedProduct.current.id;
+      if (!targetId) {
+        creationRequest.current ??= { clientDraftId: crypto.randomUUID(), product: payload };
+        const response = await apiFetch(`${API_URL}/api/seller/products/drafts`, {
+          method: "POST", body: JSON.stringify(creationRequest.current), signal: AbortSignal.timeout(20000),
+        });
+        if (!response.ok) throw new Error(await productActionResponseError(response));
+        savedProduct = await response.json();
+        if (!Number.isSafeInteger(savedProduct.id) || savedProduct.id <= 0) throw new Error("Сервер не подтвердил сохранение черновика");
+        targetId = savedProduct.id;
+        persistedProduct.current = savedProduct;
+        setProductId(targetId);
+        // Keep this mounted form and its newest edits while making refresh open the saved draft.
+        window.history.replaceState(window.history.state, "", `/seller/products/${targetId}/create?returnTo=${encodeURIComponent(productListHref())}`);
+        // A retry can acknowledge an older first snapshot. Persist the latest values using its version and IDs.
+        const bySku = new Map(savedProduct.variants.map(variant => [variant.sku, variant]));
+        payload.expectedVersion = savedProduct.version;
+        payload.variants = payload.variants.map(variant => ({ ...variant,
+          id: variant.id ?? bySku.get(variant.sku ?? "")?.id ?? null,
+          colorwayId: variant.colorwayId ?? bySku.get(variant.sku ?? "")?.colorwayId ?? null,
+        }));
       }
-
-      const stateReloaded = await reloadProductState(saveRevision);
-      if (stateReloaded && editRevisionRef.current === saveRevision) {
-        setDirty(false);
-        emitSellerNavigationChanged();
-        if (!forModeration) {
+      const response = await apiFetch(`${API_URL}/api/seller/products/${targetId}`, {
+        method: "PUT", body: JSON.stringify(payload), signal: AbortSignal.timeout(20000),
+      });
+      if (!response.ok) throw new Error(await productActionResponseError(response));
+      metadataSaved = true;
+      savedProduct = await readSavedProduct(targetId);
+      persistedProduct.current = savedProduct;
+      setProduct(savedProduct);
+      setVariants(current => reconcileSavedVariants(current, mapProductVariants(savedProduct)));
+      if (pendingPhotos.current.size || deletedPhotos.current.size || snapshotImages.some((image, index) => savedProduct.imageItems?.[index]?.id !== image.id)) {
+        setMediaActionPending(true);
+        savedProduct = await commitProductMedia({ productId: targetId, savedProduct, desired: snapshotImages, variants: variantsToSave, pending: pendingPhotos.current, deleted: deletedPhotos.current, onProgress: setUploadProgress });
+      }
+      persistedProduct.current = savedProduct;
+      setProduct(savedProduct);
+      setVariants(current => reconcileSavedVariants(current, mapProductVariants(savedProduct)));
+      setImages(savedProduct.imageItems ?? []);
+      pendingPhotos.current.clear();
+      deletedPhotos.current.clear();
+      photoUrls.current.forEach(url => URL.revokeObjectURL(url));
+      photoUrls.current.clear();
+      const manualPending = preserveOperations && hasOperationalChanges(variantsToSave);
+      const newerEdits = editRevisionRef.current !== saveRevision;
+      dirtyRef.current = newerEdits || manualPending;
+      setDirty(dirtyRef.current);
+      setSaveState(newerEdits ? "pending" : manualPending ? "manual" : "saved");
+      emitSellerNavigationChanged();
+      if (!newerEdits) {
+        if (!forModeration && !automatic) {
           toast.success("Товар сохранён", { id: "product-save", description: undefined, action: undefined });
           setSaveSucceeded(true);
           window.setTimeout(() => setSaveSucceeded(false), 1200);
@@ -740,206 +820,99 @@ export function ProductEditPageClient({
         }
         return true;
       }
-      return false;
+      return true;
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Не удалось сохранить товар", { id: "product-save" });
+      if (metadataSaved) {
+        try {
+          const current = await readSavedProduct(persistedProduct.current.id);
+          persistedProduct.current = current;
+          setProduct(current);
+          setVariants(local => reconcileSavedVariants(local, mapProductVariants(current)));
+        } catch { /* Keep the draft; a version conflict will prevent overwriting newer data. */ }
+        setDirty(true);
+      }
+      dirtyRef.current = true;
+      setSaveState("error");
+      const message = metadataSaved ? "Данные сохранены, но не все фотографии — повторите сохранение"
+        : e instanceof TypeError || e instanceof SyntaxError || (e instanceof Error && ["TimeoutError", "AbortError"].includes(e.name))
+          ? "Сервер не подтвердил сохранение — проверьте соединение и повторите попытку"
+          : e instanceof Error ? e.message : "Не удалось сохранить товар";
+      setSaveError(message);
+      if (!automatic) toast.error(message, { id: "product-save" });
       return false;
     } finally {
       saveRequestRef.current = false;
       setSaving(false);
-    }
-  }
-
-  async function resolveVariantsForSave() {
-    if (variants.every((variant) => variant.id !== null)) {
-      return variants;
-    }
-
-    const response = await apiFetch(`${API_URL}/api/seller/products/${productId}`);
-
-    if (!response.ok) {
-      return variants;
-    }
-
-    const productData: SellerProduct = await response.json();
-    const savedVariantsBySku = new Map(
-      mapProductVariants(productData)
-        .filter((variant) => variant.id !== null && variant.sku.trim())
-        .map((variant) => [variant.sku.trim(), variant])
-    );
-
-    const resolvedVariants = variants.map((variant) => {
-      if (variant.id !== null) {
-        return variant;
-      }
-
-      const savedVariant = savedVariantsBySku.get(variant.sku.trim());
-
-      return savedVariant ? { ...variant, id: savedVariant.id } : variant;
-    });
-
-    setVariants(resolvedVariants);
-
-    return resolvedVariants;
-  }
-
-  async function reloadProductState(expectedRevision?: number) {
-    const response = await apiFetch(`${API_URL}/api/seller/products/${productId}`);
-
-    if (!response.ok) return false;
-
-    const productData: SellerProduct = await response.json();
-    if (
-      expectedRevision !== undefined &&
-      editRevisionRef.current !== expectedRevision
-    ) {
-      return false;
-    }
-
-    setProduct(productData);
-    setVariants(mapProductVariants(productData));
-    setImages(Array.isArray(productData.imageItems) ? productData.imageItems : []);
-    return true;
-  }
-
-  async function uploadImages(filesToUpload = selectedFiles, colorwayId?: number | null) {
-    if (
-      !filesToUpload.length ||
-      !canEditProductContent(product?.status) ||
-      uploading ||
-      saving ||
-      publishing ||
-      archiving ||
-      deleting ||
-      reordering ||
-      mediaActionPending
-    ) return;
-
-    setUploading(true);
-    setUploadProgress({ done: 0, total: filesToUpload.length });
-
-    try {
-      await validateProductPhotoUpload(filesToUpload, images.length);
-      const formData = new FormData();
-      filesToUpload.forEach((file) => formData.append("files", file));
-      if (colorwayId) {
-        formData.append("colorwayId", String(colorwayId));
-      }
-
-      const response = await apiFetch(
-        `${API_URL}/api/seller/products/${productId}/images/batch`,
-        { method: "POST", body: formData }
-      );
-
-      if (!response.ok) {
-        const text = await response.text().catch(() => "");
-        throw new Error(text || "Не удалось загрузить фотографии");
-      }
-
-      setUploadProgress({
-        done: filesToUpload.length,
-        total: filesToUpload.length,
-      });
-
-      setSelectedFiles([]);
-      toast.success("Фото загружены");
-      await reloadProductImages();
-      clearValidationError("images");
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Не удалось загрузить фото");
-    } finally {
-      setUploading(false);
+      setAutomaticSaving(false);
+      setMediaActionPending(false);
       setUploadProgress({ done: 0, total: 0 });
     }
   }
 
-  async function reloadProductImages() {
-    const response = await apiFetch(`${API_URL}/api/seller/products/${productId}`);
-
-    if (!response.ok) return;
-
-    const data: SellerProduct = await response.json();
-    setProduct((current) => current ? { ...current, version: data.version } : current);
-    setImages(Array.isArray(data.imageItems) ? data.imageItems : []);
+  async function flushBeforeLeave() {
+    if (!autosaveAllowed) return false;
+    if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
+    await new Promise(resolve => window.setTimeout(resolve, 0));
+    if (!(await autosaveQueue.flush())) return false;
+    return !dirtyRef.current;
   }
 
-  async function deleteImage(imageId: number) {
-    if (
-      !canEditProductContent(product?.status) ||
-      saving ||
-      publishing ||
-      archiving ||
-      deleting ||
-      uploading ||
-      reordering ||
-      mediaActionPending
-    ) return;
+  async function saveNow() {
+    if (autosaveAllowed && !(await autosaveQueue.flush())) return;
+    if (dirtyRef.current) await manualSaveCallback.current();
+  }
 
-    const previous = images;
+  const manualSaveCallback = useRef<() => Promise<boolean>>(async () => false);
+  useEffect(() => { manualSaveCallback.current = () => saveProduct(); });
+  const publishCallback = useRef<() => Promise<void>>(async () => {});
+  useEffect(() => { publishCallback.current = () => publishProduct(); });
+  async function flushAndPublish() {
+    if (autosaveAllowed && !(await autosaveQueue.flush())) return;
+    await publishCallback.current();
+  }
 
-    setMediaActionPending(true);
-    setImages((current) => current.filter((image) => image.id !== imageId));
+  async function uploadImages(filesToUpload: File[], groupKey: string) {
+    if (!filesToUpload.length || !canEditProductContent(product?.status) || productMutationBusy || saving || photoStaging.current) return;
+    photoStaging.current = true;
+    setUploading(true);
+    const staged: ProductImageItem[] = [];
     try {
-      const response = await apiFetch(
-        `${API_URL}/api/seller/products/${productId}/images/${imageId}`,
-        { method: "DELETE" }
-      );
-
-      if (!response.ok) {
-        const text = await response.text().catch(() => "");
-        throw new Error(text || `Ошибка удаления (${response.status})`);
+      await validateProductPhotoUpload(filesToUpload, images.length);
+      for (const file of filesToUpload) {
+        const bitmap = await createImageBitmap(file);
+        const url = URL.createObjectURL(file);
+        const id = nextPhotoId.current--;
+        const token = crypto.randomUUID();
+        staged.push({ id, url, draftGroupKey: groupKey, clientUploadId: token, sortOrder: images.length + staged.length, width: bitmap.width, height: bitmap.height });
+        bitmap.close();
       }
-
-      toast.success("Фото удалено");
-      await reloadProductImages();
-    } catch (e) {
-      setImages(previous);
-      toast.error(e instanceof Error ? e.message : "Не удалось удалить фото");
+      staged.forEach((image, index) => { photoUrls.current.add(image.url); pendingPhotos.current.set(image.id, { file: filesToUpload[index], clientUploadId: image.clientUploadId! }); });
+      setImages(current => [...current, ...staged]);
+      markDirty();
+      clearValidationError("images");
+    } catch (error) {
+      staged.forEach(image => URL.revokeObjectURL(image.url));
+      toast.error(error instanceof Error ? error.message : "Не удалось добавить фотографии");
     } finally {
-      setMediaActionPending(false);
+      photoStaging.current = false;
+      setUploading(false);
     }
   }
 
-  async function saveImageOrder(nextImages: ProductImageItem[]) {
-    if (
-      nextImages.length === 0 ||
-      !canEditProductContent(product?.status) ||
-      saving ||
-      publishing ||
-      archiving ||
-      deleting ||
-      uploading ||
-      reordering ||
-      mediaActionPending
-    ) return;
-
-    setReordering(true);
-
-    try {
-      const response = await apiFetch(`${API_URL}/api/seller/products/${productId}/images/reorder`, {
-        method: "POST",
-        body: JSON.stringify({
-          imageIds: nextImages.map((image) => image.id),
-        }),
-      });
-
-      if (!response.ok) {
-        const text = await response.text().catch(() => "");
-        throw new Error(text || `Ошибка сортировки (${response.status})`);
-      }
-
-      await reloadProductImages();
-
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Не удалось сохранить порядок фото");
-      await reloadProductImages();
-    } finally {
-      setReordering(false);
+  function deleteImage(imageId: number) {
+    if (!canEditProductContent(product?.status) || productMutationBusy || saving) return;
+    if (imageId > 0) deletedPhotos.current.add(imageId);
+    else {
+      pendingPhotos.current.delete(imageId);
+      const image = images.find(item => item.id === imageId);
+      if (image) { URL.revokeObjectURL(image.url); photoUrls.current.delete(image.url); }
     }
+    setImages(current => current.filter(image => image.id !== imageId));
+    markDirty();
   }
 
   function moveImage(targetImageId: number) {
-    if (!canEditProductContent(product?.status) || productMutationBusy) return;
+    if (!canEditProductContent(product?.status) || productMutationBusy || saving) return;
     if (dragImageId === null || dragImageId === targetImageId) return;
 
     const fromIndex = images.findIndex((image) => image.id === dragImageId);
@@ -951,7 +924,7 @@ export function ProductEditPageClient({
   }
 
   function moveImageByIndex(fromIndex: number, toIndex: number) {
-    if (!canEditProductContent(product?.status) || productMutationBusy) return;
+    if (!canEditProductContent(product?.status) || productMutationBusy || saving) return;
     if (fromIndex < 0 || toIndex < 0) return;
     if (fromIndex >= images.length || toIndex >= images.length) return;
     if (fromIndex === toIndex) return;
@@ -961,7 +934,7 @@ export function ProductEditPageClient({
     nextImages.splice(toIndex, 0, moved);
 
     setImages(nextImages);
-    void saveImageOrder(nextImages);
+    markDirty();
   }
 
   async function publishProduct(reviewed = false) {
@@ -1058,9 +1031,8 @@ export function ProductEditPageClient({
     setCreatingNextProduct(true);
 
     try {
-      const nextProductId = await createSellerProductDraft();
       if (!productPageMountedRef.current) return;
-      requestEditorNavigation(() => router.push(`/seller/products/${nextProductId}/create?returnTo=${encodeURIComponent(productListHref())}`), { completed: true });
+      requestEditorNavigation(() => router.push(`/seller/products/new?returnTo=${encodeURIComponent(productListHref())}`), { completed: true });
     } catch (error) {
       toast.error(
         error instanceof Error ? error.message : "Не удалось создать товар"
@@ -1107,6 +1079,7 @@ export function ProductEditPageClient({
     const variant = {
       ...createEmptyVariant(),
       ...base,
+      sku: base.sku?.trim() || `draft-${crypto.randomUUID()}`,
     };
 
     setVariants((current) => [
@@ -1119,6 +1092,13 @@ export function ProductEditPageClient({
   }
 
   function removeVariant(index: number) {
+    const groupKey = variantColorGroupKey(variants[index]);
+    if (variants.filter(variant => variantColorGroupKey(variant) === groupKey).length === 1 && images.some(image => image.draftGroupKey === groupKey)) {
+      setPhotoGroupKey(groupKey);
+      selectEditorStep("photos", true);
+      toast.warning("Сначала удалите добавленные фото этого оттенка");
+      return;
+    }
     setVariants((current) => current.filter((_, variantIndex) => variantIndex !== index));
     markDirty();
   }
@@ -1289,13 +1269,13 @@ export function ProductEditPageClient({
   }
 
   const productMutationBusy =
-    saving || openingRevision || reviewLoading ||
+    (saving && !automaticSaving) || openingRevision || reviewLoading ||
     uploading ||
     reordering ||
     publishing ||
     archiving ||
     deleting ||
-    mediaActionPending;
+    (mediaActionPending && !automaticSaving);
   const contentEditingAllowed = canEditProductContent(product?.status);
   const operationalEditingAllowed = canEditProductOperations(product?.status);
   const contentControlsDisabled = productMutationBusy || !contentEditingAllowed;
@@ -1309,26 +1289,36 @@ export function ProductEditPageClient({
     onboardingStatus !== null &&
     (!onboardingStatus.legalCompleted || !onboardingStatus.agreementAccepted);
   const onboardingStatusPending = onboardingStatus === null;
-  const stepIndex = PRODUCT_EDITOR_STEPS.findIndex(step => step.id === activeStep);
   const stepNavigationDisabled = productMutationBusy || creatingNextProduct;
   const deleteAvailable = product !== null && canDeleteProduct(product.status);
   const brandName = brands.find(brand => brand.id === brandId)?.name?.trim() || product?.brand?.trim() || null;
   const FieldsContainer = presentation === "page" ? "div" : "main";
+  const displayedSaveState = titleDraftDirty ? "pending" : saveState;
 
   return (
     <EditorSurface presentation={presentation} backLabel="Товары" className={styles.productSurface}
       title={<ProductEditableTitle value={title} disabled={contentControlsDisabled || creatingNextProduct} onChange={updateTitle} onDraftDirtyChange={setTitleDraftDirty}
         placeholder={presentation === "page" ? "Наименование товара" : undefined} invalid={Boolean(validationErrors.title)} errorId="product-title-error" />}
-      headerMeta={product && <span className={styles.editorIdentity}><StatusBadge tone={getProductStatusTone(product.status)} size="regular">{formatProductStatus(product.status)}</StatusBadge>{presentation === "page" && brandName ? <span>{brandName}</span> : null}</span>}
+      headerMeta={product && <span className={styles.editorIdentity}><StatusBadge tone={getProductStatusTone(product.status)} size="regular">{formatProductStatus(product.status)}</StatusBadge>{presentation === "page" && brandName ? <span>{brandName}</span> : null}
+        {autosaveAllowed && <span role="status" aria-live="polite" className={styles.saveStatus} data-state={displayedSaveState} title={saveState === "error" ? saveError : undefined}>
+          {displayedSaveState === "saving" ? "Сохраняем…" : displayedSaveState === "error" ? "Не удалось сохранить" : displayedSaveState === "manual" ? "Цены и остатки ожидают сохранения" : displayedSaveState === "saved" ? "Все изменения сохранены" : displayedSaveState === "pending" ? "Есть изменения" : productId ? "Все изменения сохранены" : "Черновик сохранится после первого изменения"}
+        </span>}
+      </span>}
       subtitle={validationErrors.title ? <span id="product-title-error" className="fieldError">Введите название товара</span> : presentation === "page" ? undefined : brandName}
       guardNavigation
-      discardHint="Изменения фотографий уже сохранены и не будут отменены"
+      beforeLeave={autosaveAllowed ? flushBeforeLeave : undefined}
+      onFieldBlur={event => {
+        if (autosaveAllowed && event.target.matches("input,textarea,select,[contenteditable]")) {
+          window.setTimeout(() => { if (dirtyRef.current) autosaveQueue.schedule(0); }, 0);
+        }
+      }}
+      discardHint={autosaveAllowed ? "Не удалось сохранить все изменения автоматически — вернитесь в форму и повторите сохранение" : undefined}
       toastId="product-editor"
       dirty={dirty || titleDraftDirty} busy={productMutationBusy || creatingNextProduct}
       onClose={() => { if (intercepted) router.back(); else router.replace(productListHref()); }}
-      navigation={<nav className={styles.editorSectionNav} role={mobileEditor ? "tablist" : undefined} aria-label={mobileEditor ? "Шаги заполнения товара" : "Разделы товара"}>
-        {PRODUCT_EDITOR_STEPS.map((step,index)=><button type="button" key={step.id} id={`editor-tab-${step.id}`} role={mobileEditor ? "tab" : undefined} aria-selected={mobileEditor ? activeStep === step.id : undefined} aria-current={!mobileEditor && activeStep === step.id ? "location" : undefined}
-          aria-controls={step.panelId} tabIndex={!mobileEditor || activeStep === step.id ? 0 : -1} disabled={stepNavigationDisabled}
+      navigation={<nav className={styles.editorSectionNav} aria-label="Разделы товара">
+        {PRODUCT_EDITOR_STEPS.map((step,index)=><button type="button" key={step.id} id={`editor-tab-${step.id}`} aria-current={activeStep === step.id ? "location" : undefined}
+          aria-controls={step.panelId} tabIndex={0} disabled={stepNavigationDisabled}
           onFocus={event=>event.currentTarget.scrollIntoView({block:"nearest",inline:"nearest"})}
           onKeyDown={event => {
             let nextIndex = index;
@@ -1347,13 +1337,10 @@ export function ProductEditPageClient({
       actions={<div className={styles.wizardActions}>
         <div className={styles.wizardSecondaryActions}>
           <Button variant="ghost" disabled={productMutationBusy} onClick={()=>setDraftPreviewOpen(true)}>Предпросмотр</Button>
-          <Button onClick={() => void saveProduct()} disabled={(!dirty && !titleDraftDirty) || productMutationBusy || (saveSucceeded && !titleDraftDirty) || !operationalEditingAllowed} loading={saving} success={saveSucceeded && !titleDraftDirty} variant="secondary">Сохранить</Button>
+          {(!autosaveAllowed || Boolean(product?.revisionSourceId) || saveState === "error") && <Button onClick={() => void saveNow()} disabled={(!dirty && !titleDraftDirty) || productMutationBusy || saving || !operationalEditingAllowed} loading={saving} success={saveSucceeded && !titleDraftDirty} variant="secondary">{saveState === "error" ? "Повторить сохранение" : "Сохранить цены и остатки"}</Button>}
         </div>
         <div className={styles.wizardPager}>
-          <Button className={styles.mobileOnly} variant="ghost" disabled={stepNavigationDisabled || stepIndex === 0} onClick={()=>selectEditorStep(PRODUCT_EDITOR_STEPS[stepIndex - 1].id, true)}>Назад</Button>
-          {mobileEditor && stepIndex < PRODUCT_EDITOR_STEPS.length - 1
-            ? <Button variant="primary" disabled={stepNavigationDisabled} onClick={()=>selectEditorStep(PRODUCT_EDITOR_STEPS[stepIndex + 1].id, true)}>Далее</Button>
-            : <Button onClick={() => void publishProduct()} disabled={productMutationBusy || !isProductStatusPublishable(product?.status)} loading={publishing || reviewLoading} variant="secondary">Отправить на модерацию</Button>}
+          <Button onClick={() => void flushAndPublish()} disabled={productMutationBusy || !isProductStatusPublishable(product?.status)} loading={publishing || reviewLoading} variant="primary">{product?.revisionSourceId ? "Отправить изменения" : "Отправить на модерацию"}</Button>
         </div>
       </div>}>
     <div className={styles.panelContent}>
@@ -1362,22 +1349,21 @@ export function ProductEditPageClient({
         <div className={styles.editorContent}>
       <div className={styles.page}>
         <div className={styles.pageContent} ref={pageContentRef} tabIndex={-1}>
+        {saveState === "error" && <Banner tone="danger" title="Изменения ещё не сохранены" className={styles.editorNotice}>{saveError}</Banner>}
         {product?.status === "ACTIVE" && <Banner tone="info" title="Товар опубликован" className={styles.editorNotice}
           actions={<Button variant="secondary" loading={openingRevision} disabled={productMutationBusy} onClick={() => void openContentRevision()}>{product.contentRevisionId ? "Открыть изменения" : "Изменить карточку"}</Button>}>
           Цена, количество и артикул меняются в разделе «Варианты»
           <br />Для остальных полей и фото откройте изменения — текущая карточка останется в продаже до их одобрения
           {product.contentRevisionStatus && <><br />Изменения: {formatProductStatus(product.contentRevisionStatus)}</>}
         </Banner>}
-        {product?.revisionSourceId && (!mobileEditor || activeStep === "general" || activeStep === "variants") && <Banner tone="info" title="Изменения опубликованного товара" className={styles.editorNotice}>
+        {product?.revisionSourceId && <Banner tone="info" title="Изменения опубликованного товара" className={styles.editorNotice}>
           До одобрения покупатели видят прежнюю карточку
           <details className={styles.noticeDetails}><summary>Как сохраняются изменения</summary>Цена, количество и артикул существующих вариантов применяются сразу после сохранения</details>
           <Link className={styles.noticeLink} href={`/seller/products/${product.revisionSourceId}/edit?returnTo=${encodeURIComponent(productListHref())}`}>Открыть опубликованный товар</Link>
         </Banner>}
         <div className={styles.wizardContext}>
-          <div className={styles.wizardProgress}>
-            <span>Шаг {stepIndex + 1} из {PRODUCT_EDITOR_STEPS.length}</span>
-          </div>
-          {product && product.status !== "BLOCKED" && product.status !== "DELETED" && <details className={styles.productActionsMenu}>
+
+          {productId > 0 && product && product.status !== "BLOCKED" && product.status !== "DELETED" && <details className={styles.productActionsMenu}>
             <summary>Действия с товаром</summary>
             <div>{product ? (
                 <>
@@ -1444,15 +1430,13 @@ export function ProductEditPageClient({
         ) : null}
 
         <div className={styles.wizardLayout}>
-          <FieldsContainer className={`${styles.main} ${styles.stepPanel}`} hidden={mobileEditor && activeStep === "photos"}>
+          <FieldsContainer className={`${styles.main} ${styles.stepPanel}`}>
             <fieldset
               className={`${styles.lockedFieldset} ${styles.stepPanel}`}
-              hidden={mobileEditor && activeStep !== "general" && activeStep !== "description"}
               disabled={contentControlsDisabled}
             >
               <ProductGeneralCard
                 showTitle={presentation !== "page"}
-                activeSection={mobileEditor ? (activeStep === "general" ? "general" : "description") : undefined}
                 validationErrors={validationErrors}
                 title={title}
                 description={description}
@@ -1499,8 +1483,8 @@ export function ProductEditPageClient({
               />
             </fieldset>
 
-            <div id="product-step-variants" className={styles.stepPanel} role={mobileEditor ? "tabpanel" : "region"} aria-labelledby="editor-tab-variants"
-              data-editor-step="variants" tabIndex={-1} hidden={mobileEditor && activeStep !== "variants"}>
+            <div id="product-step-variants" className={styles.stepPanel} role="region" aria-labelledby="editor-tab-variants"
+              data-editor-step="variants" tabIndex={-1}>
             <h2 className={`${styles.sectionTitle} ${styles.desktopOnly}`}>Варианты</h2>
             <ProductVariantsCard
               countInvalid={validationErrors.variantCount}
@@ -1511,12 +1495,13 @@ export function ProductEditPageClient({
               onUpdateVariant={updateVariant}
               onAddVariant={addVariant}
               onRemoveVariant={removeVariant}
+              onOpenPhotos={key => { setPhotoGroupKey(key); selectEditorStep("photos", true); }}
             />
             </div>
 
             <fieldset
-              id="product-step-shipping" className={`${styles.lockedFieldset} ${styles.stepPanel}`} role={mobileEditor ? "tabpanel" : "region"} aria-labelledby="editor-tab-shipping"
-              data-editor-step="shipping" tabIndex={-1} hidden={mobileEditor && activeStep !== "shipping"}
+              id="product-step-shipping" className={`${styles.lockedFieldset} ${styles.stepPanel}`} role="region" aria-labelledby="editor-tab-shipping"
+              data-editor-step="shipping" tabIndex={-1}
               disabled={contentControlsDisabled}
             >
               <h2 className={`${styles.sectionTitle} ${styles.desktopOnly}`}>Упаковка</h2>
@@ -1555,20 +1540,23 @@ export function ProductEditPageClient({
 
           </FieldsContainer>
 
-            <div id="product-step-photos" className={`${styles.stepPanel} ${styles.photoStep}`} role={mobileEditor ? "tabpanel" : "region"} aria-labelledby="editor-tab-photos"
-              data-editor-step="photos" tabIndex={-1} hidden={mobileEditor && activeStep !== "photos"}>
+            <div id="product-step-photos" className={`${styles.stepPanel} ${styles.photoStep}`} role="region" aria-labelledby="editor-tab-photos"
+              data-editor-step="photos" tabIndex={-1}>
               <ProductPhotoEditor
-                colorways={product?.colorways ?? []}
+                shadeGroups={Array.from(new Map(variants.map(variant => [variantColorGroupKey(variant), { key: variantColorGroupKey(variant), color: variant.color || "Без оттенка" }])).values())}
+                selectedGroupKey={photoGroupKey || (variants[0] ? variantColorGroupKey(variants[0]) : "")}
+                onGroupChange={setPhotoGroupKey}
+                imageLabels={Object.fromEntries(images.map(image => [image.id, variants.find(variant => image.draftGroupKey ? variantColorGroupKey(variant) === image.draftGroupKey : variant.colorwayId === image.colorwayId)?.color || "Без оттенка"]))}
                 images={images}
                 invalidImages={validationErrors.images}
                 uploadProgress={uploadProgress}
                 uploading={uploading}
                 reordering={reordering}
-                mediaDisabled={productMutationBusy || !contentEditingAllowed}
+                mediaDisabled={productMutationBusy || saving || !contentEditingAllowed}
                 mediaDisabledHint={mediaDisabledHint}
                 dragImageId={dragImageId}
-                onFilesChange={setSelectedFiles}
-                onUploadImages={(files, colorwayId) => void uploadImages(files, colorwayId)}
+                onFilesChange={() => {}}
+                onUploadImages={(files) => void uploadImages(files, photoGroupKey || (variants[0] ? variantColorGroupKey(variants[0]) : ""))}
                 onDragImageStart={setDragImageId}
                 onDragImageEnd={() => setDragImageId(null)}
                 onMoveImage={moveImage}

@@ -9,6 +9,7 @@ import {
 import { ProductEditPageClient } from "./ProductEditPageClient";
 import type { Option, SellerProduct } from "./types";
 import { normalizeCategories, type CategoryOption } from "../../../../lib/categories";
+import { emptyProduct } from "./productAutosave";
 
 type Props = {
   intercepted?: boolean;
@@ -21,8 +22,9 @@ type Props = {
 export default async function ProductEditor({ params, intercepted = false, presentation = "dialog" }: Props) {
   const { id } = await params;
   const productId = Number(id);
+  const isNew = id === "new" && presentation === "page";
 
-  if (!/^[1-9]\d*$/.test(id) || !Number.isSafeInteger(productId)) {
+  if (!isNew && (!/^[1-9]\d*$/.test(id) || !Number.isSafeInteger(productId))) {
     return (
       <div className="pageContainer">
         <div>Некорректный ID товара</div>
@@ -32,7 +34,7 @@ export default async function ProductEditor({ params, intercepted = false, prese
 
   const [accessAndBrands, productResult, categories] = await Promise.all([
     getSellerAccessAndBrandsServer(),
-    getSellerProductDetailsServer<SellerProduct>(productId),
+    isNew ? Promise.resolve({ product: emptyProduct(), status: 200 }) : getSellerProductDetailsServer<SellerProduct>(productId),
     getProductEditorCategories(),
   ]);
 
@@ -40,7 +42,7 @@ export default async function ProductEditor({ params, intercepted = false, prese
     const session = await getServerSession();
 
     if (!session) {
-      redirect(`/auth/login?next=/seller/products/${productId}/${presentation === "page" ? "create" : "edit"}`);
+      redirect(`/auth/login?next=${isNew ? "/seller/products/new" : `/seller/products/${productId}/${presentation === "page" ? "create" : "edit"}`}`);
     }
 
     redirect("/");
@@ -66,8 +68,8 @@ export default async function ProductEditor({ params, intercepted = false, prese
     <ProductEditPageClient
       intercepted={intercepted}
       presentation={presentation}
-      key={productId}
-      productId={productId}
+      key={isNew ? "new" : productId}
+      productId={isNew ? 0 : productId}
       initialProduct={productResult.product}
       initialCategories={categories.items}
       initialCategoryError={categories.error}

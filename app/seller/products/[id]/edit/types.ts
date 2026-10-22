@@ -29,6 +29,7 @@ export type ProductVariant = {
   stockQuantity?: number | null;
   reservedQuantity?: number;
   initialQuantity?: number | null;
+  initialStockTrackingEnabled?: boolean;
   initialPrice?: number;
   initialSellerArticle?: string | null;
   sku: string;
@@ -37,6 +38,8 @@ export type ProductVariant = {
 };
 
 export type ProductImageItem = {
+  clientUploadId?: string | null;
+  draftGroupKey?: string;
   width?: number | null;
   height?: number | null;
   id: number;

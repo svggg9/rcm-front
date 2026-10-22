@@ -7,6 +7,7 @@
 .centered[open] { animation-name: enterCentered; }
 .header { flex-shrink: 0; display: flex; align-items: center; gap: 16px; padding: 20px 32px; border-bottom: 1px solid var(--line); }
 .heading { flex: 1; min-width: 0; display: grid; grid-template-columns: minmax(0, 1fr); gap: 4px; }
+.headerActions { display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: 12px; min-width: 0; }
 .headerMeta { display: flex; align-items: center; font-size: var(--font-sm); font-weight: 400; }
 .subtitle { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--muted); font-size: var(--font-sm); line-height: 18px; font-weight: 400; }
 .header h1 { flex: 1; min-width: 0; margin: 0; font-size: var(--font-xl); font-weight: 400; }
