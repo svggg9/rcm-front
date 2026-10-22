@@ -246,6 +246,13 @@ async function main() {
       assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false, 'No overflow at ' + width);
       await page.screenshot({ path: outputFile(`form-${width}.png`), fullPage: true });
       await page.locator('#editor-tab-variants').click();
+      const topbar = await page.locator('[data-editor-topbar]').evaluate(element => {
+        const bounds = element.getBoundingClientRect();
+        return { top: bounds.top, expected: parseFloat(getComputedStyle(element).top), bottom: bounds.bottom,
+          titleTop: element.querySelector('h1').getBoundingClientRect().top };
+      });
+      assert.ok(Math.abs(topbar.top - topbar.expected) <= 2, 'Whole editor header sticks at ' + width);
+      assert.ok(topbar.titleTop >= topbar.top && topbar.titleTop < topbar.bottom, 'Product title stays visible at ' + width);
       const geometry = await page.evaluate(() => ({ nav: document.querySelector('[data-editor-navigation]').getBoundingClientRect().bottom, section: document.querySelector('#product-step-variants').getBoundingClientRect().top }));
       assert.ok(geometry.section >= geometry.nav - 2, 'Anchor is below sticky navigation at ' + width);
       await page.waitForFunction(() => document.querySelector('#editor-tab-variants')?.getAttribute('aria-current') === 'location');
