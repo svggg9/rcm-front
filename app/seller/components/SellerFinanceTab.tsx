@@ -3,6 +3,9 @@
 import { NumericInput } from "../../components/ui/NumericInput";
 
 import { Button } from "../../components/ui/Button";
+import { CabinetPanel } from "../../components/ui/CabinetPanel";
+import { SectionHeader } from "../../components/ui/SectionHeader";
+import listStyles from "../../components/ui/CabinetListLayout.module.css";
 import { useEffect, useRef, useState, type ReactNode, type FormEvent } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -15,6 +18,12 @@ import type { PageResponse, SellerFinanceOperation, SellerFinanceSummary, Seller
 import styles from "./SellerFinanceTab.module.css";
 
 type Props = { finance: SellerFinanceSummary | null; loading?: boolean; error?: ReactNode; onRefresh?: () => void; onPrefetchOrder?: (orderId: number) => void };
+type FinanceView = "overview" | "operations" | "payouts";
+const financeViews: { value: FinanceView; label: string }[] = [
+  { value: "overview", label: "Обзор" },
+  { value: "operations", label: "Операции" },
+  { value: "payouts", label: "Выплаты" },
+];
 const labels: Record<SellerPayoutStatus, string> = { READY: "Готова к отправке", IN_PROGRESS: "В обработке", SENT: "Отправлена в банк", REVIEW: "На сверке", PAID: "Выплачена", FAILED: "Отказ подтверждён", CANCELLED: "Отменена" };
 const operationLabels = { SALE: "Продажа", SELLER_DEBIT: "Возврат / удержание", SELLER_PAYOUT: "Выплата" };
 
@@ -39,15 +48,21 @@ function useFinanceData<T>(path: string) {
 
 export function SellerFinanceTab({ finance, loading, error, onRefresh, onPrefetchOrder }: Props) {
   const params = useSearchParams();
-  const view = params.get("view");
+  const router = useRouter();
+  const requestedView = params.get("view");
+  const view: FinanceView = requestedView === "operations" || requestedView === "payouts" ? requestedView : "overview";
   const payoutId = params.get("payout");
-  return <section className={styles.root} aria-label="Финансы">
+  return <section className={`${styles.root} ${listStyles.page}`} aria-label="Финансы">
+    <SectionHeader title="Финансы" large className={listStyles.heading} />
+    <CabinetPanel items={financeViews} value={view} variant="plain" ariaLabel="Разделы финансов"
+      onChange={next => router.push(next === "overview" ? "/seller/finance" : `/seller/finance?view=${next}`, { scroll: false })}>
     {view === "operations" ? <Operations onPrefetchOrder={onPrefetchOrder} />
       : view === "payouts" ? <Payouts />
       : loading && !finance ? <CabinetSkeleton variant="dashboard" rows={3} compact />
       : finance ? <>{error}<div className={styles.heading}><h2>Обзор финансов</h2><Button variant="utility" loading={loading} onClick={onRefresh}>Обновить</Button></div><Overview finance={finance} onPrefetchOrder={onPrefetchOrder} /></>
       : error ? error
       : <p className={styles.empty}>Финансовая сводка временно недоступна</p>}
+    </CabinetPanel>
     {payoutId && /^\d+$/.test(payoutId) ? <PayoutDetails key={payoutId} id={payoutId} /> : null}
   </section>;
 }

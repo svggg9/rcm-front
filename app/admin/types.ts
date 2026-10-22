@@ -74,6 +74,7 @@ export type AdminProductVariant = {
 };
 
 export type AdminProduct = {
+  colorways?: { id: number; colorId?: number | null; color: string | null; colorHex?: string | null }[];
   revisionSourceId?: number | null;
   id: number;
   title: string;

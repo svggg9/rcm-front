@@ -124,7 +124,7 @@ async function main() {
     const page = await browser.newPage({ viewport: { width: 1280, height: 1000 } });
     const errors = [];
     page.on("pageerror", error => errors.push(error.message));
-    await page.goto(origin + "/admin?tab=contact-messages");
+    await page.goto(origin + "/admin?tab=contact-messages&contactView=email");
     const card = page.getByRole("article", { name: "Обращение №201", exact: true });
     await card.waitFor();
     assert.equal(calls.filter(call => call.path.endsWith("/replies")).length, 0, "History should load lazily");

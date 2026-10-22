@@ -46,7 +46,7 @@ import type {
   ProductVariant,
   SellerProduct,
 } from "./types";
-import { numberOrNull, formatProductStatus, getProductStatusTone, inconsistentColorPriceIndexes, variantColorGroupKey } from "./utils";
+import { numberOrNull, formatProductStatus, getProductStatusTone, inconsistentProductPriceIndexes, variantColorGroupKey } from "./utils";
 
 import styles from "./ProductEditPage.module.css";
 
@@ -641,7 +641,7 @@ export function ProductEditPageClient({
     }
   });
 
-  inconsistentColorPriceIndexes(variants).forEach(index => {
+  inconsistentProductPriceIndexes(variants).forEach(index => {
     variantErrors[index] = { ...variantErrors[index], price: true };
   });
 
@@ -690,7 +690,7 @@ export function ProductEditPageClient({
       if (variant.stockTrackingEnabled && (variant.availableQuantity === null || !Number.isSafeInteger(variant.availableQuantity) || variant.availableQuantity < 0)) fields.availableQuantity = true;
       if (Object.keys(fields).length) draftErrors.variants = { ...draftErrors.variants, [index]: fields };
     });
-    inconsistentColorPriceIndexes(variants).forEach(index => {
+    inconsistentProductPriceIndexes(variants).forEach(index => {
       draftErrors.variants = { ...draftErrors.variants, [index]: { ...draftErrors.variants?.[index], price: true } };
     });
     const shadeGroups = new Map<string, string>();
@@ -718,6 +718,7 @@ export function ProductEditPageClient({
     setSaveError("");
     const saveRevision = editRevisionRef.current;
     const preserveOperations = automatic && Boolean(product?.revisionSourceId);
+    const preservedProductPrice = variants.find(variant => variant.id !== null)?.initialPrice;
     const snapshotImages = [...images];
     let metadataSaved = false;
 
@@ -743,7 +744,7 @@ export function ProductEditPageClient({
             suggestedSizeName: variant.sizeId ? null : variant.size.trim() || null,
             colorId: variant.colorId ? Number(variant.colorId) : null,
             suggestedColorName: variant.color.trim() || null,
-            price: preserveOperations && variant.id !== null ? variant.initialPrice : Number(variant.price),
+            price: preserveOperations ? (variant.id !== null ? variant.initialPrice : preservedProductPrice ?? Number(variant.price)) : Number(variant.price),
             stockQuantity: (preserveOperations && variant.id !== null) || (variant.id !== null && variant.availableQuantity === variant.initialQuantity)
               ? null : variant.availableQuantity,
             operationalChanged: !preserveOperations && (variant.id === null || variant.price !== variant.initialPrice ||
@@ -858,7 +859,7 @@ export function ProductEditPageClient({
   }
 
   async function saveNow() {
-    if (autosaveAllowed && !(await autosaveQueue.flush())) return;
+    if (autosaveAllowed && !(await autosaveQueue.flush()) && !product?.revisionSourceId) return;
     if (dirtyRef.current) await manualSaveCallback.current();
   }
 
@@ -1296,12 +1297,12 @@ export function ProductEditPageClient({
   const displayedSaveState = titleDraftDirty ? "pending" : saveState;
 
   return (
-    <EditorSurface presentation={presentation} backLabel="Товары" className={styles.productSurface}
+    <EditorSurface presentation={presentation} stickyHeader backLabel="Товары" className={styles.productSurface}
       title={<ProductEditableTitle value={title} disabled={contentControlsDisabled || creatingNextProduct} onChange={updateTitle} onDraftDirtyChange={setTitleDraftDirty}
         placeholder={presentation === "page" ? "Наименование товара" : undefined} invalid={Boolean(validationErrors.title)} errorId="product-title-error" />}
       headerMeta={product && <span className={styles.editorIdentity}><StatusBadge tone={getProductStatusTone(product.status)} size="regular">{formatProductStatus(product.status)}</StatusBadge>{presentation === "page" && brandName ? <span>{brandName}</span> : null}
         {autosaveAllowed && <span role="status" aria-live="polite" className={styles.saveStatus} data-state={displayedSaveState} title={saveState === "error" ? saveError : undefined}>
-          {displayedSaveState === "saving" ? "Сохраняем…" : displayedSaveState === "error" ? "Не удалось сохранить" : displayedSaveState === "manual" ? "Цены и остатки ожидают сохранения" : displayedSaveState === "saved" ? "Все изменения сохранены" : displayedSaveState === "pending" ? "Есть изменения" : productId ? "Все изменения сохранены" : "Черновик сохранится после первого изменения"}
+          {displayedSaveState === "saving" ? "Сохраняем…" : displayedSaveState === "error" ? "Не удалось сохранить" : displayedSaveState === "manual" ? "Цены и остатки не сохранены" : displayedSaveState === "saved" ? "Сохранено" : displayedSaveState === "pending" ? "Есть изменения" : productId ? "Сохранено" : "Нет изменений"}
         </span>}
       </span>}
       subtitle={validationErrors.title ? <span id="product-title-error" className="fieldError">Введите название товара</span> : presentation === "page" ? undefined : brandName}

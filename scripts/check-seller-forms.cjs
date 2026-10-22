@@ -49,7 +49,7 @@ assert.match(notificationChannelSource, /await controller\.savePreferences\(\)/)
 for (const section of ["legal", "contacts", "shipping", "bank"]) {
   assert.ok(sellerLegalSource.includes(`hidden={activeSection !== "${section}"}`));
 }
-assert.match(sellerLegalSource, /disabled=\{!dirty \|\| savingSection !== null \|\| busy\}/);
+assert.match(sellerLegalSource, /disabled=\{!dirty \|\| savingSection !== null \|\| busy(?: \|\| saveDisabled)?\}/);
 assert.match(legalSubmitSource, /selectSection\(invalidSection\)/);
 assert.equal(profileContactName({ displayName: "  Анна Петрова  ", firstName: "Другое" }), "Анна Петрова");
 assert.equal(profileContactName({ displayName: "", firstName: "Анна", lastName: "Петрова", middleName: "Игоревна" }), "Петрова Анна Игоревна");
@@ -140,94 +140,21 @@ const { ProductDescriptionEditor } = require("../app/seller/products/[id]/edit/c
 const { ProductDetailsAccordion } = require("../app/product/[id]/components/ProductDetailsAccordion.tsx");
 const compositionProps = { value: "▪ Хлопок — 95%\n▪ Эластан — 5%", onChange() {}, fieldName: "Состав", maxLength: 1000, emptyText: "Состав пока пустой" };
 const compositionEditor = render(ProductDescriptionEditor, compositionProps);
-assert.match(compositionEditor, /role="group" aria-label="Состав"/);
-assert.match(compositionEditor, /Добавить абзац/);
-assert.match(compositionEditor, /Добавить список/);
-const descriptionButtons = [...compositionEditor.matchAll(/<button\b[^>]*>[\s\S]*?<\/button>/g)].map(match => match[0]);
-function descriptionButton(label) {
-  const button = descriptionButtons.find(html => html.includes(`aria-label="${label}"`) || html.replace(/<[^>]*>/g, "") === label);
-  assert.ok(button, `Description action is available: ${label}`);
-  return button;
-}
-for (const label of ["Добавить абзац", "Добавить список", "Добавить пункт"]) {
-  assert.match(descriptionButton(label), /class="buttonSecondary(?:\s[^"]*)?"/);
-  assert.match(descriptionButton(label), /<svg\b[^>]*aria-hidden="true"/);
-}
-for (const label of ["Удалить блок 1", "Поднять пункт 1", "Опустить пункт 1", "Удалить пункт 1"]) {
-  assert.match(descriptionButton(label), /class="buttonGhost(?:\s[^"]*)?"/);
-  assert.match(descriptionButton(label), /<svg\b[^>]*aria-hidden="true"/);
-}
-assert.match(descriptionButton("Поднять пункт 1"), /disabled=""/);
-assert.doesNotMatch(descriptionButton("Опустить пункт 1"), /disabled=""/);
-assert.match(descriptionButton("Опустить пункт 2"), /disabled=""/);
-for (const html of descriptionButtons) assert.doesNotMatch(html.replace(/<[^>]*>/g, ""), /[↑↓×▪]/);
-assert.match(compositionEditor, /Предпросмотр в карточке товара/);
-assert.match(compositionEditor, /<li>Хлопок — 95%<\/li>/);
-assert.match(compositionEditor, /<li>Эластан — 5%<\/li>/);
+assert.match(compositionEditor, /aria-label="Состав"/);
+assert.match(compositionEditor, /aria-label="Список: Состав"/);
+assert.match(compositionEditor, /class="buttonGhost/);
+assert.match(compositionEditor, /<svg[^>]*aria-hidden="true"/);
+assert.doesNotMatch(compositionEditor, /Добавить абзац|Удалить блок|Предпросмотр в карточке товара/);
 assert.match(compositionEditor.replace(/<[^>]*>/g, ""), /\/ 1000/);
-assert.doesNotMatch(compositionEditor, /role="alert"/);
-assert.match(render(ProductDescriptionEditor, {...compositionProps, value: ""}), /Состав пока пустой/);
+assert.match(compositionEditor, /▪ Хлопок — 95%/);
 const longComposition = render(ProductDescriptionEditor, {...compositionProps, value: "я".repeat(1001)});
-assert.match(longComposition.replace(/<[^>]*>/g, ""), /Состав превышает лимит на 1 символов/);
+assert.match(longComposition, /Не больше 1000 символов/);
 assert.match(longComposition, /aria-invalid="true"/);
-assert.match(longComposition, /aria-describedby="([^"]+)"[\s\S]*id="\1"/);
-assert.match(longComposition, /я{1001}/); // No silent truncation, including legacy values.
-const defaultDescription = render(ProductDescriptionEditor, {value: "я".repeat(1001), onChange() {}});
-assert.doesNotMatch(defaultDescription, /role="alert"/);
+assert.match(longComposition, /я{1001}/); // Existing content is never silently truncated.
+const defaultDescription = render(ProductDescriptionEditor, { value: "я".repeat(1001), onChange() {} });
+assert.doesNotMatch(defaultDescription, /aria-invalid="true"/);
 assert.match(defaultDescription.replace(/<[^>]*>/g, ""), /\/ 2000/);
-
-// Exercise the actual description action handlers with isolated hook state, without API writes.
-{
-  const filename = path.resolve(__dirname, "../app/seller/products/[id]/edit/components/ProductDescriptionEditor.tsx");
-  const mod = new Module(filename, module);
-  mod.filename = filename; mod.paths = Module._nodeModulePaths(path.dirname(filename));
-  const originalRequire = mod.require.bind(mod);
-  const slots = [];
-  let cursor = 0;
-  let value = compositionProps.value;
-  const react = { useId: () => "description-actions", useState(initial) {
-    const index = cursor++;
-    if (!(index in slots)) slots[index] = typeof initial === "function" ? initial() : initial;
-    return [slots[index], next => { slots[index] = typeof next === "function" ? next(slots[index]) : next; }];
-  } };
-  mod.require = id => id === "react" ? react : originalRequire(id);
-  mod._compile(compile(filename), filename);
-  function textContent(node) {
-    if (Array.isArray(node)) return node.map(textContent).join("");
-    if (typeof node === "string" || typeof node === "number") return String(node);
-    return node?.props ? textContent(node.props.children) : "";
-  }
-  function action(label) {
-    cursor = 0;
-    const tree = mod.exports.ProductDescriptionEditor({ ...compositionProps, value, onChange: next => { value = next; } });
-    const buttons = [];
-    function visit(node) {
-      if (Array.isArray(node)) return node.forEach(visit);
-      if (!node?.props) return;
-      if (node.type?.name === "Button") buttons.push(node);
-      visit(node.props.children);
-    }
-    visit(tree);
-    const button = buttons.find(node => node.props["aria-label"] === label || textContent(node.props.children) === label);
-    assert.ok(button, `Description handler is available: ${label}`);
-    return button;
-  }
-  action("Опустить пункт 1").props.onClick();
-  assert.equal(value, "▪ Эластан — 5%\n▪ Хлопок — 95%", "Moving an item preserves its list type and text");
-  action("Поднять пункт 2").props.onClick();
-  assert.equal(value, compositionProps.value);
-  action("Удалить пункт 1").props.onClick();
-  assert.equal(value, "▪ Эластан — 5%");
-  action("Добавить пункт").props.onClick();
-  assert.equal(action("Удалить пункт 2").props.disabled, undefined, "A new empty list item remains editable in draft state");
-  action("Добавить абзац").props.onClick();
-  assert.ok(action("Удалить блок 2"), "The paragraph action adds a separate editable block");
-  action("Удалить блок 2").props.onClick();
-  action("Добавить список").props.onClick();
-  action("Удалить блок 2").props.onClick();
-  action("Удалить блок 1").props.onClick();
-  assert.equal(value, "", "Deleting the last block clears serialized content");
-}
+// Real selection/list toggling, focus, save and refresh are covered by check-product-form-redesign.cjs.
 const details = render(ProductDetailsAccordion, {product: {id: 7, description: "Описание", composition: compositionProps.value},
   selectedVariant: null, openComposition: true, openBrand: false, onToggleComposition() {}, onToggleBrand() {}, isSellerView: false});
 assert.match(details, /<li>Хлопок — 95%<\/li>/);
@@ -238,11 +165,12 @@ const variantProps = { variants: [{ id: 1, sizeId: "", size: "M", colorId: "", c
   uploading: false, reordering: false, mediaDisabled: false, variantStructureDisabled: false, operationalDisabled: false,
   uploadProgress: { done: 0, total: 1 } };
 const variants = render(ProductVariantsCard, variantProps);
-for (const message of ["Проверьте общую цену цвета", "Размер повторяется", "Количество не может быть отрицательным"]) assert.ok(variants.includes(message));
-assert.match(variants, /<label class="label" for="[^"]+-0-quantity">На складе/);
-assert.match(variants, /aria-describedby="[^"]+-0-price-hint"/);
-assert.match(variants, /class="buttonGhost [^"]*" aria-label="Добавить размер: без цвета"/);
-assert.doesNotMatch(variants, /Файлы фотографий товара|Выбрать фото/);
+for (const message of ["Укажите одну цену больше нуля", "Размер повторяется", "Введите целое количество от 0"]) assert.ok(variants.includes(message));
+assert.match(variants, /Учитывать остатки/);
+assert.match(variants, /aria-describedby="[^"]+-price-error"/);
+assert.match(variants, /aria-label="На складе:/);
+assert.match(variants, /Добавить размер/);
+assert.doesNotMatch(variants, /Пусто — без учёта|Цена цвета/);
 assert.match(render(ProductPhotoEditor, variantProps), /Для модерации нужно от 3 до 10 фото товара/);
 const uploading = render(ProductPhotoEditor, { ...variantProps, uploading: true, mediaDisabled: true });
 assert.match(uploading, /data-loading="true"/);

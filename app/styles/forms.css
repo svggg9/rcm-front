@@ -202,15 +202,15 @@
 }
 
 /* Approved field roles. Shared primitives own their appearance, not page overrides. */
-.appShell [data-ui="field"] { gap: 4px; color: var(--black); font-size: 12px; line-height: 15px; font-weight: 400; }
-.appShell [data-ui="field"] > :is(.label, span:first-child) { color: var(--black); font-size: 12px; line-height: 15px; font-weight: 400; }
+.appShell [data-ui="field"] { gap: var(--field-gap, 4px); color: var(--black); font-size: 12px; line-height: 15px; font-weight: 400; }
+.appShell [data-ui="field"] > :is(.label, span:first-child) { color: var(--black); font-size: var(--field-label-size, 12px); line-height: var(--field-label-line-height, 15px); font-weight: var(--field-label-weight, 400); }
 .appShell [data-ui="field"] > small { color: var(--black); font-size: 15px; line-height: 21px; font-weight: 300; }
 .appShell [data-ui="field"] > :is(input, textarea, select, .phoneInputShell),
-.appShell [data-ui="field"] > div:has(> [role="combobox"]) { border: 1px solid var(--select-border-color, var(--black)); border-radius: 0; background: var(--white); }
+.appShell [data-ui="field"] > div:has(> [role="combobox"]) { border: 1px solid var(--field-control-border-color, var(--select-border-color, var(--black))); border-radius: var(--field-control-radius, 0); background: var(--field-control-background, var(--white)); }
 .appShell [data-ui="field"] > :is(input, textarea, select, .phoneInputShell):not(:disabled):not(.inputError):hover,
 .appShell [data-ui="field"] > div:has(> [role="combobox"]:not(:disabled):not([aria-invalid="true"])):hover { background: var(--surface-hover); }
 .appShell [data-ui="field"] :is(input, textarea, select, [role="combobox"], [role="option"], .phoneInputPrefix),
-.appShell [data-ui="field"] :is([role="combobox"], [role="option"]) > span:first-child { color: var(--black); font-family: inherit; font-size: 14px; line-height: 21px; font-weight: 400; letter-spacing: normal; }
+.appShell [data-ui="field"] :is([role="combobox"], [role="option"]) > span:first-child { color: var(--black); font-family: inherit; font-size: var(--field-control-size, 14px); line-height: var(--field-control-line-height, 21px); font-weight: 400; letter-spacing: normal; }
 .appShell [data-ui="field"] > :is(input, textarea, select):focus-visible,
 .appShell [data-ui="field"] > :is(.phoneInputShell, div):has(> [role="combobox"]:focus-visible, > input:focus-visible) { outline: 1px solid var(--black); outline-offset: 2px; }
 .appShell [data-ui="field"] > :is([aria-invalid="true"], .inputError),
@@ -253,3 +253,7 @@
 .appShell [data-ui="field"][data-field-variant="inline"] > :is(input, .phoneInputShell):is(.inputError, [aria-invalid="true"], :has([aria-invalid="true"])) { border-bottom-color: var(--danger); }
 .appShell [data-ui="field"][data-field-variant="inline"] > input:is(.inputError, [aria-invalid="true"]):focus-visible,
 .appShell [data-ui="field"][data-field-variant="inline"] > .phoneInputShell:has(> input[aria-invalid="true"]:focus-visible) { outline: 1px solid var(--danger); outline-offset: 2px; }
+/* Optional comfortable controls. Forms opt in with inherited design tokens. */
+.appShell [data-ui="field"] > :is(input, textarea, select, .phoneInputShell) { min-height: var(--field-control-height, 0); }
+.appShell [data-ui="field"] > div:has(> [role="combobox"][aria-expanded="true"]) { border-radius: var(--field-control-radius, 0) var(--field-control-radius, 0) 0 0; }
+.appShell [data-ui="field"] > div:has(> [role="combobox"]) > [role="listbox"] { border-radius: 0 0 var(--field-control-radius, 0) var(--field-control-radius, 0); }

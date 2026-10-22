@@ -5,9 +5,7 @@ const path = require("node:path");
 const http = require("node:http");
 const { spawn, spawnSync } = require("node:child_process");
 const { chromium } = require(process.env.PLAYWRIGHT_PATH || "playwright");
-const frontendPort = Number(process.env.RCM_AUTOSAVE_FRONTEND_PORT || 13065);
-const apiPort = Number(process.env.RCM_AUTOSAVE_API_PORT || 19665);
-const origin = `http://localhost:${frontendPort}`, api = `http://localhost:${apiPort}`;
+const origin = "http://localhost:13065", api = "http://localhost:19665";
 const output = path.resolve("build/product-autosave-check");
 fs.mkdirSync(output, { recursive: true });
 const calls = [], products = new Map(), creationKeys = new Map();
@@ -36,9 +34,12 @@ function apply(product, values) {
     colorways: variants.map(item => ({ id: item.colorwayId, color: item.color, images: [] })) };
 }
 products.set(400, { ...draft(400), title: "Опубликованный товар", status: "ACTIVE",
-  variants: [{ id: 40001, colorwayId: 4001, sku: "live-sku", size: "M", color: "Белый", price: 100, stockQuantity: 5, availableQuantity: 5, stockTrackingEnabled: true }] });
+  variants: [{ id: 40001, colorwayId: 4001, sku: "live-sku", size: "M", color: "Белый", price: 100, stockQuantity: 5, availableQuantity: 5, stockTrackingEnabled: true },
+    { id: 40002, colorwayId: 4002, sku: "live-black", size: "L", color: "Чёрный", price: 100, stockQuantity: 3, availableQuantity: 3, stockTrackingEnabled: true }] });
 products.set(401, { ...products.get(400), id: 401, status: "DRAFT", revisionSourceId: 400,
-  variants: [{ ...products.get(400).variants[0], id: 40101 }] });
+  variants: products.get(400).variants.map((variant, index) => ({ ...variant, id: 40101 + index })) });
+products.set(402, { ...products.get(401), id: 402,
+  variants: products.get(401).variants.map((variant, index) => ({ ...variant, id: 40201 + index, price: index ? 200 : 100 })) });
 const server = http.createServer(async (req, res) => {
   const url = new URL(req.url, api);
   res.setHeader("Access-Control-Allow-Origin", origin);
@@ -81,6 +82,7 @@ const server = http.createServer(async (req, res) => {
     const product = products.get(id);
     if (req.method === "PUT") {
       if (values.expectedVersion !== product.version) { res.statusCode = 409; return res.end(JSON.stringify({ message: "Карточка изменилась — обновите её перед сохранением" })); }
+      if (values.variants.some(variant => variant.price !== values.variants[0].price)) { res.statusCode = 400; return res.end(JSON.stringify({ message: 'У всех вариантов и размеров товара должна быть одинаковая цена' })); }
       products.set(id, apply(product, values));
     }
     data = products.get(id);
@@ -107,8 +109,8 @@ async function waitUntil(predicate) {
   while (!predicate()) { if (Date.now() > until) throw new Error("Fixture condition timed out"); await new Promise(resolve => setTimeout(resolve, 50)); }
 }
 async function main() {
-  await new Promise(resolve => server.listen(apiPort, resolve));
-  const child = spawn(process.execPath, [require.resolve("next/dist/bin/next"), "dev", "--webpack", "-p", String(frontendPort)], {
+  await new Promise(resolve => server.listen(19665, resolve));
+  const child = spawn(process.execPath, [require.resolve("next/dist/bin/next"), "dev", "--webpack", "-p", "13065"], {
     windowsHide: true, env: { ...process.env, RCM_TEST_DIST_DIR: "build/product-autosave-next", SERVER_API_URL: api, NEXT_PUBLIC_API_URL: api, NEXT_PUBLIC_SITE_URL: origin },
     stdio: ["ignore", "pipe", "pipe"],
   });
@@ -199,8 +201,14 @@ async function main() {
     await description.fill("Новое описание опубликованного товара"); await description.press("Tab");
     await waitUntil(() => products.get(401).description === "Новое описание опубликованного товара");
     assert.equal(await price.inputValue(), "150", "Pending manual price is preserved through content autosave");
+    await page.getByRole('button', { name: 'Добавить оттенок', exact: true }).click();
+    await page.getByRole('region', { name: 'Вариант 3', exact: true }).getByRole('textbox', { name: /Название оттенка/ }).fill('Красный');
+    await page.keyboard.press('Tab');
+    await waitUntil(() => products.get(401).variants.length === 3);
+    assert.ok(products.get(401).variants.every(variant => variant.price === 100), 'Content autosave keeps one old price for existing and newly added shades');
+    assert.equal(await price.inputValue(), '150', 'New shades keep the pending common price in the editor');
     await form(page).getByRole("button", { name: "Сохранить цены и остатки" }).click(); await saved(page);
-    assert.equal(products.get(401).variants[0].price, 150);
+    assert.ok(products.get(401).variants.every(variant => variant.price === 150), 'Explicit save applies the common price to every shade');
     for (const width of [320, 390, 1280]) {
       await page.setViewportSize({ width, height: 950 });
       assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false, "No overflow at " + width);
@@ -220,8 +228,18 @@ async function main() {
     await activeEditor.getByRole("button", { name: "Закрыть редактор", exact: true }).click();
     await page.waitForURL(url => url.pathname === "/seller/products");
     assert.deepEqual(errors, []);
-    fs.writeFileSync(path.join(output, "result.json"), JSON.stringify({ passed: true, created: createdCount(), errors, completedAt: new Date().toISOString() }, null, 2));
     console.log("PASS: revision content autosave and explicit prices/stock, 320/390/1280, no browser errors; fixture only");
+    await page.goto(origin + '/seller/products/402/create'); await form(page).waitFor();
+    const legacyPrice = page.getByRole('textbox', { name: 'Цена товара', exact: true });
+    assert.equal(await legacyPrice.inputValue(), '');
+    await legacyPrice.fill('180'); await legacyPrice.press('Tab');
+    await form(page).locator('[data-state="error"]').waitFor();
+    assert.deepEqual(products.get(402).variants.map(variant => variant.price), [100, 200], 'Autosave never silently normalizes legacy prices');
+    await form(page).getByRole('button', { name: 'Повторить сохранение', exact: true }).click(); await saved(page);
+    assert.ok(products.get(402).variants.every(variant => variant.price === 180), 'Explicit save resolves legacy prices even when the content autosave is rejected');
+    assert.deepEqual(errors, []);
+    console.log('PASS: legacy revision prices can be explicitly unified after a rejected content autosave');
+    fs.writeFileSync(path.join(output, "result.json"), JSON.stringify({ passed: true, created: createdCount(), errors, legacyPriceResolution: true, completedAt: new Date().toISOString() }, null, 2));
   } catch (error) {
     if (browser) for (const context of browser.contexts()) for (const page of context.pages()) await page.screenshot({ path: path.join(output, "failure.png"), fullPage: true }).catch(() => {});
     console.error(logs.slice(-2000)); throw error;

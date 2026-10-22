@@ -36,8 +36,9 @@ const server = http.createServer(async (req, res) => {
     request = { ...request, status: "INSPECTED", approvedRefundAmount: values.acceptedRefundAmount, sellerComment: values.comment, resellable: values.resellable };
     data = request;
   } else if (url.pathname === "/api/seller/dashboard/tasks") data = { content: [], hasNext: false, number: 0 };
-  else if (url.pathname === "/api/seller/finance/summary") data = { availableAmount: 0, processingAmount: 0, inPayoutAmount: 0, failedPayoutAmount: 0, nextPayoutAmount: 0, reconciliationDifference: 0, operations: [], nextPayout: null, nextPayoutDate: null, bankDetailsReady: true, paidThisMonthAmount: 0, estimatedBalance: 0, salesAmount: 0, commissionAmount: 0, adjustmentsAmount: 0, paidOutAmount: 0 };
-  else if (url.pathname === "/api/seller/finance/payouts" || url.pathname === "/api/seller/finance/operations") data = { content: [], totalElements: 0, totalPages: 0, number: 0 };
+  else if (url.pathname === "/api/seller/finance/summary") data = { availableAmount: 0, processingAmount: 0, inPayoutAmount: 0, failedPayoutAmount: 0, nextPayoutAmount: 0, reconciliationDifference: 0, operations: [], payouts: [], nextPayout: null, nextPayoutDate: null, bankDetailsReady: true, paidThisMonthAmount: 0, estimatedBalance: 0, salesAmount: 0, commissionAmount: 0, adjustmentsAmount: 0, paidOutAmount: 0 };
+  else if (url.pathname === "/api/seller/finance/payouts") data = { content: [], totalElements: 0, totalPages: 0, number: 0 };
+  else if (url.pathname === "/api/seller/finance/operations") data = { content: [{ id: 900, type: "SALE", direction: "CREDIT", amount: 500, grossAmount: 500, commissionAmount: 0, currency: "RUB", createdAt: "2026-10-22T10:00:00Z" }], totalElements: 21, totalPages: 2, number: Number(url.searchParams.get("page") || 0) };
   else if (url.pathname === "/api/seller/dashboard-summary") data = { activeProducts: 0, attentionProducts: 0, totalProducts: 0, readyOrders: 0, activeOrders: 0, totalOrders: 0, estimatedBalance: 0, salesAmount: 0, commissionAmount: 0, availablePayout: 0, processingPayout: 0, inPayoutAmount: 0, failedPayouts: 0, telegramLinked: false, supportTelegramUrl: null, recentEvents: [] };
   else if (url.pathname === "/api/cart") data = { items: [] };
   res.end(JSON.stringify(data));
@@ -146,6 +147,7 @@ async function main() {
       ? { headless: true, executablePath: process.env.PLAYWRIGHT_EXECUTABLE_PATH }
       : { headless: true, channel: "msedge" });
     page = await browser.newPage({ viewport: { width: 1280, height: 900 } });
+    fs.mkdirSync(path.resolve(__dirname, "../build/navigation-screenshots"), { recursive: true });
     page.on("pageerror", e => errors.push(e.message));
     const sections = [
       { path: "/seller/home", label: "Обзор магазина" }, { path: "/seller/products", label: "Товары" },
@@ -156,8 +158,7 @@ async function main() {
     const permanentSubsections = [
       ["Главная", "/seller/home"], ["Товары", "/seller/products"],
       ["Подборки", "/seller/products?section=collections"], ["Заказы", "/seller/orders"],
-      ["Возвраты", "/seller/returns"], ["Обзор финансов", "/seller/finance"],
-      ["Операции", "/seller/finance?view=operations"], ["Выплаты", "/seller/finance?view=payouts"],
+      ["Возвраты", "/seller/returns"], ["Финансы", "/seller/finance"],
       ["Магазин", "/seller/store"], ["Данные и документы", "/seller/legal"],
     ];
     for (const section of sections) {
@@ -185,23 +186,56 @@ async function main() {
         `Reload should preserve ${section.path}`);
     }
     for (const [legacy, canonical] of [["/seller", "/seller/home"], ["/seller?tab=products&section=collections", "/seller/products?section=collections"],
-      ["/seller?tab=orders", "/seller/orders"], ["/seller?tab=finance&view=payouts", "/seller/finance?view=payouts"]]) {
+      ["/seller?tab=orders", "/seller/orders"], ["/seller?tab=finance&view=payouts", "/seller/finance?view=payouts"],
+      ["/seller?tab=finance&view=operations&orderId=10", "/seller/finance?view=operations&orderId=10"]]) {
       await page.goto(origin + legacy);
       await page.waitForURL(url => url.pathname + url.search === canonical);
       assert.equal(page.url().replace(origin, ""), canonical, `Legacy route ${legacy} should redirect to ${canonical}`);
     }
     for (const [route, primary] of [["/seller/products?section=collections", "/seller/products"],
-      ["/seller/finance?view=operations", "/seller/finance"], ["/seller/finance?view=payouts", "/seller/finance"]]) {
+      ["/seller/finance?view=operations", "/seller/finance"], ["/seller/finance?view=payouts", "/seller/finance"],
+      ["/seller/finance?view=operations&orderId=10", "/seller/finance"]]) {
       await page.goto(origin + route);
       const primaryNavigation = page.getByRole("navigation", { name: "Меню продавца" });
       const secondaryNavigation = page.getByRole("navigation", { name: "Подразделы кабинета" });
       await primaryNavigation.waitFor();
       assert.equal(await primaryNavigation.locator('[aria-current="page"]').getAttribute("href"), primary);
-      assert.equal(await secondaryNavigation.locator('[aria-current="page"]').getAttribute("href"), route);
+      const secondaryHref = route.startsWith("/seller/finance") ? "/seller/finance" : route;
+      assert.equal(await secondaryNavigation.locator('[aria-current="page"]').getAttribute("href"), secondaryHref);
       assert.deepEqual(await secondaryNavigation.getByRole("link").evaluateAll(links => links.map(link => [link.textContent, link.getAttribute("href")])), permanentSubsections);
+      if (route.startsWith("/seller/finance")) {
+        const label = route.includes("operations") ? "Операции" : "Выплаты";
+        assert.equal(await page.getByRole("tablist", { name: "Разделы финансов" }).getByRole("tab", { name: label, exact: true }).getAttribute("aria-selected"), "true");
+      }
       await page.reload();
-      assert.equal(await secondaryNavigation.locator('[aria-current="page"]').getAttribute("href"), route, "Refresh keeps the selected permanent subsection");
+      assert.equal(await secondaryNavigation.locator('[aria-current="page"]').getAttribute("href"), secondaryHref, "Refresh keeps the selected permanent subsection");
     }
+    await page.goto(origin + "/seller/finance");
+    await page.getByRole("heading", { name: "Финансы", exact: true }).waitFor();
+    const financeTabs = page.getByRole("tablist", { name: "Разделы финансов" });
+    await financeTabs.getByRole("tab", { name: "Операции", exact: true }).click();
+    await page.waitForURL(origin + "/seller/finance?view=operations");
+    await page.getByRole("heading", { name: "Операции", exact: true }).waitFor();
+    await page.getByLabel("Номер заказа", { exact: true }).fill("10");
+    await page.getByRole("button", { name: "Показать", exact: true }).click();
+    await page.waitForURL(origin + "/seller/finance?view=operations&orderId=10");
+    await page.getByRole("navigation", { name: "Страницы финансов" }).getByRole("link", { name: "Далее", exact: true }).click();
+    await page.waitForURL(origin + "/seller/finance?view=operations&orderId=10&page=1");
+    assert.equal(await page.getByRole("dialog").count(), 0, "Finance pagination with orderId must not open an order panel");
+    await financeTabs.getByRole("tab", { name: "Выплаты", exact: true }).click();
+    await page.waitForURL(origin + "/seller/finance?view=payouts");
+    await page.getByRole("heading", { name: "Выплаты", exact: true }).waitFor();
+    await page.goBack();
+    await page.waitForURL(origin + "/seller/finance?view=operations&orderId=10&page=1");
+    assert.equal(await page.getByLabel("Номер заказа", { exact: true }).inputValue(), "10", "Back restores finance view and operation filters");
+    await page.reload();
+    assert.equal(await financeTabs.getByRole("tab", { name: "Операции", exact: true }).getAttribute("aria-selected"), "true");
+    assert.equal(await page.getByLabel("Номер заказа", { exact: true }).inputValue(), "10");
+    assert.equal(calls.filter(p => p === "/api/seller/orders/10").length, 0, "Finance order filter must not load order details");
+    await financeTabs.getByRole("tab", { name: "Обзор", exact: true }).click();
+    await page.waitForURL(origin + "/seller/finance");
+    await page.getByRole("heading", { name: "Обзор финансов", exact: true }).waitFor();
+    await page.screenshot({ path: "build/navigation-screenshots/finance-1280.png", fullPage: true });
     await page.goto(origin + "/seller/home");
     const permanentNavigation = page.getByRole("navigation", { name: "Подразделы кабинета" });
     await permanentNavigation.getByRole("link", { name: "Возвраты", exact: true }).click();
@@ -255,19 +289,33 @@ async function main() {
       await page.goto(origin + "/seller/finance?view=payouts");
       await page.waitForLoadState("networkidle");
       const secondary = page.getByRole("navigation", { name: "Подразделы кабинета" });
-      const payouts = secondary.getByRole("link", { name: "Выплаты", exact: true });
-      assert.equal(await payouts.getAttribute("aria-current"), "page");
-      await assertLinkVisible(page, payouts, `Third finance subsection at ${width}`);
+      const finance = secondary.getByRole("link", { name: "Финансы", exact: true });
+      assert.equal(await finance.getAttribute("aria-current"), "page");
+      await assertLinkVisible(page, finance, `Combined finance subsection at ${width}`);
       await assertAlignedNavigation(secondary, `Finance subsections at ${width}`, false);
       await page.reload();
       await page.waitForLoadState("networkidle");
-      await assertLinkVisible(page, payouts, `Reloaded third finance subsection at ${width}`);
+      await assertLinkVisible(page, finance, `Reloaded combined finance subsection at ${width}`);
+      const tabs = page.getByRole("tablist", { name: "Разделы финансов" });
+      await tabs.getByRole("tab", { name: "Выплаты", exact: true }).focus();
+      await page.keyboard.press("Home");
+      await page.waitForURL(origin + "/seller/finance");
+      await page.keyboard.press("ArrowRight");
+      await page.waitForURL(origin + "/seller/finance?view=operations");
+      await page.getByRole("heading", { name: "Операции", exact: true }).waitFor();
+      assert.equal(await tabs.getByRole("tab", { name: "Операции", exact: true }).evaluate(node => node === document.activeElement), true);
+      await page.keyboard.press("End");
+      await page.waitForURL(origin + "/seller/finance?view=payouts");
+      await page.getByRole("heading", { name: "Выплаты", exact: true }).waitFor();
+      await page.screenshot({ path: `build/navigation-screenshots/finance-${width}.png`, fullPage: true });
       await assertKeyboardNavigation(page, secondary, `Secondary navigation at ${width}`, true);
       await page.evaluate(() => document.activeElement.blur());
       assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
       await saveNavigationScreenshot(page, width);
     }
     console.log("PASS: seller header navigation starts at its left edge with active underlines and no counters; active/edge links, keyboard focus and unchanged page scroll at 390/320; navigation screenshots saved");
+    console.log("PASS: one finance navigation item, internal views, operation filters/back/reload and finance keyboard tabs at 1280/390/320");
+    if (process.argv.includes("--navigation-only")) return;
 
     await page.setViewportSize({ width: 1280, height: 900 });
     await page.goto(origin + "/seller/orders");

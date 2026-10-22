@@ -26,7 +26,7 @@ const { ProductVariantsCard } = load("app/seller/products/[id]/edit/components/P
   "react/jsx-runtime": { jsx, jsxs: jsx, Fragment: "fragment" },
   "./VariantNumberInput": { VariantNumberInput: "number-input" },
   "../../../../../components/ui/Button": { Button: "button" },
-  "../../../../../components/ui/Icon": { Icon: "icon" },
+  "../../../../../components/ui/DesignSystemIcon": { DesignSystemIcon: "icon" },
   "../utils": utils,
   "../ProductEditPage.module.css": { default: {} },
 });
@@ -51,30 +51,36 @@ function render(variants) {
 const variants = [
   { groupKey: "black", color: "Черный", size: "S", price: 100, availableQuantity: 3 },
   { groupKey: "black", color: "Черный", size: "M", price: 100, availableQuantity: 1 },
-  { groupKey: "red", color: "Красный", size: "S", price: 200, availableQuantity: 2 },
+  { groupKey: "red", color: "Красный", size: "S", price: 100, availableQuantity: 2 },
 ];
-assert.equal(utils.inconsistentColorPriceIndexes(variants).size, 0);
+assert.equal(utils.inconsistentProductPriceIndexes(variants).size, 0);
 let result = render(variants);
-let prices = result.nodes.filter(n => n.type === "number-input" && n.props["aria-label"]?.startsWith("Цена цвета:"));
-assert.equal(prices.length, 2, "one price input per color");
+let prices = result.nodes.filter(n => n.type === "number-input" && n.props["aria-label"] === "Цена товара");
+assert.equal(prices.length, 1, "one price input for the product");
 prices[0].props.onValue(150);
-assert.deepEqual(result.updates.map(u => u.index), [0, 1], "changing black price updates every black size only");
+assert.deepEqual(result.updates.map(u => u.index), [0, 1, 2], "changing product price updates every color and size");
 assert.ok(result.updates.every(u => u.patch.price === 150));
+result.nodes.find(n => n.type === "button" && Array.isArray(n.props.children) && n.props.children.includes("Добавить оттенок")).props.onClick();
+assert.equal(result.added[0].price, 100, "A new shade inherits the common product price");
 
 const mixed = variants.map((v, i) => ({ ...v, price: i === 1 ? 120 : v.price }));
-assert.deepEqual([...utils.inconsistentColorPriceIndexes(mixed)], [0, 1]);
+assert.deepEqual([...utils.inconsistentProductPriceIndexes(mixed)], [0, 1, 2]);
+const mixedColors = variants.map((v, index) => ({ ...v, price: index === 2 ? 200 : v.price }));
+assert.deepEqual([...utils.inconsistentProductPriceIndexes(mixedColors)], [0, 1, 2], "different colors cannot have different prices");
+assert.equal(utils.inconsistentProductPriceIndexes([]).size, 0);
 result = render(mixed);
-prices = result.nodes.filter(n => n.type === "number-input" && n.props["aria-label"]?.startsWith("Цена цвета:"));
+prices = result.nodes.filter(n => n.type === "number-input" && n.props["aria-label"] === "Цена товара");
 assert.equal(prices[0].props.value, null, "legacy mismatches do not silently choose a price");
 assert.equal(prices[0].props["aria-invalid"], true);
 assert.equal(result.updates.length, 0, "rendering does not normalize stored prices");
 prices[0].props.onValue(180);
 assert.ok(result.updates.every(u => u.patch.price === 180));
-assert.equal(result.updates.length, 2);
-console.log("Color pricing checks passed: grouping, price propagation, separate colors, explicit legacy resolution");
+assert.equal(result.updates.length, 3);
+console.log("Product pricing checks passed: one field, all colors/sizes, explicit legacy resolution");
 
 const savedWithoutGroupKey = [{id: 1, colorwayId: 7, color: "Черный", size: "S", price: 100, availableQuantity: 2}];
 result = render(savedWithoutGroupKey);
-result.nodes.find(n => n.props?.["aria-label"] === "Добавить размер: Черный").props.onClick();
+result.nodes.find(n => n.type === "button" && Array.isArray(n.props.children) && n.props.children.includes("Добавить размер")).props.onClick();
 assert.equal(result.added.length, 1);
+assert.equal(result.added[0].price, 100, "A new size inherits the common product price");
 assert.equal(utils.variantColorGroupKey(result.added[0]), utils.variantColorGroupKey(savedWithoutGroupKey[0]), "new size retains saved color grouping");

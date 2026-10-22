@@ -37,17 +37,8 @@ export function variantColorGroupKey(variant: ProductVariant): string {
   return variant.groupKey || String(variant.colorwayId ?? (variant.colorId || variant.color.trim().toLowerCase()));
 }
 
-export function inconsistentColorPriceIndexes(variants: ProductVariant[]): Set<number> {
-  const groups = new Map<string, number[]>();
-  variants.forEach((variant, index) => {
-    const key = variantColorGroupKey(variant);
-    groups.set(key, [...(groups.get(key) ?? []), index]);
-  });
-  const inconsistent = new Set<number>();
-  for (const indexes of groups.values()) {
-    if (indexes.some(index => !Object.is(variants[index].price, variants[indexes[0]].price))) {
-      indexes.forEach(index => inconsistent.add(index));
-    }
-  }
-  return inconsistent;
+export function inconsistentProductPriceIndexes(variants: ProductVariant[]): Set<number> {
+  return variants.some(variant => variant.price !== variants[0].price)
+    ? new Set(variants.map((_, index) => index))
+    : new Set();
 }

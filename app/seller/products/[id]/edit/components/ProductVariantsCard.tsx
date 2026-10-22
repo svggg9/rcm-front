@@ -2,7 +2,7 @@ import { useId } from "react";
 import { VariantNumberInput } from "./VariantNumberInput";
 import { Button } from "../../../../../components/ui/Button";
 import { DesignSystemIcon as Icon } from "../../../../../components/ui/DesignSystemIcon";
-import { variantColorGroupKey, inconsistentColorPriceIndexes } from "../utils";
+import { variantColorGroupKey, inconsistentProductPriceIndexes } from "../utils";
 import type { ProductVariant } from "../types";
 import styles from "../ProductEditPage.module.css";
 
@@ -22,9 +22,16 @@ export function ProductVariantsCard({ countInvalid, variants, validationErrors, 
   const id = useId();
   const base = variants[0];
   const groups = Array.from(new Set(variants.map(variantColorGroupKey))).map(key => ({ key, rows: variants.map((variant, index) => ({ variant, index })).filter(row => variantColorGroupKey(row.variant) === key) }));
-  const mixedPrices = inconsistentColorPriceIndexes(variants);
+  const mixedPrices = inconsistentProductPriceIndexes(variants).size > 0;
+  const priceError = mixedPrices || variants.some((_, index) => validationErrors[index]?.price);
   return <section id="product-variants" className={styles.card} aria-label="Варианты товара">
-    <p className={styles.sectionIntro}>Один оттенок — одна цена и свои фотографии. Добавьте размеры, если они есть</p>
+    <p className={styles.sectionIntro}>Одна цена для всех оттенков и размеров товара</p>
+    {base && <label className={styles.field}><span>Цена товара, ₽</span>
+      <VariantNumberInput className={styles.input} value={mixedPrices ? null : base.price || null} disabled={operationalDisabled} placeholder="0" aria-label="Цена товара"
+        aria-invalid={priceError || undefined} aria-describedby={`${id}-price-hint${priceError ? ` ${id}-price-error` : ""}`} onValue={price => variants.forEach((_, index) => onUpdateVariant(index, { price: price ?? 0 }))} />
+      <small id={`${id}-price-hint`} className={styles.fieldHint}>Изменение цены применяется ко всем вариантам и размерам</small>
+      {priceError && <span id={`${id}-price-error`} className="fieldError">{mixedPrices ? "У товара разные цены — укажите общую цену для всех вариантов и размеров" : "Укажите одну цену больше нуля для всего товара"}</span>}
+    </label>}
     {countInvalid && <p className="fieldError" data-validation-error="true">Добавьте хотя бы один вариант товара</p>}
     <div className={styles.variantSizeList}>
       {groups.map((group, groupIndex) => {
@@ -33,7 +40,6 @@ export function ProductVariantsCard({ countInvalid, variants, validationErrors, 
         const mixedTracking = !tracking && group.rows.some(row => row.variant.stockTrackingEnabled);
         const changeGroup = (patch: Partial<ProductVariant>) => group.rows.forEach(row => onUpdateVariant(row.index, patch));
         const colorError = group.rows.some(row => validationErrors[row.index]?.colorId);
-        const priceError = mixedPrices.has(first.index) || group.rows.some(row => validationErrors[row.index]?.price);
         return <section key={group.key} className={styles.variantColorGroup} aria-label={`Вариант ${groupIndex + 1}`}>
           <div className={styles.variantGroupHeader}><h3>{first.variant.color.trim() || `Вариант ${groupIndex + 1}`}</h3>
             {onOpenPhotos && <Button type="button" variant="ghost" disabled={variantStructureDisabled} onClick={() => onOpenPhotos(group.key)}>Фото оттенка</Button>}
@@ -43,11 +49,6 @@ export function ProductVariantsCard({ countInvalid, variants, validationErrors, 
               <input className={styles.input} disabled={variantStructureDisabled} value={first.variant.color} maxLength={64} placeholder="Например, молочный" aria-invalid={colorError || undefined}
                 aria-describedby={colorError ? `${id}-${groupIndex}-color-error` : undefined} onChange={event => changeGroup({ color: event.target.value, colorId: "" })} />
               {colorError && <span id={`${id}-${groupIndex}-color-error`} className="fieldError">Этот оттенок уже есть — добавьте размеры в его группу</span>}
-            </label>
-            <label className={styles.field}><span>Цена, ₽</span>
-              <VariantNumberInput className={styles.input} value={mixedPrices.has(first.index) ? null : first.variant.price || null} disabled={operationalDisabled} placeholder="0" aria-label={`Цена: ${first.variant.color || `вариант ${groupIndex + 1}`}`}
-                aria-invalid={priceError || undefined} aria-describedby={priceError ? `${id}-${groupIndex}-price-error` : undefined} onValue={price => changeGroup({ price: price ?? 0 })} />
-              {priceError && <span id={`${id}-${groupIndex}-price-error`} className="fieldError">Укажите одну цену больше нуля для всех размеров</span>}
             </label>
           </div>
           <label className={styles.stockToggle}><input type="checkbox" checked={tracking} ref={element => { if (element) element.indeterminate = mixedTracking; }} disabled={operationalDisabled}

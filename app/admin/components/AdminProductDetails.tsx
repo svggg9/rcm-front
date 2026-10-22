@@ -12,6 +12,7 @@ import { FormSelect } from "../../components/ui/FormSelect";
 import { TextInput } from "../../components/ui/TextInput";
 import { RequestError } from "../../components/ui/RequestError";
 import { eligibleCategoryParents, normalizeCategories } from "../../lib/categories";
+import { AdminProductColors } from "./AdminProductColors";
 
 type Props = {
   product: AdminProduct;
@@ -26,6 +27,7 @@ type Props = {
     categoryName?: string;
     parentId?: number | null;
   }) => Promise<void>;
+  onAssignColor?: (groupId: number, colorId: number | null, expectedName: string | null) => Promise<void>;
   onApprove: () => void;
   onReturnToRevision: (comment: string) => void;
   onBlock: () => void;
@@ -84,6 +86,7 @@ export function AdminProductDetails({
   actionProductId,
   onBack,
   onAssignCategory,
+  onAssignColor,
   onApprove,
   onReturnToRevision,
   onBlock,
@@ -227,6 +230,7 @@ export function AdminProductDetails({
               Варианты
             </h2>
 
+            {onAssignColor && <AdminProductColors key={product.id} product={product} disabled={loading || assigning} onAssign={onAssignColor} />}
             <div className={styles.variantList}>
               {product.variants?.length ? (
                 product.variants.map((variant) => (

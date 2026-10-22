@@ -2,6 +2,7 @@
 
 import { Loader } from "../../components/ui/Loader";
 import { useEffect, useRef, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 
 import { Button } from "../../components/ui/Button";
 import { CabinetPanel } from "../../components/ui/CabinetPanel";
@@ -20,6 +21,7 @@ import {
 import type { PageResponse } from "../types";
 import { AdminContactReplies, EMPTY_CONTACT_REPLY_DRAFT, type ContactReplyDraft } from "./AdminContactReplies";
 import styles from "./AdminContactsTab.module.css";
+import { AdminSupportChats } from "./AdminSupportChats";
 
 type Filter = ContactMessageStatus | "ALL";
 
@@ -45,6 +47,25 @@ function formatDate(value: string) {
 }
 
 export function AdminContactsTab() {
+  const params = useSearchParams(); const router = useRouter();
+  const email = params.get("contactView") === "email" && !params.get("chat");
+  const [emailVisited, setEmailVisited] = useState(email);
+  function changeView(view: "chats" | "email") {
+    if (view === "email") setEmailVisited(true);
+    const next = new URLSearchParams(params); next.delete("chat");
+    if (view === "email") next.set("contactView", "email"); else next.delete("contactView");
+    router.push(`/admin?${next}`, { scroll: false });
+  }
+  return <div className={styles.page}><h1 className={styles.title}>Обращения</h1>
+    <CabinetPanel items={[{ value: "chats", label: "Диалоги" }, { value: "email", label: "Email" }]}
+      value={email ? "email" : "chats"} onChange={changeView} ariaLabel="Каналы обращений">
+      {!email && <AdminSupportChats />}
+      {(email || emailVisited) && <div hidden={!email}><EmailContacts /></div>}
+    </CabinetPanel>
+  </div>;
+}
+
+function EmailContacts() {
   const [status, setStatus] = useState<Filter>("NEW");
   const [page, setPage] = useState(0);
   const [revision, setRevision] = useState(0);
@@ -119,7 +140,6 @@ export function AdminContactsTab() {
 
   return (
     <div className={styles.page}>
-      <h1 className={styles.title}>Обращения</h1>
       <CabinetPanel
         items={filters}
         value={status}

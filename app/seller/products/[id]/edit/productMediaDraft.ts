@@ -25,7 +25,7 @@ export async function commitProductMedia({ productId, savedProduct, desired, var
   const savedImages = savedProduct.imageItems ?? [];
   for (const id of [...deleted]) {
     if (savedImages.some(image => image.id === id)) {
-      const response = await apiFetch(`${base}/images/${id}`, { method: "DELETE" });
+      const response = await apiFetch(`${base}/images/${id}`, { method: "DELETE", signal: AbortSignal.timeout(20_000) });
       if (!response.ok && response.status !== 404) throw new Error(await productActionResponseError(response));
     }
     deleted.delete(id);
@@ -43,7 +43,7 @@ export async function commitProductMedia({ productId, savedProduct, desired, var
       body.append("file", file.file);
       body.append("clientUploadId", file.clientUploadId);
       if (group) body.append("colorwayId", String(group.id));
-      const response = await apiFetch(`${base}/images`, { method: "POST", body });
+      const response = await apiFetch(`${base}/images`, { method: "POST", body, signal: AbortSignal.timeout(60_000) });
       if (!response.ok) throw new Error(await productActionResponseError(response));
     }
     onProgress({ done: ++done, total: pending.size });
@@ -55,7 +55,7 @@ export async function commitProductMedia({ productId, savedProduct, desired, var
   // Preserve photos added concurrently instead of silently omitting them.
   const ids = [...order as number[], ...actual.filter(image => !order.includes(image.id)).map(image => image.id)];
   if (ids.length && ids.some((id, index) => actual[index]?.id !== id)) {
-    const response = await apiFetch(`${base}/images/reorder`, { method: "POST", body: JSON.stringify({ imageIds: ids }) });
+    const response = await apiFetch(`${base}/images/reorder`, { method: "POST", body: JSON.stringify({ imageIds: ids }), signal: AbortSignal.timeout(20_000) });
     if (!response.ok) throw new Error(await productActionResponseError(response));
     current = await readSavedProduct(productId);
   }

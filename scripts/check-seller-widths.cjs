@@ -99,11 +99,25 @@ async function main() {
         assert.equal(geometry.overflow, false, section + " overflow at " + width);
         if (section === "store") {
           const form = await page.locator("#seller-brand-profile").boundingBox();
-          const actions = await page.locator("[data-store-actions]").boundingBox();
           assert.ok(Math.abs(form.x - geometry.shell.left) < 1, "Store form left");
-          assert.ok(Math.abs(actions.x - form.x) < 1, "Store fixed actions left");
-          assert.ok(Math.abs(actions.width - form.width) < 1, "Store fixed actions width");
-          assert.ok(form.width <= 800);
+          assert.ok(form.width <= Math.min(800, geometry.shell.width) + 1, "Store form stays in the main column");
+          assert.equal(await page.locator("[data-store-actions]").count(), 0, "Clean store has no save bar");
+          const preview = await page.getByRole("complementary", { name: "Профиль на витрине" }).boundingBox();
+          if (width > 800) {
+            assert.ok(preview, "Desktop store preview is visible");
+            assert.ok(preview.x > form.x + form.width, "Store preview stays to the right of the form");
+            assert.ok(preview.x + preview.width <= geometry.shell.left + geometry.shell.width + 1, "Store preview stays within the common shell");
+          } else assert.equal(preview, null, "Compact store uses a single column");
+          const description = page.getByRole("textbox", { name: "Описание", exact: true });
+          const savedDescription = await description.inputValue();
+          await description.fill(savedDescription + " — проверка изменений");
+          await page.locator("[data-store-actions]").waitFor({ state: "visible" });
+          const actions = await page.locator("[data-store-actions]").boundingBox();
+          assert.ok(Math.abs(actions.x - geometry.shell.left) < 1, "Store actions align to the common shell");
+          assert.ok(Math.abs(actions.width - geometry.shell.width) < 1, "Store actions use the full shared width");
+          await page.getByRole("button", { name: "Отменить", exact: true }).click();
+          await page.locator("[data-store-actions]").waitFor({ state: "detached" });
+          assert.equal(await description.inputValue(), savedDescription, "Cancel restores the saved description without an API mutation");
         }
         if (section === "legal") {
           const form = await page.locator("[data-seller-section-body] form").boundingBox();
@@ -114,7 +128,7 @@ async function main() {
       }
     }
     assert.deepEqual(errors, []);
-    console.log("PASS: seven seller sections share header/shell/content edges with a 1200px maximum at 1920/1280/768/390/320; no overflow; compact left-aligned forms and store fixed actions; mock API only");
+    console.log("PASS: seven seller sections share header/shell/content edges with a 1200px maximum at 1920/1280/768/390/320; no overflow; store main/preview fit the shell and its dirty save bar shares the full width; mock API only");
   } catch (error) { console.error(logs.slice(-2500)); throw error; }
   finally { if (browser) await browser.close(); child.kill(); server.close(); }
 }

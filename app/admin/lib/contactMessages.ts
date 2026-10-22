@@ -55,7 +55,7 @@ export async function getContactMessages(
   page: number,
   signal: AbortSignal,
 ): Promise<PageResponse<ContactMessage>> {
-  const query = new URLSearchParams({ page: String(page), size: "20" });
+  const query = new URLSearchParams({ page: String(page), size: "20", channel: "EMAIL" });
   if (status !== "ALL") query.set("status", status);
   const response = await apiFetch(`${API_URL}/api/admin/contact-messages?${query}`, {
     signal,

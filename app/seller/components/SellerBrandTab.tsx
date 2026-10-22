@@ -2,347 +2,216 @@
 
 import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
-
 import { Button } from "../../components/ui/Button";
-import { Banner } from "../../components/ui/Banner";
-import { DesignSystemIcon } from "../../components/ui/DesignSystemIcon";
-import { TextInput } from "../../components/ui/TextInput";
+import { EditorSurface } from "../../components/ui/EditorSurface";
+import { EmptyState } from "../../components/ui/EmptyState";
+import { Icon } from "../../components/ui/Icon";
 import { NumericField } from "../../components/ui/NumericField";
+import { RequestError } from "../../components/ui/RequestError";
+import { SectionHeader } from "../../components/ui/SectionHeader";
+import { SettingsSection } from "../../components/ui/SettingsSection";
 import { Textarea } from "../../components/ui/Textarea";
+import { TextInput } from "../../components/ui/TextInput";
 import { toast } from "../../components/ui/toast";
-
-import type {
-  SellerBrand,
-  SellerBrandProfileRequest,
-} from "../types";
+import { toApiError } from "../../lib/apiErrors";
 import { emitSellerOnboardingChanged } from "../lib/sellerOnboardingEvents";
 import { emitSellerNavigationChanged } from "../lib/sellerNavigationEvents";
-import {
-  updateSellerBrandProfile,
-  uploadSellerBrandWordmark,
-} from "../lib/sellerBrandApi";
-
-import styles from "./SellerBrandTab.module.css";
+import { SellerBrandFileError, updateSellerBrandProfile, uploadSellerBrandWordmark } from "../lib/sellerBrandApi";
+import type { SellerBrand, SellerBrandProfileRequest } from "../types";
 import { SellerBrandImages } from "./SellerBrandImages";
 import { SellerBrandPreview } from "./SellerBrandPreview";
+import styles from "./SellerBrandTab.module.css";
 
-type FormState = {
-  name: string;
-  description: string;
-  logoUrl: string;
-  wordmarkUrl: string;
-  website: string;
-  telegram: string;
-  vk: string;
-  country: string;
-  foundationYear: string;
-};
-
-type Props = {
-  initialBrands: SellerBrand[];
-};
+type FormState = { description: string; country: string; foundationYear: string };
+type Props = { initialBrands: SellerBrand[]; active?: boolean };
+const toasterId = "seller-store";
 
 function toFormState(brand: SellerBrand): FormState {
+  return { description: brand.description ?? "", country: brand.country ?? "",
+    foundationYear: brand.foundationYear ? String(brand.foundationYear) : "" };
+}
+
+function toPayload(form: FormState, brand: SellerBrand): SellerBrandProfileRequest {
   return {
-    name: brand.name ?? "",
-    description: brand.description ?? "",
-    logoUrl: brand.logoUrl ?? "",
-    wordmarkUrl: brand.wordmarkUrl ?? "",
-    website: brand.website ?? "",
-    telegram: brand.telegram ?? "",
-    vk: brand.vk ?? "",
-    country: brand.country ?? "",
-    foundationYear: brand.foundationYear ? String(brand.foundationYear) : "",
+    name: brand.name, description: form.description, country: form.country,
+    foundationYear: form.foundationYear.trim() ? Number(form.foundationYear) : null,
+    logoUrl: brand.logoUrl ?? "", wordmarkUrl: brand.wordmarkUrl ?? "",
+    website: brand.website ?? "", telegram: brand.telegram ?? "", vk: brand.vk ?? "",
   };
 }
 
-function toPayload(
-  form: FormState,
-  selectedBrand: SellerBrand
-): SellerBrandProfileRequest {
-  const year = Number(form.foundationYear);
-
-  return {
-    name: selectedBrand.name,
-    description: form.description,
-    logoUrl: form.logoUrl,
-    wordmarkUrl: form.wordmarkUrl,
-    website: form.website,
-    telegram: form.telegram,
-    vk: form.vk,
-    country: form.country,
-    foundationYear:
-      form.foundationYear.trim() && Number.isFinite(year) ? year : null,
-  };
+function StoreWordmark({ src, name, className = "" }: { src?: string | null; name: string; className?: string }) {
+  const [failedSource, setFailedSource] = useState<string | null>(null);
+  return <div className={`${styles.wordmark} ${className}`}>
+    {src && failedSource !== src ? <Image src={src} alt={name} fill sizes="(max-width: 640px) 65vw, 280px"
+      onError={() => setFailedSource(src)} /> : <span>{name}</span>}
+  </div>;
 }
 
-export function SellerBrandTab({ initialBrands }: Props) {
-  const firstInitialBrand = initialBrands[0] ?? null;
-  const [brands, setBrands] = useState<SellerBrand[]>(initialBrands);
-  const [form, setForm] = useState<FormState | null>(
-    firstInitialBrand ? toFormState(firstInitialBrand) : null
-  );
-
+export function SellerBrandTab({ initialBrands, active = true }: Props) {
+  const [brand, setBrand] = useState<SellerBrand | null>(initialBrands[0] ?? null);
+  const [form, setForm] = useState<FormState | null>(initialBrands[0] ? toFormState(initialBrands[0]) : null);
   const [saving, setSaving] = useState(false);
-  const [previewOpen, setPreviewOpen] = useState(false);
-  const [uploadingWordmark, setUploadingWordmark] = useState(false);
-  const wordmarkInputRef = useRef<HTMLInputElement | null>(null);
-
   const [saveSuccess, setSaveSuccess] = useState(false);
-  const pageRef = useRef<HTMLElement | null>(null);
-  const saveBarRef = useRef<HTMLElement | null>(null);
+  const [profileError, setProfileError] = useState<string | null>(null);
+  const [wordmarkError, setWordmarkError] = useState<string | null>(null);
+  const [uploadingWordmark, setUploadingWordmark] = useState(false);
+  const [mediaBusy, setMediaBusy] = useState(false);
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const wordmarkInput = useRef<HTMLInputElement>(null);
+  const mutation = useRef<"profile" | "wordmark" | null>(null);
+  const mounted = useRef(false);
+  const original = brand ? toFormState(brand) : null;
+  const dirty = Boolean(form && original && (form.description !== original.description
+    || form.country !== original.country || form.foundationYear !== original.foundationYear));
+  const busy = saving || uploadingWordmark || mediaBusy;
 
+  useEffect(() => { mounted.current = true; return () => { mounted.current = false; }; }, []);
   useEffect(() => {
     if (!saveSuccess) return;
     const timer = window.setTimeout(() => setSaveSuccess(false), 1500);
     return () => window.clearTimeout(timer);
   }, [saveSuccess]);
 
-  const selectedBrand = brands[0] ?? null;
-  const originalForm = selectedBrand ? toFormState(selectedBrand) : null;
-  const dirty = Boolean(form && originalForm && (
-    form.description !== originalForm.description ||
-    form.country !== originalForm.country ||
-    form.foundationYear !== originalForm.foundationYear
-  ));
-
-  useEffect(() => {
-    const page = pageRef.current;
-    const bar = saveBarRef.current;
-    if (!page || !bar) return;
-    const rootStyle = document.documentElement.style;
-    const previousToastOffset = rootStyle.getPropertyValue("--store-toast-offset");
-    const previousToastOffsetPriority = rootStyle.getPropertyPriority("--store-toast-offset");
-    const measure = () => {
-      const height = `${bar.getBoundingClientRect().height}px`;
-      page.style.setProperty("--store-actions-height", height);
-      rootStyle.setProperty("--store-toast-offset", height);
-    };
-    measure();
-    const observer = new ResizeObserver(measure);
-    observer.observe(bar);
-    return () => {
-      observer.disconnect();
-      if (previousToastOffset) rootStyle.setProperty("--store-toast-offset", previousToastOffset, previousToastOffsetPriority);
-      else rootStyle.removeProperty("--store-toast-offset");
-    };
-  }, [selectedBrand?.id]);
-
-  useEffect(() => {
-    if (!dirty && !saving && !uploadingWordmark) return;
-    const guard = (event: BeforeUnloadEvent) => {
-      event.preventDefault();
-      event.returnValue = "";
-    };
-    window.addEventListener("beforeunload", guard);
-    return () => window.removeEventListener("beforeunload", guard);
-  }, [dirty, saving, uploadingWordmark]);
-
-  function updateField<K extends keyof FormState>(key: K, value: FormState[K]) {
-    setForm((prev) => (prev ? { ...prev, [key]: value } : prev));
+  function updateField(key: keyof FormState, value: string) {
+    setSaveSuccess(false);
+    setForm(current => current ? { ...current, [key]: value } : current);
   }
 
   function resetText() {
-    if (!selectedBrand || saving || uploadingWordmark) return;
-    setForm(toFormState(selectedBrand));
+    if (!brand || busy) return;
+    setForm(toFormState(brand));
+    setProfileError(null);
+    setSaveSuccess(false);
   }
 
   async function save() {
-    if (!selectedBrand || !form || saving || uploadingWordmark || saveSuccess) return;
-
+    if (!brand || !form || !dirty || busy || mutation.current) return;
+    mutation.current = "profile";
     setSaving(true);
-    const toastId = `seller-brand-${selectedBrand.id}-profile`;
-
     try {
-      const updated = await updateSellerBrandProfile(
-        selectedBrand.id,
-        toPayload(form, selectedBrand)
-      );
-
-      setBrands((prev) =>
-        prev.map((brand) => (brand.id === updated.id ? updated : brand))
-      );
+      const updated = await updateSellerBrandProfile(brand.id, toPayload(form, brand));
+      if (!mounted.current) return;
+      setBrand(updated);
       setForm(toFormState(updated));
+      setProfileError(null);
       setSaveSuccess(true);
-      toast.success("Изменения сохранены", { id: toastId, description: undefined, action: undefined });
+      toast.success("Изменения сохранены", { id: `seller-brand-${brand.id}-profile`, toasterId });
       emitSellerOnboardingChanged();
-    } catch (e) {
-      toast.error("Не удалось сохранить текст магазина", {
-        id: toastId,
-        description: e instanceof Error ? e.message : undefined,
-      });
+    } catch (error) {
+      if (mounted.current) setProfileError(toApiError(error, "Не удалось сохранить изменения — попробуйте ещё раз").message);
     } finally {
-      setSaving(false);
+      mutation.current = null;
+      if (mounted.current) setSaving(false);
     }
-  }
-
-  if (brands.length === 0) {
-    return (
-      <section className={styles.page}>
-        <div className={styles.emptyState}>
-          <DesignSystemIcon name="store" role="empty" />
-          <strong>Профиль бренда недоступен</strong>
-          <span>Обратитесь к администратору площадки</span>
-        </div>
-      </section>
-    );
   }
 
   async function uploadWordmark(file: File | null) {
-    if (!selectedBrand || !form || !file || saving || uploadingWordmark) return;
-
+    if (!brand || !file || busy || mutation.current) return;
+    mutation.current = "wordmark";
     setUploadingWordmark(true);
-    const toastId = `seller-brand-${selectedBrand.id}-wordmark`;
-
     try {
-      const updated = await uploadSellerBrandWordmark(selectedBrand.id, file);
-      setBrands((prev) =>
-        prev.map((brand) => (brand.id === updated.id ? updated : brand))
-      );
-      setForm((prev) =>
-        prev
-          ? { ...prev, wordmarkUrl: updated.wordmarkUrl ?? "" }
-          : toFormState(updated)
-      );
-      toast.success("Текстовый логотип загружен", { id: toastId, description: undefined, action: undefined });
+      const updated = await uploadSellerBrandWordmark(brand.id, file);
+      if (!mounted.current) return;
+      setBrand(updated);
+      setWordmarkError(null);
+      toast.success("Логотип загружен", { id: `seller-brand-${brand.id}-wordmark`, toasterId });
       emitSellerNavigationChanged();
-    } catch (e) {
-      toast.error("Не удалось загрузить текстовый логотип", {
-        id: toastId,
-        description: e instanceof Error ? e.message : undefined,
-      });
+    } catch (error) {
+      if (mounted.current) setWordmarkError(error instanceof SellerBrandFileError ? error.message
+        : toApiError(error, "Не удалось загрузить логотип — попробуйте ещё раз").message);
     } finally {
-      setUploadingWordmark(false);
-      if (wordmarkInputRef.current) wordmarkInputRef.current.value = "";
+      mutation.current = null;
+      if (mounted.current) setUploadingWordmark(false);
+      if (wordmarkInput.current) wordmarkInput.current.value = "";
     }
   }
 
-  if (!selectedBrand || !form) return null;
+  if (!active) return null;
+  if (!brand || !form) return <section className={styles.emptyPage}>
+    <SectionHeader title="Магазин" large />
+    <EmptyState icon="store" title="Профиль бренда недоступен" text="Обратитесь в поддержку площадки" />
+  </section>;
 
-  return (
-    <section className={styles.page} ref={pageRef}>
-        <header className={styles.pageHeader}>
-          <div className={styles.brandIdentity}>
-            <h1>
-              {form.wordmarkUrl ? (
-                <span className={styles.headerWordmark}>
-                  <Image src={form.wordmarkUrl} alt={form.name} fill
-                    sizes="(max-width: 640px) 288px, 280px" />
-                </span>
-              ) : form.name}
-            </h1>
-            <p className={styles.identityHint}>Название меняет администратор площадки</p>
-          </div>
-          <div className={styles.headerActions}>
-            <Button type="button" variant="ghost" disabled={saving || uploadingWordmark}
-              onClick={() => setPreviewOpen(true)}>Предпросмотр</Button>
-            {selectedBrand.slug ? (
-              <a
-                href={`/brand/${selectedBrand.slug}`}
-                className={styles.openLink}
-                target="_blank"
-                rel="noreferrer"
-              >
-                Открыть витрину
-              </a>
-            ) : null}
-          </div>
-        </header>
-        <form id="seller-brand-profile" className={styles.settingsForm}
-          onSubmit={(event) => { event.preventDefault(); void save(); }}>
-            <fieldset className={styles.formSection} disabled={saving}>
-              <Textarea label="О бренде"
-                  value={form.description}
-                  onChange={(event) =>
-                    updateField("description", event.target.value)
-                  }
-                  rows={4}
-                  maxLength={1000}
-              />
+  const publicPath = brand.slug ? `/brand/${brand.slug}` : null;
+  const showActions = dirty || saving || saveSuccess;
+  const facts = [form.country, form.foundationYear ? `С ${form.foundationYear} года` : ""].filter(Boolean);
 
-              <div className={styles.detailsGrid}>
-                  <TextInput label="Страна"
-                    value={form.country}
-                    onChange={(event) => updateField("country", event.target.value)}
-                  />
-                  <NumericField label="Год основания" fractionDigits={0} max={9999}
-                    value={form.foundationYear}
-                    onChange={(event) =>
-                      updateField("foundationYear", event.target.value)
-                    }
-                    maxLength={4}
-                  />
-
-              </div>
-            </fieldset>
-        </form>
-
-        <div className={styles.appearanceLayout}>
-            <div className={styles.wordmarkCard}>
-              <h2>Текстовый логотип</h2>
-              <div className={styles.wordmarkStage}>
-                <div className={styles.brandProfileTitle}>
-                  {form.wordmarkUrl ? (
-                    <span className={styles.wordmarkPreview}>
-                      <Image
-                        src={form.wordmarkUrl}
-                        alt={form.name}
-                        fill
-                        sizes="220px"
-                      />
-                    </span>
-                  ) : (
-                    form.name.trim() || "Название бренда"
-                  )}
-                </div>
-              </div>
-
-              <Button
-                type="button"
-                variant="utility"
-                className={styles.wordmarkButton}
-                onClick={() => wordmarkInputRef.current?.click()}
-                disabled={saving}
-                loading={uploadingWordmark}
-                reserveLabelSpace
-                aria-label={form.wordmarkUrl ? "Заменить текстовый логотип" : "Загрузить текстовый логотип"}
-              >
-                {form.wordmarkUrl ? "Заменить" : "Загрузить"}
-              </Button>
-              <p className={`${styles.wordmarkHint} ${styles.mediaMeta}`}>
-                SVG или WebP до 2 МБ
-              </p>
-              <p className={styles.wordmarkHint}>В шапке витрины. Без файла — название бренда.</p>
-              <input
-                ref={wordmarkInputRef}
-                type="file"
-                accept=".svg,.webp,image/svg+xml,image/webp"
-                className={styles.logoInput}
-                onChange={(event) =>
-                  void uploadWordmark(event.target.files?.[0] ?? null)
-                }
-              />
-            </div>
-
-
-            <SellerBrandImages brandId={selectedBrand.id} embedded />
+  return <>
+    <EditorSurface title="Магазин" subtitle={brand.name} presentation="page" showBack={false}
+      className={styles.page} dirty={dirty} busy={busy} guardNavigation toastId={toasterId}
+      onDiscard={resetText} onClose={() => window.location.assign("/seller/home")}
+      discardHint="Уже загруженные логотип и фотографии останутся на витрине"
+      headerActions={<>
+        {publicPath ? <a href={publicPath} target="_blank" rel="noreferrer" aria-label="Открыть витрину" className={styles.openLink}>
+          <span className={styles.fullLinkLabel}>Открыть витрину</span><span className={styles.shortLinkLabel}>Витрина</span>
+          <Icon name="arrow-up-right" size={18} /></a> : null}
+        <Button variant="secondary" disabled={busy} onClick={() => setPreviewOpen(true)}>Предпросмотр</Button>
+      </>}
+      actions={showActions ? <div className={styles.saveBar} data-store-actions>
+        <p className={styles.saveState} role="status">{saveSuccess ? "Изменения сохранены" : "Есть несохранённые изменения"}</p>
+        <div className={styles.saveActions}>
+          <Button variant="ghost" disabled={!dirty || busy} onClick={resetText}>Отменить</Button>
+          <Button type="submit" form="seller-brand-profile" variant="primary" loading={saving} success={saveSuccess}
+            disabled={!dirty || uploadingWordmark || mediaBusy}>Сохранить изменения</Button>
         </div>
-        <Banner tone="info" title="Логотип и фотографии сохраняются сразу">
-          Порядок и удаление фотографий — тоже.
-        </Banner>
-        <footer ref={saveBarRef} className={styles.saveBar} data-store-actions>
-          <div className={styles.saveActions}>
-            <Button type="submit" form="seller-brand-profile" variant="primary"
-              loading={saving} success={saveSuccess} reserveLabelSpace
-              disabled={uploadingWordmark || saveSuccess}>Сохранить текст</Button>
-            <Button type="button" variant="secondary" disabled={!dirty || saving || uploadingWordmark}
-              onClick={resetText}>Отменить правки</Button>
+      </div> : undefined}>
+      <div className={styles.layout}>
+        <div className={styles.main}>
+          <form id="seller-brand-profile" onSubmit={event => { event.preventDefault(); void save(); }}>
+            <SettingsSection title="О бренде">
+              <fieldset className={styles.fields} disabled={saving}>
+                <Textarea label="Описание" value={form.description} rows={5} maxLength={1000}
+                  placeholder="Расскажите о бренде и его товарах" onChange={event => updateField("description", event.target.value)} />
+                <p className={styles.characterCount}>{form.description.length} / 1000</p>
+                <div className={styles.detailsGrid}>
+                  <TextInput label="Страна" value={form.country} maxLength={120} autoComplete="off"
+                    onChange={event => updateField("country", event.target.value)} />
+                  <NumericField label="Год основания" fractionDigits={0} max={9999} maxLength={4}
+                    value={form.foundationYear} onChange={event => updateField("foundationYear", event.target.value)} />
+                </div>
+              </fieldset>
+              {profileError ? <RequestError variant="inline" message={profileError} /> : null}
+            </SettingsSection>
+          </form>
+          <SettingsSection title="Текстовый логотип" description="В шапке витрины вместо названия бренда"
+            actions={<span className={styles.autoSave}>Сохраняется сразу</span>}>
+            <div className={styles.logoEditor}>
+              <div className={styles.wordmarkStage}><StoreWordmark src={brand.wordmarkUrl} name={brand.name} /></div>
+              <div className={styles.logoControls}>
+                <Button variant="secondary" onClick={() => wordmarkInput.current?.click()} disabled={saving || mediaBusy}
+                  loading={uploadingWordmark} aria-label={brand.wordmarkUrl ? "Заменить текстовый логотип" : "Загрузить текстовый логотип"}>
+                  {brand.wordmarkUrl ? "Заменить логотип" : "Загрузить логотип"}</Button>
+                <p className={styles.caption}>SVG или WebP до 2 МБ</p>
+              </div>
+            </div>
+            {wordmarkError ? <RequestError variant="inline" message={wordmarkError} /> : null}
+            <input ref={wordmarkInput} type="file" accept=".svg,.webp,image/svg+xml,image/webp"
+              className="visuallyHidden" tabIndex={-1} aria-label="Файл текстового логотипа"
+              onChange={event => void uploadWordmark(event.target.files?.[0] ?? null)} />
+            <p className={styles.caption}>Без логотипа отображается название бренда · Название меняет администратор площадки</p>
+          </SettingsSection>
+          <div className={styles.gallerySection}>
+            <SellerBrandImages key={brand.id} brandId={brand.id} embedded onBusyChange={setMediaBusy} />
           </div>
-          <p className={styles.saveState} role="status">{dirty ? "Есть несохранённые правки текста" : ""}</p>
-        </footer>
-        {previewOpen && <SellerBrandPreview brandId={selectedBrand.id} name={form.name}
-          country={form.country} foundationYear={form.foundationYear}
-          description={form.description} wordmarkUrl={form.wordmarkUrl} onClose={() => setPreviewOpen(false)} />}
-    </section>
-  );
+        </div>
+        <aside className={styles.previewAside} aria-label="Профиль на витрине">
+          <h2 className={styles.previewTitle}>На витрине</h2>
+          <div className={styles.previewCard}>
+            <StoreWordmark src={brand.wordmarkUrl} name={brand.name} className={styles.previewWordmark} />
+            <p className={styles.previewBrandName}>{brand.name}</p>
+            <p className={`${styles.previewDescription} ${!form.description.trim() ? styles.placeholder : ""}`}>
+              {form.description.trim() || "Здесь появится описание бренда"}</p>
+            {facts.length ? <p className={styles.previewFacts}>{facts.join(" | ")}</p> : null}
+            <Button variant="ghost" disabled={busy} onClick={() => setPreviewOpen(true)} className={styles.previewButton}>
+              Посмотреть витрину<Icon name="arrow-up-right" size={18} /></Button>
+          </div>
+          <p className={styles.previewHint}>{dirty ? "Изменения текста ещё не сохранены" : "Так покупатели видят профиль бренда"}</p>
+        </aside>
+      </div>
+    </EditorSurface>
+    {previewOpen ? <SellerBrandPreview brandId={brand.id} name={brand.name} wordmarkUrl={brand.wordmarkUrl ?? ""}
+      description={form.description} country={form.country} foundationYear={form.foundationYear} dirty={dirty}
+      onClose={() => setPreviewOpen(false)} /> : null}
+  </>;
 }

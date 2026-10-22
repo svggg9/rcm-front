@@ -1867,10 +1867,10 @@
 /* One continuous desktop form, compact steps on phones. */
 .productSurface.productSurface { width: min(1320px, 96vw); }
 .productSurface.productSurface[data-editor-page] { width: 100%; }
-.productSurface[data-editor-page] > [data-editor-navigation] { position: sticky; top: var(--site-header-height); z-index: 40; padding-block: 8px; margin-bottom: 24px; background: var(--white); box-shadow: 0 6px 14px rgb(0 0 0 / 4%); }
+.productSurface[data-editor-page] [data-editor-topbar] { border-bottom: 1px solid var(--line); }
 .productSurface[data-editor-page] .pageContent,
 .productSurface[data-editor-page] .stepPanel[id],
-.productSurface[data-editor-page] .panelContent section[id] { scroll-margin-top: calc(var(--site-header-height) + 96px); }
+.productSurface[data-editor-page] .panelContent section[id] { scroll-margin-top: calc(var(--site-header-height) + var(--editor-header-height, 144px) + 16px); }
 .productSurface > header { padding-block: 16px; }
 .productSurface > footer { padding-block: 12px; padding-bottom: max(12px, env(safe-area-inset-bottom)); }
 .productSurface .panelContent { max-width: none; }
@@ -2014,3 +2014,5 @@
 .productSurface { --field-control-background: var(--soft); --field-control-radius: 12px; --field-control-border-color: var(--line); --field-control-height: 56px; --select-border-color: var(--line); }
 .productSurface .optionalSection { display: block; }
 .productSurface .optionalSection > summary { list-style: none; }
+.productSurface [data-editor-topbar] .editorSectionNav { border-bottom: 0; }
+.productSurface [data-editor-topbar] .editorSectionNav button { min-height: 44px; }

@@ -16,14 +16,15 @@ export function requestEditorNavigation(action: () => void, { completed = false 
 }
 
 /** Full editor surface; dialog by default, or an ordinary document page. */
-export function EditorSurface({ title, headerMeta, subtitle, headerActions, children, actions, navigation, className = "", dirty = false, busy = false, compact = false, centered = false, presentation = "dialog", toastId, closeLabel = "Закрыть редактор", backLabel = "Назад", showBack = true, guardNavigation = false, discardHint, beforeLeave, onFieldBlur, onDiscard, onClose }: {
+export function EditorSurface({ title, headerMeta, subtitle, headerActions, children, actions, navigation, className = "", dirty = false, busy = false, compact = false, centered = false, presentation = "dialog", stickyHeader = false, toastId, closeLabel = "Закрыть редактор", backLabel = "Назад", showBack = true, guardNavigation = false, discardHint, beforeLeave, onFieldBlur, onDiscard, onClose }: {
   title: ReactNode; headerMeta?: ReactNode; subtitle?: ReactNode; headerActions?: ReactNode; children: ReactNode; actions?: ReactNode; navigation?: ReactNode;
   className?: string; dirty?: boolean; busy?: boolean; compact?: boolean; centered?: boolean; presentation?: "dialog" | "page"; guardNavigation?: boolean; discardHint?: string; toastId?: string; closeLabel?: string; backLabel?: string; showBack?: boolean; onDiscard?: () => void; onClose: () => void;
-  beforeLeave?: () => Promise<boolean>; onFieldBlur?: FocusEventHandler<HTMLElement>;
+  beforeLeave?: () => Promise<boolean>; onFieldBlur?: FocusEventHandler<HTMLElement>; stickyHeader?: boolean;
 }) {
   const ref = useRef<HTMLDialogElement>(null);
   const pageRef = useRef<HTMLElement>(null);
   const footerRef = useRef<HTMLElement>(null);
+  const topbarRef = useRef<HTMLDivElement>(null);
   const titleId = useId();
   const [confirmClose, setConfirmClose] = useState(false);
   const leaveAction = useRef<(() => void) | null>(null);
@@ -152,7 +153,17 @@ export function EditorSurface({ title, headerMeta, subtitle, headerActions, chil
     if (dirty) void attemptLeave(onClose);
     else leave(onClose);
   };
-  const content = <>
+  useEffect(() => {
+    const topbar = topbarRef.current;
+    const page = pageRef.current;
+    if (!topbar || !page) return;
+    const update = () => page.style.setProperty("--editor-header-height", `${topbar.getBoundingClientRect().height}px`);
+    update();
+    const observer = new ResizeObserver(update);
+    observer.observe(topbar);
+    return () => observer.disconnect();
+  }, [stickyHeader, presentation]);
+  const header = <>
       {presentation === "page" && showBack ? <Button type="button" variant="ghost" className={styles.back} reserveLabelSpace={false} disabled={busy} onClick={requestClose}>
         <Icon name="chevron-left" size={18} />{backLabel}
       </Button> : null}
@@ -166,6 +177,9 @@ export function EditorSurface({ title, headerMeta, subtitle, headerActions, chil
         {presentation === "dialog" ? <Button variant="ghost" className={styles.close} aria-label={closeLabel} disabled={busy} onClick={requestClose}><Icon name="x" /></Button> : null}
       </header>
       {navigation ? <div className={styles.navigation} data-editor-navigation>{navigation}</div> : null}
+    </>;
+  const content = <>
+      {presentation === "page" && stickyHeader ? <div ref={topbarRef} className={styles.stickyHeader} data-editor-topbar>{header}</div> : header}
       <div className={styles.body} data-editor-body>{children}</div>
       {actions ? <footer ref={footerRef} className={styles.footer} data-editor-actions>{actions}</footer> : null}
       {toastId ? <RcmToaster id={toastId} /> : null}

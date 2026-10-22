@@ -15,7 +15,7 @@ function visit(node) {
 visit(ast);
 const code = ts.transpileModule(functions.join('\n'), { compilerOptions: { target: ts.ScriptTarget.ES2020 } }).outputText;
 function setup({ valid = false, dirty = true, failSave = false, stale = false, variantsInput = [], revision = false, failReview = false,
-  onboardingStatus = {legalCompleted:true,agreementAccepted:true}, onboardingError = false } = {}) {
+  onboardingStatus = {legalCompleted:true, agreementAccepted:true}, onboardingError = false } = {}) {
   const calls = []; const notifications = []; let validationCalls = 0; let confirmed = false;
   const noop = () => {};
   const context = {
@@ -23,10 +23,15 @@ function setup({ valid = false, dirty = true, failSave = false, stale = false, v
     saveRequestRef: {current:false}, publishRequestRef: {current:false}, editRevisionRef: {current:0}, publishSuccessReturnFocusRef: {},
     dirty, product: {status:'DRAFT', revisionSourceId:revision ? 5 : null}, productId: 7, API_URL: '', title:'', description:'', composition:'', categoryId:'', brandId:1,
     suggestedCategoryName:'', audience:'UNISEX', packageWidthCm:'', packageHeightCm:'', packageLengthCm:'', packageWeightKg:'', variants:variantsInput,
-    inconsistentColorPriceIndexes: utilsExports.inconsistentColorPriceIndexes,
+    inconsistentProductPriceIndexes: utilsExports.inconsistentProductPriceIndexes,
     canEditProductOperations: () => true, isProductStatusPublishable: () => true,
     setValidationErrors: noop, setSaveSucceeded: noop, setSaving: noop, setDirty: noop, setPublishing: noop,
-    setPublishSucceeded: noop, setPublishSuccessOpen: value => { confirmed = value; }, setProduct: noop,
+    setPublishSucceeded: noop, setPublishSuccessOpen: value => { confirmed = value; }, setProduct: noop, setVariants: noop, setImages: noop,
+    setMediaActionPending: noop, setUploadProgress: noop,
+    setAutomaticSaving: noop, setSaveState: noop, setSaveError: noop, dirtyRef: {current:dirty},
+    persistedProduct: {current:{id:7,version:1}}, creationRequest:{current:null},
+    images: [], pendingPhotos: {current:new Map()}, deletedPhotos:{current:new Set()}, photoUrls:{current:new Set()},
+    mapProductVariants: () => variantsInput, variantColorGroupKey: utilsExports.variantColorGroupKey,
     setRevisionReviewSource: noop, setReviewLoading: noop, reviewRequestRef:{current:false},
     emitSellerNavigationChanged: noop,
     window: {setTimeout:noop}, document:{activeElement:null}, HTMLElement: class {},
@@ -34,7 +39,10 @@ function setup({ valid = false, dirty = true, failSave = false, stale = false, v
       success:message=>notifications.push({type:'success',message})}, failValidation:noop, scrollToFirstValidationError:noop,
     validateProduct: () => { validationCalls++; return {valid}; }, onboardingStatus, onboardingError,
     productActionResponseError: async () => 'Ошибка сохранения',
-    resolveVariantsForSave: async () => variantsInput, reloadProductState: async () => !stale, numberOrNull: x => x === '' ? null : Number(x),
+    resolveVariantsForSave: async () => variantsInput, readSavedProduct: async () => {
+      if (stale) context.editRevisionRef.current++;
+      return {id:7,status:'DRAFT',imageItems:[]};
+    }, numberOrNull: x => x === '' ? null : Number(x),
     apiFetch: async (url, options) => { calls.push({url,...options}); return {ok:!(failSave && options.method === 'PUT') && !failReview, json:async()=>({id:5,status:'ACTIVE'}), status:400, text:async()=> 'Save failed'}; },
   };
   const handlers = new Function(...Object.keys(context), code + '\nreturn {saveProduct,publishProduct};')(...Object.values(context));
@@ -51,7 +59,7 @@ function setup({ valid = false, dirty = true, failSave = false, stale = false, v
   assert.equal(await test.saveProduct(), false);
   assert.deepEqual(test.notifications, [{type:'error',message:'Ошибка сохранения'}]);
   test = setup({stale:true});
-  assert.equal(await test.saveProduct(), false);
+  assert.equal(await test.saveProduct(), true, 'Autosave may finish its persisted snapshot while newer edits remain dirty');
   assert.deepEqual(test.notifications, [], 'Stale reload must not confirm a saved product');
   test = setup(); await test.publishProduct();
   assert.equal(test.validationCalls(), 1); assert.equal(test.calls.length, 0);

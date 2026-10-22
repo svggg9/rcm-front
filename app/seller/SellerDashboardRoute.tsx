@@ -24,7 +24,8 @@ export async function SellerDashboardRoute({ initialTab, searchParams: _searchPa
 }) {
   const searchParams = await _searchParams;
   const first = (value: string | string[] | undefined) => Array.isArray(value) ? value[0] : value;
-  const orderId = first(searchParams?.orderId);
+  // Finance uses orderId as an operations filter, not an order detail link.
+  const orderId = initialTab === "finance" ? undefined : first(searchParams?.orderId);
   const returnId = first(searchParams?.returnId);
   if (orderId && /^[1-9]\d*$/.test(orderId)) redirect(`/seller/orders/${orderId}`);
   if (returnId && /^[1-9]\d*$/.test(returnId)) redirect(`/seller/returns/${returnId}`);

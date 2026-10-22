@@ -110,17 +110,14 @@ export function SellerSidebar({
 export function SellerSectionTabs({ currentTab }: { currentTab: SellerTab }) {
   const searchParams = useSearchParams();
   const collectionsActive = searchParams.get("section") === "collections";
-  const financeView = searchParams.get("view");
-  const navigationRef = useNavigationVisibility(`${currentTab}:${collectionsActive}:${financeView}`);
+  const navigationRef = useNavigationVisibility(`${currentTab}:${collectionsActive}`);
   const items = [
     { label: "Главная", href: "/seller/home", active: currentTab === "home" },
     { label: "Товары", href: "/seller/products", active: currentTab === "products" && !collectionsActive },
     { label: "Подборки", href: "/seller/products?section=collections", active: currentTab === "products" && collectionsActive },
     { label: "Заказы", href: "/seller/orders", active: currentTab === "orders" },
     { label: "Возвраты", href: "/seller/returns", active: currentTab === "returns" },
-    { label: "Обзор финансов", href: "/seller/finance", active: currentTab === "finance" && financeView !== "operations" && financeView !== "payouts" },
-    { label: "Операции", href: "/seller/finance?view=operations", active: currentTab === "finance" && financeView === "operations" },
-    { label: "Выплаты", href: "/seller/finance?view=payouts", active: currentTab === "finance" && financeView === "payouts" },
+    { label: "Финансы", href: "/seller/finance", active: currentTab === "finance" },
     { label: "Магазин", href: "/seller/store", active: currentTab === "brand" },
     { label: "Данные и документы", href: "/seller/legal", active: currentTab === "legal" },
   ];

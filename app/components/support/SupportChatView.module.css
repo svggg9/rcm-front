@@ -1,0 +1,26 @@
+.root { min-width: 0; display: grid; gap: 20px; }
+.header { display: flex; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+.header h1, .header h2 { margin: 0; font-size: 20px; line-height: 28px; font-weight: 400; }
+.hint { color: var(--muted); font-size: 12px; line-height: 19px; margin: 6px 0 0; }
+.scroll { min-height: 220px; max-height: min(60dvh, 640px); overflow: auto; border: 1px solid var(--line); padding: 16px; display: flex; flex-direction: column; gap: 12px; overflow-anchor: none; }
+.messages { list-style: none; display: flex; flex-direction: column; gap: 12px; margin: 0; padding: 0; }
+.message { max-width: 88%; border: 1px solid var(--line); padding: 12px 14px; align-self: flex-start; min-width: 0; }
+.mine { align-self: flex-end; border-color: var(--black); }
+.message p { margin: 8px 0 0; font-size: 14px; line-height: 22px; white-space: pre-wrap; overflow-wrap: anywhere; }
+.metadata { display: flex; flex-wrap: wrap; gap: 6px 12px; font-size: 11px; line-height: 17px; color: var(--muted); }
+.metadata strong { color: var(--black); font-weight: 400; }
+.composer { display: grid; gap: 12px; }
+.composer textarea { min-height: 90px; resize: vertical; }
+.composer > button { justify-self: end; min-width: 180px; }
+.pending { border: 1px solid var(--line); padding: 12px; font-size: 13px; line-height: 21px; }
+.status { display: flex; gap: 8px; align-items: center; font-size: 13px; }
+.status select { font: inherit; min-height: 44px; border: 1px solid var(--line); color: var(--black); background: var(--white); padding: 8px 12px; border-radius: 0; }
+.scroll:focus-visible, .status select:focus-visible { outline: 2px solid var(--black); outline-offset: 2px; }
+.list { display: grid; gap: 8px; }
+.chatLink { display: flex; gap: 8px; justify-content: space-between; padding: 16px; border: 1px solid var(--line); color: var(--black); text-decoration: none; min-width: 0; }
+.chatLink div { min-width: 0; }
+.chatLink p { margin: 8px 0 0; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 65vw; }
+.chatLink strong { font-size: 14px; font-weight: 400; }
+.tools { display: flex; flex-wrap: wrap; gap: 12px; justify-content: space-between; align-items: center; }
+.public { max-width: 900px; margin: 36px auto 64px; padding: 0 20px; }
+@media (max-width: 600px) { .scroll { max-height: 52dvh; padding: 12px; } .message { max-width: 95%; } .public { margin-top: 24px; padding: 0 16px; } .composer > button { width: 100%; } .chatLink { flex-direction: column; } .chatLink p { max-width: 100%; } }

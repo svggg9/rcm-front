@@ -1,8 +1,8 @@
-import { getImageUploadMetadataError } from "../../lib/imageUploadPolicy";
 import { API_URL, apiFetch } from "../../lib/api";
 import { ApiRequestError, readApiError, toApiError } from "../../lib/apiErrors";
 import { CATEGORY_API_MESSAGES } from "../../lib/categoryErrors";
 import { normalizeCategories } from "../../lib/categories";
+import { getImageUploadMetadataError } from "../../lib/imageUploadPolicy";
 import type {
   AdminProduct,
   AdminProductListItem,
@@ -88,6 +88,14 @@ export async function getAdminProduct(id: number): Promise<AdminProduct> {
     throw new Error(await readError(response, "Не удалось загрузить товар"));
   }
 
+  return response.json();
+}
+
+export async function assignProductColor(productId: number, groupId: number, colorId: number | null, expectedColorName: string | null): Promise<AdminProduct> {
+  const response = await apiFetch(`${API_URL}/api/admin/products/${productId}/colorways/${groupId}/color`, {
+    method: "POST", signal: AbortSignal.timeout(20_000), body: JSON.stringify({ colorId, expectedColorName }),
+  });
+  if (!response.ok) throw await readApiError(response, "Не удалось присвоить цвет");
   return response.json();
 }
 

@@ -7,8 +7,8 @@ import { ProductDescriptionText } from "./ProductDescriptionText";
 import styles from "../ProductPage.module.css";
 import type { Product } from "../lib/types";
 
-function DetailSection({ title, children }: { title: string; children: ReactNode }) {
-  return <details className={styles.accItem}>
+function DetailSection({ title, children, defaultOpen = false }: { title: string; children: ReactNode; defaultOpen?: boolean }) {
+  return <details className={styles.accItem} open={defaultOpen}>
     <summary className={styles.accBtn}><span>{title}</span><Icon name="chevron-down" size={18} strokeWidth={1.25} /></summary>
     <div className={styles.accBody}>{children}</div>
   </details>;
@@ -26,8 +26,8 @@ export function ProductDetailsAccordion({ product, showDescription, brandHref }:
 
   return <div className={styles.accordion}>
     {showDescription && <DetailSection title="Описание"><ProductDescriptionText text={product.description} fallback="" /></DetailSection>}
-    {composition && <DetailSection title="Состав"><ProductDescriptionText text={composition} fallback="" /></DetailSection>}
-    {(category || audience) && <DetailSection title="Характеристики">
+    {composition && <DetailSection title="Состав" defaultOpen><ProductDescriptionText text={composition} fallback="" /></DetailSection>}
+    {(category || audience) && <DetailSection title="Характеристики" defaultOpen>
       <dl className={styles.characteristics}>
         {category && <div><dt>Категория</dt><dd>{category}</dd></div>}
         {audience && <div><dt>Для кого</dt><dd>{audience}</dd></div>}

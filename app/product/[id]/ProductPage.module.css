@@ -50,16 +50,17 @@ a.brand:hover { text-decoration: underline; text-underline-offset: 3px; }
 
 .accordion { min-width: 0; }
 .accItem { border: 0; }
-.accBtn { display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 44px; padding: 0; color: var(--black); font-size: 12px; line-height: 18px; font-weight: 400; text-transform: uppercase; list-style: none; cursor: pointer; }
+.accBtn { display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 44px; padding: 10px 0; color: var(--black); font-size: 14px; line-height: 22px; font-weight: 500; text-transform: none; letter-spacing: normal; list-style: none; cursor: pointer; }
 .accBtn::-webkit-details-marker { display: none; }
 .accBtn svg { flex-shrink: 0; transition: transform var(--transition-medium); }
 .accItem[open] > .accBtn svg { transform: rotate(180deg); }
-.accBody { display: grid; gap: 12px; min-width: 0; padding: 2px 0 20px; }
-.characteristics { display: grid; gap: 10px; margin: 0; font-size: 13px; line-height: 20px; }
-.characteristics > div { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.5fr); gap: 16px; }
-.characteristics dt { color: var(--muted); }
+.accBody { display: grid; gap: 12px; min-width: 0; padding: 0 0 16px; color: var(--black); font-size: 14px; line-height: 22px; font-weight: 400; }
+.accBody .text, .accBody .list { font-size: inherit; line-height: inherit; }
+.characteristics { display: grid; gap: 10px; margin: 0; font-size: inherit; line-height: inherit; }
+.characteristics > div { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.5fr); align-items: baseline; gap: 16px; }
+.characteristics dt { color: var(--muted); font-size: 13px; line-height: 20px; }
 .characteristics dd { margin: 0; overflow-wrap: anywhere; }
-.detailLink { justify-self: start; color: var(--black); font-size: 12px; line-height: 20px; text-decoration: underline; text-underline-offset: 3px; }
+.detailLink { justify-self: start; color: var(--black); font-size: 14px; line-height: 22px; text-decoration: underline; text-underline-offset: 3px; }
 .richText { display: grid; gap: 12px; }
 .richText .text { white-space: pre-line; }
 .list { display: grid; gap: 6px; padding: 0; }

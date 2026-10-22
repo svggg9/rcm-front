@@ -46,6 +46,7 @@ import { SellerReceptionPointPicker } from "./SellerReceptionPointPicker";
 import { InlineEditorGuard } from "../../components/ui/InlineEditorGuard";
 import { LegalChangeDialog, SellerLegalReviewNotice, SellerLegalValues, useSellerLegalReview } from "./SellerLegalReview";
 import reviewStyles from "./SellerLegalReview.module.css";
+import { SellerRequisitesLookup, useSellerRequisitesAvailable } from "./SellerRequisitesLookup";
 import styles from "./SellerLegalTab.module.css";
 
 type FormErrors = Partial<Record<keyof SellerLegalInfoForm, string>>;
@@ -204,6 +205,17 @@ export function SellerLegalTab() {
   const [pointRetry, setPointRetry] = useState(0);
 
   const [error, setError] = useState<string | null>(null);
+  const requisitesAvailable = useSellerRequisitesAvailable();
+
+  function applyRequisites(patch: Partial<SellerLegalInfoForm>) {
+    if (!showEditor || !canEditSection || savingSection !== null) return;
+    setForm(current => ({ ...current, ...patch }));
+    setErrors(current => {
+      const next = { ...current };
+      for (const field of Object.keys(patch) as (keyof SellerLegalInfoForm)[]) delete next[field];
+      return next;
+    });
+  }
 
   useEffect(() => {
     let cancelled = false;
@@ -695,6 +707,9 @@ export function SellerLegalTab() {
             ))}
           </div>
 
+          {requisitesAvailable ? <SellerRequisitesLookup kind="party" form={form}
+            disabled={Boolean(savingSection) || !canEditSection} onApply={applyRequisites} /> : null}
+
           <div className={styles.grid}>
             <LegalTextField
               label="ИНН"
@@ -926,6 +941,9 @@ export function SellerLegalTab() {
             <h2>Банковские реквизиты</h2>
             <p>Счёт, на который будут перечисляться выплаты магазина</p>
           </div>
+
+          {requisitesAvailable ? <SellerRequisitesLookup kind="bank" form={form}
+            disabled={Boolean(savingSection) || !canEditSection} onApply={applyRequisites} /> : null}
 
           <div className={styles.grid}>
             <LegalTextField

@@ -26,6 +26,13 @@
 .page .navigation { padding: 0; margin-bottom: 32px; }
 .page .body { flex: none; overflow: visible; padding: 0 0 32px; overscroll-behavior: auto; }
 .page .footer { position: sticky; bottom: 0; z-index: 20; margin-top: auto; padding: 16px 0; padding-bottom: max(16px, env(safe-area-inset-bottom)); }
+.stickyHeader { position: sticky; top: var(--site-header-height, 0px); z-index: 40; flex-shrink: 0; display: grid; grid-template-columns: auto minmax(0, 1fr); column-gap: 24px; align-items: start; padding-top: 8px; margin-bottom: 24px; background: var(--white); }
+.page .stickyHeader .back { margin: 0; }
+.page .stickyHeader .header { margin: 0; padding-block: 4px 8px; }
+.page .stickyHeader .heading { gap: 2px; }
+.page .stickyHeader .header h1 { font-size: 24px; line-height: 32px; }
+.page .stickyHeader .navigation { grid-column: 1 / -1; margin: 0; padding: 0; }
+@media (max-width: 700px) { .stickyHeader { column-gap: 12px; margin-bottom: 20px; } .page .stickyHeader .header h1 { font-size: 20px; line-height: 28px; } }
 .page :global(.rcmToaster.rcmToaster--editor) { position: fixed !important; right: 16px !important; left: auto !important; bottom: calc(var(--editor-actions-height, 0px) + 16px) !important; width: min(420px, calc(100vw - 32px)) !important; }
 @keyframes enter { from { opacity: 0; transform: translateX(24px); } to { opacity: 1; transform: translateX(0); } }
 @keyframes enterCentered { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }

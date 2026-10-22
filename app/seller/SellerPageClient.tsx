@@ -67,11 +67,12 @@ const SellerReturnsTab = dynamic(
     ),
   { loading: () => <CabinetSkeleton variant="list" compact /> }
 );
-const SellerBrandTab = dynamic(
-  () =>
-    import("./components/SellerBrandTab").then((module) => module.SellerBrandTab),
-  { loading: () => <CabinetSkeleton variant="form" /> }
-);
+const LazySellerBrandTab = lazy(() => import("./components/SellerBrandTab").then(
+  (module) => ({ default: module.SellerBrandTab })
+));
+function SellerBrandTab(props: ComponentProps<typeof LazySellerBrandTab>) {
+  return <Suspense fallback={<CabinetSkeleton variant="form" />}><LazySellerBrandTab {...props} /></Suspense>;
+}
 const LazySellerFinanceTab = lazy(() => import("./components/SellerFinanceTab").then(
   (module) => ({ default: module.SellerFinanceTab })
 ));
@@ -507,7 +508,7 @@ function SellerPageContent({
 
   function navigateSeller(href: string) {
     const url = new URL(href, window.location.origin);
-    const orderId = url.searchParams.get("orderId");
+    const orderId = url.pathname === "/seller/finance" ? null : url.searchParams.get("orderId");
     const returnId = url.searchParams.get("returnId");
     const detailPath = orderId ? `/seller/orders/${orderId}` : returnId ? `/seller/returns/${returnId}` : url.pathname;
     const detail = detailPath.match(/^\/seller\/(orders|returns)\/([1-9]\d*)$/);
@@ -728,7 +729,7 @@ function SellerPageContent({
 
             {visitedTabs.has("brand") ? (
               <div hidden={currentTab !== "brand"}>
-                <SellerBrandTab initialBrands={initialBrands} />
+                <SellerBrandTab key={initialBrands[0]?.id ?? "store"} initialBrands={initialBrands} active={currentTab === "brand"} />
               </div>
             ) : null}
 

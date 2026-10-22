@@ -14,15 +14,15 @@ export default async function LegacySellerPage({ searchParams }: {
     const value = source[key];
     return Array.isArray(value) ? value[0] : value;
   };
-  const orderId = first("orderId");
+  const rawTab = first("tab");
+  const tab: SellerTab = rawTab && Object.hasOwn(paths, rawTab) ? rawTab as SellerTab : "home";
+  const orderId = tab === "finance" ? undefined : first("orderId");
   const returnId = first("returnId");
   if (orderId && /^[1-9]\d*$/.test(orderId)) redirect(`/seller/orders/${orderId}`);
   if (returnId && /^[1-9]\d*$/.test(returnId)) redirect(`/seller/returns/${returnId}`);
-  const rawTab = first("tab");
-  const tab: SellerTab = rawTab && Object.hasOwn(paths, rawTab) ? rawTab as SellerTab : "home";
   const query = new URLSearchParams();
   for (const [key, value] of Object.entries(source)) {
-    if (["tab", "orderId", "returnId"].includes(key)) continue;
+    if (key === "tab" || key === "returnId" || (key === "orderId" && tab !== "finance")) continue;
     if (typeof value === "string") query.set(key, value);
     else value?.forEach(item => query.append(key, item));
   }

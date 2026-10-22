@@ -16,6 +16,7 @@ import styles from "./Admin.module.css";
 
 import { AdminSidebar } from "./components/AdminSidebar";
 import { AdminProductDetails } from "./components/AdminProductDetails";
+import { assignProductColor } from "./lib/adminApi";
 import { AdminDictionariesTab } from "./components/AdminDictionariesTab";
 
 import {
@@ -1639,6 +1640,14 @@ function AdminPageContent({ initialData }: Props) {
                 actionProductId={actionProductId}
                 onBack={closeProductDetails}
                 onAssignCategory={assignSelectedProductCategory}
+                onAssignColor={async (groupId, colorId, expectedName) => {
+                  setActionProductId(selectedProduct.id);
+                  try {
+                    const updated = await assignProductColor(selectedProduct.id, groupId, colorId, expectedName);
+                    invalidateProduct(selectedProduct.id);
+                    setSelectedProduct(current => current?.id === updated.id ? updated : current);
+                  } finally { setActionProductId(null); }
+                }}
                 onApprove={() =>
                   void runProductAction(selectedProduct.id, approveProduct)
                 }

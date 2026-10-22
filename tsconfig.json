@@ -42,9 +42,18 @@
     "build/unpaid-check/types/**/*.ts",
     "build/unpaid-check/dev/types/**/*.ts",
     "build/account-redesign-dev/types/**/*.ts",
-    "build/account-redesign-dev/dev/types/**/*.ts"
+    "build/account-redesign-dev/dev/types/**/*.ts",
+    "build/moderation-readiness-next/types/**/*.ts",
+    "build/moderation-readiness-next/dev/types/**/*.ts",
+    "build/seller-requisites-next/types/**/*.ts",
+    "build/seller-requisites-next/dev/types/**/*.ts",
+    "build/seller-legal-review-next/types/**/*.ts",
+    "build/seller-legal-review-next/dev/types/**/*.ts",
+    "build/product-form-check/types/**/*.ts",
+    "build/product-form-check/dev/types/**/*.ts"
   ],
   "exclude": [
-    "node_modules"
+    "node_modules",
+    "build/**/frontend-check/**"
   ]
 }
