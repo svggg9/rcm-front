@@ -18,7 +18,7 @@ export function getGuestFavoriteIds(): number[] {
     const parsed = JSON.parse(raw);
     if (!Array.isArray(parsed)) return [];
 
-    return parsed.filter((x): x is number => typeof x === "number");
+    return [...new Set(parsed.filter((id): id is number => Number.isSafeInteger(id) && id > 0))];
   } catch {
     return [];
   }
@@ -27,7 +27,7 @@ export function getGuestFavoriteIds(): number[] {
 export function setGuestFavoriteIds(ids: number[]): void {
   if (typeof window === "undefined") return;
 
-  localStorage.setItem(GUEST_FAVORITES_KEY, JSON.stringify(ids));
+  localStorage.setItem(GUEST_FAVORITES_KEY, JSON.stringify([...new Set(ids.filter(id => Number.isSafeInteger(id) && id > 0))]));
   emitFavoritesChanged();
 }
 
@@ -137,7 +137,7 @@ export async function syncFavoritesAfterLogin(ids: number[]): Promise<boolean> {
   try {
     const authenticated = await hasSession();
     if (!authenticated) return false;
-    const uniqueIds = Array.from(new Set(ids)).filter((x): x is number => typeof x === "number");
+    const uniqueIds = Array.from(new Set(ids)).filter(id => Number.isSafeInteger(id) && id > 0);
     if (!uniqueIds.length) return true;
     const response = await apiFetch(`${API_URL}/api/favorites/sync`, {
       method: "POST",

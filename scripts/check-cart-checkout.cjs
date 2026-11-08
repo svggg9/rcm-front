@@ -60,7 +60,8 @@ async function main() {
   assert.equal(pending.loadPendingPaymentOrderId("user_check"), null);
   assert.doesNotThrow(() => pending.clearSucceededPendingPayment("user_check", 123, "SUCCEEDED"));
   global.sessionStorage = availableStorage;
-  const errors = load("app/checkout/lib/checkoutErrors.ts", {});
+  const publicErrors = load("app/lib/publicRequestErrors.ts", { "./apiErrors": load("app/lib/apiErrors.ts", {}) });
+  const errors = load("app/checkout/lib/checkoutErrors.ts", { "../../lib/publicRequestErrors": publicErrors });
   const privateFailure = await errors.readCheckoutFailure(Response.json({ message: "private SQL /api/path" }, { status: 500 }), "Не удалось рассчитать доставку");
   assert.equal(privateFailure.message, "Не удалось рассчитать доставку");
   const stale = await errors.readCheckoutFailure(Response.json({ message: "delivery_quote_stale" }, { status: 409 }), "fallback");
@@ -282,6 +283,7 @@ async function main() {
   window.addEventListener = (event, fn) => listeners.set(event, fn);
   window.removeEventListener = event => listeners.delete(event);
   let cartForPage = cart, mutations = 0, cartSearch = "", cartPaymentStatus = "PENDING", quantityFailure = null;
+  let cartNavigation = () => false;
   let pageLoader = async () => cartForPage;
   const sessionState = { isAuthenticated: true, loading: false, error: null, revision: 0, reload: async () => ({ id: 1 }) };
   const cartApi = load("app/cart/lib/cartApi.ts", {
@@ -297,6 +299,7 @@ async function main() {
     "../checkout/lib/pendingPayment": pending,
     "@/app/components/ui/toast": { toast: { success() {} } }, "../lib/cartAuthority": { loadResolvedCart: () => pageLoader() },
     "../lib/cartEvents": { emitCartChanged() {} }, "../lib/authEvents": { AUTH_EVENT: "auth" },
+    "../lib/buyerPanelActions": { registerBuyerPanelActions: handler => { cartNavigation = handler; return () => {}; } },
     "../lib/useCurrentUser": { useCurrentUser: () => sessionState },
     "../checkout/CheckoutPageClient": { CheckoutPageClient: "Checkout" },
     "../components/Auth/AuthForm": { AuthForm: "Auth" },
@@ -318,6 +321,13 @@ async function main() {
   assert.equal(paymentAction.props.disabled, false, "A saved payment must never disable its own entry point");
   assert.equal(paymentAction.props.children, "Перейти к оформлению");
   paymentAction.props.onClick(); assert.equal(navigation.at(-1), "/cart?checkout=1");
+  cartSearch = "checkout=1";
+  renderCart(); await cartHooks.effects();
+  assert.equal(cartNavigation("back"), true, "Delivery Back returns to the editable cart");
+  assert.equal(navigation.at(-1), "/cart");
+  assert.equal(cartNavigation("close"), false, "Close delegates to the original page without cancelling an order");
+  cartSearch = "";
+  cartView = renderCart(); await cartHooks.effects();
   const row = find(cartView, node => node.type === "Row");
   assert(!row.props.locked); assert.equal(row.props.pending, false);
   assert.equal(find(cartView, node => node.type === "UnpaidOrders"), null);
@@ -413,7 +423,59 @@ async function main() {
   for (let i = 0; i < 4; i++) { cartView = renderCart(); await cartHooks.effects(); }
   assert.equal(find(renderCart(), node => node.type === "RequestError"), null);
   assert.equal(find(renderCart(), node => node.type === "Row").props.pending, false);
+
+  {
+    const actions = load("app/lib/buyerPanelActions.ts", {});
+    const calls = [];
+    const releaseCart = actions.registerBuyerPanelActions(action => { calls.push(`cart:${action}`); return true; });
+    const releaseStep = actions.registerBuyerPanelActions(action => { calls.push(`step:${action}`); return action === "back"; }, 20);
+    assert.equal(actions.handleBuyerPanelAction("back"), true);
+    assert.deepEqual(calls, ["step:back"]);
+    calls.length = 0;
+    assert.equal(actions.handleBuyerPanelAction("close"), true);
+    assert.deepEqual(calls, ["step:close", "cart:close"]);
+    releaseStep(); releaseCart();
+    assert.equal(actions.handleBuyerPanelAction("back"), false, "Unmounted steps cannot intercept future navigation");
+
+    const flowHooks = hooks();
+    let flowBack = () => false, validations = 0;
+    const { CheckoutFlow } = load("app/checkout/components/CheckoutFlow.tsx", {
+      react: flowHooks.react, "react/jsx-runtime": jsx, "next/link": { default: "Link" },
+      "../../components/ui/Button": { Button: "Button" }, "../../components/ui/Icon": { Icon: "Icon" },
+      "../../components/ui/Banner": { Banner: "Banner" },
+      "../../components/Delivery/CdekLogo": { CdekLogo: "CdekLogo" }, "../../components/ui/Loader": { Loader: "Loader" },
+      "../../lib/phone": { formatRussianPhoneInput: value => value },
+      "../../lib/buyerPanelActions": { registerBuyerPanelActions: handler => { flowBack = handler; return () => {}; } },
+      "./CheckoutFlow.module.css": { default: {} },
+    });
+    const flowProps = { delivery: "delivery", contact: "contact", pickupLabel: "ПВЗ", cityName: "Москва", recipient: "Покупатель", phone: "9000000000",
+      subtotal: 100, deliveryPrice: 50, deliveryCalculated: true, deliveryCalculating: false, submitting: false, error: null,
+      onContinue: async () => { validations++; return true; }, onSubmit() {} };
+    const renderFlow = () => flowHooks.render(() => CheckoutFlow(flowProps));
+    let flow = renderFlow(); await flowHooks.effects();
+    assert.equal(flowBack("back"), false, "First delivery step delegates Back to the cart");
+    for (let i = 0; i < 2; i++) {
+      find(flow, node => node.type === "Button" && node.props.children === "Продолжить").props.onClick();
+      await new Promise(setImmediate);
+      flow = renderFlow(); await flowHooks.effects();
+    }
+    assert(find(flow, node => node.type === "Button" && node.props.children === "Заказать"));
+    assert.equal(validations, 2);
+    assert.equal(flowBack("back"), true);
+    flow = renderFlow(); await flowHooks.effects();
+    assert.equal(find(flow, node => node.type === "button" && node.props["aria-current"] === "step").props.children[2], "Оплата",
+      "Review Back opens payment instead of leaving checkout");
+    assert.equal(validations, 2, "Back never resubmits delivery validation");
+    assert.equal(flowBack("close"), false, "Close may leave a settled checkout step");
+    flowProps.submitting = true;
+    renderFlow(); await flowHooks.effects();
+    assert.equal(flowBack("back"), true); assert.equal(flowBack("close"), true, "An order request cannot be abandoned mid-flight");
+    flowProps.submitting = false; flowProps.committedOrderId = 888;
+    renderFlow(); await flowHooks.effects(); renderFlow(); await flowHooks.effects();
+    assert.equal(flowBack("back"), false, "A committed order is never sent back into editable purchase steps");
+  }
   console.log("Cart checkout: retained purchase on Back/refresh, same payment retry, confirmed return, empty cart, slow Init, lost-response idempotency and edits passed");
+  console.log("Buyer panels: nested Back, delivery/payment/review return, in-flight guard and committed order safety passed");
   console.log("Cart alerts: corrected sibling variant, refreshed stock and actual limit violation lifecycle passed");
   console.log("Cart error: failure differs from empty, retry keeps its error block and confirmed data replaces it");
   console.log("Checkout recipient: current profile, manual override, changed/cleared profile and committed order isolation passed");

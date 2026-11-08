@@ -1,0 +1,31 @@
+.prompt {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0 var(--space-1);
+  min-width: 0;
+  max-width: 100%;
+  color: var(--black);
+  font-size: var(--font-helper);
+  line-height: var(--line-height-helper);
+}
+.hint { color: var(--muted); font-weight: var(--font-weight-regular); }
+.prompt > :is(a, button) {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--black);
+  font: inherit;
+  font-weight: var(--font-weight-semibold);
+  text-decoration: none;
+  transition: background-color var(--transition-fast), color var(--transition-fast);
+}
+.prompt > :is(a, button):hover:not(:disabled) {
+  background: var(--surface-hover);
+}
+.prompt > :is(a, button):focus-visible { outline: 2px solid var(--black); outline-offset: 3px; }
+.prompt > :is(a, button):disabled { color: var(--muted); cursor: default; }

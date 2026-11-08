@@ -16,7 +16,7 @@
   min-height: 72px;
   display: flex;
   flex-direction: column;
-  padding-top: 12px;
+  padding-top: var(--space-3);
 }
 
 .productBrand {
@@ -40,8 +40,8 @@
 .storefront .productInfo { min-height: 82px; }
 
 .cartGrid { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 64px; align-items: start; }
-.cartItems { display: flex; flex-direction: column; gap: 40px; }
-.cartItem { display: grid; grid-template-columns: 180px minmax(0, 1fr); gap: 24px; }
+.cartItems { display: flex; flex-direction: column; gap: var(--space-8); }
+.cartItem { display: grid; grid-template-columns: 180px minmax(0, 1fr); gap: var(--space-6); }
 .cartMedia { width: 100%; aspect-ratio: 2 / 3; }
 .cartContent { min-width: 0; }
 .cartHeader { display: flex; flex-direction: column; gap: 6px; }
@@ -55,20 +55,20 @@
 .cartCounter { width: 64px; }
 .cartCounter .block { height: 32px; margin: 6px 0; }
 .summary { position: sticky; top: calc(var(--site-header-height) + 24px); }
-.summaryRows { display: flex; flex-direction: column; gap: 12px; margin: 0 0 24px; }
+.summaryRows { display: flex; flex-direction: column; gap: var(--space-3); margin: 0 0 var(--space-6); }
 .summaryRow { display: flex; align-items: center; justify-content: space-between; gap: 18px; }
 .summaryLabel, .summaryLabelWide { width: 104px; height: 13px; }
 .summaryValue, .summaryValueWide { width: 68px; height: 13px; }
 .summaryButton { width: 100%; height: 44px; }
 .srOnly { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 @media (max-width: 900px) {
- .cartGrid { grid-template-columns: minmax(0, 1fr); gap: 40px; }
+ .cartGrid { grid-template-columns: minmax(0, 1fr); gap: var(--space-8); }
  .summary { position: static; }
 }
 @media (max-width: 640px) {
- .cartItems { gap: 32px; }
- .cartItem { grid-template-columns: 36% minmax(0, 1fr); gap: 16px; }
+ .cartItems { gap: var(--space-7); }
+ .cartItem { grid-template-columns: 36% minmax(0, 1fr); gap: var(--space-4); }
 }
 @media (max-width: 350px) {
- .cartItem { grid-template-columns: 33% minmax(0, 1fr); gap: 12px; }
+ .cartItem { grid-template-columns: 33% minmax(0, 1fr); gap: var(--space-3); }
 }

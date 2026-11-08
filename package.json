@@ -6,7 +6,10 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "contract:sync": "node scripts/order-contract.cjs",
+    "contract:check": "node scripts/order-contract.cjs --check",
+    "prebuild": "npm run contract:check"
   },
   "dependencies": {
     "lucide-react": "^1.24.0",
@@ -23,6 +26,7 @@
     "babel-plugin-react-compiler": "1.0.0",
     "eslint": "^9",
     "eslint-config-next": "16.0.8",
+    "openapi-typescript": "7.10.1",
     "postcss": "^8.5.6",
     "tailwindcss": "^3.4.19",
     "typescript": "^5"

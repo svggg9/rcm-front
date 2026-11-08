@@ -25,7 +25,9 @@ const task = { id: "order-10", title: "Новый заказ", object: "Зака
 assert.match(render(SellerTaskRow, { task, now: Date.parse("2026-09-13T00:00:00Z") }), /Срок отправки истёк/);
 assert.doesNotMatch(render(SellerTaskRow, { task, now: Date.parse("2026-09-10T00:00:00Z") }), /Срок отправки истёк/);
 assert.match(render(SellerTaskRow, { task: { ...task, dueAt: null }, now: 1 }), /срок не рассчитан/);
-const details = { ...order, subtotalAmount: 990.25, deliveryAmount: 50, discountAmount: 0, deliveryAddress: "Тестовый адрес", recipientPhone: "+79000000000", deliveryMethod: "PICKUP_POINT", delivery: { cdekNumber: "TEST", trackingUrl: "https://example.com/tracking" } };
+const details = { ...order, subtotalAmount: 990.25, deliveryAmount: 50, discountAmount: 0, deliveryAddress: "Тестовый адрес", recipientPhone: "+79000000000", deliveryMethod: "PICKUP_POINT", delivery: { cdekNumber: "TEST", trackingUrl: "https://example.com/tracking" },
+  workflow: { version: 1, audience: "SELLER", evaluatedAt: "2026-09-09T10:00:00+03:00", events: [],
+    actions: [{ code: "DOWNLOAD_LABEL", allowed: true, reasonCode: null, reason: null, scope: "ORDER", availableUntil: null }] } };
 const props = { order, details, loading: false, error: false, onRetry() {}, audience: "seller", showDeliveryLabel: true, openButtonLabel: "Открыть заказ" };
 const html = render(OrderDetailsPanel, props);
 assert.ok(html.indexOf("Товары в заказе") < html.indexOf(">Оплата<"));
@@ -42,6 +44,43 @@ const field = render(TextInput, { label: "Почта", error: "Проверьт�
 assert.match(field, /data-ui="field"/);
 assert.match(field, /aria-describedby=/);
 assert.match(field, /aria-invalid="true"/);
+const describedField = render(TextInput, { id: "test-email", label: "Почта", hint: "Рабочий адрес", error: "Проверьте адрес",
+  "aria-describedby": "external-help external-help", required: true });
+assert.match(describedField, /<label\b[^>]*for="test-email"[^>]*>Почта<\/label>/);
+assert.match(describedField, /<input[^>]*id="test-email"/);
+assert.match(describedField, /aria-describedby="external-help test-email-hint test-email-error"/);
+assert.match(describedField, /id="test-email-hint">Рабочий адрес/);
+assert.match(describedField, /id="test-email-error">Проверьте адрес/);
+assert.match(describedField, /required=""/);
+assert.ok([...describedField.matchAll(/<label\b[^>]*>([\s\S]*?)<\/label>/g)].every(match => !/<input|Рабочий адрес|Проверьте адрес/.test(match[1])),
+  "A field label must not contain its hints, errors or interactive adornments");
+const trailingField = render(TextInput, { id: "test-password", label: "Пароль", type: "password", size: "large",
+  trailing: React.createElement("button", { type: "button", "aria-label": "Показать пароль" }, "Глаз") });
+assert.match(trailingField, /data-field-size="large"/);
+assert.match(trailingField, /class="inputShell"/);
+assert.match(trailingField, /aria-label="Показать пароль"/);
+assert.ok([...trailingField.matchAll(/<label\b[^>]*>([\s\S]*?)<\/label>/g)].every(match => !/<button/.test(match[1])),
+  "An adornment action is outside the input label");
+for (const state of ["readOnly", "disabled"]) {
+  const stateField = render(TextInput, { id: `test-${state}`, label: "Значение", defaultValue: "Можно прочитать", [state]: true });
+  assert.match(stateField, new RegExp(`${state === "readOnly" ? "readOnly" : "disabled"}=""`));
+}
+const { FormMultiSelect } = require("../app/components/ui/FormMultiSelect.tsx");
+const { FormSelect } = require("../app/components/ui/FormSelect.tsx");
+for (const [Component, selection] of [[FormSelect, { value: "a" }], [FormMultiSelect, { values: ["a"] }]]) {
+  const dropdown = render(Component, { id: "test-dropdown", label: "Категория", required: true, readOnly: true,
+    hint: "Подсказка", error: "Выберите значение", ...selection, options: [{ value: "a", label: "Одежда" }], onChange() {} });
+  assert.match(dropdown, /<label\b[^>]*for="test-dropdown"/);
+  assert.match(dropdown, /aria-required="true"/);
+  assert.match(dropdown, /aria-readonly="true"/);
+  assert.match(dropdown, /aria-invalid="true"/);
+  assert.match(dropdown, /aria-describedby="test-dropdown-hint test-dropdown-error"/);
+  assert.match(dropdown, /aria-hidden="true" inert=""/);
+  assert.match(dropdown, /aria-selected="true" tabindex="-1"/);
+  assert.match(dropdown, /title="Одежда"/);
+}
+assert.match(render(FormSelect, { label: "Пустой", value: "", options: [], onChange() {} }), /Нет доступных вариантов/);
+assert.match(render(FormMultiSelect, { label: "Пустой", values: [], options: [], onChange() {} }), /Нет доступных вариантов/);
 for (const [name, shape] of [["package", "box"], ["shopping-bag", "receipt-text"], ["shipment-handoff", "truck"]]) {
   assert.match(render(Icon, { name }), new RegExp(`lucide-${shape}`));
   assert.match(render(Icon, { name }), /stroke-width="1.5"/);

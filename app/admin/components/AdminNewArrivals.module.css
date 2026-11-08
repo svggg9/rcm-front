@@ -1,0 +1,3 @@
+.section { width: min(960px, 100%); margin-bottom: var(--space-8); }
+.actions { display: flex; flex-wrap: wrap; gap: var(--space-3); }
+.countField { width: min(240px, 100%); }

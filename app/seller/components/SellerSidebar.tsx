@@ -111,16 +111,19 @@ export function SellerSectionTabs({ currentTab }: { currentTab: SellerTab }) {
   const searchParams = useSearchParams();
   const collectionsActive = searchParams.get("section") === "collections";
   const navigationRef = useNavigationVisibility(`${currentTab}:${collectionsActive}`);
-  const items = [
-    { label: "Главная", href: "/seller/home", active: currentTab === "home" },
-    { label: "Товары", href: "/seller/products", active: currentTab === "products" && !collectionsActive },
-    { label: "Подборки", href: "/seller/products?section=collections", active: currentTab === "products" && collectionsActive },
-    { label: "Заказы", href: "/seller/orders", active: currentTab === "orders" },
-    { label: "Возвраты", href: "/seller/returns", active: currentTab === "returns" },
-    { label: "Финансы", href: "/seller/finance", active: currentTab === "finance" },
-    { label: "Магазин", href: "/seller/store", active: currentTab === "brand" },
-    { label: "Данные и документы", href: "/seller/legal", active: currentTab === "legal" },
-  ];
+  const items = currentTab === "products"
+    ? [
+        { label: "Каталог", href: "/seller/products", active: !collectionsActive },
+        { label: "Подборки", href: "/seller/products?section=collections", active: collectionsActive },
+      ]
+    : currentTab === "orders" || currentTab === "returns"
+      ? [
+          { label: "Все заказы", href: "/seller/orders", active: currentTab === "orders" },
+          { label: "Возвраты", href: "/seller/returns", active: currentTab === "returns" },
+        ]
+      : [];
+
+  if (items.length === 0) return null;
 
   return (
     <nav ref={navigationRef} className={styles.secondary} aria-label="Подразделы кабинета" onFocus={revealFocusedLink}>

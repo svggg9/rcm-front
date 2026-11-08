@@ -10,7 +10,8 @@ import { toast } from "../../components/ui/toast";
 import { CabinetSkeleton } from "../../components/ui/CabinetSkeleton";
 import { StatusBadge } from "../../components/ui/StatusBadge";
 import { apiFetch, API_URL } from "../../lib/api";
-import { getSellerReturn, inspectSellerReturn, markSellerReturnReceived, returnReasonLabels, returnStatusLabels, type ReturnRequest } from "../../lib/returns";
+import { getSellerReturn, inspectSellerReturn, markSellerReturnReceived, returnAction, returnReasonLabels, returnStatusLabels, type ReturnAction, type ReturnRequest } from "../../lib/returns";
+import { ReturnWorkflowSummary } from "../../components/order-detail/ReturnWorkflowSummary";
 import { OrderDetailsPanel } from "./OrderDetailsPanel";
 import { ReturnInspectionForm } from "./ReturnInspectionForm";
 import type { SellerOrder } from "../types";
@@ -26,6 +27,7 @@ export function SellerEntityPage({ id, kind, intercepted = false, onClose }: {
   const [loading, setLoading] = useState(true);
   const [attempt, setAttempt] = useState(0);
   const [busy, setBusy] = useState(false);
+  const [needsRefresh, setNeedsRefresh] = useState(false);
   const [dirty, setDirty] = useState(false);
   const notificationScope = intercepted ? `seller-${kind}-${id}` : undefined;
   const notificationId = `seller-${kind}-${id}-update`;
@@ -34,7 +36,7 @@ export function SellerEntityPage({ id, kind, intercepted = false, onClose }: {
   useEffect(() => {
     const controller = new AbortController();
     async function load() {
-      if (kind === "returns") return setRequest(await getSellerReturn(id, controller.signal));
+      if (kind === "returns") { const result = await getSellerReturn(id, controller.signal); if (!controller.signal.aborted) { setRequest(result); setNeedsRefresh(false); } return; }
       const response = await apiFetch(`${API_URL}/api/seller/orders/${id}`, { signal: controller.signal });
       if (!response.ok) throw new Error(response.status === 403 || response.status === 404
         ? "Заказ не найден или недоступен" : "Не удалось загрузить заказ");
@@ -72,8 +74,16 @@ export function SellerEntityPage({ id, kind, intercepted = false, onClose }: {
     }
     else router.push(`/seller/${kind}`, { scroll: false });
   }
-  async function update(action: () => Promise<ReturnRequest>) {
-    if (inFlight.current) return;
+  function refreshReturn() {
+    if (busy) return;
+    if (dirty && !window.confirm("Обновить возврат? Несохранённые изменения проверки могут быть потеряны.")) return;
+    setDirty(false);
+    setError(null);
+    setLoading(true);
+    setAttempt(n => n + 1);
+  }
+  async function update(code: ReturnAction, action: () => Promise<ReturnRequest>) {
+    if (inFlight.current || needsRefresh || !request || !returnAction(request, code).allowed) return;
     inFlight.current = true;
     setBusy(true); setError(null);
     try {
@@ -83,6 +93,7 @@ export function SellerEntityPage({ id, kind, intercepted = false, onClose }: {
       window.dispatchEvent(new CustomEvent("seller-return-updated", { detail: updated }));
       toast.success("Изменения сохранены", { id: notificationId, toasterId: notificationScope, description: undefined, action: undefined });
     } catch (e) {
+      setNeedsRefresh(true);
       toast.error(e instanceof Error ? e.message : "Не удалось сохранить изменения", { id: notificationId, toasterId: notificationScope });
     } finally { inFlight.current = false; setBusy(false); }
   }
@@ -117,13 +128,15 @@ export function SellerEntityPage({ id, kind, intercepted = false, onClose }: {
         </a>)}</div>}
       {request.adminComment && <section><h3>Комментарий администратора</h3><p className={styles.comment}>{request.adminComment}</p></section>}
       {request.sellerComment && <section><h3>Результат проверки</h3><p className={styles.comment}>{request.sellerComment}</p></section>}
+      <ReturnWorkflowSummary workflow={request.workflow} onRefresh={refreshReturn} />
+      {needsRefresh && <Banner tone="warning" actions={<Button disabled={busy} onClick={refreshReturn}>Обновить возврат</Button>}>Обновите заявку перед повторным действием</Banner>}
       {request.resellable != null && request.status !== "RECEIVED" && <p>{request.resellable ? "Товар пригоден к продаже" : "Товар нельзя вернуть в продажу"}</p>}
       {request.trackingUrl && <a href={request.trackingUrl} target="_blank" rel="noreferrer" className="buttonSecondary">Отследить отправление</a>}
-      {["AWAITING_SHIPMENT", "WAITING_FOR_ITEM", "IN_TRANSIT"].includes(request.status) &&
-        <Button disabled={busy} loading={busy} onClick={() => void update(() => markSellerReturnReceived(id))}>Подтвердить получение товара</Button>}
-      {request.status === "RECEIVED" && <section><h3>Проверка товара</h3>
-        <ReturnInspectionForm key={request.id} request={request} loading={busy} disabled={busy}
-          onDirtyChange={setDirty} persistDraft onInspect={values => update(() => inspectSellerReturn(id, values))} />
+      {returnAction(request, "RECEIVE").allowed &&
+        <Button disabled={busy || needsRefresh} loading={busy} onClick={() => void update("RECEIVE", () => markSellerReturnReceived(id))}>Подтвердить получение товара</Button>}
+      {returnAction(request, "INSPECT").allowed && <section><h3>Проверка товара</h3>
+        <ReturnInspectionForm key={request.id} request={request} loading={busy} disabled={busy || needsRefresh}
+          onDirtyChange={setDirty} persistDraft onInspect={values => update("INSPECT", () => inspectSellerReturn(id, values))} />
       </section>}
     </> : null}
   </div>;

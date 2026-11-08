@@ -9,67 +9,65 @@
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 20px;
+  gap: var(--space-5);
 }
 
 .header h1 {
   margin: 0;
   color: var(--black);
-  font-size: 28px;
+  font-size: var(--font-title-lg);
   line-height: 1.15;
-  font-weight: 400;
+  font-weight: var(--font-weight-regular);
 }
 
 .header p {
   margin: 6px 0 0;
   color: var(--muted);
   font-size: var(--font-sm);
-  font-weight: 300;
+  font-weight: var(--font-weight-regular);
 }
 
-.queueTools { display: flex; align-items: flex-end; flex-wrap: wrap; gap: 12px; margin: 0 0 20px; }
-.filterField { display: flex; flex-direction: column; gap: 8px; font-size: 13px; min-width: 0; }
-.filterField select, .filterField input { min-height: 44px; padding: 10px 12px; color: var(--black); background: var(--white); border: 1px solid var(--line); font: inherit; border-radius: 0; width: 100%; }
+.queueTools { display: flex; align-items: flex-end; flex-wrap: wrap; gap: var(--space-3); margin: 0 0 var(--space-5); }
+.filterField { display: flex; flex-direction: column; gap: var(--space-2); font-size: var(--font-xs); min-width: 0; }
+.filterField select, .filterField input { min-height: 44px; padding: 10px var(--space-3); color: var(--black); background: var(--white); border: var(--line-width-default) solid var(--line); font: inherit; border-radius: 0; width: 100%; }
 .filterField select { min-width: 220px; }
 .filterField select:focus-visible, .filterField input:focus-visible, .detailTableScroll:focus-visible { outline: 2px solid var(--black); outline-offset: 2px; }
-.caption { color: var(--muted); font-size: 13px; line-height: 20px; margin: 12px 0; }
-.queueStatus { display: inline-block; color: var(--black) !important; border: 1px solid var(--line); padding: 5px 8px; }
-.cardFooter { display: flex; justify-content: space-between; align-items: center; gap: 16px; margin-top: 16px; }
-.generationResult { border: 1px solid var(--line); padding: 16px; margin: 16px 0; font-size: 13px; line-height: 20px; }
+.caption { color: var(--muted); font-size: var(--font-xs); line-height: var(--line-height-small); margin: var(--space-3) 0; }
+.queueStatus { display: inline-block; color: var(--black) !important; border: var(--line-width-default) solid var(--line); padding: 5px var(--space-2); }
+.cardFooter { display: flex; justify-content: space-between; align-items: center; gap: var(--space-4); margin-top: var(--space-4); }
+.generationResult { border: var(--line-width-default) solid var(--line); padding: var(--space-4); margin: var(--space-4) 0; font-size: var(--font-xs); line-height: var(--line-height-small); }
 .generationResult ul { padding-left: 18px; margin-bottom: 0; }
 .generationResult li { padding: 6px 0; }
-.generationResult strong, .generationResult span { display: block; font-weight: 400; overflow-wrap: anywhere; }
-.detailContent { display: grid; gap: 24px; min-width: 0; }
+.generationResult strong, .generationResult span { display: block; font-weight: var(--font-weight-regular); overflow-wrap: anywhere; }
+.detailContent { display: grid; gap: var(--space-6); min-width: 0; }
 .detailContent section { min-width: 0; }
-.detailContent h3 { margin: 0 0 16px; font-weight: 400; font-size: 14px; text-transform: uppercase; }
-.detailAmount { font-variant-numeric: tabular-nums; font-weight: 400; font-size: 24px; line-height: 30px; overflow-wrap: anywhere; }
-.detailFigures { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin: 0; }
-.detailFigures dt, .summary dt { font-size: 12px; line-height: 18px; color: var(--muted); }
-.detailFigures dd, .summary dd { margin: 5px 0 0; font-size: 14px; overflow-wrap: anywhere; }
-.summary dd { font-size: 20px; font-variant-numeric: tabular-nums; }
+.detailContent h3 { margin: 0 0 var(--space-4); font-weight: var(--font-weight-regular); font-size: var(--font-sm); text-transform: uppercase; }
+.detailAmount { font-variant-numeric: tabular-nums; font-weight: var(--font-weight-regular); font-size: var(--font-title-md); line-height: var(--line-height-title-md); overflow-wrap: anywhere; }
+.detailFigures { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-4); margin: 0; }
+.detailFigures dt, .summary dt { font-size: var(--font-helper); line-height: var(--caption-line-height); color: var(--muted); }
+.detailFigures dd, .summary dd { margin: 5px 0 0; font-size: var(--font-sm); overflow-wrap: anywhere; }
+.summary dd { font-size: var(--font-title-sm); font-variant-numeric: tabular-nums; }
 .detailTableScroll { overflow-x: auto; max-width: 100%; }
-.detailTable { width: 100%; border-collapse: collapse; font-size: 12px; line-height: 18px; font-variant-numeric: tabular-nums; }
-.detailTable th, .detailTable td { border-bottom: 1px solid var(--line); padding: 12px 8px; text-align: right; white-space: nowrap; font-weight: 400; }
+.detailTable { --table-font-size: var(--font-helper); --table-line-height: var(--line-height-helper); --table-numeric: tabular-nums; --table-cell-padding: 12px 8px; --table-align: right; --table-cell-white-space: nowrap; --table-cell-weight: 400; --table-heading-weight: 400; }
 .detailTable th:first-child, .detailTable td:first-child { text-align: left; }
-.detailTable a { text-decoration: underline; text-underline-offset: 3px; }
-.history { padding: 0; margin: 0; list-style: none; display: grid; gap: 12px; }
-.history li { border: 1px solid var(--line); padding: 14px; display: grid; gap: 5px; font-size: 12px; line-height: 18px; overflow-wrap: anywhere; }
-.history strong { font-size: 13px; font-weight: 400; }
+.history { padding: 0; margin: 0; list-style: none; display: grid; gap: var(--space-3); }
+.history li { border: var(--line-width-default) solid var(--line); padding: 14px; display: grid; gap: 5px; font-size: var(--font-helper); line-height: var(--caption-line-height); overflow-wrap: anywhere; }
+.history strong { font-size: var(--font-xs); font-weight: var(--font-weight-regular); }
 .history span { color: var(--muted); }
 .history p { white-space: pre-wrap; }
-.actionForm { display: grid; gap: 16px; padding-top: 24px; border-top: 1px solid var(--line); }
+.actionForm { display: grid; gap: var(--space-4); padding-top: var(--space-6); border-top: var(--line-width-default) solid var(--line); }
 
 .payoutActions {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-2);
 }
 
 .primaryButton,
 .payoutActions button {
   min-height: 40px;
-  padding: 0 16px;
-  border: 1px solid var(--black);
+  padding: 0 var(--space-4);
+  border: var(--line-width-default) solid var(--black);
   background: var(--black);
   color: var(--white);
   font: inherit;
@@ -102,7 +100,7 @@
   justify-content: space-between;
   gap: 14px;
   padding: 15px;
-  border: 1px solid var(--line);
+  border: var(--line-width-default) solid var(--line);
 }
 
 .summary span,
@@ -111,12 +109,12 @@
 .payoutDetails dt {
   color: var(--muted);
   font-size: var(--font-xs);
-  font-weight: 300;
+  font-weight: var(--font-weight-regular);
 }
 
 .summary strong {
-  font-size: 19px;
-  font-weight: 400;
+  font-size: var(--font-price-emphasis);
+  font-weight: var(--font-weight-regular);
 }
 
 .payoutList {
@@ -127,28 +125,28 @@
 
 .payoutCard {
   padding: 18px;
-  border: 1px solid var(--line);
+  border: var(--line-width-default) solid var(--line);
 }
 
 .payoutMain {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 20px;
+  gap: var(--space-5);
 }
 
 .payoutIdentity strong {
   display: block;
   margin-top: 5px;
-  font-size: 17px;
-  font-weight: 400;
+  font-size: var(--font-ui-large);
+  font-weight: var(--font-weight-regular);
 }
 
 .payoutIdentity small {
   display: block;
-  margin-top: 4px;
+  margin-top: var(--space-1);
   color: var(--muted);
-  font-size: 11px;
+  font-size: var(--font-label-compact);
 }
 
 .payoutAmount {
@@ -157,27 +155,27 @@
 
 .payoutAmount strong {
   display: block;
-  margin: 4px 0 8px;
-  font-size: 22px;
-  font-weight: 400;
+  margin: var(--space-1) 0 var(--space-2);
+  font-size: var(--font-metric-sm);
+  font-weight: var(--font-weight-regular);
 }
 
 .status {
   display: inline-flex;
-  padding: 4px 7px;
+  padding: var(--space-1) 7px;
   background: var(--soft);
-  color: var(--content-secondary);
-  font-size: 11px;
+  color: var(--muted);
+  font-size: var(--font-label-compact);
 }
 
-.statusPAID { background: #edf6ef; color: #276c37; }
-.statusSENT { background: #f5f0df; color: #79651f; }
-.statusFAILED { background: #fff0f0; color: var(--danger); }
+.statusPAID { background: var(--feedback-success-bg); color: var(--success); }
+.statusSENT { background: var(--feedback-warning-bg); color: var(--warning); }
+.statusFAILED { background: var(--feedback-danger-bg); color: var(--error); }
 
 .payoutDetails {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 16px;
+  gap: var(--space-4);
   margin: 22px 0 0;
 }
 
@@ -193,19 +191,19 @@
 
 .payoutActions {
   justify-content: flex-end;
-  margin-top: 20px;
+  margin-top: var(--space-5);
 }
 
 .payoutActions input {
   min-width: 240px;
   min-height: 44px;
   padding: 0 15px;
-  border: 0.5px solid var(--black);
+  border: var(--line-width-hairline) solid var(--black);
   background: var(--white);
-  color: #333333;
+  color: var(--black);
   font: inherit;
-  font-size: 14px;
-  font-weight: 400;
+  font-size: var(--font-sm);
+  font-weight: var(--font-weight-regular);
 }
 
 .payoutActions .secondaryButton {

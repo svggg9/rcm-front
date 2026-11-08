@@ -6,6 +6,7 @@ import styles from "./SegmentedControl.module.css";
 export type SegmentedControlItem<T extends string> = {
   value: T;
   label: string;
+  disabled?: boolean;
 };
 
 type Props<T extends string> = {
@@ -25,7 +26,8 @@ export function SegmentedControl<T extends string>({
 }: Props<T>) {
   const scrollerRef = useRef<HTMLDivElement>(null);
   const buttonRefs = useRef(new Map<T, HTMLButtonElement>());
-  const focusValue = items.some(item => item.value === value) ? value : items[0]?.value;
+  const enabledItems = items.filter(item => !item.disabled);
+  const focusValue = enabledItems.some(item => item.value === value) ? value : enabledItems[0]?.value;
 
   function revealButton(button: HTMLButtonElement) {
     const scroller = scrollerRef.current;
@@ -52,33 +54,34 @@ export function SegmentedControl<T extends string>({
   return (
     <div className={styles.scroller} ref={scrollerRef}>
       <div className={styles.group} role="radiogroup" aria-label={ariaLabel} aria-disabled={disabled || undefined}>
-        {items.map((item, index) => (
+        {items.map(item => (
           <button
             key={item.value}
             type="button"
             role="radio"
             aria-checked={item.value === value}
-            disabled={disabled}
-            tabIndex={!disabled && item.value === focusValue ? 0 : -1}
+            disabled={disabled || item.disabled}
+            tabIndex={!disabled && !item.disabled && item.value === focusValue ? 0 : -1}
             className={styles.item}
             ref={button => {
               if (button) buttonRefs.current.set(item.value, button);
               else buttonRefs.current.delete(item.value);
             }}
             onClick={() => {
-              if (!disabled && item.value !== value) onChange(item.value);
+              if (!disabled && !item.disabled && item.value !== value) onChange(item.value);
             }}
             onKeyDown={event => {
-              if (disabled || !items.length) return;
+              if (disabled || item.disabled || !enabledItems.length) return;
+              const index = enabledItems.findIndex(option => option.value === item.value);
               let nextIndex: number;
-              if (event.key === "ArrowRight") nextIndex = (index + 1) % items.length;
-              else if (event.key === "ArrowLeft") nextIndex = (index - 1 + items.length) % items.length;
+              if (event.key === "ArrowRight" || event.key === "ArrowDown") nextIndex = (index + 1) % enabledItems.length;
+              else if (event.key === "ArrowLeft" || event.key === "ArrowUp") nextIndex = (index - 1 + enabledItems.length) % enabledItems.length;
               else if (event.key === "Home") nextIndex = 0;
-              else if (event.key === "End") nextIndex = items.length - 1;
+              else if (event.key === "End") nextIndex = enabledItems.length - 1;
               else return;
 
               event.preventDefault();
-              const next = items[nextIndex];
+              const next = enabledItems[nextIndex];
               const button = buttonRefs.current.get(next.value);
               if (button) {
                 button.focus({ preventScroll: true });

@@ -1,6 +1,7 @@
 
-import { API_URL, apiFetch } from "../../lib/api";
-import { ApiRequestError, isRequestCancelled, readApiError, toApiError } from "../../lib/apiErrors";
+import { API_URL } from "../../lib/api";
+import { ApiRequestError, readApiError, readApiJson } from "../../lib/apiErrors";
+import { requestApiResponse } from "../../lib/apiRequest";
 import { getImageUploadMetadataError, MAX_WORDMARK_UPLOAD_BYTES, WORDMARK_MIME_TYPES } from "../../lib/imageUploadPolicy";
 import type {
   SellerBrand,
@@ -53,6 +54,21 @@ const photoMessages: Readonly<Record<string, string>> = {
   "Обработка фотографий временно недоступна": "Обработка фотографий временно недоступна",
 };
 
+const collectionMessages: Readonly<Record<string, string>> = {
+  "Укажите название подборки": "Укажите название подборки",
+  "Название длиннее 80 символов": "Название должно быть не длиннее 80 символов",
+  "Описание длиннее 160 символов": "Описание должно быть не длиннее 160 символов",
+  "Выберите хотя бы один товар": "Выберите хотя бы один товар",
+  "В подборке может быть не более 12 товаров": "В подборку можно добавить не больше 12 товаров",
+  "На витрине можно разместить не более 12 подборок": "На витрине можно разместить не больше 12 подборок",
+  "В подборку можно добавить только активные товары": "В подборку можно добавить только опубликованные товары",
+  "Товар не принадлежит продавцу и выбранному бренду": "Выберите товары своего магазина и бренда",
+  "Подборка не найдена": "Подборка больше недоступна — обновите список",
+  "Данные изменились — обновите страницу перед сохранением": "Подборка изменилась — обновите данные перед сохранением",
+};
+
+const UNCONFIRMED_CHANGE = "Не удалось подтвердить результат — обновите данные перед повтором";
+
 async function brandRequest(
   path: string,
   fallback: string,
@@ -60,26 +76,17 @@ async function brandRequest(
   messages: Readonly<Record<string, string>> = {},
   tooLargeMessage?: string,
 ): Promise<Response> {
-  try {
-    const response = await apiFetch(`${API_URL}/api/seller/brands${path}`, options);
-    if (!response.ok) {
-      throw await readApiError(response, response.status === 413 && tooLargeMessage ? tooLargeMessage : fallback, messages);
-    }
-    return response;
-  } catch (error) {
-    if (isRequestCancelled(error)) throw error;
-    throw toApiError(error, fallback);
+  const mutation = options.method && options.method !== "GET";
+  const response = await requestApiResponse(`${API_URL}/api/seller/brands${path}`, options,
+    mutation ? UNCONFIRMED_CHANGE : fallback);
+  if (!response.ok) {
+    throw await readApiError(response, response.status === 413 && tooLargeMessage ? tooLargeMessage : fallback, messages);
   }
+  return response;
 }
 
 async function brandData(response: Response, fallback: string): Promise<unknown> {
-  try {
-    return await response.json();
-  } catch (error) {
-    if (isRequestCancelled(error)) throw error;
-    if (error instanceof Error && error.name === "TimeoutError") throw toApiError(error, fallback);
-    throw new ApiRequestError(fallback, "invalid-response", response.status);
-  }
+  return readApiJson<unknown>(response, fallback);
 }
 
 function isBrand(value: unknown): value is SellerBrand {
@@ -90,6 +97,12 @@ function isBrand(value: unknown): value is SellerBrand {
 function isBrandImage(value: unknown): value is SellerBrandImage {
   return !!value && typeof value === "object" && "id" in value && Number.isSafeInteger(value.id)
     && "imageUrl" in value && typeof value.imageUrl === "string";
+}
+
+async function changedBrand(response: Response): Promise<SellerBrand> {
+  const data = await brandData(response, UNCONFIRMED_CHANGE);
+  if (!isBrand(data)) throw new ApiRequestError(UNCONFIRMED_CHANGE, "invalid-response", response.status);
+  return data;
 }
 
 export async function getSellerBrands(): Promise<SellerBrand[]> {
@@ -110,9 +123,7 @@ export async function updateSellerBrandProfile(
     body: JSON.stringify(payload),
   });
 
-  const data = await brandData(response, fallback);
-  if (!isBrand(data)) throw new ApiRequestError(fallback, "invalid-response", response.status);
-  return data;
+  return changedBrand(response);
 }
 export async function uploadSellerBrandLogo(
   brandId: number,
@@ -123,17 +134,10 @@ export async function uploadSellerBrandLogo(
   const formData = new FormData();
   formData.append("file", file);
 
-  const response = await apiFetch(`${API_URL}/api/seller/brands/${brandId}/logo`, {
-    method: "POST",
-    body: formData,
-  });
-
-  if (!response.ok) {
-    const text = await response.text().catch(() => "");
-    throw new Error(text || "Не удалось загрузить логотип производителя");
-  }
-
-  return response.json();
+  const fallback = "Не удалось загрузить логотип производителя";
+  const response = await brandRequest(`/${brandId}/logo`, fallback,
+    { method: "POST", body: formData }, photoMessages, "Фото должно быть не больше 10 МБ");
+  return changedBrand(response);
 }
 
 export async function uploadSellerBrandWordmark(
@@ -158,9 +162,7 @@ export async function uploadSellerBrandWordmark(
       body: formData,
     }, wordmarkMessages, "Текстовый логотип должен быть не больше 2 МБ",
   );
-  const data = await brandData(response, fallback);
-  if (!isBrand(data)) throw new ApiRequestError(fallback, "invalid-response", response.status);
-  return data;
+  return changedBrand(response);
 }
 
 export async function getSellerBrandImages(
@@ -186,8 +188,8 @@ export async function uploadSellerBrandImage(
     `/${brandId}/images`, fallback,
     { method: "POST", body: formData }, photoMessages, "Фото должно быть не больше 10 МБ",
   );
-  const data = await brandData(response, fallback);
-  if (!isBrandImage(data)) throw new ApiRequestError(fallback, "invalid-response", response.status);
+  const data = await brandData(response, UNCONFIRMED_CHANGE);
+  if (!isBrandImage(data)) throw new ApiRequestError(UNCONFIRMED_CHANGE, "invalid-response", response.status);
   return data;
 }
 
@@ -217,13 +219,23 @@ export async function reorderSellerBrandImages(
 export async function getSellerStorefrontCollections(
   brandId: number
 ): Promise<SellerStorefrontCollection[]> {
-  const response = await apiFetch(
-    `${API_URL}/api/seller/brands/${brandId}/collections`
-  );
-  if (response.status === 404) return [];
-  if (!response.ok) throw new Error("Не удалось загрузить подборки");
-  const data: unknown = await response.json();
-  return Array.isArray(data) ? (data as SellerStorefrontCollection[]) : [];
+  const fallback = "Не удалось загрузить подборки";
+  const response = await brandRequest(`/${brandId}/collections`, fallback);
+  const data = await brandData(response, fallback);
+  if (!Array.isArray(data) || !data.every(isCollection)) throw new ApiRequestError(fallback, "invalid-response", response.status);
+  return data;
+}
+
+function isCollection(value: unknown): value is SellerStorefrontCollection {
+  return !!value && typeof value === "object" && !Array.isArray(value)
+    && "id" in value && typeof value.id === "number" && Number.isSafeInteger(value.id) && value.id > 0
+    && "title" in value && typeof value.title === "string" && "products" in value && Array.isArray(value.products);
+}
+
+async function collectionData(response: Response): Promise<SellerStorefrontCollection> {
+  const data = await brandData(response, UNCONFIRMED_CHANGE);
+  if (!isCollection(data)) throw new ApiRequestError(UNCONFIRMED_CHANGE, "invalid-response", response.status);
+  return data;
 }
 
 export async function getSellerStorefrontProducts(
@@ -234,30 +246,25 @@ export async function getSellerStorefrontProducts(
 ): Promise<PageResponse<SellerStorefrontProduct>> {
   const params = new URLSearchParams({ page: String(page), size: String(size) });
   if (query.trim()) params.set("q", query.trim());
-  const response = await apiFetch(
-    `${API_URL}/api/seller/brands/${brandId}/collections/available-products?${params.toString()}`
-  );
-  if (!response.ok) throw new Error("Не удалось загрузить товары для подборки");
-  const data = (await response.json()) as PageResponse<SellerStorefrontProduct>;
-  return {
-    ...data,
-    content: Array.isArray(data.content) ? data.content : [],
-  };
+  const fallback = "Не удалось загрузить товары для подборки";
+  const response = await brandRequest(`/${brandId}/collections/available-products?${params.toString()}`, fallback);
+  const data = await brandData(response, fallback) as PageResponse<SellerStorefrontProduct> | null;
+  if (!data || typeof data !== "object" || !Array.isArray(data.content)
+    || !Number.isSafeInteger(data.totalElements) || data.totalElements < 0
+    || !Number.isSafeInteger(data.totalPages) || data.totalPages < 0) {
+    throw new ApiRequestError(fallback, "invalid-response", response.status);
+  }
+  return data;
 }
 
 export async function createSellerStorefrontCollection(
   brandId: number,
   payload: SellerStorefrontCollectionRequest
 ): Promise<SellerStorefrontCollection> {
-  const response = await apiFetch(
-    `${API_URL}/api/seller/brands/${brandId}/collections`,
-    { method: "POST", body: JSON.stringify(payload) }
-  );
-  if (!response.ok) {
-    const text = await response.text().catch(() => "");
-    throw new Error(text || "Не удалось создать подборку");
-  }
-  return response.json();
+  const fallback = "Не удалось создать подборку";
+  const response = await brandRequest(`/${brandId}/collections`, fallback,
+    { method: "POST", body: JSON.stringify(payload) }, collectionMessages);
+  return collectionData(response);
 }
 
 export async function updateSellerStorefrontCollection(
@@ -265,24 +272,16 @@ export async function updateSellerStorefrontCollection(
   collectionId: number,
   payload: SellerStorefrontCollectionRequest
 ): Promise<SellerStorefrontCollection> {
-  const response = await apiFetch(
-    `${API_URL}/api/seller/brands/${brandId}/collections/${collectionId}`,
-    { method: "PUT", body: JSON.stringify(payload) }
-  );
-  if (!response.ok) {
-    const text = await response.text().catch(() => "");
-    throw new Error(text || "Не удалось сохранить подборку");
-  }
-  return response.json();
+  const fallback = "Не удалось сохранить подборку";
+  const response = await brandRequest(`/${brandId}/collections/${collectionId}`, fallback,
+    { method: "PUT", body: JSON.stringify(payload) }, collectionMessages);
+  return collectionData(response);
 }
 
 export async function deleteSellerStorefrontCollection(
   brandId: number,
   collectionId: number
 ): Promise<void> {
-  const response = await apiFetch(
-    `${API_URL}/api/seller/brands/${brandId}/collections/${collectionId}`,
-    { method: "DELETE" }
-  );
-  if (!response.ok) throw new Error("Не удалось удалить подборку");
+  await brandRequest(`/${brandId}/collections/${collectionId}`, "Не удалось удалить подборку",
+    { method: "DELETE" }, collectionMessages);
 }

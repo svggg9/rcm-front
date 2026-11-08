@@ -1,20 +1,20 @@
-.page { width: 100%; padding-bottom: 40px; background: var(--white); }
-.categories { display: flex; justify-content: center; align-items: center; gap: 32px; height: 60px; overflow: hidden; border-bottom: 1px solid var(--line-subtle); }
+.page { width: 100%; padding-bottom: var(--space-8); background: var(--white); }
+.categories { display: flex; justify-content: center; align-items: center; gap: var(--space-7); height: 60px; overflow: hidden; border-bottom: var(--line-width-default) solid var(--line-subtle); }
 .categoryLine { width: 72px; height: 12px; flex-shrink: 0; }
-.sections { display: flex; flex-direction: column; gap: 56px; padding-top: 32px; }
+.sections { display: flex; flex-direction: column; gap: 56px; padding-top: var(--space-7); }
 .rail { width: 100%; margin: 0; }
-.railHeader { display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 35px; margin-bottom: 20px; }
+.railHeader { display: flex; align-items: center; justify-content: space-between; gap: var(--space-4); min-height: 35px; margin-bottom: var(--space-5); }
 .titleLine { width: 120px; height: 20px; }
 .actionLine { width: 80px; height: 14px; flex-shrink: 0; }
-.gridList { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 20px; width: 100%; margin: 0; padding: 0; list-style: none; }
+.gridList { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--space-5); width: 100%; margin: 0; padding: 0; list-style: none; }
 @media (max-width: 768px) {
-  .gridList { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 28px 12px; }
-  .railHeader { min-height: 32px; margin-bottom: 16px; }
+  .gridList { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 28px var(--space-3); }
+  .railHeader { min-height: 32px; margin-bottom: var(--space-4); }
 }
 @media (max-width: 640px) {
   .page { padding-bottom: 28px; }
-  .categories { justify-content: flex-start; gap: 24px; height: 52px; }
-  .sections { gap: 40px; padding-top: 24px; }
+  .categories { justify-content: flex-start; gap: var(--space-6); height: 52px; }
+  .sections { gap: var(--space-8); padding-top: var(--space-6); }
   .titleLine { width: 100px; height: 16px; }
   .actionLine { width: 72px; height: 12px; }
 }

@@ -10,6 +10,7 @@ export type CatalogView = "" | "new";
 export type CatalogCollectionOption = {
   id: number;
   title: string;
+  source?: "brand";
 };
 
 export type CatalogCategory = import("../../lib/categories").CategoryOption;
@@ -48,6 +49,7 @@ export type CatalogProductsQuery = {
   sort: SortValue;
   page: number;
   collectionId?: number;
+  brandCollectionId?: number;
 };
 
 export type CatalogProduct = {
@@ -87,4 +89,5 @@ export type CatalogSearchParams = {
   maxPrice?: CatalogSearchParamValue;
   view?: CatalogSearchParamValue;
   collection?: CatalogSearchParamValue;
+  brandCollection?: CatalogSearchParamValue;
 };

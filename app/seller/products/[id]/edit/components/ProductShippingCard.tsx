@@ -55,7 +55,7 @@ export function ProductShippingCard({
 
   return (
     <section id="product-shipping" className={styles.card} aria-label="Упаковка товара">
-      <div className={styles.formGrid}>
+      <div className={styles.packageFields}>
         <NumberField
           label="Длина, см"
           value={packageLengthCm}
@@ -87,32 +87,32 @@ export function ProductShippingCard({
       </div>
 
       <div className={styles.shippingGuide}>
-        <p className={styles.shippingIntro}>Укажите вес и размеры товара во внешней упаковке</p>
+        <p className="textHint">Укажите вес и размеры товара во внешней упаковке</p>
         <details className={styles.optionalSection}><summary>Как СДЭК рассчитывает вес</summary>
-          <p>Объёмный вес: длина × ширина × высота / 5000. СДЭК использует больший из двух весов — фактический или объёмный.</p>
-          <p>Например, футболка в упаковке 30 × 25 × 4 см весит 0,3 кг. Её объёмный вес — 0,6 кг, по нему рассчитают доставку.</p>
+          <p className={styles.shippingFormula}>Длина × ширина × высота / 5000</p>
+          <p className="textHint">Размеры — в сантиметрах, результат — в килограммах. Для расчёта доставки СДЭК берёт больший из фактического и объёмного веса.</p>
         </details>
 
         {dimensionsReady && volumetricWeightKg !== null && chargedWeightKg !== null ? (
           <>
-            <div className={styles.shippingWeightGrid}>
+            <dl className={styles.shippingWeightGrid}>
               <div className={styles.shippingWeightMetric}>
-                <span>Фактический вес</span>
-                <strong>{formatWeight(actualWeightKg)} кг</strong>
+                <dt>Фактический вес</dt>
+                <dd>{formatWeight(actualWeightKg)} кг</dd>
               </div>
               <div className={styles.shippingWeightMetric}>
-                <span>Объёмный вес</span>
-                <strong>{formatWeight(volumetricWeightKg)} кг</strong>
+                <dt>Объёмный вес</dt>
+                <dd>{formatWeight(volumetricWeightKg)} кг</dd>
               </div>
               <div className={styles.shippingWeightMetric}>
-                <span>Расчётный вес СДЭК</span>
-                <strong>{formatWeight(chargedWeightKg)} кг</strong>
+                <dt>Для расчёта доставки</dt>
+                <dd>{formatWeight(chargedWeightKg)} кг</dd>
               </div>
-            </div>
+            </dl>
 
             {volumetricIsHigher ? (
               <Banner tone="warning">
-                Объёмный вес выше фактического, более компактная упаковка снизит стоимость доставки
+                Объёмный вес выше фактического — попробуйте более компактную упаковку
               </Banner>
             ) : null}
           </>

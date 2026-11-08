@@ -43,36 +43,9 @@ type Props = {
   needsShipment?: boolean;
 };
 
-export type OrderCardDetails = {
-  paidAt?: string | null;
-  subtotalAmount: number;
-  deliveryAmount: number;
-  discountAmount: number;
-  totalAmount: number;
-  currency: string;
-  recipientName: string;
-  recipientPhone: string;
-  deliveryAddress: string;
-  deliveryMethod: string;
-  trackingNumber?: string | null;
-  delivery?: {
-    cdekNumber: string | null;
-    trackingUrl: string | null;
-  } | null;
-  items: Array<{
-    productId: number;
-    variantId: number;
-    sku: string;
-    productTitle: string;
-    brandName: string | null;
-    imageUrl: string | null;
-    size?: string | null;
-    color?: string | null;
-    quantity: number;
-    price: number;
-    lineTotal: number;
-  }>;
-};
+export type OrderCardDetails = Pick<import("../../lib/order-contract").Order,
+  "workflow" | "paidAt" | "subtotalAmount" | "deliveryAmount" | "discountAmount" | "totalAmount" | "currency"
+  | "recipientName" | "recipientPhone" | "deliveryAddress" | "deliveryMethod" | "trackingNumber" | "delivery" | "items">;
 
 export function SellerOrderCard({
   order,
@@ -384,7 +357,6 @@ function getOrderVisual(
   if (
     order.status === "CANCELED" ||
     order.paymentStatus === "FAILED" ||
-    order.paymentStatus === "CANCELED" ||
     order.paymentStatus === "REFUNDED" ||
     order.deliveryStatus === "RETURNED" ||
     order.deliveryStatus === "CANCELLED"

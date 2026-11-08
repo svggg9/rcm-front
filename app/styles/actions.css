@@ -1,15 +1,15 @@
 .stickyActions {
   position: sticky;
   bottom: 0;
-  z-index: 20;
+  z-index: var(--z-editor-actions);
 
   display: flex;
   justify-content: flex-end;
-  gap: 12px;
+  gap: var(--space-3);
 
-  padding: 16px 0;
+  padding: var(--space-4) 0;
 
-  border-top: 1px solid var(--line);
+  border-top: var(--line-width-default) solid var(--line);
   background: var(--white);
 }
 
@@ -19,7 +19,7 @@
 
 @media (max-width: 768px) {
   .stickyActions {
-    padding: 12px 0;
+    padding: var(--space-3) 0;
   }
 
   .stickyActions > * {
@@ -31,14 +31,14 @@
     left: 0;
     right: 0;
     bottom: 0;
-    z-index: 500;
+    z-index: var(--z-fixed-actions);
 
     display: flex;
-    gap: 8px;
+    gap: var(--space-2);
 
-    padding: 12px 16px max(12px, env(safe-area-inset-bottom));
+    padding: var(--space-3) var(--space-4) max(var(--space-3), env(safe-area-inset-bottom));
 
-    border-top: 1px solid var(--line);
+    border-top: var(--line-width-default) solid var(--line);
     background: var(--white);
   }
 

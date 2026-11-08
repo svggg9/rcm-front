@@ -1,6 +1,6 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { useRef, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { Copy } from "lucide-react";
 import { logout as logoutAuth } from "../../lib/auth";
@@ -14,23 +14,34 @@ export function AccountFrame({
   orderId,
   showSellerCabinet = false,
   onNavigate,
-  onLogout,
   children,
 }: {
   currentTab: AccountTab;
   orderId?: number | null;
   showSellerCabinet?: boolean;
   onNavigate?: (href: string) => void;
-  onLogout?: () => void;
   children: ReactNode;
 }) {
   const router = useRouter();
   const isOrder = currentTab === "orders" && orderId != null;
+  const logoutPending = useRef(false);
+  const [loggingOut, setLoggingOut] = useState(false);
 
   async function logout() {
-    await logoutAuth();
-    router.replace("/");
-    router.refresh();
+    if (logoutPending.current) return;
+    logoutPending.current = true;
+    setLoggingOut(true);
+    try {
+      const { storageCleared } = await logoutAuth();
+      if (!storageCleared) toast.warning("Вы вышли, но не удалось удалить сохранённые данные этого браузера");
+      router.replace("/");
+      router.refresh();
+    } catch {
+      toast.error("Не удалось подтвердить выход. Попробуйте ещё раз");
+    } finally {
+      logoutPending.current = false;
+      setLoggingOut(false);
+    }
   }
 
   async function copyNumber() {
@@ -46,7 +57,7 @@ export function AccountFrame({
     <div className="pageContainer">
       <div className={styles.page}>
         <div className={styles.layout}>
-          <AccountSidebar currentTab={currentTab} showSellerCabinet={showSellerCabinet} onNavigate={onNavigate} onLogout={onLogout ?? (() => void logout())} />
+          <AccountSidebar currentTab={currentTab} showSellerCabinet={showSellerCabinet} onNavigate={onNavigate} onLogout={() => void logout()} logoutPending={loggingOut} />
           <div className={`${styles.content} ${currentTab === "home" ? styles.rootContent : ""} ${currentTab === "orders" && !isOrder ? styles.ordersContent : ""}`}>
             {isOrder ? (
               <header className={`${commerceStyles.header} ${styles.orderHeader}`}>
@@ -55,7 +66,7 @@ export function AccountFrame({
                 <button className={commerceStyles.iconButton} onClick={() => void copyNumber()} aria-label="Скопировать номер заказа"><Copy size={19} strokeWidth={1.3} /></button>
               </header>
             ) : (
-              <header className={styles.screenHeader}>
+              <header className={styles.screenHeader} data-account-section={currentTab}>
                 <span aria-hidden="true" />
                 <h1>{accountTabTitles[currentTab === "home" ? "profile" : currentTab]}</h1>
                 <span />

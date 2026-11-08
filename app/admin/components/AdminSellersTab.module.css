@@ -9,21 +9,22 @@
 .list {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: var(--space-4);
 }
 
 .card {
   min-width: 0;
   overflow: hidden;
   container-type: inline-size;
-  border: 0.5px solid #e7e7e4;
+  border: var(--line-width-hairline) solid var(--line);
   background: var(--white);
   color: var(--black);
   transition: border-color var(--transition-fast);
 }
 
 .card:hover {
-  border-color: #d4d4d0;
+  border-color: var(--line);
+  background: var(--surface-hover);
 }
 
 .cardMain {
@@ -59,18 +60,18 @@
 
 .label {
   color: var(--black);
-  font-size: 12px;
+  font-size: var(--font-helper);
   line-height: 1.3;
-  font-weight: 600;
+  font-weight: var(--font-weight-semibold);
 }
 
 .title {
   max-width: 100%;
   overflow: hidden;
   color: var(--black);
-  font-size: 16px;
+  font-size: var(--font-md);
   line-height: 1.3;
-  font-weight: 400;
+  font-weight: var(--font-weight-regular);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -81,9 +82,9 @@
   max-width: 100%;
   overflow: hidden;
   color: var(--muted);
-  font-size: 11px;
+  font-size: var(--font-label-compact);
   line-height: 1.35;
-  font-weight: 300;
+  font-weight: var(--font-weight-regular);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -91,10 +92,10 @@
 .fact strong {
   max-width: 100%;
   overflow: hidden;
-  color: #2f2f2f;
-  font-size: 14px;
+  color: var(--black);
+  font-size: var(--font-sm);
   line-height: 1.35;
-  font-weight: 400;
+  font-weight: var(--font-weight-regular);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -108,12 +109,12 @@
 
 .description {
   max-width: 900px;
-  margin: -4px 18px 16px;
+  margin: -4px 18px var(--space-4);
   overflow: hidden;
   color: var(--muted);
-  font-size: 12px;
+  font-size: var(--font-helper);
   line-height: 1.45;
-  font-weight: 300;
+  font-weight: var(--font-weight-regular);
   display: -webkit-box;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
@@ -122,13 +123,13 @@
 .notice {
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin-bottom: 16px;
+  gap: var(--space-2);
+  margin-bottom: var(--space-4);
   padding: 11px 13px;
   border: 0;
-  font-size: 13px;
+  font-size: var(--font-xs);
   line-height: 1.35;
-  font-weight: 400;
+  font-weight: var(--font-weight-regular);
 }
 
 .noticeSuccess {
@@ -138,22 +139,14 @@
 
 .noticeDanger {
   background: rgba(155, 44, 44, 0.06);
-  color: var(--danger);
+  color: var(--error);
 }
 
 .detailsHeader {
   display: flex;
   align-items: flex-start;
   gap: 14px;
-  margin-bottom: 20px;
-}
-
-.detailsHeader button {
-  min-height: 38px;
-}
-
-.detailsHeader :global(.buttonContent) {
-  gap: 5px;
+  margin-bottom: var(--space-5);
 }
 
 .detailsTitleBlock {
@@ -163,28 +156,28 @@
 .detailsTitle {
   margin: 0;
   color: var(--black);
-  font-size: 24px;
+  font-size: var(--font-title-md);
   line-height: 1.2;
-  font-weight: 600;
+  font-weight: var(--font-weight-semibold);
 }
 
 .detailsMeta {
   display: flex;
   align-items: center;
-  gap: 8px 12px;
+  gap: var(--space-2) var(--space-3);
   flex-wrap: wrap;
-  margin-top: 8px;
+  margin-top: var(--space-2);
   color: var(--muted);
-  font-size: 12px;
+  font-size: var(--font-helper);
   line-height: 1.35;
-  font-weight: 300;
+  font-weight: var(--font-weight-regular);
 }
 
 .detailsLayout {
   min-width: 0;
   display: grid;
   grid-template-columns: minmax(0, 1fr) 330px;
-  gap: 16px;
+  gap: var(--space-4);
   align-items: start;
 }
 
@@ -193,7 +186,7 @@
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: var(--space-4);
 }
 
 .detailsAside {
@@ -203,17 +196,17 @@
 
 .detailsSection {
   min-width: 0;
-  padding: 20px;
-  border: 0.5px solid #e7e7e4;
+  padding: var(--space-5);
+  border: var(--line-width-hairline) solid var(--line);
   background: var(--white);
 }
 
 .detailsSection h2 {
-  margin: 0 0 16px;
+  margin: 0 0 var(--space-4);
   color: var(--black);
-  font-size: 16px;
+  font-size: var(--font-md);
   line-height: 1.3;
-  font-weight: 600;
+  font-weight: var(--font-weight-semibold);
 }
 
 .infoGrid {
@@ -233,18 +226,18 @@
 .infoLabel,
 .textareaField > span {
   color: var(--black);
-  font-size: 12px;
+  font-size: var(--font-helper);
   line-height: 1.35;
-  font-weight: 300;
+  font-weight: var(--font-weight-regular);
 }
 
 .infoValue {
   min-width: 0;
   overflow-wrap: anywhere;
-  color: #2f2f2f;
-  font-size: 14px;
+  color: var(--black);
+  font-size: var(--font-sm);
   line-height: 1.4;
-  font-weight: 400;
+  font-weight: var(--font-weight-regular);
   text-align: right;
 }
 
@@ -255,36 +248,36 @@
 .textBlock p,
 .emptyText {
   margin: 7px 0 0;
-  color: #2f2f2f;
-  font-size: 14px;
+  color: var(--black);
+  font-size: var(--font-sm);
   line-height: 1.5;
-  font-weight: 400;
+  font-weight: var(--font-weight-regular);
   white-space: pre-wrap;
 }
 
 .emptyText {
   color: var(--muted);
-  font-weight: 300;
+  font-weight: var(--font-weight-regular);
 }
 
 .textareaField {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--space-2);
 }
 
 .textareaField textarea {
   width: 100%;
   min-height: 118px;
   resize: vertical;
-  border: 0.5px solid var(--black);
+  border: var(--line-width-hairline) solid var(--black);
   background: var(--white);
-  color: #2f2f2f;
-  padding: 12px 15px;
+  color: var(--black);
+  padding: var(--space-3) 15px;
   font: inherit;
-  font-size: 14px;
+  font-size: var(--font-sm);
   line-height: 1.45;
-  font-weight: 400;
+  font-weight: var(--font-weight-regular);
   outline: none;
 }
 
@@ -307,7 +300,7 @@
   .cardMain {
     grid-template-columns: repeat(3, minmax(0, 1fr)) 20px;
     align-items: start;
-    gap: 16px;
+    gap: var(--space-4);
   }
 
   .identity {
@@ -389,7 +382,7 @@
   .fact {
     display: grid;
     grid-template-columns: minmax(94px, 0.7fr) minmax(0, 1.3fr);
-    gap: 4px 12px;
+    gap: var(--space-1) var(--space-3);
     align-items: baseline;
   }
 
@@ -423,11 +416,11 @@
   }
 
   .detailsTitle {
-    font-size: 21px;
+    font-size: var(--font-lg);
   }
 
   .detailsSection {
-    padding: 16px;
+    padding: var(--space-4);
   }
 }
 

@@ -1,4 +1,5 @@
 "use client";
+import { Checkbox } from "../../components/ui/Checkbox";
 
 import { Loader } from "../../components/ui/Loader";
 import { useEffect, useId, useMemo, useRef, useState, type ReactNode } from "react";
@@ -279,12 +280,13 @@ export function SellerProductsTab({
     <Button
       type="button"
       variant="primary"
+      startIcon={<DesignSystemIcon name="plus" role="utility" />}
       aria-label="Добавить товар"
       loading={creatingProduct}
       onClick={() => {
         if (!pending.current && !creatingProduct) onCreateProduct();
       }}
-    ><span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}><DesignSystemIcon name="plus" role="utility" />Добавить товар</span></Button>
+    >Добавить товар</Button>
   ) : null;
 
   return (
@@ -302,10 +304,10 @@ export function SellerProductsTab({
             }} />
         </div>
         <div className={styles.toolbarTools}>
-          <Button ref={filterToggle} variant="secondary" className={`${styles.toolButton} ${filtersOpen || categoryFilter || filter !== "ACTIVE" || sort.key !== "createdAt" || sort.direction !== "desc" ? styles.toolActive : ""}`}
+          <Button ref={filterToggle} variant="secondary" iconOnly className={`${styles.toolButton} ${filtersOpen || categoryFilter || filter !== "ACTIVE" || sort.key !== "createdAt" || sort.direction !== "desc" ? styles.toolActive : ""}`}
             aria-label="Фильтры товаров" title="Фильтры" aria-expanded={filtersOpen} aria-controls={filtersId}
             onClick={() => { setSearchOpen(false); setFiltersOpen(value => !value); }}><DesignSystemIcon name="sliders" role="utility" /></Button>
-          <Button ref={searchToggle} variant="secondary" className={`${styles.toolButton} ${searchOpen || searchQuery ? styles.toolActive : ""}`}
+          <Button ref={searchToggle} variant="secondary" iconOnly className={`${styles.toolButton} ${searchOpen || searchQuery ? styles.toolActive : ""}`}
             aria-label="Поиск товаров" title={searchQuery ? `Поиск: ${searchQuery}` : "Поиск"} aria-expanded={searchOpen} aria-controls={searchId}
             onClick={() => { setFiltersOpen(false); setSearchOpen(value => !value); }}><DesignSystemIcon name="search" role="utility" /></Button>
         </div>
@@ -402,7 +404,7 @@ export function SellerProductsTab({
             <div className={styles.productsList}>
               <div className={styles.listHeader}>
                 <label className={styles.checkboxTarget}>
-                  <input ref={selectAllRef} type="checkbox" className={styles.checkbox}
+                  <Checkbox ref={selectAllRef}
                     aria-label={`Выбрать все показанные товары (${visibleProducts.length})`}
                     checked={allSelected} disabled={controlsDisabled}
                     onChange={() => allSelected ? setSelected(new Set()) : selectAll()} />
@@ -458,7 +460,7 @@ function ProductRow({
 
   return <article className={`${styles.productRow} ${selected ? styles.rowSelected : ""}`}>
     <label className={styles.checkboxTarget}>
-      <input type="checkbox" className={styles.checkbox} aria-label={`Выбрать товар «${product.title.trim() || "Без названия"}»`}
+      <Checkbox   aria-label={`Выбрать товар «${product.title.trim() || "Без названия"}»`}
         checked={selected} disabled={disabled} onChange={onSelect} />
     </label>
     <Link href={editHref} scroll={false} className={styles.productLink} onClick={() => {

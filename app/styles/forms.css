@@ -1,93 +1,191 @@
-.field {
+/* Shared field contract. It also applies inside native dialogs and portals. */
+.field,
+.fieldBoxed,
+[data-ui="field"] {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-}
-
-.label {
+  gap: var(--field-gap, 4px);
   color: var(--black);
-  font-size: 12px;
-  line-height: 1.25;
-  font-weight: 400;
-  letter-spacing: -0.01em;
+  font-size: var(--field-label-size);
+  line-height: var(--field-label-line-height);
+  font-weight: var(--field-control-weight, 400);
 }
 
-.required::after {
-  content: " *";
-  color: var(--required-mark);
+.fieldBoxed { position: relative; }
+.fieldFull { grid-column: 1 / -1; }
+[data-ui="field"][data-field-size="large"] { --field-control-height: var(--field-control-large-height, 48px); }
+
+.label,
+[data-ui="field"] > span:first-child {
+  color: var(--black);
+  font-size: var(--field-label-size);
+  line-height: var(--field-label-line-height);
+  font-weight: var(--field-label-weight);
+  letter-spacing: var(--field-label-tracking, var(--type-card-tracking));
+}
+
+.required::after { content: " *"; color: var(--required-mark); }
+
+.input,
+.select,
+.textarea,
+.inputShell,
+.phoneInputShell,
+[data-ui="field"] > :is(input:not([type="checkbox"], [type="radio"], [type="file"], [type="range"], [type="hidden"]), textarea, select) {
+  width: 100%;
+  min-width: 0;
+  border: var(--line-width-default) solid var(--field-control-border-color, var(--select-border-color, var(--black)));
+  border-radius: var(--field-control-radius);
+  background: var(--field-control-background, var(--white));
+  color: var(--black);
+  font-family: inherit;
+  font-size: var(--field-control-size, 14px);
+  line-height: var(--field-control-line-height, 21px);
+  font-weight: var(--field-control-weight, 400);
+  letter-spacing: normal;
+  outline: none;
+  transition: border-color var(--transition-fast), background-color var(--transition-fast);
 }
 
 .input,
 .select,
-.textarea {
-  width: 100%;
-  border: 1px solid var(--black);
-  background: var(--white);
-  color: var(--black);
-  font: inherit;
-  font-size: 14px;
-  font-weight: 400;
-  outline: none;
-  border-radius: 0;
+.inputShell,
+.phoneInputShell,
+[data-ui="field"] > :is(input:not([type="checkbox"], [type="radio"], [type="file"], [type="range"], [type="hidden"]), select) {
+  height: var(--field-control-height, 44px);
+  min-height: var(--field-control-height, 44px);
+  padding: 0 var(--field-control-padding-inline, 15px);
 }
 
-.input,
-.select {
-  height: 44px;
-  padding: 0 15px;
-}
-
-.textarea {
-  min-height: 110px;
-  padding: 12px 15px;
+.textarea,
+[data-ui="field"] > textarea {
+  min-height: var(--field-textarea-min-height, var(--field-control-height, 44px));
+  padding: var(--field-control-padding-block, 12px) var(--field-control-padding-inline, 15px);
   resize: vertical;
-  line-height: 1.5;
 }
 
 .input::placeholder,
-.textarea::placeholder {
+.textarea::placeholder,
+.phoneInput::placeholder,
+[data-ui="field"] > :is(input, textarea)::placeholder {
   color: var(--muted);
   font-size: var(--font-placeholder);
 }
 
-.input:focus,
-.select:focus,
-.textarea:focus {
-  border-color: var(--black);
+:is(.input, .select, .textarea):not(:disabled):not([readonly]):not(.inputError):not([aria-invalid="true"]):hover,
+[data-ui="field"] > :is(input:not([type="checkbox"], [type="radio"], [type="file"], [type="range"], [type="hidden"]), textarea, select):not(:disabled):not([readonly]):not(.inputError):not([aria-invalid="true"]):hover,
+:is(.inputShell, .phoneInputShell):has(> input:not(:disabled):not([readonly]):not([aria-invalid="true"])):hover { background: var(--surface-hover); }
+
+:is(.input, .select, .textarea):focus-visible,
+[data-ui="field"] > :is(input:not([type="checkbox"], [type="radio"], [type="file"], [type="range"], [type="hidden"]), textarea, select):focus-visible,
+:is(.inputShell, .phoneInputShell):has(> input:focus-visible) {
+  outline: var(--field-focus-width, 1px) solid var(--black);
+  outline-offset: var(--field-focus-offset, 2px);
 }
 
-.inputError {
-  border-color: var(--danger);
+:is(.input, .select, .textarea).inputError,
+[data-ui="field"] > :is(input:not([type="checkbox"], [type="radio"], [type="file"], [type="range"], [type="hidden"]), textarea, select):is(.inputError, [aria-invalid="true"]),
+:is(.inputShell, .phoneInputShell):is(.inputError, :has(> input[aria-invalid="true"])) {
+  border-color: var(--error);
+  outline-color: var(--error);
 }
 
-.fieldError,
+:is(.input, .textarea):read-only:not(:disabled),
+[data-ui="field"] > :is(input:not([type="checkbox"], [type="radio"], [type="file"], [type="range"], [type="hidden"]), textarea)[readonly]:not(:disabled),
+:is(.inputShell, .phoneInputShell):has(> input[readonly]:not(:disabled)) {
+  background: var(--field-readonly-background);
+  cursor: text;
+}
+
+.fieldHint,
+.textHint,
+[data-ui="field"] > small {
+  color: var(--muted);
+  font-size: var(--font-helper);
+  line-height: var(--line-height-helper);
+  font-weight: var(--field-control-weight, 400);
+}
+
+.fieldError {
+  display: block;
+  margin: 0;
+  color: var(--state-text-color, var(--error));
+  font-size: var(--field-error-size);
+  line-height: var(--field-error-line-height);
+  font-weight: var(--field-error-weight);
+}
+[data-ui="field"] > .fieldError { margin-top: -2px; }
+
 .formError {
-  margin-top: 0;
-  color: var(--danger);
-  font-size: var(--font-sm);
-  line-height: 1.4;
+  margin: 0;
+  padding: var(--space-4);
+  border: var(--line-width-default) solid var(--line);
+  background: var(--white);
+  color: var(--state-text-color, var(--black));
+  font-size: var(--feedback-body-size);
+  line-height: var(--feedback-line-height);
 }
 
-.formError {
-  padding: 14px 0;
-  border-top: 1px solid var(--danger);
-  border-bottom: 1px solid var(--danger);
+.inputShell, .phoneInputShell { display: flex; align-items: center; gap: 0; }
+.inputShell { gap: var(--space-2); }
+.inputShell:has(> .inputTrailing) { padding-right: 0; }
+.inputShell > input.input { flex: 1; width: 0; height: 100%; min-height: 0; padding: 0; border: 0; border-radius: 0; background: transparent; outline: none; color: inherit; opacity: 1; }
+.inputAdornment { display: inline-flex; flex: 0 0 auto; align-items: center; justify-content: center; }
+.inputAdornment > :is(svg, img) { width: 20px; height: 20px; }
+.inputTrailing { display: inline-flex; flex: 0 0 auto; align-items: center; justify-content: center; min-width: 44px; height: 100%; }
+.inputTrailing > :is(svg, img) { width: 20px; height: 20px; }
+.inputTrailing > button { max-height: 100%; }
+.phoneInputPrefix { flex: 0 0 auto; margin-right: 0.25em; }
+.phoneInputPrefix,
+.phoneInput {
+  color: inherit;
+  font-family: inherit;
+  font-size: var(--field-control-size, 14px);
+  line-height: var(--field-control-line-height, 21px);
+  font-weight: var(--field-control-weight, 400);
+  letter-spacing: normal;
 }
+.phoneInput { min-width: 0; height: 100%; flex: 1 1 auto; border: 0; padding: 0; background: transparent; outline: none; }
 
-.fieldBoxed {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
+/* Read and edit states retain the same underline and geometry in profile forms. */
+[data-ui="field"][data-field-variant="inline"] {
+  --field-control-size: var(--font-md);
+  --field-control-line-height: var(--line-height-body);
+  gap: var(--field-inline-gap, 7px);
 }
+[data-ui="field"][data-field-variant="inline"] > :is(.label, span:first-child) { color: var(--muted); }
+[data-ui="field"][data-field-variant="inline"] > :is(input, .inputShell, .phoneInputShell) {
+  height: var(--field-inline-height, 29px);
+  min-height: var(--field-inline-height, 29px);
+  padding: 0 0 4px;
+  border: 0;
+  border-bottom: var(--line-width-default) solid var(--line);
+  background: var(--white);
+  opacity: 1;
+}
+[data-ui="field"][data-field-variant="inline"] > :is(input, .inputShell, .phoneInputShell):hover { background: var(--white); }
+[data-ui="field"][data-field-variant="inline"] > input:read-only { cursor: text; }
+[data-ui="field"][data-field-variant="inline"] :is(input, .phoneInput):read-only::placeholder { color: var(--black); font-size: var(--field-control-size); }
+[data-ui="field"][data-field-variant="inline"] > :is(input, .inputShell, .phoneInputShell):is(.inputError, [aria-invalid="true"], :has([aria-invalid="true"])) { border-bottom-color: var(--error); }
 
-.fieldBoxed > .label {
-  position: static;
-  color: var(--black);
-  font-size: 12px;
-  font-weight: 400;
-  line-height: 1.25;
-  letter-spacing: -0.01em;
+/* Disabled remains readable; readonly values keep their normal text and can be copied. */
+:is(.input, .select, .textarea):disabled,
+[data-ui="field"] > :is(input:not([type="checkbox"], [type="radio"], [type="file"], [type="range"], [type="hidden"]), textarea, select):disabled,
+:is(.inputShell, .phoneInputShell):has(> input:disabled) {
+  background: var(--field-disabled-background);
+  color: var(--field-disabled-color);
+  border-color: var(--field-disabled-border);
+  opacity: 1;
+  cursor: default;
+}
+.inputShell > input.input:disabled,
+.phoneInputShell > input.phoneInput:disabled { background: transparent; color: inherit; opacity: 1; }
+
+@media (max-width: 768px) {
+  [data-ui="field"][data-field-variant="inline"]:not([data-readonly="true"]) > :is(input, .inputShell, .phoneInputShell) {
+    height: var(--field-control-height, 44px);
+    min-height: var(--field-control-height, 44px);
+  }
 }
 
 .visuallyHidden {
@@ -102,158 +200,7 @@
   border: 0 !important;
 }
 
-.fieldBoxed > .input,
-.fieldBoxed > .select,
-.fieldBoxed > .textarea,
-.fieldBoxed > .phoneInputShell {
-  border: 1px solid var(--line);
-  background: var(--white);
-  color: var(--black);
-  font-size: 14px;
-  font-weight: 400;
-  line-height: 1.4;
-  letter-spacing: 0;
-  transition:
-    border-color var(--transition-fast),
-    background var(--transition-fast);
+@media (prefers-reduced-motion: reduce) {
+  :is(.input, .select, .textarea, .inputShell, .phoneInputShell),
+  [data-ui="field"] > :is(input:not([type="checkbox"], [type="radio"], [type="file"], [type="range"], [type="hidden"]), textarea, select) { transition: none; }
 }
-
-.fieldBoxed > .input,
-.fieldBoxed > .select,
-.fieldBoxed > .phoneInputShell {
-  height: 44px;
-  padding: 0 15px;
-  border: 1px solid var(--black);
-}
-
-.fieldBoxed.fieldLabelHidden > .input,
-.fieldBoxed.fieldLabelHidden > .select,
-.fieldBoxed.fieldLabelHidden > .phoneInputShell {
-  height: 44px;
-  padding: 0 15px;
-}
-
-.fieldBoxed > .textarea {
-  min-height: 110px;
-  padding: 12px 15px;
-  border: 1px solid var(--black);
-}
-
-.fieldBoxed > .input:hover,
-.fieldBoxed > .select:hover,
-.fieldBoxed > .textarea:hover,
-.fieldBoxed > .phoneInputShell:hover,
-.fieldBoxed > .input:focus,
-.fieldBoxed > .select:focus,
-.fieldBoxed > .textarea:focus,
-.fieldBoxed > .phoneInputShell:focus-within {
-  border-color: var(--black);
-}
-
-.fieldBoxed > .inputError,
-.fieldBoxed > .phoneInputShell.inputError,
-.fieldBoxed > .inputError:hover,
-.fieldBoxed > .phoneInputShell.inputError:hover,
-.fieldBoxed > .inputError:focus,
-.fieldBoxed > .phoneInputShell.inputError:focus-within {
-  border-color: var(--danger);
-}
-
-.fieldBoxed > .fieldError {
-  margin-top: 0;
-}
-
-.phoneInputShell {
-  display: flex;
-  align-items: center;
-  gap: 0;
-  width: 100%;
-  border: 0;
-  border-bottom: 1px solid var(--line);
-  background: transparent;
-}
-
-.phoneInputPrefix {
-  flex: 0 0 auto;
-  margin-right: 0.25em;
-  color: var(--black);
-  font-size: 14px;
-  font-weight: 400;
-  line-height: 1.4;
-}
-
-.phoneInput {
-  min-width: 0;
-  flex: 1 1 auto;
-  border: 0;
-  background: transparent;
-  color: var(--black);
-  font: inherit;
-  font-size: 14px;
-  font-weight: 400;
-  line-height: 1.4;
-  letter-spacing: 0;
-  outline: none;
-}
-
-.phoneInput::placeholder {
-  color: var(--muted);
-  font-size: var(--font-placeholder);
-}
-
-/* Approved field roles. Shared primitives own their appearance, not page overrides. */
-.appShell [data-ui="field"] { gap: var(--field-gap, 4px); color: var(--black); font-size: 12px; line-height: 15px; font-weight: 400; }
-.appShell [data-ui="field"] > :is(.label, span:first-child) { color: var(--black); font-size: var(--field-label-size, 12px); line-height: var(--field-label-line-height, 15px); font-weight: var(--field-label-weight, 400); }
-.appShell [data-ui="field"] > small { color: var(--black); font-size: 15px; line-height: 21px; font-weight: 300; }
-.appShell [data-ui="field"] > :is(input, textarea, select, .phoneInputShell),
-.appShell [data-ui="field"] > div:has(> [role="combobox"]) { border: 1px solid var(--field-control-border-color, var(--select-border-color, var(--black))); border-radius: var(--field-control-radius, 0); background: var(--field-control-background, var(--white)); }
-.appShell [data-ui="field"] > :is(input, textarea, select, .phoneInputShell):not(:disabled):not(.inputError):hover,
-.appShell [data-ui="field"] > div:has(> [role="combobox"]:not(:disabled):not([aria-invalid="true"])):hover { background: var(--surface-hover); }
-.appShell [data-ui="field"] :is(input, textarea, select, [role="combobox"], [role="option"], .phoneInputPrefix),
-.appShell [data-ui="field"] :is([role="combobox"], [role="option"]) > span:first-child { color: var(--black); font-family: inherit; font-size: var(--field-control-size, 14px); line-height: var(--field-control-line-height, 21px); font-weight: 400; letter-spacing: normal; }
-.appShell [data-ui="field"] > :is(input, textarea, select):focus-visible,
-.appShell [data-ui="field"] > :is(.phoneInputShell, div):has(> [role="combobox"]:focus-visible, > input:focus-visible) { outline: 1px solid var(--black); outline-offset: 2px; }
-.appShell [data-ui="field"] > :is([aria-invalid="true"], .inputError),
-.appShell [data-ui="field"] > :is(div, .phoneInputShell):has([aria-invalid="true"]) { border-color: var(--danger); outline-color: var(--danger); }
-.appShell [data-ui="field"] > .fieldError,
-.fieldError { display: block; margin: 0; color: var(--danger); font-size: var(--feedback-body-size); line-height: var(--feedback-line-height); font-weight: 400; }
-.phoneInputShell { height: 44px; padding: 0 15px; border: 1px solid var(--black); }
-
-/* Profile-style fields share the same underline in read and edit modes. */
-.appShell [data-ui="field"][data-field-variant="inline"] { gap: 7px; }
-.appShell [data-ui="field"][data-field-variant="inline"] > :is(.label, span:first-child) { color: var(--muted); }
-.appShell [data-ui="field"][data-field-variant="inline"] > :is(input, .phoneInputShell) {
-  min-width: 0;
-  height: 29px;
-  padding: 0 0 4px;
-  border: 0;
-  border-bottom: 1px solid var(--line);
-  background: var(--white);
-}
-.appShell [data-ui="field"][data-field-variant="inline"] :is(input, .phoneInputPrefix, [role="combobox"] > span:first-child) {
-  color: var(--black);
-  font-size: 16px;
-  line-height: 24px;
-  font-weight: 400;
-}
-.appShell [data-ui="field"][data-field-variant="inline"] > div:has(> [role="combobox"]:not([aria-expanded="true"]):not([aria-invalid="true"])) {
-  border-color: transparent transparent var(--line);
-  background: var(--white);
-}
-.appShell [data-ui="field"][data-field-variant="inline"] > :is(input, .phoneInputShell):not(:disabled):not(.inputError):hover,
-.appShell [data-ui="field"][data-field-variant="inline"] > div:has(> [role="combobox"]:not(:disabled):not([aria-invalid="true"])):hover { background: var(--white); }
-.appShell [data-ui="field"][data-field-variant="inline"] > :is(input, .phoneInputShell):focus-within { border-bottom-color: var(--black); }
-.appShell [data-ui="field"][data-field-variant="inline"] > input:focus-visible,
-.appShell [data-ui="field"][data-field-variant="inline"] > .phoneInputShell:has(> input:focus-visible) { outline: none; }
-.appShell [data-ui="field"][data-field-variant="inline"] > input:read-only { cursor: text; }
-.appShell [data-ui="field"][data-field-variant="inline"] > input:read-only::placeholder { color: var(--black); font-size: 16px; }
-.appShell [data-ui="field"][data-field-variant="inline"] .phoneInput:read-only::placeholder { color: var(--black); font-size: 16px; }
-.formError { padding: 16px; border: 1px solid var(--line); background: var(--white); color: var(--black); font-size: var(--feedback-body-size); line-height: var(--feedback-line-height); }
-:is(.input, .textarea, .select).inputError:focus { border-color: var(--danger); }
-.appShell [data-ui="field"][data-field-variant="inline"] > :is(input, .phoneInputShell):is(.inputError, [aria-invalid="true"], :has([aria-invalid="true"])) { border-bottom-color: var(--danger); }
-.appShell [data-ui="field"][data-field-variant="inline"] > input:is(.inputError, [aria-invalid="true"]):focus-visible,
-.appShell [data-ui="field"][data-field-variant="inline"] > .phoneInputShell:has(> input[aria-invalid="true"]:focus-visible) { outline: 1px solid var(--danger); outline-offset: 2px; }
-/* Optional comfortable controls. Forms opt in with inherited design tokens. */
-.appShell [data-ui="field"] > :is(input, textarea, select, .phoneInputShell) { min-height: var(--field-control-height, 0); }
-.appShell [data-ui="field"] > div:has(> [role="combobox"][aria-expanded="true"]) { border-radius: var(--field-control-radius, 0) var(--field-control-radius, 0) 0 0; }
-.appShell [data-ui="field"] > div:has(> [role="combobox"]) > [role="listbox"] { border-radius: 0 0 var(--field-control-radius, 0) var(--field-control-radius, 0); }

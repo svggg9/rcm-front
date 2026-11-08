@@ -28,10 +28,14 @@ export function ProductTile({
   onFavoriteChange,
   compact = false,
   presentation = "default",
+  favoriteControl,
+  href,
 }: {
   product: Product;
   compact?: boolean;
   presentation?: "default" | "storefront";
+  favoriteControl?: { liked: boolean; onChange: (liked: boolean) => void };
+  href?: string;
   onFavoriteChange?: (productId: number, isFavorite: boolean) => void;
 }) {
   const router = useRouter();
@@ -40,7 +44,7 @@ export function ProductTile({
   const hasHoverImage = hoverImage && hoverImage !== mainImage;
 
   const { isFavorite, toggle } = useFavorites();
-  const fav = isFavorite(product.id);
+  const fav = favoriteControl?.liked ?? isFavorite(product.id);
   const [favoritePending, setFavoritePending] = useState(false);
   const [hoverImageRequested, setHoverImageRequested] = useState(false);
   const [loadedHoverImage, setLoadedHoverImage] = useState<string | null>(null);
@@ -51,9 +55,10 @@ export function ProductTile({
 
   const imageSizes =
     "(max-width: 599px) 50vw, (max-width: 899px) 50vw, (max-width: 1199px) 33vw, 25vw";
-  const productHref = productPath(product);
+  const productHref = href ?? productPath(product);
 
   function scheduleProductPrefetch() {
+    if (productHref.startsWith("#")) return;
     if (prefetchedRef.current || prefetchTimerRef.current !== null) return;
     if (!window.matchMedia("(hover: hover) and (pointer: fine)").matches) return;
 
@@ -91,6 +96,11 @@ export function ProductTile({
   async function onLike(e: React.MouseEvent<HTMLButtonElement>) {
     e.stopPropagation();
     if (favoritePendingRef.current) return;
+
+    if (favoriteControl) {
+      favoriteControl.onChange(!fav);
+      return;
+    }
 
     try {
       favoritePendingRef.current = true;
@@ -148,6 +158,7 @@ export function ProductTile({
                 className={styles.imgHover}
                 data-loaded={loadedHoverImage === hoverImage || undefined}
                 onLoad={() => setLoadedHoverImage(hoverImage)}
+                onError={() => setLoadedHoverImage(null)}
               />
             ) : null}
           </Link>

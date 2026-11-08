@@ -6,7 +6,6 @@ import { getServerSession } from "../lib/session";
 import { AdminPageClient } from "./AdminPageClient";
 import {
   getAdminDictionaryServer,
-  getAdminLedgerEntriesServer,
   getAdminOrderServer,
   getAdminOrdersServer,
   getAdminProductServer,
@@ -28,6 +27,13 @@ import type {
 type Props = {
   searchParams?: Promise<{
     tab?: string;
+    q?: string;
+    seller?: string;
+    sellerView?: string;
+    from?: string;
+    to?: string;
+    paymentStatus?: string;
+    deliveryStatus?: string;
     status?: string;
     applicationStatus?: string;
     productId?: string;
@@ -38,6 +44,7 @@ type Props = {
 };
 
 function normalizeTab(raw?: string): AdminTab {
+  if (raw === "overview" || raw === "returns" || raw === "activity") return raw;
   if (raw === "storefront") return "storefront";
   if (raw === "orders") return "orders";
   if (raw === "sellers") return "sellers";
@@ -45,7 +52,7 @@ function normalizeTab(raw?: string): AdminTab {
   if (raw === "finance") return "finance";
   if (raw === "contact-messages" || raw === "contacts") return "contact-messages";
   if (raw === "delivery") return "delivery";
-  return "products";
+  return raw ? "products" : "overview";
 }
 
 function normalizeProductStatus(raw?: string): ProductStatus | "ALL" {
@@ -104,7 +111,7 @@ async function getInitialData(params: Awaited<Props["searchParams"]>) {
   const selectedOrderId = params?.orderId ?? null;
 
   const initialData: AdminInitialData = {
-    tab,
+    tab, from:params?.from??"",to:params?.to??"",owner:params?.seller??"",sellerView:params?.sellerView??"directory",query: params?.q ?? "", paymentFilter: params?.paymentStatus ?? "", deliveryFilter: params?.deliveryStatus ?? "",
     tabDataLoaded: false,
     categoriesLoaded: false,
     productStatus,
@@ -148,7 +155,7 @@ async function getInitialData(params: Awaited<Props["searchParams"]>) {
   };
 
   try {
-    if (tab === "contact-messages") {
+    if (tab === "contact-messages" || tab === "overview" || tab === "returns" || tab === "activity") {
       initialData.tabDataLoaded = true;
     }
 
@@ -161,7 +168,7 @@ async function getInitialData(params: Awaited<Props["searchParams"]>) {
       const productId = selectedProductId ? Number(selectedProductId) : NaN;
       const hasSelectedProduct = Number.isFinite(productId);
       const [productsData, productStatusCounts, selectedProduct, categories] = await Promise.all([
-        getAdminProductsServer(productStatus, 0, 50),
+        getAdminProductsServer(productStatus, 0, 50, params?.q,params?.seller),
         getAdminProductStatusCountsServer(),
         hasSelectedProduct ? getAdminProductServer(productId) : Promise.resolve(null),
         hasSelectedProduct
@@ -186,7 +193,7 @@ async function getInitialData(params: Awaited<Props["searchParams"]>) {
     if (tab === "orders") {
       const orderId = selectedOrderId ? Number(selectedOrderId) : NaN;
       const [ordersData, selectedOrder] = await Promise.all([
-        getAdminOrdersServer(0, 50),
+        getAdminOrdersServer(0, 50, params?.q, params?.paymentStatus, params?.deliveryStatus,params?.seller,params?.from,params?.to),
         Number.isFinite(orderId)
           ? getAdminOrderServer(orderId)
           : Promise.resolve(null),
@@ -200,10 +207,10 @@ async function getInitialData(params: Awaited<Props["searchParams"]>) {
       initialData.tabDataLoaded = ordersData !== null;
     }
 
-    if (tab === "sellers") {
+    if (tab === "sellers" && params?.sellerView==="applications") {
       const [applicationsData, sellerApplicationStatusCounts] =
         await Promise.all([
-          getAdminSellerApplicationsServer(applicationStatus, 0, 50),
+          getAdminSellerApplicationsServer(applicationStatus, 0, 50, params?.q),
           getAdminSellerApplicationStatusCountsServer(),
         ]);
 
@@ -232,26 +239,7 @@ async function getInitialData(params: Awaited<Props["searchParams"]>) {
       initialData.tabDataLoaded = categories !== null && sizes !== null;
     }
 
-    if (tab === "finance") {
-      const opensLedger = ledgerEntryType !== "ALL" || Boolean(ledgerOrderGroupId);
-      if (opensLedger) {
-        const ledgerData = await getAdminLedgerEntriesServer(
-          0,
-          50,
-          ledgerEntryType,
-          ledgerOrderGroupId
-        );
-        initialData.ledgerEntries = Array.isArray(ledgerData?.content)
-          ? ledgerData.content
-          : [];
-        initialData.totalLedgerEntries = ledgerData?.totalElements ?? 0;
-        initialData.ledgerLoaded = ledgerData !== null;
-        initialData.tabDataLoaded = initialData.ledgerLoaded;
-      } else {
-        // The queue owns filtered reads, errors and refresh; do not load a second unfiltered register here.
-        initialData.tabDataLoaded = true;
-      }
-    }
+    if(tab === "finance") initialData.tabDataLoaded=true;
 
     if (tab === "delivery") {
       const webhookEventsData = await getAdminCdekWebhookEventsServer(0, 50);

@@ -118,18 +118,7 @@ export type CheckoutRequest = {
   comment?: string;
 };
 
-export type OrderResponse = {
-  id: number;
-  orderGroupId: string;
-  paymentStatus?: string;
-  paymentAllowed?: boolean;
-  subtotalAmount?: number;
-  deliveryAmount?: number;
-  recipientName?: string;
-  recipientPhone?: string;
-  deliveryAddress?: string;
-  pickupPointId?: string;
-};
+export type OrderResponse = import("../lib/order-contract").Order;
 
 export type PaymentInitResponse = {
   orderId: number;

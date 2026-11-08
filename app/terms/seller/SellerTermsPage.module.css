@@ -1,17 +1,17 @@
 .page {
   max-width: 900px;
   margin: 0 auto;
-  padding: 48px 0 80px;
+  padding: var(--space-9) 0 80px;
 }
 
 .title {
-  margin: 0 0 12px;
+  margin: 0 0 var(--space-3);
   font-size: var(--font-3xl);
-  font-weight: 600;
+  font-weight: var(--font-weight-semibold);
 }
 
 .version {
-  margin-bottom: 40px;
+  margin-bottom: var(--space-8);
   color: var(--muted);
   font-size: var(--font-sm);
 }
@@ -19,18 +19,18 @@
 .content {
   display: flex;
   flex-direction: column;
-  gap: 32px;
+  gap: var(--space-7);
 }
 
 .content section {
-  padding-bottom: 24px;
-  border-bottom: 1px solid var(--line);
+  padding-bottom: var(--space-6);
+  border-bottom: var(--line-width-default) solid var(--line);
 }
 
 .content h2 {
-  margin: 0 0 12px;
+  margin: 0 0 var(--space-3);
   font-size: var(--font-lg);
-  font-weight: 600;
+  font-weight: var(--font-weight-semibold);
 }
 
 .content p {

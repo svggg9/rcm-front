@@ -1,8 +1,11 @@
-import { API_URL, apiFetch } from "../../lib/api";
-import { ApiRequestError, readApiError, toApiError } from "../../lib/apiErrors";
+import { API_URL } from "../../lib/api";
+import { requestApiResponse } from "../../lib/apiRequest";
+import { ApiRequestError, isRequestCancelled, readApiError, readApiJson } from "../../lib/apiErrors";
 import { CATEGORY_API_MESSAGES } from "../../lib/categoryErrors";
 import { normalizeCategories } from "../../lib/categories";
 import { getImageUploadMetadataError } from "../../lib/imageUploadPolicy";
+import { normalizeStorefrontSections } from "../../lib/storefrontSections";
+import { normalizeNewArrivalsCount } from "../../lib/storefrontSettings";
 import type {
   AdminProduct,
   AdminProductListItem,
@@ -25,135 +28,167 @@ import type {
   AdminStorefrontCollection,
   AdminStorefrontCollectionRequest,
   AdminStorefrontProduct,
+  AdminStorefrontSection,
+  AdminStorefrontSectionRequest,
   PayoutGenerationResult,
 } from "../types";
 
-async function readError(response: Response, fallback: string) {
-  const text = await response.text().catch(() => "");
-  return text || fallback;
+const ADMIN_API_MESSAGES: Readonly<Record<string, string>> = {
+  ...CATEGORY_API_MESSAGES,
+  "Product not found": "Товар больше недоступен — обновите список",
+  "Товар не найден": "Товар больше недоступен — обновите список",
+  "Variant not found": "Вариант товара больше недоступен — обновите товар",
+  "Вариант товара не найден": "Вариант товара больше недоступен — обновите товар",
+  "Название оттенка изменилось — обновите товар": "Название оттенка изменилось — обновите товар",
+  "Выберите цвет из справочника": "Выберите цвет из справочника",
+  "Moderation comment is required": "Укажите причину возврата товара на доработку",
+  "Причина блокировки слишком длинная": "Причина блокировки должна быть не длиннее 1000 символов",
+  "Изменения ещё не отправлены на модерацию": "Изменения ещё не отправлены на модерацию — обновите товар",
+  "Исходный товар снят с продажи или заблокирован": "Исходный товар снят с продажи или заблокирован — обновите список",
+  "Исходный вариант товара изменился": "Исходный вариант товара изменился — обновите товар",
+  "Карточка изменилась — обновите её перед сохранением": "Карточка изменилась — обновите её перед сохранением",
+  "На главной можно создать не более 20 подборок": "На главной можно создать не больше 20 подборок",
+  "Передайте все подборки без повторов": "Состав подборок изменился — обновите список перед перестановкой",
+  "Данные подборки обязательны": "Заполните данные подборки",
+  "Укажите название подборки": "Укажите название подборки",
+  "Название длиннее 100 символов": "Название должно быть не длиннее 100 символов",
+  "Описание длиннее 240 символов": "Описание должно быть не длиннее 240 символов",
+  "Выберите хотя бы один товар": "Выберите хотя бы один товар",
+  "В подборку можно добавить только активные товары": "В подборку можно добавить только опубликованные товары — обновите список",
+};
+
+function adminFetch(url: string, options: RequestInit = {}): Promise<Response> {
+  const mutation = options.method && options.method.toUpperCase() !== "GET";
+  const fallback = mutation
+    ? "Не удалось получить результат действия — обновите данные перед повтором"
+    : "Не удалось загрузить данные — попробуйте ещё раз";
+  const upload = typeof FormData !== "undefined" && options.body instanceof FormData;
+  return requestApiResponse(url, options, fallback, upload ? 60_000 : 20_000);
 }
 
-async function categoryFetch(url: string, options: RequestInit = {}): Promise<Response> {
-  try { return await apiFetch(url, { ...options, signal: AbortSignal.timeout(20_000) }); }
-  catch (reason) { throw toApiError(reason, "Не удалось связаться с сервером — попробуйте ещё раз"); }
+function adminJson<T>(response: Response): Promise<T> {
+  return readApiJson<T>(response, "Не удалось прочитать ответ — обновите данные перед продолжением");
 }
 
 async function categoryJson(response: Response): Promise<DictionaryItem> {
   try {
-    const data: unknown = await response.json();
+    const data: unknown = await adminJson(response);
     if (!data || typeof data !== "object") throw new Error();
     const raw = data as Record<string, unknown>;
     if (!(raw.parentId === null || typeof raw.parentId === "number" && Number.isSafeInteger(raw.parentId) && raw.parentId > 0)) throw new Error();
     const normalized = normalizeCategories([{ ...raw, parentId: null }])[0];
     if (raw.parentId === normalized.id) throw new Error();
     return { ...normalized, parentId: raw.parentId };
-  } catch { throw new ApiRequestError("Не удалось прочитать категорию — обновите список", "invalid-response"); }
+  } catch (reason) {
+    if (isRequestCancelled(reason) || reason instanceof ApiRequestError) throw reason;
+    throw new ApiRequestError("Не удалось прочитать категорию — обновите список", "invalid-response");
+  }
 }
 
 export async function getAdminProducts(
   status: ProductStatus | "ALL",
   page = 0,
-  size = 50
+  size = 50,
+  q = "", seller = ""
 ): Promise<PageResponse<AdminProductListItem>> {
   const query =
     status === "ALL"
-      ? `page=${page}&size=${size}`
-      : `status=${status}&page=${page}&size=${size}`;
+      ? `page=${page}&size=${size}&q=${encodeURIComponent(q)}${seller ? `&seller=${encodeURIComponent(seller)}` : ""}`
+      : `status=${status}&page=${page}&size=${size}&q=${encodeURIComponent(q)}${seller ? `&seller=${encodeURIComponent(seller)}` : ""}`;
 
-  const response = await apiFetch(`${API_URL}/api/admin/products/list?${query}`);
+  const response = await adminFetch(`${API_URL}/api/admin/products/list?${query}`);
 
   if (!response.ok) {
-    throw new Error(await readError(response, "Не удалось загрузить товары"));
+    throw await readApiError(response, "Не удалось загрузить товары", ADMIN_API_MESSAGES);
   }
 
-  return response.json();
+  return adminJson(response);
 }
 
 export async function getAdminProductStatusCounts(): Promise<
   Record<ProductStatus | "ALL", number>
 > {
-  const response = await apiFetch(`${API_URL}/api/admin/products/status-counts`);
+  const response = await adminFetch(`${API_URL}/api/admin/products/status-counts`);
 
   if (!response.ok) {
-    throw new Error(await readError(response, "Не удалось загрузить счетчики товаров"));
+    throw await readApiError(response, "Не удалось загрузить счетчики товаров", ADMIN_API_MESSAGES);
   }
 
-  return response.json();
+  return adminJson(response);
 }
 
 export async function getAdminProduct(id: number): Promise<AdminProduct> {
-  const response = await apiFetch(`${API_URL}/api/admin/products/${id}`);
+  const response = await adminFetch(`${API_URL}/api/admin/products/${id}`);
 
   if (!response.ok) {
-    throw new Error(await readError(response, "Не удалось загрузить товар"));
+    throw await readApiError(response, "Не удалось загрузить товар", ADMIN_API_MESSAGES);
   }
 
-  return response.json();
+  return adminJson(response);
 }
 
 export async function assignProductColor(productId: number, groupId: number, colorId: number | null, expectedColorName: string | null): Promise<AdminProduct> {
-  const response = await apiFetch(`${API_URL}/api/admin/products/${productId}/colorways/${groupId}/color`, {
+  const response = await adminFetch(`${API_URL}/api/admin/products/${productId}/colorways/${groupId}/color`, {
     method: "POST", signal: AbortSignal.timeout(20_000), body: JSON.stringify({ colorId, expectedColorName }),
   });
-  if (!response.ok) throw await readApiError(response, "Не удалось присвоить цвет");
-  return response.json();
+  if (!response.ok) throw await readApiError(response, "Не удалось присвоить цвет", ADMIN_API_MESSAGES);
+  return adminJson(response);
 }
 
 export async function getAdminOrders(
   page = 0,
-  size = 50
+  size = 50,
+  q = "", paymentStatus = "", deliveryStatus = "", seller = "", from = "", to = ""
 ): Promise<PageResponse<AdminOrderListItem>> {
-  const response = await apiFetch(
-    `${API_URL}/api/admin/orders/list?page=${page}&size=${size}`
+  const response = await adminFetch(
+    `${API_URL}/api/admin/orders/list?page=${page}&size=${size}&q=${encodeURIComponent(q)}${seller ? `&seller=${encodeURIComponent(seller)}` : ""}${paymentStatus ? `&paymentStatus=${encodeURIComponent(paymentStatus)}` : ""}${deliveryStatus ? `&deliveryStatus=${encodeURIComponent(deliveryStatus)}` : ""}${from ? `&from=${encodeURIComponent(from)}` : ""}${to ? `&to=${encodeURIComponent(to)}` : ""}`
   );
 
   if (!response.ok) {
-    throw new Error(await readError(response, "Не удалось загрузить заказы"));
+    throw await readApiError(response, "Не удалось загрузить заказы", ADMIN_API_MESSAGES);
   }
 
-  return response.json();
+  return adminJson(response);
 }
 
 export async function getAdminOrder(id: number): Promise<AdminOrder> {
-  const response = await apiFetch(`${API_URL}/api/admin/orders/${id}`);
+  const response = await adminFetch(`${API_URL}/api/admin/orders/${id}`);
 
   if (!response.ok) {
-    throw new Error(await readError(response, "Не удалось загрузить заказ"));
+    throw await readApiError(response, "Не удалось загрузить заказ", ADMIN_API_MESSAGES);
   }
 
-  return response.json();
+  return adminJson(response);
 }
 
 export async function refundAdminOrder(id: number): Promise<void> {
-  const response = await apiFetch(`${API_URL}/api/admin/orders/${id}/refund`, {
+  const response = await adminFetch(`${API_URL}/api/admin/orders/${id}/refund`, {
     method: "POST",
   });
 
   if (!response.ok) {
-    throw new Error(await readError(response, "Не удалось вернуть оплату"));
+    throw await readApiError(response, "Не удалось вернуть оплату", ADMIN_API_MESSAGES);
   }
 }
 
 export async function cancelAdminOrderDelivery(id: number): Promise<void> {
-  const response = await apiFetch(
+  const response = await adminFetch(
     `${API_URL}/api/admin/orders/${id}/delivery/cancel`,
     { method: "POST" }
   );
 
   if (!response.ok) {
-    throw new Error(
-      await readError(response, "Не удалось отменить доставку")
-    );
+    throw await readApiError(response, "Не удалось отменить доставку", ADMIN_API_MESSAGES);
   }
 }
 
 export async function approveProduct(id: number): Promise<void> {
-  const response = await categoryFetch(`${API_URL}/api/admin/products/${id}/approve`, {
+  const response = await adminFetch(`${API_URL}/api/admin/products/${id}/approve`, {
     method: "POST",
   });
 
   if (!response.ok) {
-    throw await readApiError(response, "Не удалось одобрить товар", CATEGORY_API_MESSAGES);
+    throw await readApiError(response, "Не удалось одобрить товар", ADMIN_API_MESSAGES);
   }
 }
 
@@ -161,33 +196,33 @@ export async function returnProductToRevision(
     id: number,
     comment: string
   ): Promise<void> {
-    const response = await apiFetch(`${API_URL}/api/admin/products/${id}/revision`, {
+    const response = await adminFetch(`${API_URL}/api/admin/products/${id}/revision`, {
       method: "POST",
       body: JSON.stringify({ comment }),
     });
 
     if (!response.ok) {
-      throw new Error(await readError(response, "Не удалось вернуть товар на доработку"));
+      throw await readApiError(response, "Не удалось вернуть товар на доработку", ADMIN_API_MESSAGES);
     }
   }
 
-export async function blockProduct(id: number): Promise<void> {
-  const response = await apiFetch(`${API_URL}/api/admin/products/${id}/block`, {
-    method: "POST",
+export async function blockProduct(id: number, comment?: string): Promise<void> {
+  const response = await adminFetch(`${API_URL}/api/admin/products/${id}/block`, {
+    method: "POST", body: JSON.stringify({comment:comment?.trim() || null}),
   });
 
   if (!response.ok) {
-    throw new Error(await readError(response, "Не удалось заблокировать товар"));
+    throw await readApiError(response, "Не удалось заблокировать товар", ADMIN_API_MESSAGES);
   }
 }
 
 export async function unblockProduct(id: number): Promise<void> {
-  const response = await apiFetch(`${API_URL}/api/admin/products/${id}/unblock`, {
+  const response = await adminFetch(`${API_URL}/api/admin/products/${id}/unblock`, {
     method: "POST",
   });
 
   if (!response.ok) {
-    throw new Error(await readError(response, "Не удалось разблокировать товар"));
+    throw await readApiError(response, "Не удалось разблокировать товар", ADMIN_API_MESSAGES);
   }
 }
 
@@ -206,67 +241,70 @@ export async function getAdminSellers(
     url = `${API_URL}/api/admin/sellers?approved=true&page=${page}&size=${size}`;
   }
 
-  const response = await apiFetch(url);
+  const response = await adminFetch(url);
 
   if (!response.ok) {
-    throw new Error(await readError(response, "Не удалось загрузить продавцов"));
+    throw await readApiError(response, "Не удалось загрузить продавцов", ADMIN_API_MESSAGES);
   }
 
-  return response.json();
+  return adminJson(response);
 }
 
 export async function approveSeller(id: number): Promise<void> {
-  const response = await apiFetch(`${API_URL}/api/admin/sellers/${id}/approve`, {
+  const response = await adminFetch(`${API_URL}/api/admin/sellers/${id}/approve`, {
     method: "POST",
   });
 
   if (!response.ok) {
-    throw new Error(await readError(response, "Не удалось одобрить продавца"));
+    throw await readApiError(response, "Не удалось одобрить продавца", ADMIN_API_MESSAGES);
   }
 }
 
 export async function rejectSeller(id: number): Promise<void> {
-  const response = await apiFetch(`${API_URL}/api/admin/sellers/${id}/reject`, {
+  const response = await adminFetch(`${API_URL}/api/admin/sellers/${id}/reject`, {
     method: "POST",
   });
 
   if (!response.ok) {
-    throw new Error(await readError(response, "Не удалось отклонить заявку"));
+    throw await readApiError(response, "Не удалось отклонить заявку", ADMIN_API_MESSAGES);
   }
 }
 
 export async function getAdminDictionary(
   kind: DictionaryKind
 ): Promise<DictionaryItem[]> {
-  const response = await (kind === "categories" ? categoryFetch : apiFetch)(`${API_URL}/api/admin/dictionaries/${kind}`);
+  const response = await adminFetch(`${API_URL}/api/admin/dictionaries/${kind}`);
 
   if (!response.ok) {
     if (kind === "categories") throw await readApiError(response, "Не удалось загрузить категории", CATEGORY_API_MESSAGES);
-    throw new Error(await readError(response, "Не удалось загрузить справочник"));
+    throw await readApiError(response, "Не удалось загрузить справочник", ADMIN_API_MESSAGES);
   }
 
   if (kind === "categories") {
-    try { return normalizeCategories(await response.json()); }
-    catch { throw new ApiRequestError("Не удалось прочитать категории — попробуйте ещё раз", "invalid-response"); }
+    try { return normalizeCategories(await adminJson(response)); }
+    catch (reason) {
+      if (isRequestCancelled(reason) || reason instanceof ApiRequestError) throw reason;
+      throw new ApiRequestError("Не удалось прочитать категории — попробуйте ещё раз", "invalid-response");
+    }
   }
-  return response.json();
+  return adminJson(response);
 }
 
 export async function createAdminDictionaryItem(
   kind: DictionaryKind,
   item: Partial<DictionaryItem>
 ): Promise<DictionaryItem> {
-  const response = await (kind === "categories" ? categoryFetch : apiFetch)(`${API_URL}/api/admin/dictionaries/${kind}`, {
+  const response = await adminFetch(`${API_URL}/api/admin/dictionaries/${kind}`, {
     method: "POST",
     body: JSON.stringify(item),
   });
 
   if (!response.ok) {
     if (kind === "categories") throw await readApiError(response, "Не удалось создать категорию", CATEGORY_API_MESSAGES);
-    throw new Error(await readError(response, "Не удалось создать значение"));
+    throw await readApiError(response, "Не удалось создать значение", ADMIN_API_MESSAGES);
   }
 
-  return kind === "categories" ? categoryJson(response) : response.json();
+  return kind === "categories" ? categoryJson(response) : adminJson(response);
 }
 
 export async function updateAdminDictionaryItem(
@@ -274,7 +312,7 @@ export async function updateAdminDictionaryItem(
   id: number,
   item: Partial<DictionaryItem>
 ): Promise<DictionaryItem> {
-  const response = await (kind === "categories" ? categoryFetch : apiFetch)(
+  const response = await adminFetch(
     `${API_URL}/api/admin/dictionaries/${kind}/${id}`,
     {
       method: "PUT",
@@ -284,17 +322,17 @@ export async function updateAdminDictionaryItem(
 
   if (!response.ok) {
     if (kind === "categories") throw await readApiError(response, "Не удалось сохранить категорию", CATEGORY_API_MESSAGES);
-    throw new Error(await readError(response, "Не удалось обновить значение"));
+    throw await readApiError(response, "Не удалось обновить значение", ADMIN_API_MESSAGES);
   }
 
-  return kind === "categories" ? categoryJson(response) : response.json();
+  return kind === "categories" ? categoryJson(response) : adminJson(response);
 }
 
 export async function deleteAdminDictionaryItem(
   kind: DictionaryKind,
   id: number
 ): Promise<void> {
-  const response = await (kind === "categories" ? categoryFetch : apiFetch)(
+  const response = await adminFetch(
     `${API_URL}/api/admin/dictionaries/${kind}/${id}`,
     {
       method: "DELETE",
@@ -303,29 +341,30 @@ export async function deleteAdminDictionaryItem(
 
   if (!response.ok) {
     if (kind === "categories") throw await readApiError(response, "Не удалось отключить категорию", CATEGORY_API_MESSAGES);
-    throw new Error(await readError(response, "Не удалось отключить значение"));
+    throw await readApiError(response, "Не удалось отключить значение", ADMIN_API_MESSAGES);
   }
 }
 
 export async function getAdminSellerApplications(
   status: SellerApplicationStatus | "ALL",
   page = 0,
-  size = 50
+  size = 50,
+  q = ""
 ): Promise<PageResponse<AdminSellerApplication>> {
   const query =
     status === "ALL"
-      ? `page=${page}&size=${size}`
-      : `status=${status}&page=${page}&size=${size}`;
+      ? `page=${page}&size=${size}&q=${encodeURIComponent(q)}`
+      : `status=${status}&page=${page}&size=${size}&q=${encodeURIComponent(q)}`;
 
-  const response = await apiFetch(
+  const response = await adminFetch(
     `${API_URL}/api/admin/seller-applications?${query}`
   );
 
   if (!response.ok) {
-    throw new Error(await readError(response, "Не удалось загрузить заявки"));
+    throw await readApiError(response, "Не удалось загрузить заявки", ADMIN_API_MESSAGES);
   }
 
-  return response.json();
+  return adminJson(response);
 }
 
 export async function getAdminLedgerEntries(params?: {
@@ -346,48 +385,48 @@ export async function getAdminLedgerEntries(params?: {
     query.set("orderGroupId", params.orderGroupId.trim());
   }
 
-  const response = await apiFetch(
+  const response = await adminFetch(
     `${API_URL}/api/admin/finance/ledger?${query.toString()}`
   );
 
   if (!response.ok) {
-    throw new Error(await readError(response, "Не удалось загрузить движения средств"));
+    throw await readApiError(response, "Не удалось загрузить движения средств", ADMIN_API_MESSAGES);
   }
 
-  return response.json();
+  return adminJson(response);
 }
 
 export async function getAdminSellerPayouts(
   page = 0,
   size = 50
 ): Promise<PageResponse<AdminSellerPayout>> {
-  const response = await apiFetch(
+  const response = await adminFetch(
     `${API_URL}/api/admin/finance/payouts/list?page=${page}&size=${size}`
   );
   if (!response.ok) {
-    throw new Error(await readError(response, "Не удалось загрузить выплаты"));
+    throw await readApiError(response, "Не удалось загрузить выплаты", ADMIN_API_MESSAGES);
   }
-  return response.json();
+  return adminJson(response);
 }
 
 export async function getAdminSellerPayoutStats(): Promise<AdminSellerPayoutStats> {
-  const response = await apiFetch(`${API_URL}/api/admin/finance/payouts/stats`);
+  const response = await adminFetch(`${API_URL}/api/admin/finance/payouts/stats`);
 
   if (!response.ok) {
-    throw new Error(await readError(response, "Не удалось загрузить сводку выплат"));
+    throw await readApiError(response, "Не удалось загрузить сводку выплат", ADMIN_API_MESSAGES);
   }
 
-  return response.json();
+  return adminJson(response);
 }
 
 export async function generateAdminSellerPayouts(): Promise<PayoutGenerationResult> {
-  const response = await apiFetch(`${API_URL}/api/admin/finance/payouts/generate`, {
+  const response = await adminFetch(`${API_URL}/api/admin/finance/payouts/generate`, {
     method: "POST",
   });
   if (!response.ok) {
-    throw new Error(await readError(response, "Не удалось сформировать реестр"));
+    throw await readApiError(response, "Не удалось сформировать реестр", ADMIN_API_MESSAGES);
   }
-  return response.json();
+  return adminJson(response);
 }
 
 export async function updateAdminSellerPayout(
@@ -395,7 +434,7 @@ export async function updateAdminSellerPayout(
   action: "sent" | "paid" | "failed" | "retry" | "cancel",
   payload?: { paymentOrderNumber?: string; comment?: string }
 ): Promise<AdminSellerPayout> {
-  const response = await apiFetch(
+  const response = await adminFetch(
     `${API_URL}/api/admin/finance/payouts/${id}/${action}`,
     {
       method: "POST",
@@ -403,9 +442,9 @@ export async function updateAdminSellerPayout(
     }
   );
   if (!response.ok) {
-    throw new Error(await readError(response, "Не удалось обновить выплату"));
+    throw await readApiError(response, "Не удалось обновить выплату", ADMIN_API_MESSAGES);
   }
-  return response.json();
+  return adminJson(response);
 }
 
 export async function getAdminCdekWebhookEvents(params?: {
@@ -416,48 +455,46 @@ export async function getAdminCdekWebhookEvents(params?: {
   query.set("page", String(params?.page ?? 0));
   query.set("size", String(params?.size ?? 50));
 
-  const response = await apiFetch(
+  const response = await adminFetch(
     `${API_URL}/api/admin/delivery/cdek/webhook-events?${query.toString()}`
   );
 
   if (!response.ok) {
-    throw new Error(await readError(response, "Не удалось загрузить события СДЭК"));
+    throw await readApiError(response, "Не удалось загрузить события СДЭК", ADMIN_API_MESSAGES);
   }
 
-  return response.json();
+  return adminJson(response);
 }
 
 export async function getAdminCdekWebhookPayload(eventId: number): Promise<string> {
-  const response = await apiFetch(
+  const response = await adminFetch(
     `${API_URL}/api/admin/delivery/cdek/webhook-events/${eventId}`
   );
 
   if (!response.ok) {
-    throw new Error(await readError(response, "Не удалось загрузить payload события"));
+    throw await readApiError(response, "Не удалось загрузить payload события", ADMIN_API_MESSAGES);
   }
 
-  const event = (await response.json()) as AdminCdekWebhookEvent;
+  const event = (await adminJson(response)) as AdminCdekWebhookEvent;
   return event.rawPayload ?? "";
 }
 
 export async function getAdminSellerApplicationStatusCounts(): Promise<
   Record<SellerApplicationStatus | "ALL", number>
 > {
-  const response = await apiFetch(
+  const response = await adminFetch(
     `${API_URL}/api/admin/seller-applications/status-counts`
   );
 
   if (!response.ok) {
-    throw new Error(
-      await readError(response, "Не удалось загрузить счетчики заявок")
-    );
+    throw await readApiError(response, "Не удалось загрузить счетчики заявок", ADMIN_API_MESSAGES);
   }
 
-  return response.json();
+  return adminJson(response);
 }
 
 export async function approveSellerApplication(id: number): Promise<void> {
-  const response = await apiFetch(
+  const response = await adminFetch(
     `${API_URL}/api/admin/seller-applications/${id}/approve`,
     {
       method: "POST",
@@ -465,7 +502,7 @@ export async function approveSellerApplication(id: number): Promise<void> {
   );
 
   if (!response.ok) {
-    throw new Error(await readError(response, "Не удалось одобрить заявку"));
+    throw await readApiError(response, "Не удалось одобрить заявку", ADMIN_API_MESSAGES);
   }
 }
 
@@ -473,7 +510,7 @@ export async function rejectSellerApplication(
   id: number,
   comment?: string
 ): Promise<void> {
-  const response = await apiFetch(
+  const response = await adminFetch(
     `${API_URL}/api/admin/seller-applications/${id}/reject`,
     {
       method: "POST",
@@ -482,7 +519,7 @@ export async function rejectSellerApplication(
   );
 
   if (!response.ok) {
-    throw new Error(await readError(response, "Не удалось отклонить заявку"));
+    throw await readApiError(response, "Не удалось отклонить заявку", ADMIN_API_MESSAGES);
   }
 }
 
@@ -490,7 +527,7 @@ export async function assignProductCategory(
   id: number,
   categoryId: number
 ): Promise<void> {
-  const response = await categoryFetch(`${API_URL}/api/admin/products/${id}/category`, {
+  const response = await adminFetch(`${API_URL}/api/admin/products/${id}/category`, {
     method: "POST",
     body: JSON.stringify({ categoryId }),
   });
@@ -508,6 +545,9 @@ function normalizeStorefrontHome(data: unknown): AdminStorefrontHome {
       heroPositionX: 50,
       heroPositionY: 50,
       collections: [],
+      sections: [],
+      newArrivalsCollectionId: null,
+      newArrivalsCount: normalizeNewArrivalsCount(undefined),
     };
   }
 
@@ -527,6 +567,10 @@ function normalizeStorefrontHome(data: unknown): AdminStorefrontHome {
     heroPositionY:
       typeof value.heroPositionY === "number" ? value.heroPositionY : 50,
     collections: normalizeStorefrontCollections(value.collections),
+    sections: normalizeStorefrontSections(value.sections),
+    newArrivalsCollectionId: typeof value.newArrivalsCollectionId === "number" && Number.isSafeInteger(value.newArrivalsCollectionId) && value.newArrivalsCollectionId > 0
+      ? value.newArrivalsCollectionId : null,
+    newArrivalsCount: normalizeNewArrivalsCount(value.newArrivalsCount),
   };
 }
 
@@ -575,15 +619,108 @@ function normalizeStorefrontCollections(data: unknown): AdminStorefrontCollectio
 }
 
 export async function getAdminStorefrontHome(): Promise<AdminStorefrontHome> {
-  const response = await apiFetch(`${API_URL}/api/admin/storefront/home`);
+  const response = await adminFetch(`${API_URL}/api/admin/storefront/home`);
 
   if (!response.ok) {
-    throw new Error(
-      await readError(response, "Не удалось загрузить настройки витрины")
-    );
+    throw await readApiError(response, "Не удалось загрузить настройки витрины", ADMIN_API_MESSAGES);
   }
 
-  return normalizeStorefrontHome(await response.json());
+  return normalizeStorefrontHome(await adminJson(response));
+}
+
+export async function updateAdminNewArrivals(collectionId: number | null, count?: number): Promise<AdminStorefrontHome> {
+  const response = await adminFetch(`${API_URL}/api/admin/storefront/home/new-arrivals`, {
+    method: "PATCH",
+    body: JSON.stringify({ collectionId, ...(count === undefined ? {} : { count }) }),
+  });
+  if (!response.ok) throw await readApiError(response, "Не удалось сохранить источник новинок", {
+    "Подборка не найдена": "Подборка не найдена — обновите страницу",
+    "Выберите опубликованную подборку": "Выберите опубликованную подборку",
+    "В подборке нет активных товаров": "В подборке нет активных товаров",
+    "Количество товаров должно быть от 1 до 100": "Укажите количество товаров от 1 до 100",
+  });
+  return normalizeStorefrontHome(await adminJson(response));
+}
+
+const SECTION_MESSAGES: Readonly<Record<string, string>> = {
+  "Section image exceeds 10 MB": "Фото должно быть не больше 10 МБ",
+  "Unsupported section image type": "Разрешены только JPEG, PNG и WebP",
+  "Section image content does not match MIME type": "Содержимое фото не соответствует формату файла",
+  "File is empty": "Выберите непустую фотографию",
+  "Выберите категорию или подборку": "Выберите категорию или подборку",
+  "Позиция изображения должна быть от 0 до 100": "Позиция изображения должна быть от 0 до 100",
+  "Выберите удаление или замену обложки": "Выберите удаление или замену обложки",
+  "Этот раздел уже добавлен на главную": "Этот раздел уже добавлен на главную",
+  "Категория не найдена": "Категория не найдена",
+  "Подборка не найдена": "Подборка не найдена",
+  "Выберите доступный опубликованный раздел": "Выберите доступный опубликованный раздел",
+  "Загрузите обложку перед публикацией": "Загрузите обложку перед публикацией",
+  "Раздел не найден": "Раздел не найден",
+  "Передайте все разделы без повторов": "Передайте все разделы без повторов",
+  "Фото больше 10 МБ": "Фото больше 10 МБ",
+  "Разрешены только JPEG, PNG и WebP": "Разрешены только JPEG, PNG и WebP",
+  "Не удалось прочитать фото — выберите JPEG, PNG или WebP": "Не удалось прочитать фото — выберите JPEG, PNG или WebP",
+  "Содержимое фото не соответствует формату файла": "Содержимое фото не соответствует формату файла",
+  "Другая фотография ещё обрабатывается, повторите загрузку": "Другая фотография ещё обрабатывается — повторите загрузку",
+  "Обработка фотографий временно недоступна": "Обработка фотографий временно недоступна — попробуйте ещё раз",
+  "Фото должно быть не больше 48 мегапикселей и 16384 пикселей по стороне": "Фото должно быть не больше 48 мегапикселей и 16384 пикселей по стороне",
+  "Выберите статичную фотографию без анимации": "Выберите статичную фотографию без анимации",
+  "Не удалось прочитать фото или его содержимое не соответствует JPEG/PNG/WebP": "Не удалось прочитать фото — выберите JPEG, PNG или WebP",
+};
+
+async function sectionRequest(path: string, options: RequestInit, fallback: string) {
+  const response = await requestApiResponse(`${API_URL}/api/admin/storefront/home/sections${path}`,
+    options, "Не удалось получить результат действия — обновите данные перед повтором", 60_000);
+  if (!response.ok) throw await readApiError(response,
+    response.status === 413 ? "Фото должно быть не больше 10 МБ" : fallback, SECTION_MESSAGES);
+  return response;
+}
+
+export async function saveAdminStorefrontSection(
+  id: number | null, payload: AdminStorefrontSectionRequest,
+): Promise<AdminStorefrontSection> {
+  if (payload.file) {
+    const error = getImageUploadMetadataError(payload.file);
+    if (error) throw new Error(error);
+  }
+  const body = new FormData();
+  body.set("kind", payload.kind);
+  body.set("targetId", String(payload.targetId));
+  body.set("active", String(payload.active));
+  body.set("coverPositionX", String(Math.round(payload.coverPositionX)));
+  body.set("coverPositionY", String(Math.round(payload.coverPositionY)));
+  body.set("removeCover", String(payload.removeCover === true));
+  if (payload.file) body.set("file", payload.file);
+  const response = await sectionRequest(id === null ? "" : `/${id}`, {
+    method: id === null ? "POST" : "PUT", body,
+  }, "Не удалось сохранить раздел — проверьте цель и обложку");
+  try {
+    const section = normalizeStorefrontSections([await adminJson(response)])[0];
+    if (!section || (id !== null && section.id !== id) || section.kind !== payload.kind || section.targetId !== payload.targetId) throw new Error();
+    return section;
+  } catch (reason) {
+    if (isRequestCancelled(reason) || reason instanceof ApiRequestError) throw reason;
+    throw new ApiRequestError("Не удалось прочитать сохранённый раздел — обновите список", "invalid-response");
+  }
+}
+
+export async function deleteAdminStorefrontSection(id: number): Promise<void> {
+  await sectionRequest(`/${id}`, { method: "DELETE" }, "Не удалось удалить раздел");
+}
+
+export async function reorderAdminStorefrontSections(ids: number[]): Promise<AdminStorefrontSection[]> {
+  const response = await sectionRequest("/order", {
+    method: "PATCH", body: JSON.stringify({ ids }),
+  }, "Не удалось изменить порядок — обновите список");
+  try {
+    const raw: unknown = await adminJson(response);
+    const sections = normalizeStorefrontSections(raw);
+    if (!Array.isArray(raw) || raw.length !== ids.length || sections.length !== ids.length || sections.some((section, index) => section.id !== ids[index])) throw new Error();
+    return sections;
+  } catch (reason) {
+    if (isRequestCancelled(reason) || reason instanceof ApiRequestError) throw reason;
+    throw new ApiRequestError("Не удалось прочитать порядок разделов — обновите список", "invalid-response");
+  }
 }
 
 export async function uploadAdminStorefrontHero(
@@ -594,7 +731,7 @@ export async function uploadAdminStorefrontHero(
   const formData = new FormData();
   formData.append("file", file);
 
-  const response = await apiFetch(
+  const response = await adminFetch(
     `${API_URL}/api/admin/storefront/home/hero-image`,
     {
       method: "POST",
@@ -622,14 +759,14 @@ export async function uploadAdminStorefrontHero(
     );
   }
 
-  return normalizeStorefrontHome(await response.json());
+  return normalizeStorefrontHome(await adminJson(response));
 }
 
 export async function updateAdminStorefrontHeroPosition(
   x: number,
   y: number
 ): Promise<AdminStorefrontHome> {
-  const response = await apiFetch(
+  const response = await adminFetch(
     `${API_URL}/api/admin/storefront/home/hero-position`,
     {
       method: "PATCH",
@@ -637,9 +774,9 @@ export async function updateAdminStorefrontHeroPosition(
     }
   );
   if (!response.ok) {
-    throw new Error(await readError(response, "Не удалось сохранить позицию изображения"));
+    throw await readApiError(response, "Не удалось сохранить позицию изображения", ADMIN_API_MESSAGES);
   }
-  return normalizeStorefrontHome(await response.json());
+  return normalizeStorefrontHome(await adminJson(response));
 }
 
 export async function getAdminStorefrontProducts(
@@ -649,11 +786,11 @@ export async function getAdminStorefrontProducts(
 ): Promise<PageResponse<AdminStorefrontProduct>> {
   const params = new URLSearchParams({ page: String(page), size: String(size) });
   if (query.trim()) params.set("q", query.trim());
-  const response = await apiFetch(
+  const response = await adminFetch(
     `${API_URL}/api/admin/storefront/home/available-products?${params.toString()}`
   );
-  if (!response.ok) throw new Error(await readError(response, "Не удалось загрузить товары"));
-  const data: unknown = await response.json();
+  if (!response.ok) throw await readApiError(response, "Не удалось загрузить товары", ADMIN_API_MESSAGES);
+  const data: unknown = await adminJson(response);
   const record = data && typeof data === "object"
     ? (data as Record<string, unknown>)
     : {};
@@ -676,40 +813,40 @@ export async function getAdminStorefrontProducts(
 export async function createAdminStorefrontCollection(
   payload: AdminStorefrontCollectionRequest
 ): Promise<AdminStorefrontCollection> {
-  const response = await apiFetch(`${API_URL}/api/admin/storefront/home/collections`, {
+  const response = await adminFetch(`${API_URL}/api/admin/storefront/home/collections`, {
     method: "POST",
     body: JSON.stringify(payload),
   });
-  if (!response.ok) throw new Error(await readError(response, "Не удалось создать подборку"));
-  return normalizeStorefrontCollections([await response.json()])[0];
+  if (!response.ok) throw await readApiError(response, "Не удалось создать подборку", ADMIN_API_MESSAGES);
+  return normalizeStorefrontCollections([await adminJson(response)])[0];
 }
 
 export async function updateAdminStorefrontCollection(
   id: number,
   payload: AdminStorefrontCollectionRequest
 ): Promise<AdminStorefrontCollection> {
-  const response = await apiFetch(`${API_URL}/api/admin/storefront/home/collections/${id}`, {
+  const response = await adminFetch(`${API_URL}/api/admin/storefront/home/collections/${id}`, {
     method: "PUT",
     body: JSON.stringify(payload),
   });
-  if (!response.ok) throw new Error(await readError(response, "Не удалось обновить подборку"));
-  return normalizeStorefrontCollections([await response.json()])[0];
+  if (!response.ok) throw await readApiError(response, "Не удалось обновить подборку", ADMIN_API_MESSAGES);
+  return normalizeStorefrontCollections([await adminJson(response)])[0];
 }
 
 export async function deleteAdminStorefrontCollection(id: number): Promise<void> {
-  const response = await apiFetch(`${API_URL}/api/admin/storefront/home/collections/${id}`, {
+  const response = await adminFetch(`${API_URL}/api/admin/storefront/home/collections/${id}`, {
     method: "DELETE",
   });
-  if (!response.ok) throw new Error(await readError(response, "Не удалось удалить подборку"));
+  if (!response.ok) throw await readApiError(response, "Не удалось удалить подборку", ADMIN_API_MESSAGES);
 }
 
 export async function reorderAdminStorefrontCollections(
   collectionIds: number[]
 ): Promise<AdminStorefrontCollection[]> {
-  const response = await apiFetch(`${API_URL}/api/admin/storefront/home/collections/order`, {
+  const response = await adminFetch(`${API_URL}/api/admin/storefront/home/collections/order`, {
     method: "PUT",
     body: JSON.stringify({ collectionIds }),
   });
-  if (!response.ok) throw new Error(await readError(response, "Не удалось изменить порядок"));
-  return normalizeStorefrontCollections(await response.json());
+  if (!response.ok) throw await readApiError(response, "Не удалось изменить порядок", ADMIN_API_MESSAGES);
+  return normalizeStorefrontCollections(await adminJson(response));
 }

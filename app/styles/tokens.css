@@ -1,15 +1,69 @@
 :root {
+  --field-control-radius: 0;
+  --field-control-size: 14px;
+  --field-control-line-height: 21px;
+  --field-control-height: 44px;
+  --field-control-large-height: 48px;
+  --field-readonly-background: var(--soft);
+  --field-disabled-background: var(--control-disabled-bg);
+  --field-disabled-color: var(--control-disabled-text);
+  --field-disabled-border: var(--control-disabled-border);
+  --field-control-padding-inline: 15px;
+  --field-control-padding-block: 12px;
+  --field-control-weight: 400;
+  --field-gap: 4px;
+  --field-disabled-opacity: 0.55;
+  --field-focus-width: 1px;
+  --field-focus-offset: 2px;
+  --field-inline-height: 29px;
+  --field-inline-select-height: 27px;
+  --field-inline-gap: 7px;
+  --control-disabled-opacity: 0.45;
+  --control-disabled-bg: #eeeeee;
+  --control-disabled-text: #737373;
+  --control-disabled-border: #d1d1d1;
+  --scrollbar-thumb: color-mix(in srgb, var(--black) 35%, var(--white));
+  --popover-title-size: 17px;
+  --settings-title-size: var(--font-lg);
+  --settings-title-line: 27px;
+  --settings-title-weight: var(--type-section-weight);
+
   --black: #111111;
   --white: #ffffff;
-  --black-soft: #242424;
-  --black-muted: #6f6f6f;
-  --black-line: #d2d2d2;
-  --black-surface: #f7f7f7;
-  --black-surface-hover: #f5f5f5;
+  --black-soft: var(--button-primary-bg);
+  --button-primary-bg: #2c2c2c;
+  --button-primary-hover: #3b3b3b;
+  --button-radius: 0;
+  --button-height: 44px;
+  --button-line-height: 21px;
+  --button-weight: 600;
+  --button-padding-inline: 16px;
+  --button-compact-height: 36px;
+  --button-compact-size: 13px;
+  --button-compact-line-height: 20px;
+  --button-compact-padding-inline: 12px;
+  --button-touch-height: 44px;
+  --button-large-height: 48px;
+  --button-large-padding-inline: 20px;
+  --button-icon-size: 20px;
+  --button-icon-gap: 8px;
+  --button-disabled-bg: var(--control-disabled-bg);
+  --button-disabled-text: var(--control-disabled-text);
+  --button-disabled-border: var(--control-disabled-border);
+  --button-danger-bg: var(--feedback-danger-bg);
+  --button-danger-hover: color-mix(in srgb, var(--error) 20%, var(--white));
+  --black-muted: var(--black);
+  --black-line: var(--black);
+  --black-surface: #f4f4f4;
+  --black-surface-hover: var(--black-surface);
+  --state-text-color: var(--black);
 
   --gold: #b08d57;
+  --gold-light: #f6eddc;
+  --gold-border: #d9c29a;
   --gold-muted: #a89066;
   --gold-deep: #7a613a;
+  --brand-yandex: #fc3f1d;
   --required-mark: var(--gold-deep);
 
   --bg: var(--white);
@@ -17,9 +71,15 @@
 
   --muted: var(--black-muted);
   --line: var(--black-line);
-  --line-subtle: #e5e5e5;
+  --line-subtle: var(--line);
+  --line-width-hairline: 0.5px;
+  --line-width-default: 1px;
+  --line-width-strong: 2px;
+  --segmented-selected-border-color: var(--black);
+  --segmented-selected-inset: calc(var(--line-width-strong) - var(--line-width-default));
   --soft: var(--black-surface);
-  --content-primary: var(--black-soft);
+  --content-primary: var(--black);
+  --price-currency-color: var(--black);
   --content-primary-hover-label: var(--black);
   --content-primary-hover-icon: var(--black);
   --surface-hover: var(--black-surface-hover);
@@ -29,19 +89,38 @@
   --skeleton-duration: 1.25s;
 
   --input-border-color: #111111;
+  --field-label-weight: 500;
 
   --success: #216a43;
-  --warning: #8a6a2f;
-  --warning-orange: #a45113;
-  --danger: #9b2c2c;
+  --warning: var(--gold-deep);
+  --warning-orange: var(--warning);
+  --error: #9b2c2c;
 
-  --feedback-info-bg: color-mix(in srgb, var(--gold) 10%, var(--white));
-  --feedback-success-bg: color-mix(in srgb, var(--success) 8%, var(--white));
-  --feedback-warning-bg: color-mix(in srgb, var(--warning) 8%, var(--white));
-  --feedback-danger-bg: color-mix(in srgb, var(--danger) 8%, var(--white));
+  --feedback-info-color: var(--black);
+  --feedback-info-bg: var(--soft);
+  --feedback-success-bg: #eef7f1;
+  --feedback-warning-bg: var(--gold-light);
+  --feedback-danger-bg: color-mix(in srgb, var(--error) 12%, var(--white));
+  --feedback-info-border: var(--line);
+  --feedback-success-border: color-mix(in srgb, var(--success) 40%, var(--white));
+  --feedback-warning-border: var(--gold-border);
+  --feedback-danger-border: color-mix(in srgb, var(--error) 40%, var(--white));
+  --badge-success-bg: #d7f4df;
+  --badge-success-color: var(--state-text-color);
+  --badge-warning-bg: color-mix(in srgb, var(--gold) 30%, var(--white));
+  --badge-warning-color: var(--state-text-color);
+  --badge-danger-bg: #ffd9d9;
+  --badge-danger-color: var(--state-text-color);
+
+  --banner-title-size: 14px;
+  --banner-body-size: 13px;
+  --banner-line-height: 20px;
 
   --feedback-title-size: 14px;
   --feedback-body-size: 13px;
+  --field-error-weight: 500;
+  --field-error-size: 13px;
+  --field-error-line-height: 20px;
   --feedback-line-height: 20px;
   --feedback-action-size: 14px;
   --feedback-action-height: 44px;
@@ -67,7 +146,7 @@
   --seller-content-width: 1200px;
   --content-width: 1920px;
 
-  --page-padding: 24px;
+  --page-padding: 32px;
 
   --site-header-height: 80px;
   --product-purchase-height: 60px;
@@ -78,17 +157,65 @@
   /* typography */
 
   --font-xs: 13px;
-  --font-sm: 15px;
-  --font-md: 15px;
-  --font-lg: 17px;
-  --font-xl: 21px;
-  --font-2xl: 28px;
-  --font-3xl: 40px;
-  --font-4xl: 56px;
+  --font-sm: 14px;
+  --font-md: 16px;
+  --font-lg: 21px;
+  --font-xl: 27px;
+  --font-2xl: 35px;
+  --font-3xl: 46px;
+  --font-4xl: 59px;
+  /* Compact UI roles preserve the geometry of product and cabinet screens. */
+  --font-counter: 9px;
+  --font-micro: 10px;
+  --font-label-compact: 11px;
+  --font-ui: 15px;
+  --font-ui-large: 17px;
+  --font-title-xs: 18px;
+  --font-price-emphasis: 19px;
+  --font-title-sm: 20px;
+  --font-filter-title: 23px;
+  --font-title-md: 24px;
+  --font-title-lg: 28px;
+  --font-title-xl: 32px;
+  --font-metric-sm: 22px;
+  --font-metric-md: 26px;
+  --font-metric-lg: 30px;
+  --font-heading-legacy: 36px;
+  --font-weight-regular: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --line-height-ui: 21px;
+  --line-height-ui-large: 22px;
+  --line-height-title-xs: 26px;
+  --line-height-title-sm: 28px;
+  --line-height-title-md: 30px;
+  --line-height-title-lg: 32px;
+  --line-height-title-xl: 36px;
+  --line-height-title-display: 40px;
+  --type-page-weight: var(--font-weight-semibold);
+  --type-section-weight: var(--font-weight-medium);
+  --type-card-weight: var(--font-weight-medium);
+  --type-heading-tracking: -0.02em;
+  --type-card-tracking: -0.01em;
+  --type-page-line-height: 1.12;
+  --type-section-line-height: 1.2;
+  --type-card-line-height: 1.28;
+  --line-height-body: 24px;
+  --line-height-small: 20px;
+  --caption-size: 13px;
+  --caption-line-height: 18px;
+  --caption-weight: 400;
+  --field-label-size: 13px;
+  --field-label-line-height: 18px;
   --font-button: 15px;
-  --font-input: 15px;
-  --font-input-label: 15px;
+  --font-input: var(--field-control-size);
+  --font-input-label: var(--field-label-size);
+  --table-font-size: var(--font-xs);
+  --table-heading-weight: var(--font-weight-medium);
+  --table-note-size: var(--font-label-compact);
   --font-placeholder: 14px;
+  --font-helper: 12px;
+  --line-height-helper: 18px;
 
   /* radius */
 
@@ -101,7 +228,16 @@
 
   /* layers */
 
-  --z-header: 100;
+  --z-header: 300;
+  --z-buyer-navigation: 290;
+  --z-purchase-actions: 280;
+  --z-menu: 600;
+  --z-auth-overlay: 1000;
+  --z-media-viewer: 300;
+  --z-fixed-actions: 500;
+  --z-editor-page-nav: 150;
+  --z-editor-actions: 20;
+  --z-editor-header: 40;
   --z-modal: 500;
   --z-toast: 1500;
 
@@ -109,6 +245,9 @@
 
   --shadow-card: 0 8px 24px rgba(0, 0, 0, 0.04);
   --shadow-modal: 0 24px 80px rgba(0, 0, 0, 0.18);
+  --shadow-popover: 0 8px 24px rgb(0 0 0 / 13.333%);
+  --overlay-backdrop: rgb(17 17 17 / 42%);
+  --overlay-confirmation-backdrop: rgb(0 0 0 / 50%);
 }
 
 @media (max-width: 1100px) {

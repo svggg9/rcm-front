@@ -39,82 +39,17 @@ export type CreateProductReq = {
   }[];
 };
 
-export type SellerOrderStatus =
-  | "NEW"
-  | "CONFIRMED"
-  | "PROCESSING"
-  | "SHIPPED"
-  | "COMPLETED"
-  | "PAID"
-  | "CANCELED";
+export type SellerOrderStatus = import("../lib/order-contract").OrderStatus;
 
-export type SellerPaymentStatus =
-  | "PENDING"
-  | "PAID"
-  | "FAILED"
-  | "CANCELED"
-  | "REFUNDED";
+export type SellerPaymentStatus = import("../lib/order-contract").PaymentStatus;
 
-export type SellerDeliveryStatus =
-  | "PENDING"
-  | "READY_FOR_SHIPMENT"
-  | "READY_FOR_PICKUP"
-  | "IN_TRANSIT"
-  | "DELIVERED"
-  | "RETURNED"
-  | "CANCELLED";
+export type SellerDeliveryStatus = import("../lib/order-contract").DeliveryStatus;
 
-export type SellerOrderItem = {
-  productId: number;
-  productPublicId?: string | null;
-  variantId: number;
-  sellerId: number;
-  sku: string;
-  productTitle: string;
-  brandName: string | null;
-  size: string;
-  color: string;
-  imageUrl: string | null;
-  quantity: number;
-  price: number;
-  lineTotal: number;
-};
+export type SellerOrderItem = import("../lib/order-contract").OrderItem;
 
-export type SellerOrderDeliveryInfo = {
-  provider: string | null;
-  method: string | null;
-  requestId: string | null;
-  cdekNumber: string | null;
-  shipmentStatus: string | null;
-  trackingUrl: string | null;
-  priceAmount: number | null;
-  currency: string | null;
-};
+export type SellerOrderDeliveryInfo = import("../lib/order-contract").OrderDeliveryInfo;
 
-export type SellerOrder = {
-  paidAt?: string | null;
-  paymentMethod?: string | null;
-  id: number;
-  orderGroupId: string;
-  status: SellerOrderStatus;
-  paymentStatus: SellerPaymentStatus;
-  deliveryStatus: SellerDeliveryStatus;
-  deliveryStatusChangedAt: string | null;
-  subtotalAmount: number;
-  deliveryAmount: number;
-  discountAmount: number;
-  totalAmount: number;
-  currency: string;
-  recipientName: string;
-  recipientPhone: string;
-  deliveryAddress: string;
-  deliveryMethod: string;
-  fittingMode: string | null;
-  trackingNumber: string | null;
-  createdAt: string;
-  items: SellerOrderItem[];
-  delivery: SellerOrderDeliveryInfo | null;
-};
+export type SellerOrder = import("../lib/order-contract").Order;
 
 export type PageResponse<T> = {
   content: T[];
@@ -165,28 +100,7 @@ export type SellerProductListItem = {
   variantsCount: number | null;
 };
 
-export type SellerOrderListItem = {
-  id: number;
-  orderGroupId: string;
-
-  status: SellerOrderStatus;
-  paymentStatus: SellerPaymentStatus;
-  deliveryStatus: SellerDeliveryStatus;
-  deliveryStatusChangedAt: string | null;
-
-  totalAmount: number;
-  currency: string;
-
-  recipientName: string;
-
-  firstProductTitle: string | null;
-  productTitles?: string[];
-  firstImageUrl: string | null;
-
-  itemsCount: number;
-
-  createdAt: string;
-};
+export type SellerOrderListItem = import("../lib/order-contract").SellerOrderListItem;
 
 export type SellerBrand = {
   id: number;
@@ -345,7 +259,7 @@ export type SellerFinanceSummary = {
   processingAmount: number;
   nextPayoutAmount: number;
   paidThisMonthAmount: number;
-  nextPayoutDate: string;
+  nextPayoutDate: string | null;
   bankDetailsReady: boolean;
   inPayoutAmount: number;
   failedPayoutAmount: number;

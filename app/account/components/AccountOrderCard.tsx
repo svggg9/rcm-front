@@ -88,9 +88,7 @@ function formatItemsCount(count: number) {
 function getOrderTone(order: OrderListItem) {
   if (
     order.status === "CANCELED" ||
-    order.paymentStatus === "FAILED" ||
-    order.paymentStatus === "CANCELED" ||
-    order.paymentStatus === "REFUNDED" ||
+    order.paymentStatus === "FAILED" ||    order.paymentStatus === "REFUNDED" ||
     order.deliveryStatus === "RETURNED" ||
     order.deliveryStatus === "CANCELLED"
   ) {

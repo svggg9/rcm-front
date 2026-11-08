@@ -2,6 +2,7 @@
 
 import { NumericInput } from "../../components/ui/NumericInput";
 
+import { DataTable } from "../../components/ui/DataTable";
 import { Button } from "../../components/ui/Button";
 import { CabinetPanel } from "../../components/ui/CabinetPanel";
 import { SectionHeader } from "../../components/ui/SectionHeader";
@@ -12,8 +13,11 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { CabinetSkeleton } from "../../components/ui/CabinetSkeleton";
 import { Banner } from "../../components/ui/Banner";
 import { Icon } from "../../components/ui/Icon";
-import { lockModalScroll } from "../../components/ui/modalScrollLock";
+import { RequestError } from "../../components/ui/RequestError";
+import { useModalDialog } from "../../components/ui/useModalDialog";
+import { toApiError } from "../../lib/apiErrors";
 import { getFinanceData, exportFinanceOperations } from "../lib/sellerFinanceApi";
+import { formatFinanceDate as date, formatFinanceDateTime as dateTime } from "../lib/sellerFinancePresentation";
 import type { PageResponse, SellerFinanceOperation, SellerFinanceSummary, SellerPayout, SellerPayoutDetail, SellerPayoutStatus } from "../types";
 import styles from "./SellerFinanceTab.module.css";
 
@@ -35,10 +39,14 @@ function useFinanceData<T>(path: string) {
     const controller = new AbortController();
     getFinanceData<T>(path, controller.signal).then(
       data => { if (!controller.signal.aborted) setResult({ key, path, data }); },
-      error => { if (!controller.signal.aborted) setResult(current => ({
-        key, path, data: current?.path === path ? current.data : undefined,
-        error: error instanceof Error ? error.message : "Не удалось загрузить данные",
-      })); }
+      reason => {
+        if (controller.signal.aborted) return;
+        const failure = toApiError(reason, "Не удалось загрузить финансовые данные — попробуйте ещё раз");
+        setResult(current => ({
+          key, path, data: failure.status !== 401 && failure.status !== 403 && current?.path === path ? current.data : undefined,
+          error: failure.message,
+        }));
+      }
     );
     return () => controller.abort();
   }, [path, key]);
@@ -69,6 +77,7 @@ export function SellerFinanceTab({ finance, loading, error, onRefresh, onPrefetc
 
 function Overview({ finance, onPrefetchOrder }: { finance: SellerFinanceSummary; onPrefetchOrder?: Props["onPrefetchOrder"] }) {
   const next = finance.nextPayout;
+  const nextDate = date(next ? next.scheduledDate : finance.nextPayoutDate, "");
   return <>
     <div className={styles.summaryGrid}>
       <Summary label="Доступно к выплате" value={finance.availableAmount} hint="После комиссии, удержаний и срока ожидания" />
@@ -94,8 +103,8 @@ function Overview({ finance, onPrefetchOrder }: { finance: SellerFinanceSummary;
     <div className={styles.nextPayout}>
       <div><span className={styles.caption}>{next ? `Ближайший реестр №${next.id}` : "Прогноз следующего реестра"}</span>
         <strong>{money(next?.payoutAmount ?? finance.nextPayoutAmount)}</strong>
-        <p>{next ? `${labels[next.status]}. Плановая дата ${date(next.scheduledDate)}`
-          : `Ориентир — ${date(finance.nextPayoutDate)}. Сумма и дата могут измениться до формирования выплаты.`}</p>
+        <p>{next ? `${labels[next.status]}. ${nextDate ? `Плановая дата ${nextDate}` : "Плановая дата пока не назначена"}`
+          : `${nextDate ? `Ориентир — ${nextDate}` : "Дата следующего реестра пока не назначена"}. Сумма и дата могут измениться до формирования выплаты.`}</p>
         {next && <p>Счёт {next.checkingAccount}</p>}
       </div>
       {next ? <Link className={styles.button} href={`/seller/finance?view=payouts&payout=${next.id}`}>Состав выплаты</Link>
@@ -155,14 +164,14 @@ function Operations({ onPrefetchOrder }: { onPrefetchOrder?: Props["onPrefetchOr
 
 function OperationTable({ operations, onPrefetchOrder }: { operations: SellerFinanceOperation[]; onPrefetchOrder?: Props["onPrefetchOrder"] }) {
   if (!operations.length) return <p className={styles.empty}>Операций по выбранным условиям пока нет</p>;
-  return <div className={styles.tableScroll}><table className={styles.table}><thead><tr><th>Дата</th><th>Операция</th><th>Заказ / выплата</th><th className={styles.numeric}>Сумма</th></tr></thead>
+  return <div className={styles.tableScroll}><DataTable className={styles.table}><thead><tr><th>Дата</th><th>Операция</th><th>Заказ / выплата</th><th className={styles.numeric}>Сумма</th></tr></thead>
     <tbody>{operations.map(op => <tr key={op.id}>
       <td>{dateTime(op.createdAt)}{op.estimatedDate && <small>Дата создания заказа; дата оплаты не сохранена</small>}</td>
       <td>{operationLabels[op.type]}{op.type === "SALE" && <small>Продажа {money(op.grossAmount ?? 0, op.currency)} − комиссия {money(op.commissionAmount ?? 0, op.currency)}</small>}</td>
       <td>{op.orderId ? <Link href={`/seller/orders?orderId=${op.orderId}`} onFocus={() => onPrefetchOrder?.(op.orderId!)} prefetch={false}>Заказ №{op.orderId}</Link>
         : op.payoutId ? <Link href={`/seller/finance?view=payouts&payout=${op.payoutId}`}>Выплата №{op.payoutId}</Link> : "—"}</td>
       <td className={styles.numeric}>{op.direction === "CREDIT" ? "+" : "−"}{money(op.amount, op.currency)}</td>
-    </tr>)}</tbody></table></div>;
+    </tr>)}</tbody></DataTable></div>;
 }
 
 function Payouts() {
@@ -171,11 +180,11 @@ function Payouts() {
   return <><div className={styles.heading}><h2>Выплаты</h2><Button variant="utility" onClick={state.retry} disabled={state.loading}
     loading={state.loading && Boolean(state.data) && !state.error}>Обновить</Button></div>
     <RemoteState {...state} hasData={Boolean(state.data)} />
-    {state.data && <>{state.data.content.length ? <div className={styles.tableScroll}><table className={styles.table}>
+    {state.data && <>{state.data.content.length ? <div className={styles.tableScroll}><DataTable className={styles.table}>
       <thead><tr><th>Реестр</th><th>Плановая дата</th><th>Статус</th><th>Счёт</th><th>Заказов</th><th className={styles.numeric}>Сумма</th></tr></thead>
       <tbody>{state.data.content.map(p => <tr key={p.id}><td><Link href={`/seller/finance?${new URLSearchParams({ ...Object.fromEntries(params), payout: String(p.id) })}`}>Выплата №{p.id}</Link></td>
         <td>{date(p.scheduledDate)}</td><td>{labels[p.status]}</td><td>{p.checkingAccount || "—"}</td><td>{p.orderCount}</td><td className={styles.numeric}>{money(p.payoutAmount)}</td></tr>)}</tbody>
-    </table></div> : <p className={styles.empty}>Сформированных выплат пока нет</p>}<Pagination data={state.data} /></>}
+    </DataTable></div> : <p className={styles.empty}>Сформированных выплат пока нет</p>}<Pagination data={state.data} /></>}
   </>;
 }
 
@@ -184,13 +193,7 @@ function PayoutDetails({ id }: { id: string }) {
   const router = useRouter();
   const state = useFinanceData<SellerPayoutDetail>(`payouts/${id}`);
   const ref = useRef<HTMLDialogElement>(null);
-  useEffect(() => {
-    const dialog = ref.current!;
-    const previous = document.activeElement;
-    dialog.showModal();
-    const unlock = lockModalScroll();
-    return () => { dialog.close(); unlock(); if (previous instanceof HTMLElement && previous.isConnected) previous.focus(); };
-  }, []);
+  useModalDialog(ref);
   function close() { const next = new URLSearchParams(params); next.delete("payout"); router.replace(`/seller/finance?${next}`, { scroll: false }); }
   const payout = state.data;
   return <dialog ref={ref} className={styles.drawer} aria-labelledby="finance-payout-title" onCancel={e => { e.preventDefault(); close(); }}>
@@ -204,17 +207,17 @@ function PayoutDetails({ id }: { id: string }) {
         <div><dt>Банк</dt><dd>{payout.bankName}</dd></div><div><dt>Счёт</dt><dd>{payout.checkingAccount}</dd></div></dl>
       <h3>Расчёт выплаты</h3><dl className={styles.breakdown}><Figure label="Продажи" value={payout.grossSalesAmount} currency={payout.currency} />
         <Figure label="Комиссия" value={-payout.commissionAmount} currency={payout.currency} /><Figure label="Удержания" value={-payout.adjustmentsAmount} currency={payout.currency} /></dl>
-      <h3>Состав реестра</h3><div className={styles.tableScroll}><table className={styles.table}><thead><tr><th>Основание</th><th className={styles.numeric}>Продажа</th><th className={styles.numeric}>Комиссия</th><th className={styles.numeric}>Удержание</th><th className={styles.numeric}>Итого</th></tr></thead>
+      <h3>Состав реестра</h3><div className={styles.tableScroll}><DataTable className={styles.table}><thead><tr><th>Основание</th><th className={styles.numeric}>Продажа</th><th className={styles.numeric}>Комиссия</th><th className={styles.numeric}>Удержание</th><th className={styles.numeric}>Итого</th></tr></thead>
         <tbody>{payout.items.map(item => <tr key={item.id}><td>{item.orderId ? <Link href={`/seller/orders?orderId=${item.orderId}`}>Заказ №{item.orderId}</Link> : "Корректировка"}</td>
           <td className={styles.numeric}>{money(item.grossAmount, payout.currency)}</td><td className={styles.numeric}>{money(item.commissionAmount, payout.currency)}</td>
-          <td className={styles.numeric}>{money(item.adjustmentAmount, payout.currency)}</td><td className={styles.numeric}>{money(item.netAmount, payout.currency)}</td></tr>)}</tbody></table></div>
+          <td className={styles.numeric}>{money(item.adjustmentAmount, payout.currency)}</td><td className={styles.numeric}>{money(item.netAmount, payout.currency)}</td></tr>)}</tbody></DataTable></div>
     </>}
   </dialog>;
 }
 
 function Figure({ label, value, currency = "RUB" }: { label: string; value: number; currency?: string }) { return <div><dt>{label}</dt><dd>{money(value, currency)}</dd></div>; }
 function RemoteState({ loading, error, retry, hasData }: { loading: boolean; error?: string; retry: () => void; hasData: boolean }) {
-  return error ? <div role="alert" className={styles.error}>{error} <Button variant="utility" loading={loading} onClick={retry}>Повторить</Button></div>
+  return error ? <RequestError message={error} onRetry={retry} loading={loading} variant={hasData ? "inline" : "section"} />
     : loading && !hasData ? <CabinetSkeleton variant="list" rows={3} compact /> : null;
 }
 function Pagination({ data }: { data: PageResponse<unknown> }) {
@@ -229,8 +232,6 @@ function Pagination({ data }: { data: PageResponse<unknown> }) {
 }
 function pageNumber(value: string | null) { const number = Number(value); return Number.isSafeInteger(number) && number >= 0 ? number : 0; }
 function money(value: number, currency = "RUB") { return new Intl.NumberFormat("ru-RU", { style: "currency", currency, minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value); }
-function date(value: string) { return new Date(`${value}T12:00:00Z`).toLocaleDateString("ru-RU", { timeZone: "Europe/Moscow" }); }
-function dateTime(value: string) { return new Date(value).toLocaleString("ru-RU", { timeZone: "Europe/Moscow", day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" }); }
 function ExportButton({ query, disabled }: { query: string; disabled: boolean }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");

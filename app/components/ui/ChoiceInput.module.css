@@ -1,0 +1,43 @@
+.checkbox,
+.radio {
+  --choice-size: 20px;
+  appearance: none;
+  display: inline-grid;
+  place-content: center;
+  flex: 0 0 var(--choice-size);
+  width: var(--choice-size);
+  height: var(--choice-size);
+  margin: 0;
+  padding: 0;
+  border: var(--line-width-default) solid var(--line);
+  border-radius: 0;
+  background: var(--white);
+  color: var(--black);
+  cursor: pointer;
+}
+.checkbox[data-size="16"], .radio[data-size="16"] { --choice-size: 16px; }
+.checkbox[data-size="17"], .radio[data-size="17"] { --choice-size: 17px; }
+.checkbox[data-size="18"], .radio[data-size="18"] { --choice-size: 18px; }
+.checkbox:checked,
+.checkbox:indeterminate { border-color: var(--black); background: var(--black); }
+.checkbox:checked::after { content: ""; width: calc(var(--choice-size) / 4); height: calc(var(--choice-size) / 2); border: solid var(--white); border-width: 0 1.5px 1.5px 0; transform: translateY(-1px) rotate(45deg); }
+.checkbox:indeterminate::after { content: ""; width: calc(var(--choice-size) / 2); height: 1.5px; border: 0; background: var(--white); transform: none; }
+.radio { border-radius: 50%; }
+.radio:checked::after { content: ""; width: calc(var(--choice-size) / 2); height: calc(var(--choice-size) / 2); border-radius: 50%; background: var(--black); }
+@media (hover: hover) {
+  :is(.checkbox:not(.hidden):not(:indeterminate), .radio):not(:disabled):not(:checked):hover,
+  :global(label):hover > :is(.checkbox:not(.hidden):not(:indeterminate), .radio):not(:disabled):not(:checked) {
+    background: var(--surface-hover);
+  }
+}
+.checkbox:focus-visible,
+.radio:focus-visible { outline: var(--field-focus-width) solid var(--black); outline-offset: var(--field-focus-offset); }
+.checkbox[aria-invalid="true"], .radio[aria-invalid="true"] { border-color: var(--error); outline-color: var(--error); }
+.checkbox:disabled,
+.radio:disabled { opacity: var(--field-disabled-opacity); cursor: not-allowed; }
+.checkbox.hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; opacity: 0; pointer-events: none; }
+:global(label):has(> .hidden:focus-visible) { outline: var(--field-focus-width) solid var(--black); outline-offset: var(--field-focus-offset); }
+@media (forced-colors: active) {
+  .checkbox, .radio { appearance: auto; }
+  .checkbox::after, .radio::after { content: none; }
+}

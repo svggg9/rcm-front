@@ -1,4 +1,5 @@
 "use client";
+import { Checkbox } from "../../components/ui/Checkbox";
 
 import { useFieldValidation } from "../../lib/useFieldValidation";
 import { InputControl } from "../../components/ui/InputControl";
@@ -19,10 +20,13 @@ import { toast } from "../../components/ui/toast";
 import { CabinetSkeleton } from "../../components/ui/CabinetSkeleton";
 import { ChoiceMark } from "../../components/ui/ChoiceMark";
 import { Icon } from "../../components/ui/Icon";
+import { DesignSystemIcon } from "../../components/ui/DesignSystemIcon";
+import { SegmentedControl } from "../../components/ui/SegmentedControl";
 import { PhoneInput } from "../../components/ui/PhoneInput";
 import { getRussianPhoneDigits } from "../../lib/phone";
 import { scrollToFirstValidationError } from "../../lib/formValidation";
 import { isNonEmpty } from "../../lib/validation";
+import { ApiRequestError } from "../../lib/apiErrors";
 import { emitSellerOnboardingChanged } from "../lib/sellerOnboardingEvents";
 
 import {
@@ -207,9 +211,16 @@ export function SellerLegalTab() {
   const [error, setError] = useState<string | null>(null);
   const requisitesAvailable = useSellerRequisitesAvailable();
 
-  function applyRequisites(patch: Partial<SellerLegalInfoForm>) {
+  function applyRequisites(patch: Partial<SellerLegalInfoForm>, source: SellerLegalInfoForm) {
     if (!showEditor || !canEditSection || savingSection !== null) return;
-    setForm(current => ({ ...current, ...patch }));
+    setForm(current => {
+      if (current.inn !== source.inn || current.sellerType !== source.sellerType || current.bik !== source.bik) return current;
+      const next = { ...current };
+      for (const field of Object.keys(patch) as (keyof SellerLegalInfoForm)[]) {
+        if (current[field] === source[field]) Object.assign(next, { [field]: patch[field] });
+      }
+      return next;
+    });
     setErrors(current => {
       const next = { ...current };
       for (const field of Object.keys(patch) as (keyof SellerLegalInfoForm)[]) delete next[field];
@@ -277,15 +288,17 @@ export function SellerLegalTab() {
           if (!active) return;
           setCityOptions(cities.slice(0, 8));
           setCityOptionsOpen(cities.length > 0);
-        }).catch(() => {
+        }).catch((failure) => {
           if (!active) return;
           setCityOptions([]);
           setCityOptionsOpen(false);
+          setErrors(current => ({ ...current, shippingCityName: failure instanceof ApiRequestError
+            ? failure.message : "Не удалось найти город — попробуйте ещё раз" }));
         });
     }, 250);
 
     return () => { active = false; window.clearTimeout(timeoutId); };
-  }, [form.shippingCityName, form.shippingCityCode]);
+  }, [form.shippingCityName, form.shippingCityCode, setErrors]);
 
   useEffect(() => {
     const cityCode = Number(form.shippingCityCode);
@@ -467,7 +480,7 @@ export function SellerLegalTab() {
   const navigationItems = [
     { id: "legal", label: "Юридические данные", complete: legalChecklistComplete },
     { id: "contacts", label: "Контакты", complete: contactDetailsComplete },
-    { id: "shipping", label: "Отправка", complete: shippingChecklistComplete },
+    { id: "shipping", label: "Доставка", complete: shippingChecklistComplete },
     { id: "bank", label: "Банк и оферта", complete: bankChecklistComplete },
   ] as const;
 
@@ -648,31 +661,34 @@ export function SellerLegalTab() {
     <section className={styles.page}>
       <InlineEditorGuard dirty={dirty} busy={saving} onDiscard={discardChanges} />
       <h1 className="visuallyHidden">Данные и документы</h1>
-      <Banner tone={checklistComplete ? "success" : "info"}
-        className={checklistComplete ? styles.completedBanner : undefined}
-        title={checklistComplete ? "Всё заполнено" : "Перед заполнением"} titleAs="h2">
-        {!checklistComplete ? <ul className={styles.incompleteList}>
+      {!checklistComplete ? <Banner tone="info" title="Перед заполнением" titleAs="h2">
+        <ul className={styles.incompleteList}>
           {navigationItems.filter(item => !item.complete).map(item =>
             <li key={item.id}>Заполните раздел «{item.label}»</li>
           )}
-        </ul> : null}
-      </Banner>
+        </ul>
+      </Banner> : null}
       <nav ref={navigationRef} className={styles.sectionNavigation} aria-label="Разделы данных и документов">
         {navigationItems.map(item => <button type="button" key={item.id}
           aria-controls={`seller-data-${item.id}`}
           aria-current={activeSection === item.id ? "location" : undefined}
           onClick={() => selectSection(item.id)}>
           <span>{item.label}</span>
-          {item.complete ? <><Icon name="check" size={18} /><span className="visuallyHidden">Обязательные поля заполнены</span></> : null}
+          {item.complete ? <><DesignSystemIcon name="check-circle" role="utility" /><span className="visuallyHidden">Обязательные поля заполнены</span></> : null}
         </button>)}
       </nav>
       {criticalSection ? <SellerLegalReviewNotice review={reviewState.review} error={reviewState.error} loading={reviewState.loading}
         onRefresh={() => void reviewState.load()} onRequest={() => setChangeRequestOpen(true)} /> : null}
       {!showEditor ? <section className={reviewStyles.summary} aria-label="Сохранённые данные">
         {error ? <Banner tone="danger">{error}</Banner> : null}
-        <h2>{activeSection === "legal" ? "Юридическая информация" : activeSection === "bank" ? "Банковские реквизиты" : activeSection === "contacts" ? "Контакты продавца" : "Отправка заказов"}</h2>
+        <div className={reviewStyles.summaryHeading}>
+          <h2>{activeSection === "legal" ? "Юридическая информация" : activeSection === "bank" ? "Банковские реквизиты" : activeSection === "contacts" ? "Контакты продавца" : "Адрес доставки"}</h2>
+          {canEditSection && !error ? <Button type="button" variant="ghost" className={reviewStyles.editButton}
+            aria-label="Редактировать" title="Редактировать" reserveLabelSpace={false} onClick={() => setEditing(true)}>
+            <DesignSystemIcon name="pencil" role="utility" />
+          </Button> : null}
+        </div>
         <SellerLegalValues form={savedForm} section={activeSection} />
-        {canEditSection && !error ? <div><Button type="button" variant="secondary" onClick={() => setEditing(true)}>Редактировать</Button></div> : null}
         {activeSection === "contacts" ? <SellerNotificationChannels controller={notifications} disabled={saving} /> : null}
       </section> : <form ref={formRef} className={styles.form} noValidate onSubmit={submit}>
         {error ? <Banner tone="danger">{error}</Banner> : null}
@@ -683,34 +699,12 @@ export function SellerLegalTab() {
             <p>Данные владельца магазина и сведения для оформления документов</p>
           </div>
 
-          <div className={styles.typeGrid}>
-            {(["IP", "OOO", "SELF_EMPLOYED"] as SellerType[]).map((type) => (
-              <label
-                key={type}
-                className={`utilityAction ${styles.typeOption} ${
-                  form.sellerType === type ? styles.typeOptionActive : ""
-                }`}
-              >
-                <input
-                  type="radio"
-                  name="sellerType"
-                  value={type}
-                  checked={form.sellerType === type}
-                  onChange={() => updateField("sellerType", type)}
-                />
-                <ChoiceMark
-                  checked={form.sellerType === type}
-                  appearance="outline-check"
-                />
-                <span>{formatSellerType(type)}</span>
-              </label>
-            ))}
-          </div>
+          <SegmentedControl<SellerType> ariaLabel="Тип продавца" value={form.sellerType}
+            items={(["IP", "OOO", "SELF_EMPLOYED"] as const).map(value => ({ value, label: formatSellerType(value) }))}
+            disabled={saving || !canEditSection} onChange={value => updateField("sellerType", value)} />
 
-          {requisitesAvailable ? <SellerRequisitesLookup kind="party" form={form}
-            disabled={Boolean(savingSection) || !canEditSection} onApply={applyRequisites} /> : null}
-
-          <div className={styles.grid}>
+          <SellerRequisitesLookup kind="party" form={form} available={requisitesAvailable}
+            disabled={Boolean(savingSection) || !canEditSection} onApply={applyRequisites}>
             <LegalTextField
               label="ИНН"
               numeric
@@ -723,7 +717,9 @@ export function SellerLegalTab() {
               error={errors.inn}
               onChange={(event) => updateField("inn", event.target.value)}
             />
+          </SellerRequisitesLookup>
 
+          <div className={styles.grid}>
             {form.sellerType === "IP" ? (
               <LegalTextField
                 label="ОГРНИП"
@@ -844,7 +840,7 @@ export function SellerLegalTab() {
 
         <section id="seller-data-shipping" data-legal-section="shipping" hidden={activeSection !== "shipping"} tabIndex={-1} className={styles.card}>
           <div className={styles.cardHeader}>
-            <h2>Отправка заказов</h2>
+            <h2>Адрес доставки</h2>
             <p>Город и пункт, из которого товары передаются в доставку</p>
           </div>
 
@@ -942,21 +938,8 @@ export function SellerLegalTab() {
             <p>Счёт, на который будут перечисляться выплаты магазина</p>
           </div>
 
-          {requisitesAvailable ? <SellerRequisitesLookup kind="bank" form={form}
-            disabled={Boolean(savingSection) || !canEditSection} onApply={applyRequisites} /> : null}
-
-          <div className={styles.grid}>
-            <LegalTextField
-              label="Банк"
-              required
-              valid={isNonEmpty(form.bankName)}
-              suppressRequiredHighlight={hasValidationErrors}
-              onBlur={() => validation.touch("bankName")}
-              value={form.bankName}
-              error={errors.bankName}
-              onChange={(event) => updateField("bankName", event.target.value)}
-            />
-
+          <SellerRequisitesLookup kind="bank" form={form} available={requisitesAvailable}
+            disabled={Boolean(savingSection) || !canEditSection} onApply={applyRequisites}>
             <LegalTextField
               label="БИК"
               numeric
@@ -969,7 +952,19 @@ export function SellerLegalTab() {
               error={errors.bik}
               onChange={(event) => updateField("bik", event.target.value)}
             />
+          </SellerRequisitesLookup>
 
+          <div className={styles.grid}>
+            <LegalTextField
+              label="Банк"
+              required
+              valid={isNonEmpty(form.bankName)}
+              suppressRequiredHighlight={hasValidationErrors}
+              onBlur={() => validation.touch("bankName")}
+              value={form.bankName}
+              error={errors.bankName}
+              onChange={(event) => updateField("bankName", event.target.value)}
+            />
             <LegalTextField
               label="Расчетный счет"
               numeric
@@ -1008,8 +1003,8 @@ export function SellerLegalTab() {
                 errors.agreementAccepted ? styles.checkboxError : ""
               }`}
             >
-              <input
-                type="checkbox"
+              <Checkbox appearance="hidden"
+
                 checked={form.agreementAccepted}
                 aria-invalid={errors.agreementAccepted ? "true" : undefined}
                 onChange={(event) =>

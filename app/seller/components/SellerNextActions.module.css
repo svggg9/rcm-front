@@ -1,15 +1,15 @@
-.section { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
-.heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
-.section .heading h2 { font-size: 16px; line-height: 24px; font-weight: 650; }
+.section { display: flex; flex-direction: column; gap: var(--space-3); min-width: 0; }
+.heading { display: flex; align-items: center; justify-content: space-between; gap: var(--space-4); }
+.section .heading h2 { font-size: var(--font-md); line-height: var(--line-height-body); font-weight: var(--font-weight-semibold); }
 .heading .refresh { width: 44px; min-width: 44px; height: 44px; padding: 0; color: var(--muted); }
-.actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 24px; min-width: 0; }
+.actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-3) var(--space-6); min-width: 0; }
 .actions:empty { display: none; }
-.action { display: grid; grid-template-columns: 24px minmax(0, 1fr) 20px; align-items: start; gap: 10px; padding-block: 8px; min-width: 0; color: var(--black); text-decoration: none; }
-.action > span:nth-child(2) { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
-.action strong { font-size: 14px; line-height: 20px; font-weight: 500; }
-.action > span > span { color: var(--muted); font-size: 13px; line-height: 20px; overflow-wrap: anywhere; }
+.action { display: grid; grid-template-columns: 24px minmax(0, 1fr) 20px; align-items: start; gap: 10px; padding-block: var(--space-2); min-width: 0; color: var(--black); text-decoration: none; transition: background-color var(--transition-fast), color var(--transition-fast); }
+.action > span:nth-child(2) { display: flex; flex-direction: column; gap: var(--space-1); min-width: 0; }
+.action strong { font-size: var(--font-sm); line-height: var(--line-height-small); font-weight: var(--font-weight-medium); }
+.action > span > span { color: var(--muted); font-size: var(--font-xs); line-height: var(--line-height-small); overflow-wrap: anywhere; }
 .action > svg { color: var(--muted); align-self: center; }
 .action[data-tone="warning"] strong { color: var(--warning); }
-.action[data-tone="danger"] strong { color: var(--danger); }
-.action:hover strong { text-decoration: underline; text-underline-offset: 3px; }
-@media (max-width: 600px) { .actions { grid-template-columns: minmax(0, 1fr); gap: 8px; } }
+.action[data-tone="danger"] strong { color: var(--error); }
+.action:hover { background-color: var(--surface-hover); }
+@media (max-width: 600px) { .actions { grid-template-columns: minmax(0, 1fr); gap: var(--space-2); } }

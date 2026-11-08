@@ -29,8 +29,8 @@ assert.match(sellerPageSource, /hidden=\{currentTab !== "legal"\}[\s\S]*classNam
 assert.match(sellerPageStyles, /--seller-form-width:\s*1120px;/);
 assert.doesNotMatch(sellerPageStyles, /\.legalContent\s*\{[^}]*(max-width|margin-inline)/);
 assert.match(sellerLegalStyles, /\.form\s*\{[^}]*max-width:\s*var\(--seller-form-width, 1120px\)/);
-assert.match(sellerLegalSource, /<Banner tone=\{checklistComplete \? "success" : "info"\}/);
-assert.match(sellerLegalSource, /title=\{checklistComplete \? "Всё заполнено" : "Перед заполнением"\} titleAs="h2"/);
+assert.match(sellerLegalSource, /!checklistComplete \? <Banner tone="info" title="Перед заполнением" titleAs="h2"/);
+assert.doesNotMatch(sellerLegalSource, /Всё заполнено/);
 assert.match(sellerLegalSource, /aria-label="Выбрать пункт на карте" title="Выбрать пункт на карте"[\s\S]*?<Icon name="pickup-point"[^>]*\/>\s*<\/Button>/);
 assert.match(sellerLegalStyles, /\.pointMapAction button\s*\{[^}]*width:\s*44px;[^}]*height:\s*44px;[^}]*padding:\s*0;/);
 assert.doesNotMatch(sellerLegalStyles, /\.card\s*\{[^}]*\bborder\s*:/);
@@ -81,7 +81,7 @@ assert.match(numberError, /aria-describedby="([^"]+)"[\s\S]*id="\1"/);
 assert.doesNotMatch(render(NumberField, { label: "Вес, кг", value: 1, onChange() {} }), /fieldError|aria-invalid/);
 
 const general = render(ProductGeneralCard, { validationErrors: { title: true, description: true, categoryId: true },
-  title: "", description: "", composition: "", categoryId: "", suggestedCategoryName: "", audience: "UNISEX", categories: [] });
+  title: "", description: "", composition: "", details: {features:"",measurements:"",care:"",cityOfOrigin:""}, categoryId: "", suggestedCategoryName: "", audience: "UNISEX", categories: [] });
 for (const message of ["Введите название товара", "Введите описание товара", "Выберите категорию или предложите свою"]) assert.ok(general.includes(message));
 assert.match(general, /aria-describedby="[^"]+-title-error"/);
 assert.match(general, /aria-describedby="[^"]+-description-error"/);
@@ -93,6 +93,7 @@ const categories = [
   { ...categoryBase, id: 12, name: "Одежда / Верх / Футболки", label: "Футболки", parentId: 2 },
 ];
 const categoryProps = { validationErrors: {}, title: "Товар", description: "Описание", composition: "",
+  details: {features:"",measurements:"",care:"",cityOfOrigin:""},
   categoryId: 12, suggestedCategoryName: "", audience: "UNISEX", categories };
 const selectedCategory = render(ProductGeneralCard, categoryProps);
 assert.match(selectedCategory, /role="combobox"[^>]*aria-expanded="false"[^>]*value="Одежда \/ Верх \/ Футболки"/);
@@ -101,32 +102,57 @@ const unavailableCategories = categories.map(category => category.id === 12 ? { 
 const unavailableCategory = render(ProductGeneralCard, { ...categoryProps, categories: unavailableCategories });
 assert.match(unavailableCategory, /value="Одежда \/ Верх \/ Футболки"/);
 assert.match(unavailableCategory, /Категория недоступна для новых публикаций/);
-assert.match(unavailableCategory, /role="option" aria-selected="true" disabled=""[^>]*>[\s\S]*?Одежда \/ Верх \/ Футболки/);
+assert.match(unavailableCategory, /<button(?=[^>]*role="option")(?=[^>]*aria-selected="true")(?=[^>]*disabled="")[^>]*>[\s\S]*?Одежда \/ Верх \/ Футболки/);
 
 // A saved hidden category remains visible, but even a direct option handler cannot assign it again.
 const { CategoryPicker } = require("../app/components/ui/CategoryPicker.tsx");
-function categoryChoice(values) {
-  const picked = CategoryPicker(values).props.children[0];
-  assert.equal(picked.props.value, 12, "The picker retains the category ID, independently of its full display path");
-  assert.equal(picked.props.options.find(option => option.value === 12).label, "Одежда / Верх / Футболки");
+function comboboxHarness(initialProps) {
+  let props = initialProps;
+  let cursor = 0;
+  const state = [];
+  let open = false;
+  let onClose;
+  let focused = 0;
+  const rootRef = { current: { querySelector: () => ({ focus() { focused++; } }) } };
+  const controlRef = { current: { focus() { focused++; } } };
+  const menuRef = { current: null };
   const filename = path.resolve(__dirname, "../app/components/ui/FormCombobox.tsx");
   const mod = new Module(filename, module);
   mod.filename = filename; mod.paths = Module._nodeModulePaths(path.dirname(filename));
   const originalRequire = mod.require.bind(mod);
-  const react = { useEffect() {}, useId: () => "category-fixture", useMemo: fn => fn(),
-    useRef: initial => ({ current: initial }), useState: initial => [initial, () => {}] };
-  mod.require = id => id === "react" ? react : originalRequire(id);
+  const react = { useCallback: fn => fn, useId: () => "category-fixture", useMemo: fn => fn(),
+    useRef: initial => ({ current: initial }), useState: initial => {
+      const index = cursor++;
+      if (!(index in state)) state[index] = typeof initial === "function" ? initial() : initial;
+      return [state[index], next => { state[index] = typeof next === "function" ? next(state[index]) : next; }];
+    } };
+  mod.require = id => id === "react" ? react : id === "./useDropdown" ? { useDropdown(options) {
+    onClose = options.onClose;
+    return { open: open && !options.disabled && !options.readOnly,
+      setOpen(next) { open = typeof next === "function" ? next(open) : next; },
+      rootRef, controlRef, menuRef, closeMenu() { open = false; onClose?.(); },
+      handleKeyDown() {}, handleBlur() {}, menuStyle: {}, side: "bottom" };
+  } } : originalRequire(id);
   mod._compile(compile(filename), filename);
-  const tree = mod.exports.FormCombobox(picked.props);
-  const options = [];
+  return { render(nextProps) { props = { ...props, ...nextProps }; cursor = 0; return mod.exports.FormCombobox(props); },
+    focused: () => focused };
+}
+function comboElements(tree) {
+  const elements = [];
   function visit(element) {
     if (Array.isArray(element)) return element.forEach(visit);
     if (!element || typeof element !== "object" || !element.props) return;
-    if (element.props.role === "option") options.push(element);
+    elements.push(element);
     visit(element.props.children);
   }
   visit(tree);
-  return options.find(option => option.key === "12");
+  return elements;
+}
+function categoryChoice(values) {
+  const picked = CategoryPicker(values).props.children[0];
+  assert.equal(picked.props.value, 12, "The picker retains the category ID, independently of its full display path");
+  assert.equal(picked.props.options.find(option => option.value === 12).label, "Одежда / Верх / Футболки");
+  return comboElements(comboboxHarness(picked.props).render()).find(option => option.props.role === "option" && option.key === "12");
 }
 const categoryChanges = [];
 const activeChoice = categoryChoice({ value: 12, categories, onChange: (...value) => categoryChanges.push(value) });
@@ -136,6 +162,26 @@ const hiddenChoice = categoryChoice({ value: 12, categories: unavailableCategori
 assert.equal(hiddenChoice.props.disabled, true);
 hiddenChoice.props.onClick();
 assert.deepEqual(categoryChanges, [[12, ""]], "An unavailable saved option cannot be assigned, including through its event handler");
+
+const suggestionChanges = [];
+const suggestion = comboboxHarness({ label: "Категория", value: "", customValue: "",
+  options: [{ value: 1, label: "Рубашки" }], onChange: (...next) => suggestionChanges.push(next) });
+comboElements(suggestion.render()).find(element => element.props.role === "combobox").props.onChange({ target: { value: "Руб" } });
+let suggestionTree = suggestion.render();
+let preventedSuggestionSubmit = false;
+comboElements(suggestionTree).find(element => element.props.role === "combobox").props.onKeyDown({ key: "Enter", preventDefault() { preventedSuggestionSubmit = true; } });
+assert.equal(preventedSuggestionSubmit, true, "A partial-search Enter must not submit the enclosing form");
+assert.deepEqual(suggestionChanges, [], "A partial-search Enter must not create a custom category");
+assert.equal(suggestion.focused(), 1, "Enter lets the user explicitly choose a result");
+const createSuggestion = comboElements(suggestionTree).find(element => element.props["data-create-option"]);
+assert.ok(createSuggestion.props.children.props.children.includes("Предложить новый вариант"), "Creation is explicitly labelled");
+createSuggestion.props.onClick();
+assert.deepEqual(suggestionChanges, [["", "Руб"]], "The explicit creation option retains the custom-value contract");
+suggestionTree = suggestion.render({ disabled: true });
+const lockedChoice = comboElements(suggestionTree).find(element => element.props["data-existing-option"]);
+assert.equal(lockedChoice.props.disabled, true);
+lockedChoice.props.onClick();
+assert.deepEqual(suggestionChanges, [["", "Руб"]], "A disabled combobox cannot assign an option through its handler");
 const { ProductDescriptionEditor } = require("../app/seller/products/[id]/edit/components/ProductDescriptionEditor.tsx");
 const { ProductDetailsAccordion } = require("../app/product/[id]/components/ProductDetailsAccordion.tsx");
 const compositionProps = { value: "▪ Хлопок — 95%\n▪ Эластан — 5%", onChange() {}, fieldName: "Состав", maxLength: 1000, emptyText: "Состав пока пустой" };
@@ -175,7 +221,9 @@ assert.match(render(ProductPhotoEditor, variantProps), /Для модераци�
 const uploading = render(ProductPhotoEditor, { ...variantProps, uploading: true, mediaDisabled: true });
 assert.match(uploading, /data-loading="true"/);
 assert.match(uploading, /buttonLoader/);
-assert.match(uploading, /class="label hidden" aria-hidden="true">Выбрать фото/);
+const uploadLabel = uploading.match(/<span\b[^>]*class="label hidden"[^>]*>Выбрать фото<\/span>/)?.[0];
+assert.ok(uploadLabel, "Loading keeps the label to reserve its width");
+assert.doesNotMatch(uploadLabel, /aria-hidden=/, "The reserved label remains available as the button name");
 assert.doesNotMatch(uploading, /Загрузка…/);
 assert.match(uploading, /aria-label="Загружено фото: 0 из 1"/);
 

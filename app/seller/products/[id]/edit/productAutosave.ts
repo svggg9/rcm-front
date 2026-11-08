@@ -1,4 +1,5 @@
 import type { ProductVariant, SellerProduct } from "./types";
+import { normalizeProductDetails } from "../../../../lib/productDetails";
 
 export function hasOperationalChanges(variants: ProductVariant[]) {
   return variants.some(variant => variant.id !== null && (
@@ -20,7 +21,7 @@ export function reconcileSavedVariants(current: ProductVariant[], saved: Product
 }
 
 export function emptyProduct(): SellerProduct {
-  return { id: 0, title: "", description: "", composition: null, article: null, brandId: null, brand: null,
+  return { id: 0, title: "", description: "", composition: null, details: normalizeProductDetails(), article: null, brandId: null, brand: null,
     categoryId: null, category: null, audience: "UNISEX", status: "DRAFT", moderationComment: null,
     packageWidthCm: null, packageHeightCm: null, packageLengthCm: null, packageWeightKg: null,
     variants: [], images: [], imageItems: [], colorways: [] };

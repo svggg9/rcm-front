@@ -1,4 +1,5 @@
 "use client";
+import { Checkbox } from "../../components/ui/Checkbox";
 
 import Image from "next/image";
 import { useCallback, useEffect, useId, useRef, useState } from "react";
@@ -179,7 +180,7 @@ export function SellerNotificationChannels({ controller, disabled = false }: {
       <div className={styles.notificationRows} role="group" aria-label="Каналы доставки уведомлений">
         <div className={styles.emailRow}>
           <label className={`${styles.channel} ${controller.draft.emailEnabled ? styles.selected : ""}`}>
-            <input type="checkbox" checked={controller.draft.emailEnabled} disabled={controlsDisabled}
+            <Checkbox appearance="hidden"  checked={controller.draft.emailEnabled} disabled={controlsDisabled}
               onChange={event => controller.setEmailEnabled(event.target.checked)} />
             <ChoiceMark checked={controller.draft.emailEnabled} appearance="outline-check" />
             <span>Email</span>
@@ -199,7 +200,7 @@ export function SellerNotificationChannels({ controller, disabled = false }: {
 
         <div className={styles.telegramRow}>
           <label className={`${styles.channel} ${controller.draft.telegramEnabled ? styles.selected : ""} ${!controller.linked && !controller.draft.telegramEnabled ? styles.unavailable : ""}`}>
-            <input type="checkbox" checked={controller.draft.telegramEnabled}
+            <Checkbox appearance="hidden"  checked={controller.draft.telegramEnabled}
               disabled={controlsDisabled || (!controller.linked && !controller.draft.telegramEnabled)}
               onChange={event => controller.setTelegramEnabled(event.target.checked)} />
             <ChoiceMark checked={controller.draft.telegramEnabled} appearance="outline-check" />

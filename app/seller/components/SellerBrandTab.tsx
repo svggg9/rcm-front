@@ -1,6 +1,6 @@
 "use client";
 
-import Image from "next/image";
+import { BrandWordmark } from "../../components/ui/BrandWordmark";
 import { useEffect, useRef, useState } from "react";
 import { Button } from "../../components/ui/Button";
 import { EditorSurface } from "../../components/ui/EditorSurface";
@@ -38,14 +38,6 @@ function toPayload(form: FormState, brand: SellerBrand): SellerBrandProfileReque
     logoUrl: brand.logoUrl ?? "", wordmarkUrl: brand.wordmarkUrl ?? "",
     website: brand.website ?? "", telegram: brand.telegram ?? "", vk: brand.vk ?? "",
   };
-}
-
-function StoreWordmark({ src, name, className = "" }: { src?: string | null; name: string; className?: string }) {
-  const [failedSource, setFailedSource] = useState<string | null>(null);
-  return <div className={`${styles.wordmark} ${className}`}>
-    {src && failedSource !== src ? <Image src={src} alt={name} fill sizes="(max-width: 640px) 65vw, 280px"
-      onError={() => setFailedSource(src)} /> : <span>{name}</span>}
-  </div>;
 }
 
 export function SellerBrandTab({ initialBrands, active = true }: Props) {
@@ -174,22 +166,23 @@ export function SellerBrandTab({ initialBrands, active = true }: Props) {
               {profileError ? <RequestError variant="inline" message={profileError} /> : null}
             </SettingsSection>
           </form>
-          <SettingsSection title="Текстовый логотип" description="В шапке витрины вместо названия бренда"
+          <SettingsSection title="Текстовый логотип" description="Помогите покупателям узнавать ваш бренд — загрузите текстовый логотип"
             actions={<span className={styles.autoSave}>Сохраняется сразу</span>}>
             <div className={styles.logoEditor}>
-              <div className={styles.wordmarkStage}><StoreWordmark src={brand.wordmarkUrl} name={brand.name} /></div>
+              <div className={styles.wordmarkStage}><BrandWordmark src={brand.wordmarkUrl} name={brand.name} sizes="(max-width: 640px) 65vw, 280px" /></div>
               <div className={styles.logoControls}>
                 <Button variant="secondary" onClick={() => wordmarkInput.current?.click()} disabled={saving || mediaBusy}
                   loading={uploadingWordmark} aria-label={brand.wordmarkUrl ? "Заменить текстовый логотип" : "Загрузить текстовый логотип"}>
                   {brand.wordmarkUrl ? "Заменить логотип" : "Загрузить логотип"}</Button>
                 <p className={styles.caption}>SVG или WebP до 2 МБ</p>
+                <p className={styles.caption}>Прозрачный фон, без лишних полей вокруг логотипа</p>
               </div>
             </div>
             {wordmarkError ? <RequestError variant="inline" message={wordmarkError} /> : null}
             <input ref={wordmarkInput} type="file" accept=".svg,.webp,image/svg+xml,image/webp"
               className="visuallyHidden" tabIndex={-1} aria-label="Файл текстового логотипа"
               onChange={event => void uploadWordmark(event.target.files?.[0] ?? null)} />
-            <p className={styles.caption}>Без логотипа отображается название бренда · Название меняет администратор площадки</p>
+            <p className={styles.caption}>Для страницы магазина и блока брендов на главной · Без логотипа отображается название бренда · Название меняет администратор площадки</p>
           </SettingsSection>
           <div className={styles.gallerySection}>
             <SellerBrandImages key={brand.id} brandId={brand.id} embedded onBusyChange={setMediaBusy} />
@@ -198,7 +191,7 @@ export function SellerBrandTab({ initialBrands, active = true }: Props) {
         <aside className={styles.previewAside} aria-label="Профиль на витрине">
           <h2 className={styles.previewTitle}>На витрине</h2>
           <div className={styles.previewCard}>
-            <StoreWordmark src={brand.wordmarkUrl} name={brand.name} className={styles.previewWordmark} />
+            <BrandWordmark src={brand.wordmarkUrl} name={brand.name} className={styles.previewWordmark} sizes="280px" />
             <p className={styles.previewBrandName}>{brand.name}</p>
             <p className={`${styles.previewDescription} ${!form.description.trim() ? styles.placeholder : ""}`}>
               {form.description.trim() || "Здесь появится описание бренда"}</p>

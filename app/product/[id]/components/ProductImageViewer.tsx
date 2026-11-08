@@ -4,6 +4,7 @@ import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 import { Icon } from "../../../components/ui/Icon";
 import { Loader } from "../../../components/ui/Loader";
+import { useModalDialog } from "../../../components/ui/useModalDialog";
 import { productImageBounds } from "../../../lib/productImageFrame";
 import styles from "../ProductPage.module.css";
 
@@ -46,7 +47,6 @@ export function ProductImageViewer({
   const dialogRef = useRef<HTMLDialogElement | null>(null);
   const touchStartRef = useRef<{ x: number; y: number } | null>(null);
   const closeButtonRef = useRef<HTMLButtonElement | null>(null);
-  const previousFocusRef = useRef<HTMLElement | null>(null);
   const imageWrapRef = useRef<HTMLDivElement | null>(null);
   const [zoomedIndex, setZoomedIndex] = useState<number | null>(null);
   const zoomed = zoomedIndex === currentIndex;
@@ -64,19 +64,7 @@ export function ProductImageViewer({
     return () => cancelAnimationFrame(frame);
   }, [zoomed, images, currentIndex]);
 
-  useEffect(() => {
-    if (!open) return;
-
-    previousFocusRef.current = document.activeElement as HTMLElement | null;
-    const dialog = dialogRef.current;
-    dialog?.showModal();
-    closeButtonRef.current?.focus();
-
-    return () => {
-      dialog?.close();
-      previousFocusRef.current?.focus({ preventScroll: true });
-    };
-  }, [open]);
+  useModalDialog(dialogRef, { enabled: open && images.length > 0, initialFocusRef: closeButtonRef });
 
   if (!open || !images.length) return null;
 

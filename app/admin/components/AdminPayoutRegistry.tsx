@@ -1,5 +1,8 @@
 "use client";
+import { DataTable } from "../../components/ui/DataTable";
 
+import { FormSelect } from "../../components/ui/FormSelect";
+import { useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { Banner } from "../../components/ui/Banner";
@@ -39,12 +42,14 @@ function date(value: string) { return new Date(`${value}T12:00:00Z`).toLocaleDat
 
 /** A compact queue inside the existing finance section; mutations live in the register detail. */
 export function AdminPayoutRegistry() {
+  const payoutParams=useSearchParams();
   const [status, setStatus] = useState<AdminSellerPayoutStatus | "ALL">("ALL");
   const [page, setPage] = useState(0);
   const [revision, setRevision] = useState(0);
   const key = `${status}:${page}:${revision}`;
   const [result, setResult] = useState<{ key: string; rows?: PageResponse<AdminSellerPayout>; stats?: PayoutStats; error?: string }>();
-  const [selected, setSelected] = useState<number | null>(null);
+  const rawPayout=Number(payoutParams.get("payoutId"));
+  const [selected, setSelected] = useState<number | null>(Number.isSafeInteger(rawPayout) && rawPayout>0 ? rawPayout : null);
   const [generating, setGenerating] = useState(false);
   const [generation, setGeneration] = useState<PayoutGenerationResult | null>(null);
   const [generationError, setGenerationError] = useState("");
@@ -82,12 +87,7 @@ export function AdminPayoutRegistry() {
 
   return <>
     <div className={styles.queueTools}>
-      <label className={styles.filterField}>Статус выплаты
-        <select aria-label="Статус выплаты" value={status} disabled={generating} onChange={event => { setStatus(event.target.value as AdminSellerPayoutStatus | "ALL"); setPage(0); }}>
-          <option value="ALL">Все статусы</option>
-          {Object.entries(PAYOUT_STATUSES).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
-        </select>
-      </label>
+      <FormSelect label="Статус выплаты" value={status} disabled={generating} options={[{value:"ALL",label:"Все статусы"},...Object.entries(PAYOUT_STATUSES).map(([value,label])=>({value,label}))]} onChange={value=>{setStatus((value||"ALL") as AdminSellerPayoutStatus|"ALL");setPage(0);}} />
       <Button loading={loading} disabled={generating} onClick={refresh}>Обновить очередь</Button>
       <Button variant="primary" loading={generating} disabled={loading || Boolean(current?.error) || generationNeedsRefresh} onClick={() => void generate()}>Сформировать реестры</Button>
     </div>
@@ -175,11 +175,11 @@ function PayoutDetail({ id, onClose, onChanged }: { id: number; onClose: () => v
         <Figure label="Плановая дата" value={date(payout.scheduledDate)} /><Figure label="Поручение" value={payout.paymentOrderNumber || "—"} />
         <Figure label="Отправлено" value={timestamp(payout.sentAt)} /><Figure label="Выплачено" value={timestamp(payout.paidAt)} />
       </dl></section>
-      <section><h3>Состав реестра</h3><div className={styles.detailTableScroll} tabIndex={0} role="region" aria-label="Заказы и удержания в выплате"><table className={styles.detailTable}>
+      <section><h3>Состав реестра</h3><div className={styles.detailTableScroll} tabIndex={0} role="region" aria-label="Заказы и удержания в выплате"><DataTable className={styles.detailTable}>
         <thead><tr><th scope="col">Основание</th><th scope="col">Продажи</th><th scope="col">Комиссия</th><th scope="col">Удержания</th><th scope="col">Итого</th></tr></thead>
         <tbody>{payout.items?.map(item => <tr key={item.id}><td>{item.orderId ? <Link href={`/admin?tab=orders&orderId=${item.orderId}`}>Заказ №{item.orderId}</Link> : "Корректировка"}</td>
           <td>{payoutMoney(item.grossAmount, payout.currency)}</td><td>{payoutMoney(item.commissionAmount, payout.currency)}</td><td>{payoutMoney(item.adjustmentAmount, payout.currency)}</td><td>{payoutMoney(item.netAmount, payout.currency)}</td></tr>)}</tbody>
-      </table></div></section>
+      </DataTable></div></section>
       {detail && <section><h3>Банковские попытки</h3>{detail.attempts.length ? <ol className={styles.history}>{detail.attempts.map(attempt => <li key={attempt.id}>
         <strong>Попытка №{attempt.number} · {PAYOUT_STATUSES[attempt.status as AdminSellerPayoutStatus] ?? "Проверка истории"}</strong>
         <span>Начата {timestamp(attempt.startedAt)} · {attempt.startedBy ? `Оператор №${attempt.startedBy}` : "Импортирована"}</span>
@@ -215,9 +215,7 @@ function PayoutActionForm({ detail, busy, onAction }: { detail: AdminPayoutDetai
     ...(paymentOrder.trim() ? { paymentOrderNumber: paymentOrder.trim() } : {}) };
   return <section className={styles.actionForm} aria-label="Действие с выплатой">
     <h3>Действие с выплатой</h3>
-    <label className={styles.filterField}>Действие<select aria-label="Действие" value={action} disabled={busy} onChange={event => { setAction(event.target.value as PayoutAction | ""); setComment(""); setEvidence(""); setPaymentOrder(""); }}>
-      <option value="">Выберите действие</option>{detail.allowedActions.map(value => <option key={value} value={value}>{actionLabels[value]}</option>)}
-    </select></label>
+    <FormSelect label="Действие" value={action} disabled={busy} emptyOptionLabel="Выберите действие" options={detail.allowedActions.map(value=>({value,label:actionLabels[value]}))} onChange={value=>{setAction(value as PayoutAction|"");setComment("");setEvidence("");setPaymentOrder("");}} />
     {action && <><p className={styles.caption}>{actionHints[action]}</p>
       {needsNumber && <label className={styles.filterField}>Номер платёжного поручения<InputControl required disabled={busy} maxLength={100} value={paymentOrder} onChange={event => setPaymentOrder(event.target.value)} autoComplete="off" /></label>}
       <Textarea label={needsReason ? "Причина действия" : "Комментарий (необязательно)"} required={needsReason} disabled={busy} maxLength={1000} value={comment} onChange={event => setComment(event.target.value)} />

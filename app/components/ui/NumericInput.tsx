@@ -11,24 +11,33 @@ export type NumericInputProps = Omit<InputControlProps, "type" | "inputMode" | "
   /** Legacy required price models use zero for an empty draft. */
   emptyZero?: boolean;
   onValueChange?: (value: number | null) => void;
+  /** Visible internal validation, after blur or an explicit validation attempt. */
+  onValidationChange?: (message: string) => void;
 };
 
 /** Shared raw/numeric input. The named form value is canonical, with a dot separator. */
 export function NumericInput({ value, defaultValue, emptyZero = false, fractionDigits = 2, min = 0, max, onValueChange,
-  onChange, onBlur, onBeforeInput, onPaste, name, form, disabled, ...props }: NumericInputProps) {
+  onValidationChange, onChange, onBlur, onBeforeInput, onPaste, name, form, disabled, ...props }: NumericInputProps) {
   const initialValue = value === undefined ? defaultValue : value;
   const [state, setState] = useState({ value, text: emptyZero && initialValue === 0 ? "" : formatNumericInput(initialValue) });
   const inputRef = useRef<HTMLInputElement>(null);
   const [touched, setTouched] = useState(false);
   let text = state.text;
+  let showValidation = touched;
   if (!Object.is(state.value, value)) {
     text = emptyZero && value === 0 ? "" : formatNumericInput(value);
     setState({ value, text });
+    showValidation = false;
+    if (touched) setTouched(false);
   }
   const rules = { fractionDigits, min, max };
   const parsed = parseNumericInput(text, rules);
   const error = numericInputError(text, rules);
-  useEffect(() => { inputRef.current?.setCustomValidity(error); }, [error]);
+  const inactive = disabled || props.readOnly;
+  const externallyInvalid = props["aria-invalid"] === true || props["aria-invalid"] === "true";
+  const visibleError = !inactive && (showValidation || externallyInvalid) ? error : "";
+  useEffect(() => { inputRef.current?.setCustomValidity(inactive ? "" : error); }, [error, inactive]);
+  useEffect(() => { onValidationChange?.(visibleError); }, [visibleError, onValidationChange]);
 
   function canInsert(input: HTMLInputElement, raw: string) {
     const start = input.selectionStart ?? text.length;
@@ -38,7 +47,7 @@ export function NumericInput({ value, defaultValue, emptyZero = false, fractionD
 
   return <>
     <InputControl {...props} ref={inputRef} name={undefined} form={form} disabled={disabled} type="text"
-      inputMode={fractionDigits ? "decimal" : "numeric"} value={text} aria-invalid={props["aria-invalid"] || (touched && !!error) || undefined}
+      inputMode={fractionDigits ? "decimal" : "numeric"} value={text} aria-invalid={externallyInvalid || !!visibleError || undefined}
       onBeforeInput={event => {
         onBeforeInput?.(event);
         const native = event.nativeEvent as InputEvent;
@@ -58,7 +67,7 @@ export function NumericInput({ value, defaultValue, emptyZero = false, fractionD
           return;
         }
         const nextValue = parseNumericInput(next, rules);
-        if (props["aria-invalid"]) setTouched(true);
+        if (externallyInvalid) setTouched(true);
         setState({ value: value === undefined ? undefined : typeof value === "string" ? next : emptyZero && nextValue === null ? 0 : nextValue, text: next });
         onChange?.(event);
         onValueChange?.(nextValue);

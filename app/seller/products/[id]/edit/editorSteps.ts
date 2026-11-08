@@ -14,6 +14,7 @@ export type ProductEditorStepErrors = {
   brandId?: boolean;
   description?: boolean;
   composition?: boolean;
+  details?: Partial<Record<string, string>>;
   variantCount?: boolean;
   variants?: Record<
     number,
@@ -36,7 +37,7 @@ export function getProductEditorErrorStep(
   errors: ProductEditorStepErrors
 ): ProductEditorStep | null {
   if (errors.title || errors.categoryId || errors.brandId) return "general";
-  if (errors.description || errors.composition) return "description";
+  if (errors.description || errors.composition || (errors.details && Object.keys(errors.details).length > 0)) return "description";
 
   const variantErrors = errors.variants;
   if (

@@ -1,5 +1,7 @@
 "use client";
 
+import { OrderWorkflowSummary } from "../components/order-detail/OrderWorkflowSummary";
+import { ReturnWorkflowSummary } from "../components/order-detail/ReturnWorkflowSummary";
 import Image from "next/image";
 import { useState } from "react";
 import { Button } from "../components/ui/Button";
@@ -44,6 +46,14 @@ export function OrderDetailsPreview() {
       </button>
 
       {expanded && <div id="preview-order-details" className={styles.details}>
+        <OrderWorkflowSummary workflow={{version:1,audience:"SELLER",evaluatedAt:"2026-11-07T12:00:00Z",events:[{code:"PAID",occurredAt:"2026-11-07T11:00:00Z"}],actions:[
+          {code:"SHIP",allowed:false,reasonCode:"CANCELLATION_WINDOW_OPEN",reason:"Ещё действует срок отмены покупателем",scope:"ORDER",availableUntil:null},
+          {code:"DOWNLOAD_LABEL",allowed:true,reasonCode:null,reason:null,scope:"ORDER",availableUntil:null},
+        ]}}/>
+        <ReturnWorkflowSummary workflow={{version:1,audience:"SELLER",evaluatedAt:"2026-11-07T12:00:00Z",events:[{code:"CREATED",occurredAt:"2026-11-06T11:00:00Z"}],actions:[
+          {code:"RECEIVE",allowed:true,reasonCode:null,reason:null},
+          {code:"INSPECT",allowed:false,reasonCode:"INVALID_STATE",reason:"Сначала подтвердите получение товара"},
+        ]}} onRefresh={()=>setMessage("Это пример действий по возврату")}/>
         <section aria-label="Товары в заказе" className={styles.products}>
           <ul className={styles.productList}>
             {items.map(item => <li key={item.id}>

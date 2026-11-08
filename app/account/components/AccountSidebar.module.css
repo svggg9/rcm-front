@@ -1,10 +1,10 @@
 .sidebar{min-width:0;position:sticky;top:calc(var(--site-header-height) + 36px)}
-.heading{margin:0 0 28px;font-size:14px;font-weight:400;text-transform:uppercase}
+.heading{margin:0 0 28px;font-size:var(--font-sm);font-weight:var(--font-weight-semibold);text-transform:uppercase}
 .menu{display:flex;flex-direction:column}
-.item{display:flex;align-items:center;justify-content:space-between;gap:20px;padding:24px 0;border-bottom:1px solid var(--line);color:var(--black);text-decoration:none;font-size:14px;line-height:1.5}
-.item[aria-current=page]{font-weight:600}
-.item span:first-child{overflow-wrap:anywhere}.item span:last-child{font-size:16px;font-weight:300}
-.secondary{display:flex;flex-direction:column;align-items:flex-start;gap:22px;padding:40px 0 20px}
-.secondary a,.secondary button{padding:0;border:0;background:none;color:var(--black);font:inherit;font-size:13px;text-decoration:none;cursor:pointer}
+.item{display:flex;align-items:center;justify-content:space-between;gap:var(--space-5);padding:var(--space-6) 0;border-bottom:var(--line-width-default) solid var(--line);color:var(--black);text-decoration:none;font-size:var(--font-sm);line-height:1.5}
+.item[aria-current=page]{font-weight:var(--font-weight-semibold)}
+.item span:first-child{overflow-wrap:anywhere}.item span:last-child{font-size:var(--font-md);font-weight:var(--font-weight-regular)}
+.secondary{display:flex;flex-direction:column;align-items:flex-start;gap:22px;padding:var(--space-8) 0 var(--space-5)}
+.secondary a,.secondary button{padding:0;border:0;background:none;color:var(--black);font:inherit;font-size:var(--font-xs);text-decoration:none;cursor:pointer}
 .item:focus-visible,.secondary a:focus-visible,.secondary button:focus-visible{outline:1px solid var(--black);outline-offset:4px}
-@media(max-width:900px){.sidebar{display:none;position:static}.root{display:block}.heading{margin-bottom:20px}.item{min-height:72px;padding:20px 0;text-transform:uppercase}.secondary{gap:26px;padding-top:42px}.secondary a,.secondary button{text-transform:uppercase}}
+@media(max-width:900px){.sidebar{display:none;position:static}.root{display:block}.heading{margin-bottom:var(--space-5)}.item{min-height:72px;padding:var(--space-5) 0;text-transform:uppercase}.secondary{gap:26px;padding-top:42px}.secondary a,.secondary button{text-transform:uppercase}}

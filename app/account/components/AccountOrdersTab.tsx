@@ -12,7 +12,7 @@ export function AccountOrdersTab({orders,totalElements=orders.length,loadingMore
   onOpenOrder:(id:number)=>void;onLoadOrder?:unknown;onPrefetchOrder?:(id:number)=>void;
 }){
   return <section className={styles.page}>
-    {!orders.length ? <EmptyState title="Заказов пока нет" text="Здесь появятся ваши покупки" actions={<Link href="/catalog" className="buttonPrimary">Перейти в каталог</Link>} /> : <div className={styles.list}>
+    {!orders.length ? <EmptyState title="Заказов пока нет" text="Здесь появятся ваши покупки" actions={<Link href="/catalog" className="buttonPrimary">В каталог</Link>} /> : <div className={styles.list}>
       {orders.map(order=><Link href={`/account?tab=orders&orderId=${order.id}`} key={order.id} className={styles.order} onMouseEnter={()=>onPrefetchOrder?.(order.id)} onFocus={()=>onPrefetchOrder?.(order.id)} onClick={event=>{if(!event.metaKey&&!event.ctrlKey&&!event.shiftKey&&!event.altKey){event.preventDefault();onOpenOrder(order.id);}}}>
         <div className={styles.top}><span className={styles.status} data-tone={orderTone(order)}>{buildOrderStatusLabel(order)}</span><span>№ {orderNumber(order)}</span><time dateTime={order.createdAt}>{orderDate(order.createdAt)}</time></div>
         {order.deliveryAddress ? <p className={styles.address}>{shortDeliveryAddress(order.deliveryAddress)}</p> : null}

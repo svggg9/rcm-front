@@ -1,24 +1,24 @@
 .card {
-  border: 1px solid var(--line);
+  border: var(--line-width-default) solid var(--line);
   background: var(--white);
 }
 
 .cardPadding16 {
-  padding: 16px;
+  padding: var(--space-4);
 }
 
 .cardPadding20 {
-  padding: 20px;
+  padding: var(--space-5);
 }
 
 .cardPadding24 {
-  padding: 24px;
+  padding: var(--space-6);
 }
 
 .cardHover {
   transition:
-    border-color var(--transition),
-    background var(--transition);
+    border-color var(--transition-medium),
+    background var(--transition-medium);
 }
 
 .cardHover:hover {
@@ -26,7 +26,7 @@
 }
 
 .cardSection + .cardSection {
-  margin-top: 24px;
-  padding-top: 24px;
-  border-top: 1px solid var(--line);
+  margin-top: var(--space-6);
+  padding-top: var(--space-6);
+  border-top: var(--line-width-default) solid var(--line);
 }

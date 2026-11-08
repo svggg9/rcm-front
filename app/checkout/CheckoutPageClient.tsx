@@ -706,7 +706,7 @@ function CheckoutPageContent({ initialMe, initialCart, embedded = false, cartSna
     );
 
     if (!response.ok) {
-      throw new CheckoutActionError(await readCheckoutError(response, "Не удалось найти город"));
+      throw new CheckoutActionError(await readCheckoutError(response, "Не удалось найти город", true));
     }
 
     const data = (await response.json()) as DeliveryCityOption[];
@@ -743,7 +743,7 @@ function CheckoutPageContent({ initialMe, initialCart, embedded = false, cartSna
           )}&countryCode=RU`
         );
 
-        if (!response.ok) return;
+        if (!response.ok) throw new CheckoutActionError(await readCheckoutError(response, "Не удалось найти город", true));
 
         const data = (await response.json()) as DeliveryCityOption[];
 
@@ -759,8 +759,10 @@ function CheckoutPageContent({ initialMe, initialCart, embedded = false, cartSna
         setCityQuery(formatCityDisplayName(city.fullName));
         setCityOptions([]);
         setCityTouched(false);
-      } catch {
+      } catch (failure) {
         defaultCitySelectedRef.current = false;
+        if (active) setDeliveryErrors(current => ({ ...current, city:
+          failure instanceof CheckoutActionError ? failure.message : "Не удалось найти город" }));
       } finally {
         if (active) {
           setCityLoading(false);

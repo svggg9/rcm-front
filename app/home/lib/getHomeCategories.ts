@@ -7,7 +7,7 @@ export type HomeCategoriesResult = {
   status: "ready" | "error";
 };
 
-export async function getHomeCategories(audience: HomeAudience = "all"): Promise<HomeCategoriesResult> {
+export async function getHomeCategories(audience: HomeAudience = "all", includeEmpty = false): Promise<HomeCategoriesResult> {
   try {
     const search = new URLSearchParams();
     if (audience !== "all") search.set("audience", audience);
@@ -19,7 +19,7 @@ export async function getHomeCategories(audience: HomeAudience = "all"): Promise
     ]);
     if (!categoriesResponse.ok || !facetsResponse.ok) throw new Error("Home categories unavailable");
     const [categoryData, facetData]: unknown[] = await Promise.all([categoriesResponse.json(), facetsResponse.json()]);
-    return { categories: homeCategories(normalizeCategories(categoryData), normalizeCategoryFacets(facetData), audience), status: "ready" };
+    return { categories: homeCategories(normalizeCategories(categoryData), normalizeCategoryFacets(facetData), audience, includeEmpty), status: "ready" };
   } catch {
     return { categories: [], status: "error" };
   }

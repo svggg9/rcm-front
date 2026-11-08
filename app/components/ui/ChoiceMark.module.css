@@ -5,7 +5,7 @@
   flex-shrink: 0;
   width: 16px;
   height: 16px;
-  border: 1px solid var(--line);
+  border: var(--line-width-default) solid var(--line);
   border-radius: 50%;
   background: var(--white);
   color: transparent;

@@ -1,7 +1,9 @@
 "use client";
+import { Checkbox } from "../../components/ui/Checkbox";
 import { Loader } from "../../components/ui/Loader";
 import { Button } from "../../components/ui/Button";
 import { ConfirmActionButton } from "../../components/ui/ConfirmActionButton";
+import { ProductSelectionOrder } from "../../components/ui/ProductSelectionOrder";
 
 import Image from "next/image";
 import { memo, useEffect, useRef, useState } from "react";
@@ -125,7 +127,6 @@ export const AdminStorefrontCollections = memo(function AdminStorefrontCollectio
     setDraft((current) => {
       if (!current) return current;
       const selected = current.productIds.includes(id);
-      if (!selected && current.productIds.length >= 16) return current;
       return {
         ...current,
         productIds: selected
@@ -178,7 +179,7 @@ export const AdminStorefrontCollections = memo(function AdminStorefrontCollectio
         current.map((item) => (item.id === updated.id ? updated : item))
       );
       onMutationComplete?.();
-      toast.success(updated.active ? "Подборка показана на главной" : "Подборка скрыта с главной", { id: toastId, description: undefined, action: undefined });
+      toast.success(updated.active ? "Подборка опубликована" : "Подборка скрыта", { id: toastId, description: undefined, action: undefined });
     } catch (reason) {
       toast.error(reason instanceof Error ? reason.message : "Не удалось изменить статус", { id: toastId });
     }
@@ -220,7 +221,7 @@ export const AdminStorefrontCollections = memo(function AdminStorefrontCollectio
         <div>
           <span>Главная страница</span>
           <h2>Глобальные подборки</h2>
-          <p>Активные подборки заменяют автоматические товарные блоки на главной.</p>
+          <p>Состав и порядок товаров в подборках · Обложки и показ карточек настраиваются в разделе выше</p>
         </div>
         <button
           type="button"
@@ -265,19 +266,21 @@ export const AdminStorefrontCollections = memo(function AdminStorefrontCollectio
             </label>
           </div>
           <label className={styles.activeField}>
-            <input
-              type="checkbox"
+            <Checkbox size={17}
+
               checked={draft.active}
               onChange={(event) => setDraft({ ...draft, active: event.target.checked })}
             />
             <span>
-              <strong>Показывать на главной</strong>
-              <small>Можно сохранить подборку выключенной как черновик.</small>
+              <strong>Опубликовать подборку</strong>
+              <small>Можно сохранить подборку выключенной как черновик</small>
             </span>
           </label>
+          <ProductSelectionOrder ids={draft.productIds} products={products} disabled={saving}
+            onChange={productIds => setDraft(current => current ? { ...current, productIds } : current)} />
           <div className={styles.pickerHead}>
             <strong>Товары</strong>
-            <span>{draft.productIds.length} из 16, найдено {productsTotal}</span>
+            <span>Выбрано {draft.productIds.length}, найдено {productsTotal}</span>
           </div>
           <form
             className={styles.productSearch}
@@ -358,8 +361,8 @@ export const AdminStorefrontCollections = memo(function AdminStorefrontCollectio
               </button>
             </div>
             <div className={styles.cardCopy}>
-              <span className={collection.active ? styles.published : styles.draft}> 
-                {collection.active ? "На главной" : "Черновик"}
+              <span className={collection.active ? styles.published : styles.draft}>
+                {collection.active ? "Опубликована" : "Черновик"}
               </span>
               <h3>{collection.title}</h3>
               <p>{collection.products.length} товаров</p>
@@ -376,7 +379,7 @@ export const AdminStorefrontCollections = memo(function AdminStorefrontCollectio
                 {collection.active ? "Скрыть" : "Опубликовать"}
               </button>
               <button type="button" onClick={() => edit(collection)}>Изменить</button>
-              <ConfirmActionButton type="button" aria-label="Удалить"
+              <ConfirmActionButton type="button" confirmVariant="danger" aria-label="Удалить"
                 confirmTitle={`Удалить подборку «${collection.title}»?`}
                 confirmText="Подборка будет удалена, сами товары останутся"
                 onConfirm={() => remove(collection.id)}>

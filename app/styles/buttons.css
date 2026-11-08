@@ -1,22 +1,30 @@
+/* Shared action geometry. primaryShimmer and tertiary are compatible API names. */
 .buttonPrimary,
 .buttonPrimaryShimmer,
 .buttonSecondary,
 .buttonTertiary,
-.buttonGhost {
+.buttonGhost,
+.buttonDanger,
+.buttonUtility,
+.utilityAction {
+  --button-control-height: var(--button-height, 44px);
+  --price-currency-color: currentColor;
   position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   overflow: hidden;
-
-  height: 42px;
-  padding: 0 16px;
-
+  height: var(--button-control-height);
+  min-height: var(--button-control-height);
+  min-width: var(--button-control-height);
+  padding: 0 var(--button-padding-inline, 16px);
+  border-radius: var(--button-radius);
+  font-family: inherit;
   font-size: var(--font-button);
-  font-weight: 400;
-
+  line-height: var(--button-line-height, 21px);
+  font-weight: var(--button-weight, 600);
+  text-decoration: none;
   cursor: pointer;
-
   transition:
     background var(--transition-fast),
     color var(--transition-fast),
@@ -26,43 +34,58 @@
     box-shadow var(--transition-fast);
 }
 
-.buttonPrimary {
-  border: 1px solid var(--black);
-  background: var(--black);
-  color: var(--white);
-}
-
-/* Shared actions in error states, empty lists and confirmation dialogs. */
-.feedbackAction,
-.emptyStateActions > :is(a, button) {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
-  min-height: var(--feedback-action-height);
-  height: auto;
-  padding: 11px 16px;
-  font-size: var(--feedback-action-size);
-  line-height: var(--feedback-line-height);
-  font-weight: 400;
-  text-transform: uppercase;
-  text-decoration: none;
-}
-
+.buttonPrimary,
 .buttonPrimaryShimmer {
-  border: 1px solid var(--black);
-  background: var(--black);
+  border: var(--line-width-default) solid var(--button-primary-bg);
+  background: var(--button-primary-bg);
   color: var(--white);
 }
-
-.buttonContent {
-  position: relative;
-  z-index: 1;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
+.buttonSecondary {
+  border: var(--line-width-default) solid var(--black);
+  background: var(--white);
+  color: var(--black);
+}
+.buttonTertiary,
+.buttonGhost {
+  border: 0;
+  color: var(--black);
+  background: transparent;
+  transition: transform var(--transition-fast);
+}
+.buttonDanger {
+  border: var(--line-width-default) solid var(--error);
+  background: var(--button-danger-bg);
+  color: var(--state-text-color, var(--error));
+  transition:
+    background var(--transition-fast),
+    color var(--transition-fast),
+    border-color var(--transition-fast),
+    opacity var(--transition-fast);
 }
 
+@media (hover: hover) {
+  :is(.buttonPrimary, .buttonPrimaryShimmer):hover:not(:disabled) {
+    color: var(--white);
+    background: var(--button-primary-hover);
+    box-shadow: none;
+    opacity: 1;
+  }
+  :is(.buttonPrimary, .buttonPrimaryShimmer):hover:not(:disabled) .buttonContent {
+    color: var(--white);
+    background: none;
+    animation: none;
+  }
+}
+.buttonSecondary:hover:not(:disabled) { border-color: var(--black); background: var(--soft); }
+:is(.buttonTertiary, .buttonGhost):hover:not(:disabled) { background: var(--surface-hover); opacity: 1; }
+.buttonDanger:hover:not(:disabled) { background: var(--button-danger-hover); }
+
+:is(.buttonPrimary, .buttonPrimaryShimmer, .buttonSecondary, .buttonTertiary, .buttonGhost, .buttonDanger):active:not(:disabled) { transform: translateY(1px); }
+:is(.buttonPrimary, .buttonPrimaryShimmer, .buttonSecondary, .buttonTertiary, .buttonGhost, .buttonUtility, .utilityAction, .buttonDanger):focus-visible { outline: var(--line-width-strong) solid var(--black); outline-offset: 3px; }
+.buttonDanger:focus-visible { outline-color: var(--error); }
+:is(.buttonPrimary, .buttonPrimaryShimmer):disabled .buttonContent { color: inherit; background: none; }
+
+.buttonContent { position: relative; z-index: 1; display: inline-flex; align-items: center; justify-content: center; gap: var(--button-icon-gap, 8px); white-space: nowrap; }
 .buttonLoader {
   width: 18px;
   height: 18px;
@@ -71,234 +94,100 @@
   border-radius: 50%;
   animation: buttonLoaderSpin 0.7s linear infinite;
 }
+.buttonSuccessIcon { width: 19px; height: 19px; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+@keyframes buttonLoaderSpin { to { transform: rotate(360deg); } }
 
-.buttonSuccessIcon {
-  width: 19px;
-  height: 19px;
-  fill: none;
-  stroke: currentColor;
-  stroke-width: 1.5;
-  stroke-linecap: round;
-  stroke-linejoin: round;
+.buttonPair { display: grid; grid-template-columns: 1fr 1fr; width: 100%; overflow: hidden; border: var(--line-width-default) solid var(--black); border-radius: var(--button-radius); }
+.buttonPairItem { width: 100%; border: 0; }
+.buttonPair > .buttonPairItem { border-radius: 0; }
+.buttonPairItem + .buttonPairItem { border-left: var(--line-width-default) solid var(--black); }
+
+/* Error/empty compositions retain their established action roles. */
+.feedbackAction,
+.emptyStateActions > :is(a, button) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: auto;
+  padding: 11px 16px;
+  text-transform: uppercase;
+  text-decoration: none;
 }
+.feedbackAction { min-height: var(--button-height, 44px); font-size: var(--font-button); line-height: var(--feedback-line-height); font-weight: var(--button-weight, 600); }
+.emptyStateActions > :is(a, button) { min-height: var(--feedback-action-height); font-size: var(--feedback-action-size); line-height: var(--feedback-line-height); font-weight: 400; }
 
-@keyframes buttonLoaderSpin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .buttonLoader {
-    animation-duration: 1.4s;
-  }
-}
-
-@media (hover: hover) {
-  .buttonPrimary:hover:not(:disabled),
-  .buttonPrimaryShimmer:hover:not(:disabled),
-  button[class*="primaryBtn"]:hover:not(:disabled) {
-    color: var(--white);
-    background: var(--black);
-    box-shadow: none;
-    opacity: 0.72;
-  }
-
-  .buttonPrimary:hover:not(:disabled) .buttonContent,
-  .buttonPrimaryShimmer:hover:not(:disabled) .buttonContent,
-  button[class*="primaryBtn"]:hover:not(:disabled) > span {
-    color: var(--white);
-    background: none;
-    animation: none;
-  }
-}
-
-.buttonSecondary {
-  border: 1px solid var(--black);
+.buttonUtility,
+.utilityAction {
+  padding-inline: var(--button-compact-padding-inline, 12px);
+  border: 0;
   background: var(--white);
   color: var(--black);
-}
-
-.buttonSecondary:hover:not(:disabled) {
-  border-color: var(--black);
-  background: var(--soft);
-}
-
-.buttonTertiary {
-  height: 36px;
-  padding: 0 12px;
-  border: 1px solid var(--black);
-  background: var(--black);
-  color: var(--white);
   font-size: var(--font-sm);
+  font-weight: 400;
+  transition: none;
 }
-
-.buttonTertiary:hover:not(:disabled) {
-  opacity: 0.86;
+@media (hover: hover) {
+  :is(.buttonUtility, .utilityAction):hover:not(:disabled) { background: var(--surface-hover); }
 }
+:is(.buttonUtility, .utilityAction):active:not(:disabled) { background: var(--surface-hover); }
 
-.buttonPrimary,
-.buttonPrimaryShimmer,
-.buttonSecondary,
-button[class*="primaryBtn"],
-button[class*="secondaryBtn"] {
-  font-weight: 600;
-}
-
-.buttonGhost {
-  border: 1px solid transparent;
-  background: transparent;
-  color: var(--black);
-}
-
-.buttonGhost:hover:not(:disabled) {
-  color: var(--black);
-}
-
-.buttonSecondary:disabled,
-.buttonTertiary:disabled,
-.buttonGhost:disabled {
-  opacity: 0.4;
-  cursor: default;
-}
-
-.buttonPrimary:active:not(:disabled),
-.buttonPrimaryShimmer:active:not(:disabled),
-.primaryBtn:active:not(:disabled),
-button[class*="primaryBtn"]:active:not(:disabled),
-.buttonTertiary:active:not(:disabled) {
-  transform: translateY(1px);
-}
-
-.buttonPrimary:disabled,
-.buttonPrimaryShimmer:disabled {
-  border-color: var(--black-soft);
-  background: var(--black);
-  color: rgba(255, 255, 255, 0.46);
+/* Busy/success keep their variant; unavailable actions share one readable neutral state. */
+:is(.buttonPrimary, .buttonPrimaryShimmer, .buttonSecondary, .buttonTertiary, .buttonGhost, .buttonUtility, .buttonDanger):disabled:not([data-loading]):not([data-success]) {
+  background: var(--button-disabled-bg);
+  border-color: var(--button-disabled-border);
+  color: var(--button-disabled-text);
+  opacity: 1;
   box-shadow: none;
   cursor: default;
 }
 
-.buttonPrimary:disabled[data-loading="true"],
-.buttonPrimary:disabled[data-success="true"],
-.buttonPrimaryShimmer:disabled[data-loading="true"],
-.buttonPrimaryShimmer:disabled[data-success="true"] {
-  border-color: var(--black);
-  background: var(--black);
-  color: var(--white);
+:is(.buttonPrimary, .buttonPrimaryShimmer, .buttonSecondary, .buttonTertiary, .buttonGhost, .buttonUtility, .buttonDanger).buttonCompact {
+  --button-control-height: var(--button-compact-height, 36px);
+  padding: 0 var(--button-compact-padding-inline, 12px);
+  font-size: var(--button-compact-size, 13px);
+  line-height: var(--button-compact-line-height, 20px);
 }
 
-.buttonPrimary:disabled .buttonContent,
-.buttonPrimaryShimmer:disabled .buttonContent {
-  color: inherit;
-  background: none;
+:is(.buttonPrimary, .buttonPrimaryShimmer, .buttonSecondary, .buttonTertiary, .buttonGhost, .buttonUtility, .buttonDanger).buttonLarge {
+  --button-control-height: var(--button-large-height, 48px);
+  padding-inline: var(--button-large-padding-inline, 20px);
+}
+:is(.buttonPrimary, .buttonPrimaryShimmer, .buttonSecondary, .buttonTertiary, .buttonGhost, .buttonUtility, .buttonDanger).buttonIconOnly {
+  width: var(--button-control-height);
+  padding: 0;
+  flex-shrink: 0;
 }
 
-.buttonDanger {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-
-  height: 42px;
-  padding: 0 16px;
-
-  border: 1px solid var(--danger);
-  background: var(--white);
-  color: var(--danger);
-
-  font-size: var(--font-button);
-  font-weight: 400;
-  cursor: pointer;
-
-  transition:
-    background var(--transition-fast),
-    color var(--transition-fast),
-    border-color var(--transition-fast),
-    opacity var(--transition-fast);
+/* The small catalogue label keeps its visual height and a larger touch target. */
+.buttonPrimary.buttonLabel {
+  text-align: center;
+  height: 30px;
+  min-height: 30px;
+  padding: 4px 10px;
+  font-size: 12px;
+  line-height: 18px;
+  font-weight: var(--button-weight, 600);
+  white-space: nowrap;
+  gap: 4px;
 }
+.buttonPrimary.buttonLabel:has(> svg) { padding-inline: 20px; }
+.buttonPrimary.buttonLabel > svg { position: absolute; right: 0; top: 50%; transform: translateY(-50%); pointer-events: none; }
 
-.buttonDanger:hover {
-  background: var(--soft);
+@media (max-width: 768px) {
+  :is(.buttonPrimary, .buttonPrimaryShimmer, .buttonSecondary, .buttonTertiary, .buttonGhost, .buttonUtility, .utilityAction, .buttonDanger) {
+    min-height: max(var(--button-control-height), var(--button-touch-height, 44px));
+    min-width: max(var(--button-control-height), var(--button-touch-height, 44px));
+  }
+  :is(.buttonPrimary, .buttonPrimaryShimmer, .buttonSecondary, .buttonTertiary, .buttonGhost, .buttonUtility, .buttonDanger).buttonIconOnly {
+    width: max(var(--button-control-height), var(--button-touch-height, 44px));
+  }
+  .buttonPrimary.buttonLabel { height: var(--button-touch-height, 44px); min-height: var(--button-touch-height, 44px); overflow: visible; isolation: isolate; background: transparent; border-color: transparent; }
+  .buttonPrimary.buttonLabel::before { content: ""; position: absolute; inset: 7px -1px; z-index: -1; border-radius: var(--button-radius); background: var(--button-primary-bg); }
+  .buttonPrimary.buttonLabel:hover:not(:disabled) { background: transparent; }
+  .buttonPrimary.buttonLabel:hover:not(:disabled)::before { background: var(--button-primary-hover); }
 }
-
-.buttonDanger:disabled {
-  opacity: 0.4;
-  cursor: default;
-}
-
-.buttonPair {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  width: 100%;
-  overflow: hidden;
-  border: 1px solid var(--black);
-}
-
-.buttonPairItem {
-  width: 100%;
-  border: 0;
-}
-
-.buttonPairItem + .buttonPairItem {
-  border-left: 1px solid var(--black);
-}
-
-/* Three approved action levels. Legacy variant names remain compatible. */
-.buttonPrimary, .buttonPrimaryShimmer, .buttonSecondary, .buttonTertiary, .buttonGhost, .buttonDanger {
-  border-radius: 0; font-family: inherit; font-size: 15px; line-height: 21px; font-weight: 600; min-height: 42px; text-decoration: none;
-}
-.buttonTertiary, .buttonGhost { height: 42px; padding: 0 16px; border: 0; color: var(--black); background: transparent; transition: transform var(--transition-fast); }
-.buttonTertiary:hover:not(:disabled), .buttonGhost:hover:not(:disabled) { background: var(--surface-hover, #f4f4f4); opacity: 1; }
-:is(.buttonPrimary, .buttonPrimaryShimmer, .buttonSecondary, .buttonTertiary, .buttonGhost, .buttonDanger):active:not(:disabled) { transform: translateY(1px); }
-:is(.buttonPrimary, .buttonPrimaryShimmer, .buttonSecondary, .buttonTertiary, .buttonGhost, .buttonDanger):focus-visible { outline: 2px solid var(--black); outline-offset: 3px; }
-:is(.buttonSecondary, .buttonTertiary, .buttonGhost):disabled:is([data-loading], [data-success]) { opacity: 1; }
 @media (prefers-reduced-motion: reduce) {
   :is(.buttonPrimary, .buttonPrimaryShimmer, .buttonSecondary, .buttonTertiary, .buttonGhost, .buttonDanger) { transition: none; }
-}
-
-/* Compact utility action: editor/card controls such as "Добавить список". */
-.buttonUtility,
-.utilityAction {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 36px;
-  padding: 6px 8px;
-  overflow: hidden;
-  border: 0;
-  border-radius: 0;
-  background: var(--white);
-  color: var(--black);
-  font-family: inherit;
-  font-size: var(--font-sm);
-  line-height: 21px;
-  font-weight: 400;
-  text-decoration: none;
-  cursor: pointer;
-  transition: none;
-}
-
-@media (hover: hover) {
-  :is(.buttonUtility, .utilityAction):hover:not(:disabled) {
-    background: var(--surface-hover);
-  }
-}
-
-:is(.buttonUtility, .utilityAction):active:not(:disabled) {
-  background: var(--surface-hover);
-}
-
-:is(.buttonUtility, .utilityAction):focus-visible {
-  outline: 1px solid var(--black);
-  outline-offset: 3px;
-}
-
-.buttonUtility:disabled {
-  color: var(--muted);
-  cursor: not-allowed;
-}
-
-.buttonUtility:disabled:is([data-loading], [data-success]) {
-  color: var(--black);
+  .buttonLoader { animation-duration: 1.4s; }
 }

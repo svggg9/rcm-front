@@ -5,11 +5,16 @@
 }
 
 .productCount {
-  margin: 24px 0 0;
+  margin: var(--space-6) 0 0;
   color: var(--muted);
-  font-size: 11px;
+  font-size: var(--font-label-compact);
   text-align: center;
 }
+
+.catalogPage[data-brand="true"] { margin-top: var(--space-4); }
+.brandNavigation .subcategoryScroller { display: block; }
+.brandNavigation .subcategories { border-bottom: var(--line-width-default) solid var(--line); }
+.brandProductCount { margin: var(--space-3) 0 var(--space-5); color: var(--muted); font-size: var(--font-helper); line-height: var(--caption-line-height); }
 
 .primaryCategories,
 .subcategories {
@@ -21,8 +26,8 @@
 .primaryCategories {
   justify-content: flex-start;
   flex-wrap: wrap;
-  gap: 8px;
-  padding: 12px 0;
+  gap: var(--space-2);
+  padding: var(--space-3) 0;
   overflow: visible;
 }
 
@@ -34,23 +39,23 @@
   min-height: 44px;
   border: 0;
   border-radius: 0;
-  background: #eee;
+  background: var(--soft);
   color: var(--black);
   font: inherit;
-  font-size: 14px;
-  line-height: 20px;
-  font-weight: 400;
+  font-size: var(--font-sm);
+  line-height: var(--line-height-small);
+  font-weight: var(--font-weight-regular);
   cursor: pointer;
 }
 
 .categoryChip:hover {
-  background: #e3e3e3;
+  background: var(--soft);
 }
 
 .categoryChip[data-active="true"] {
   background: var(--black);
   color: var(--white);
-  font-weight: 500;
+  font-weight: var(--font-weight-medium);
 }
 
 .categoryChoice,
@@ -59,7 +64,7 @@
   align-items: center;
   justify-content: center;
   min-height: 44px;
-  padding: 0 16px;
+  padding: 0 var(--space-4);
   border: 0;
   border-radius: 0;
   background: transparent;
@@ -69,7 +74,7 @@
 }
 
 .categoryChip[data-active="true"] .categoryChoice {
-  padding-right: 4px;
+  padding-right: var(--space-1);
 }
 
 .categoryClear {
@@ -95,7 +100,7 @@
 
 .subcategories {
   justify-content: flex-start;
-  gap: 8px;
+  gap: var(--space-2);
   min-height: 40px;
   scroll-behavior: smooth;
   scrollbar-width: none;
@@ -118,7 +123,7 @@
   background: transparent;
   color: var(--black);
   font: inherit;
-  font-size: 12px;
+  font-size: var(--font-helper);
   text-decoration: none;
   white-space: nowrap;
   cursor: pointer;
@@ -126,13 +131,13 @@
 
 .subcategories a:hover,
 .subcategories button:hover {
-  background: #f5f5f5;
+  background: var(--soft);
 }
 
 .subcategories a[data-active="true"],
 .subcategories button[aria-pressed="true"] {
-  background: #ededed;
-  font-weight: 500;
+  background: var(--soft);
+  font-weight: var(--font-weight-medium);
 }
 
 .subcategories button:focus-visible {
@@ -165,14 +170,14 @@
 .subcategoryArrowLeft {
   left: 0;
   justify-content: flex-start;
-  padding-left: 4px;
+  padding-left: var(--space-1);
   background: linear-gradient(90deg, var(--white) 58%, rgba(255, 255, 255, 0));
 }
 
 .subcategoryArrowRight {
   right: 0;
   justify-content: flex-end;
-  padding-right: 4px;
+  padding-right: var(--space-1);
   background: linear-gradient(270deg, var(--white) 58%, rgba(255, 255, 255, 0));
 }
 
@@ -186,7 +191,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 24px;
+  gap: var(--space-6);
   position: sticky;
   top: var(--site-header-height);
   z-index: 30;
@@ -202,14 +207,14 @@
   background: transparent;
   color: var(--black);
   font: inherit;
-  font-size: 13px;
+  font-size: var(--font-xs);
   cursor: pointer;
 }
 
 .filtersButton {
   gap: 9px;
-  padding: 0 4px 0 0;
-  font-weight: 500;
+  padding: 0 var(--space-1) 0 0;
+  font-weight: var(--font-weight-medium);
 }
 
 .filterCount {
@@ -222,7 +227,7 @@
   border-radius: 999px;
   background: var(--black);
   color: var(--white);
-  font-size: 10px;
+  font-size: var(--font-micro);
 }
 
 .sortWrap {
@@ -231,8 +236,8 @@
 
 .sortButton {
   justify-content: space-between;
-  gap: 12px;
-  padding: 0 0 0 12px;
+  gap: var(--space-3);
+  padding: 0 0 0 var(--space-3);
 }
 
 .sortButton svg {
@@ -249,7 +254,7 @@
   top: calc(100% + 9px);
   right: 0;
   z-index: 60;
-  border: 1px solid var(--black);
+  border: var(--line-width-default) solid var(--black);
   background: var(--white);
   box-shadow: 0 12px 32px rgba(0, 0, 0, 0.08);
 }
@@ -259,40 +264,40 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  gap: var(--space-3);
   padding: 0 14px;
   color: var(--black);
-  font-size: 12px;
+  font-size: var(--font-helper);
   text-decoration: none;
 }
 
 .sortMenu a:hover,
 .sortMenu a[data-active="true"] {
-  background: #eeeeee;
+  background: var(--soft);
 }
 
 .activeFilters {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: 8px;
-  padding: 14px 0 4px;
+  gap: var(--space-2);
+  padding: 14px 0 var(--space-1);
 }
 
 .activeFilterChip {
   min-height: 34px;
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  padding: 0 12px;
-  background: #eeeeee;
+  gap: var(--space-2);
+  padding: 0 var(--space-3);
+  background: var(--soft);
   color: var(--black);
-  font-size: 12px;
+  font-size: var(--font-helper);
   text-decoration: none;
 }
 
 .activeFilterChip:hover {
-  background: #e3e3e3;
+  background: var(--soft);
 }
 
 .clearFilters {
@@ -301,7 +306,7 @@
   align-items: center;
   padding: 0 6px;
   color: var(--black);
-  font-size: 12px;
+  font-size: var(--font-helper);
   text-decoration: underline;
   text-underline-offset: 3px;
 }
@@ -339,11 +344,11 @@
   align-items: center;
   justify-content: center;
   color: var(--black);
-  font-size: 13px;
+  font-size: var(--font-xs);
 }
 
 .pageLink {
-  border: 1px solid transparent;
+  border: var(--line-width-default) solid transparent;
   text-decoration: none;
 }
 
@@ -396,24 +401,24 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 24px;
-  padding: 17px 24px;
+  gap: var(--space-6);
+  padding: 17px var(--space-6);
 }
 
 .drawerEyebrow {
   display: block;
   margin-bottom: 3px;
   color: var(--muted);
-  font-size: 9px;
-  font-weight: 500;
+  font-size: var(--font-counter);
+  font-weight: var(--font-weight-medium);
   letter-spacing: 0.12em;
   text-transform: uppercase;
 }
 
 .drawerHeader h2 {
-  font-size: 23px;
+  font-size: var(--font-filter-title);
   line-height: 1.1;
-  font-weight: 500;
+  font-weight: var(--font-weight-medium);
   letter-spacing: -0.025em;
 }
 
@@ -433,20 +438,20 @@
 .drawerContent {
   overflow-y: auto;
   overscroll-behavior: contain;
-  scrollbar-color: #b8b8b8 transparent;
+  scrollbar-color: var(--scrollbar-thumb) transparent;
   scrollbar-gutter: stable;
   scrollbar-width: thin;
 }
 
 .filterSection {
-  padding: 26px 24px 28px;
+  padding: 26px var(--space-6) 28px;
 }
 
 .filterSection h3 {
   margin-bottom: 18px;
   color: var(--black);
-  font-size: 15px;
-  font-weight: 600;
+  font-size: var(--font-ui);
+  font-weight: var(--font-weight-semibold);
 }
 
 .categoryTree {
@@ -454,7 +459,7 @@
 }
 
 .categoryBranch + .categoryBranch {
-  margin-top: 4px;
+  margin-top: var(--space-1);
 }
 
 .categoryParentRow {
@@ -465,7 +470,7 @@
 }
 
 .categoryParentRow[data-selected="true"] {
-  background: #eeeeee;
+  background: var(--soft);
 }
 
 .categoryParentChoice,
@@ -486,22 +491,22 @@
   gap: 11px;
   width: 100%;
   padding: 0 10px;
-  font-size: 13px;
+  font-size: var(--font-xs);
   text-align: left;
 }
 
 .categoryParentChoice {
-  font-weight: 500;
+  font-weight: var(--font-weight-medium);
 }
 
 .categoryOption[data-selected="true"] {
-  background: #eeeeee;
-  font-weight: 500;
+  background: var(--soft);
+  font-weight: var(--font-weight-medium);
 }
 
 .categoryParentChoice:hover,
 .categoryOption:hover {
-  background: #f5f5f5;
+  background: var(--soft);
 }
 
 .categoryExpand {
@@ -519,12 +524,12 @@
 }
 
 .categoryChildren {
-  padding: 2px 0 8px 22px;
+  padding: 2px 0 var(--space-2) 22px;
 }
 
 .categoryChildren .categoryOption {
   min-height: 40px;
-  font-size: 12px;
+  font-size: var(--font-helper);
 }
 
 .brandSearch {
@@ -533,8 +538,8 @@
   align-items: center;
   gap: 9px;
   margin-bottom: 10px;
-  padding: 0 12px;
-  border: 1px solid var(--black);
+  padding: 0 var(--space-3);
+  border: var(--line-width-default) solid var(--black);
 }
 
 .brandSearch input {
@@ -545,13 +550,13 @@
   background: transparent;
   color: var(--black);
   font: inherit;
-  font-size: 13px;
+  font-size: var(--font-xs);
 }
 
 .checkboxList {
   max-height: 260px;
   overflow-y: auto;
-  scrollbar-color: #b8b8b8 transparent;
+  scrollbar-color: var(--scrollbar-thumb) transparent;
   scrollbar-gutter: stable;
   scrollbar-width: thin;
 }
@@ -570,7 +575,7 @@
 .checkboxList::-webkit-scrollbar-thumb {
   border: 0;
   border-radius: 0;
-  background: #b8b8b8;
+  background: var(--scrollbar-thumb);
 }
 
 .drawerContent::-webkit-scrollbar-thumb:hover,
@@ -590,21 +595,13 @@
   gap: 11px;
   padding: 0 10px;
   color: var(--black);
-  font-size: 13px;
+  font-size: var(--font-xs);
   cursor: pointer;
 }
 
 .checkboxRow:hover,
 .checkboxRow[data-selected="true"] {
-  background: #eeeeee;
-}
-
-.checkboxRow input {
-  width: 1px;
-  height: 1px;
-  position: absolute;
-  overflow: hidden;
-  opacity: 0;
+  background: var(--soft);
 }
 
 .checkboxMark {
@@ -614,7 +611,7 @@
   align-items: center;
   justify-content: center;
   flex: 0 0 auto;
-  border: 1px solid var(--black);
+  border: var(--line-width-default) solid var(--black);
   background: var(--white);
 }
 
@@ -626,7 +623,7 @@
 .filterEmpty {
   padding: 18px 10px;
   color: var(--muted);
-  font-size: 12px;
+  font-size: var(--font-helper);
 }
 
 .sizeGrid {
@@ -637,11 +634,11 @@
 
 .sizeOption {
   min-height: 42px;
-  border: 1px solid var(--line);
+  border: var(--line-width-default) solid var(--line);
   background: var(--white);
   color: var(--black);
   font: inherit;
-  font-size: 12px;
+  font-size: var(--font-helper);
   cursor: pointer;
 }
 
@@ -672,20 +669,20 @@
   flex-direction: column;
   gap: 7px;
   color: var(--muted);
-  font-size: 11px;
+  font-size: var(--font-label-compact);
 }
 
 .priceFields input {
   width: 100%;
   height: 44px;
-  padding: 0 12px;
-  border: 1px solid var(--black);
+  padding: 0 var(--space-3);
+  border: var(--line-width-default) solid var(--black);
   border-radius: 0;
   outline: 0;
   background: var(--white);
   color: var(--black);
   font: inherit;
-  font-size: 13px;
+  font-size: var(--font-xs);
   -moz-appearance: textfield;
 }
 
@@ -697,8 +694,8 @@
 
 .priceError {
   margin-top: 10px;
-  color: var(--danger);
-  font-size: 11px;
+  color: var(--error);
+  font-size: var(--font-label-compact);
 }
 
 .drawerFooter {
@@ -706,7 +703,7 @@
   display: grid;
   grid-template-columns: 0.7fr 1.3fr;
   gap: 10px;
-  padding: 14px 24px;
+  padding: 14px var(--space-6);
   background: var(--white);
 }
 
@@ -715,26 +712,25 @@
   min-height: 50px;
   border-radius: 0;
   font: inherit;
-  font-size: 13px;
-  font-weight: 500;
+  font-size: var(--font-xs);
+  font-weight: var(--font-weight-medium);
   cursor: pointer;
 }
 
 .resetButton {
-  border: 1px solid var(--black);
+  border: var(--line-width-default) solid var(--black);
   background: var(--white);
   color: var(--black);
 }
 
 .applyButton {
-  border: 1px solid var(--black);
+  border: var(--line-width-default) solid var(--black);
   background: var(--black);
   color: var(--white);
 }
 
 .applyButton:disabled {
-  border-color: #a5a5a5;
-  background: #a5a5a5;
+  opacity: var(--control-disabled-opacity);
   cursor: not-allowed;
 }
 
@@ -820,28 +816,28 @@
 
 @media (min-width: 600px) {
   .grid {
-    gap: 30px 16px;
+    gap: 30px var(--space-4);
   }
 }
 
 @media (min-width: 900px) {
   .grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 34px 20px;
+    gap: 34px var(--space-5);
   }
 }
 
 @media (min-width: 1200px) {
   .grid {
     grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 38px 24px;
+    gap: 38px var(--space-6);
   }
 }
 
 @media (max-width: 720px) {
   .catalogPage {
     margin-top: 14px;
-    padding-bottom: 40px;
+    padding-bottom: var(--space-8);
   }
 
   .primaryCategories,
@@ -864,12 +860,12 @@
 
   .catalogToolbar {
     min-height: 58px;
-    gap: 8px;
+    gap: var(--space-2);
   }
 
   .filtersButton,
   .sortButton {
-    font-size: 12px;
+    font-size: var(--font-helper);
   }
 
   .sortButton {
@@ -891,14 +887,14 @@
   }
 
   .grid {
-    gap: 16px 8px;
+    gap: var(--space-4) var(--space-2);
   }
 
   .drawerHeader,
   .filterSection,
   .drawerFooter {
-    padding-right: 16px;
-    padding-left: 16px;
+    padding-right: var(--space-4);
+    padding-left: var(--space-4);
   }
 
   .drawerHeader {
@@ -950,30 +946,30 @@
   align-items: center;
   justify-content: space-between;
   min-height: 66px;
-  gap: 16px;
-  padding: 8px 16px;
-  border-bottom: 1px solid var(--line);
+  gap: var(--space-4);
+  padding: var(--space-2) var(--space-4);
+  border-bottom: var(--line-width-default) solid var(--line);
 }
 
 .categorySheetHeader h2 {
   margin: 0;
-  font-size: 18px;
-  font-weight: 500;
+  font-size: var(--font-title-xs);
+  font-weight: var(--font-weight-medium);
 }
 
 .categorySheetOptions {
   overflow-y: auto;
   overscroll-behavior: contain;
-  padding: 8px 16px 16px;
+  padding: var(--space-2) var(--space-4) var(--space-4);
 }
 
 .categorySheetSearch {
   display: flex;
   align-items: center;
   gap: 10px;
-  margin: 0 0 12px;
-  padding: 0 16px;
-  border-bottom: 1px solid var(--line, #e5e5e5);
+  margin: 0 0 var(--space-3);
+  padding: 0 var(--space-4);
+  border-bottom: var(--line-width-default) solid var(--line);
 }
 
 .categorySheetSearch input {
@@ -982,7 +978,7 @@
   border: 0;
   background: transparent;
   font: inherit;
-  font-size: 14px;
+  font-size: var(--font-sm);
 }
 
 .categoryChoice:disabled,
@@ -999,14 +995,14 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 16px;
-  padding: 12px 8px;
+  gap: var(--space-4);
+  padding: var(--space-3) var(--space-2);
   border: 0;
   border-radius: 0;
   background: var(--white);
   color: var(--black);
   font: inherit;
-  font-size: 14px;
+  font-size: var(--font-sm);
   line-height: 1.4;
   text-align: left;
   cursor: pointer;
@@ -1014,15 +1010,15 @@
 
 .categorySheetLocation {
   display: grid;
-  gap: 4px;
-  padding: 0 16px 8px;
-  border-bottom: 1px solid var(--line);
+  gap: var(--space-1);
+  padding: 0 var(--space-4) var(--space-2);
+  border-bottom: var(--line-width-default) solid var(--line);
 }
 
 .categorySheetLocation > span {
   color: var(--muted);
-  font-size: 12px;
-  line-height: 18px;
+  font-size: var(--font-helper);
+  line-height: var(--caption-line-height);
   overflow-wrap: anywhere;
 }
 
@@ -1030,14 +1026,14 @@
   display: inline-flex;
   align-items: center;
   justify-self: start;
-  gap: 8px;
+  gap: var(--space-2);
   min-height: 44px;
   padding: 0;
   border: 0;
   background: transparent;
   color: var(--black);
   font: inherit;
-  font-size: 13px;
+  font-size: var(--font-xs);
   cursor: pointer;
 }
 
@@ -1047,11 +1043,11 @@
 }
 
 .categoryOption[data-depth="3"] {
-  padding-left: 40px;
+  padding-left: var(--space-8);
 }
 
 .categorySheetOption[aria-pressed="true"] {
-  font-weight: 500;
+  font-weight: var(--font-weight-medium);
 }
 
 .categorySheetOption svg {
@@ -1061,7 +1057,6 @@
 .categorySheetOption:focus-visible,
 .mobileCategoryButton:focus-visible,
 .loadMoreButton:focus-visible,
-.audienceOption:focus-visible,
 .mobileSortOptions button:focus-visible {
   outline: 1px solid var(--black);
   outline-offset: -2px;
@@ -1070,7 +1065,7 @@
 @media (max-width: 640px) {
   .catalogPage {
     margin-top: 0;
-    padding-bottom: 24px;
+    padding-bottom: var(--space-6);
   }
 
   .productCount,
@@ -1089,7 +1084,7 @@
 
   .catalogToolbar {
     min-height: 60px;
-    gap: 12px;
+    gap: var(--space-3);
     background: var(--white);
   }
 
@@ -1106,8 +1101,8 @@
     background: transparent;
     color: var(--black);
     font: inherit;
-    font-size: 14px;
-    font-weight: 500;
+    font-size: var(--font-sm);
+    font-weight: var(--font-weight-medium);
     text-align: left;
   }
 
@@ -1131,8 +1126,8 @@
     min-height: 44px;
     gap: 7px;
     padding: 0;
-    font-size: 12px;
-    font-weight: 400;
+    font-size: var(--font-helper);
+    font-weight: var(--font-weight-regular);
   }
 
   .mobileFilterLabel {
@@ -1144,7 +1139,7 @@
     min-width: 18px;
     height: 18px;
     border-radius: 0;
-    padding: 0 4px;
+    padding: 0 var(--space-1);
   }
 
   .results {
@@ -1154,25 +1149,25 @@
   .grid {
     min-height: 0;
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 16px 8px;
+    gap: var(--space-4) var(--space-2);
   }
 
   .mobileAddedProducts {
     display: grid;
-    margin-top: 16px;
+    margin-top: var(--space-4);
   }
 
   .mobileLoadMore {
     display: flex;
     flex-direction: column;
     align-items: stretch;
-    gap: 12px;
+    gap: var(--space-3);
     margin-top: 30px;
   }
 
   .loadMoreStatus {
     color: var(--muted);
-    font-size: 12px;
+    font-size: var(--font-helper);
     text-align: center;
   }
 
@@ -1182,19 +1177,19 @@
     align-items: center;
     justify-content: center;
     color: var(--black);
-    font-size: 13px;
+    font-size: var(--font-xs);
     text-underline-offset: 4px;
   }
 
   .loadMoreButton {
     min-height: 48px;
-    padding: 12px 16px;
-    border: 1px solid var(--black);
+    padding: var(--space-3) var(--space-4);
+    border: var(--line-width-default) solid var(--black);
     border-radius: 0;
     background: var(--white);
     color: var(--black);
     font: inherit;
-    font-size: 13px;
+    font-size: var(--font-xs);
     cursor: pointer;
   }
 
@@ -1211,13 +1206,13 @@
 
   .drawerHeader {
     min-height: calc(60px + env(safe-area-inset-top, 0px));
-    padding-top: calc(8px + env(safe-area-inset-top, 0px));
-    padding-bottom: 8px;
-    border-bottom: 1px solid var(--line);
+    padding-top: calc(var(--space-2) + env(safe-area-inset-top, 0px));
+    padding-bottom: var(--space-2);
+    border-bottom: var(--line-width-default) solid var(--line);
   }
 
   .drawerHeader h2 {
-    font-size: 20px;
+    font-size: var(--font-title-sm);
   }
 
   .drawerClose {
@@ -1230,45 +1225,22 @@
   }
 
   .filterSection {
-    padding-top: 24px;
+    padding-top: var(--space-6);
     padding-bottom: 0;
   }
 
   .filterSection:last-child {
-    padding-bottom: 24px;
+    padding-bottom: var(--space-6);
   }
 
   .filterSection h3 {
-    margin-bottom: 12px;
-    font-size: 14px;
-    font-weight: 500;
+    margin-bottom: var(--space-3);
+    font-size: var(--font-sm);
+    font-weight: var(--font-weight-medium);
   }
 
   .mobileFilterSection {
     display: block;
-  }
-
-  .audienceOptions {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 8px;
-  }
-
-  .audienceOption {
-    min-height: 44px;
-    border: 1px solid var(--line);
-    border-radius: 0;
-    background: var(--white);
-    color: var(--black);
-    font: inherit;
-    font-size: 12px;
-    cursor: pointer;
-  }
-
-  .audienceOption[aria-pressed="true"] {
-    border-color: var(--black);
-    background: var(--black);
-    color: var(--white);
   }
 
   .checkboxRow,
@@ -1282,7 +1254,7 @@
   }
 
   .priceFields input {
-    font-size: 16px;
+    font-size: var(--font-md);
   }
 
   .mobileSortOptions {
@@ -1294,25 +1266,25 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 12px;
-    padding: 8px 0;
+    gap: var(--space-3);
+    padding: var(--space-2) 0;
     border: 0;
     border-radius: 0;
     background: var(--white);
     color: var(--black);
     font: inherit;
-    font-size: 13px;
+    font-size: var(--font-xs);
     text-align: left;
     cursor: pointer;
   }
 
   .mobileSortOptions button[aria-pressed="true"] {
-    font-weight: 500;
+    font-weight: var(--font-weight-medium);
   }
 
   .drawerFooter {
-    padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px));
-    border-top: 1px solid var(--line);
+    padding-bottom: calc(var(--space-3) + env(safe-area-inset-bottom, 0px));
+    border-top: var(--line-width-default) solid var(--line);
   }
 
   .skeletonFilter {
@@ -1322,5 +1294,5 @@
 
 @media (max-width: 640px) {
   .catalogContainer { width: calc(100% - 16px); }
-  .catalogToolbar { min-height: 48px; margin-bottom: 4px; }
+  .catalogToolbar { min-height: 48px; margin-bottom: var(--space-1); }
 }

@@ -2,15 +2,15 @@
   display: flex;
   flex-direction: column;
   gap: 0;
-  padding-top: 24px;
+  padding-top: var(--space-6);
 }
 
 .breadcrumbs {
   display: flex;
-  gap: 8px;
+  gap: var(--space-2);
   align-items: center;
   flex-wrap: wrap;
-  margin-bottom: 24px;
+  margin-bottom: var(--space-6);
   color: var(--muted);
 }
 
@@ -21,18 +21,18 @@
 .breadcrumbs a {
   color: var(--muted);
   text-decoration: none;
+  transition: color var(--transition-fast), background-color var(--transition-fast);
 }
 
 .breadcrumbs a:hover {
   color: var(--black);
-  text-decoration: underline;
-  text-underline-offset: 3px;
+  background-color: var(--surface-hover);
 }
 
 .layout {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 340px;
-  gap: 16px;
+  gap: var(--space-4);
   align-items: start;
 }
 
@@ -83,20 +83,20 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 16px;
+  gap: var(--space-4);
 }
 
 .title {
   margin: 0;
   color: var(--black);
-  font-weight: 400;
+  font-weight: var(--font-weight-regular);
 }
 
 .meta {
   margin-top: 10px;
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: var(--space-3);
   flex-wrap: wrap;
   color: var(--muted);
 }
@@ -104,7 +104,7 @@
 .sectionTitle {
   margin: 0;
   color: var(--black);
-  font-weight: 400;
+  font-weight: var(--font-weight-regular);
 }
 
 .sectionHeading {
@@ -205,7 +205,7 @@
 .readonlyField {
   position: relative;
   min-height: 50px;
-  padding: 24px 0 8px;
+  padding: var(--space-6) 0 var(--space-2);
   background: transparent;
 }
 
@@ -223,7 +223,7 @@
 
 .readonlyValue {
   min-width: 0;
-  font-weight: 300;
+  font-weight: var(--font-weight-regular);
   color: var(--black);
   word-break: break-word;
 }
@@ -232,7 +232,7 @@
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
-  column-gap: 16px;
+  column-gap: var(--space-4);
   min-height: 34px;
   padding: 7px 0;
 }
@@ -247,14 +247,14 @@
 }
 
 .readonlyValueStrong {
-  font-weight: 400;
+  font-weight: var(--font-weight-regular);
 }
 
 .readonlyValue a,
 .actionLink {
   min-height: 36px;
   padding: 0 14px;
-  border: 1px solid var(--black);
+  border: var(--line-width-default) solid var(--black);
   color: var(--black);
   display: inline-flex;
   align-items: center;
@@ -284,32 +284,32 @@
 }
 
 .payError {
-  color: var(--danger);
+  color: var(--error);
 }
 
 .cancellationStatus,
 .cancellationConfirm {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--space-1);
   color: var(--muted);
 }
 
 .cancellationStatus strong,
 .cancellationConfirm strong {
   color: var(--black);
-  font-weight: 400;
+  font-weight: var(--font-weight-regular);
 }
 
 .confirmActions {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 8px;
-  margin-top: 8px;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
 }
 
 .muted {
-  padding: 12px;
+  padding: var(--space-3);
   background: var(--soft);
   color: var(--muted);
 }
@@ -327,11 +327,11 @@
 
 @media (max-width: 768px) {
   .breadcrumbs {
-    margin-bottom: 12px;
+    margin-bottom: var(--space-3);
   }
 
   .page {
-    padding-top: 12px;
+    padding-top: var(--space-3);
   }
 
   .header,
@@ -346,7 +346,7 @@
 
   .titleRow {
     align-items: center;
-    gap: 8px;
+    gap: var(--space-2);
   }
 
   .title {
@@ -355,7 +355,7 @@
 
   .product {
     grid-template-columns: 120px minmax(0, 1fr) auto;
-    gap: 12px;
+    gap: var(--space-3);
     padding: 0 14px 0 0;
   }
 
@@ -380,12 +380,12 @@
 
   .readonlyField {
     min-height: 40px;
-    padding: 20px 0 4px;
+    padding: var(--space-5) 0 var(--space-1);
   }
 
   .aside .readonlyField {
     min-height: 28px;
-    padding: 4px 0;
+    padding: var(--space-1) 0;
   }
 
   .actions {
@@ -397,7 +397,7 @@
   .product {
     grid-template-columns: 102px minmax(0, 1fr) auto;
     gap: 10px;
-    padding: 0 12px 0 0;
+    padding: 0 var(--space-3) 0 0;
   }
 
   .imageWrap {

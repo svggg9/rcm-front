@@ -1,5 +1,9 @@
 "use client";
+import { useOrderActions } from "../../lib/useOrderActions";
+import { Checkbox } from "../../components/ui/Checkbox";
+import { Radio } from "../../components/ui/Radio";
 import {useEffect,useRef,useState} from "react";
+import {ReturnWorkflowSummary} from "../../components/order-detail/ReturnWorkflowSummary";
 import {Button} from "../../components/ui/Button";
 import {EditorSurface,requestEditorNavigation} from "../../components/ui/EditorSurface";
 import {FormSelect} from "../../components/ui/FormSelect";
@@ -22,6 +26,7 @@ function Photo({file,onRemove}:{file:File;onRemove:()=>void}){
   </div>;
 }
 export function AccountReturnRequest({order,existingReturns,onCreated}:{order:Order;existingReturns:ReturnRequest[];onCreated:(request:ReturnRequest)=>void}){
+  const action = useOrderActions(order);
   const [open,setOpen]=useState(false),[drafts,setDrafts]=useState<Record<string,Draft>>({}),[editing,setEditing]=useState<string|null>(null);
   const [review,setReview]=useState(false),[submitting,setSubmitting]=useState(false),[error,setError]=useState<string|null>(null);
   const [uncertain,setUncertain]=useState(false);
@@ -42,7 +47,7 @@ export function AccountReturnRequest({order,existingReturns,onCreated}:{order:Or
     setReview(true);
   }
   async function submit(){
-    if(busy.current||!selected.length)return;
+    if(busy.current||!selected.length||(!uncertain&&!action("REQUEST_RETURN").allowed))return;
     busy.current=true;setSubmitting(true);setError(null);
     try{
       for(const item of selected){
@@ -58,8 +63,8 @@ export function AccountReturnRequest({order,existingReturns,onCreated}:{order:Or
   const activeItem=items.find(item=>keyOf(item)===editing);
   const active=editing?drafts[editing]:null;
   return <div className={styles.wrapper}>
-    {existingReturns.map(request=><div className={styles.existing} key={request.id}><span>Возврат № {request.id} · {request.productTitle}</span><span>{returnStatusLabels[request.status]}</span>{request.adminComment?<p>{request.adminComment}</p>:null}</div>)}
-    {items.length?<Button variant="secondary" onClick={()=>setOpen(true)}>Оформить возврат</Button>:null}
+    {existingReturns.map(request=><div className={styles.existing} key={request.id}><span>Возврат № {request.id} · {request.productTitle}</span><span>{returnStatusLabels[request.status]}</span>{request.adminComment?<p>{request.adminComment}</p>:null}<ReturnWorkflowSummary workflow={request.workflow}/></div>)}
+    {items.length&&action("REQUEST_RETURN").allowed?<Button variant="secondary" onClick={()=>setOpen(true)}>Оформить возврат</Button>:null}
     {open?<EditorSurface className={styles.returnSurface} title={review?"Проверка возврата":"Выбор товаров для возврата"} onClose={()=>{if(!uncertain){setDrafts({});setReview(false);}setOpen(false);}} dirty={selected.length>0&&!uncertain} busy={submitting} guardNavigation
       actions={<><span className={styles.footerTotal}>{selected.reduce((sum,item)=>sum+drafts[keyOf(item)].quantity,0)} ед. <span>|</span> <Price amount={total}/></span>{review&&!uncertain?<Button variant="ghost" disabled={submitting} onClick={()=>setReview(false)}>Изменить</Button>:null}<Button variant="primary" loading={submitting} disabled={!selected.length} onClick={review?()=>void submit():proceed}>{review?(uncertain?"Повторить отправку":selected.length>1?"Отправить заявки":"Отправить заявку"):"Продолжить"}</Button></>}>
       {error?<p className={styles.error} role="alert">{error}</p>:null}
@@ -67,7 +72,7 @@ export function AccountReturnRequest({order,existingReturns,onCreated}:{order:Or
       <div className={styles.items}>{(review?selected:items).map(item=>{
         const key=keyOf(item),draft=drafts[key];
         return <article className={styles.item} key={key}>
-          <label className={styles.selection}><input type="checkbox" checked={Boolean(draft)} disabled={submitting||uncertain} onChange={()=>toggle(item)}/><span className="visuallyHidden">Вернуть {item.productTitle}</span></label>
+          <label className={styles.selection}><Checkbox size={18}  checked={Boolean(draft)} disabled={submitting||uncertain} onChange={()=>toggle(item)}/><span className="visuallyHidden">Вернуть {item.productTitle}</span></label>
           <AccountProductRow item={{...item,quantity:draft?.quantity??1,lineTotal:item.price*(draft?.quantity??1)}} linked={false}/>
           {draft?<div className={styles.itemControls}>
             {available(item)>1?<div className={styles.quantity}><FormSelect<number> label="Количество" value={draft.quantity} disabled={submitting||uncertain} options={Array.from({length:available(item)},(_,index)=>({value:index+1,label:String(index+1)}))} onChange={quantity=>{if(quantity!=="")update(key,{quantity});}}/></div>:null}
@@ -78,7 +83,7 @@ export function AccountReturnRequest({order,existingReturns,onCreated}:{order:Or
       })}</div>
       {review?<div className={styles.summary}><span>Стоимость выбранных товаров</span><Price amount={total}/><p>Сумма возврата будет подтверждена после рассмотрения заявки</p></div>:null}
       {active&&editing&&activeItem?<EditorSurface title="Причина возврата" className={styles.reasonPanel} onClose={()=>setEditing(null)} actions={<Button variant="primary" disabled={!active.reason||!active.photos.length} onClick={()=>setEditing(null)}>Готово</Button>}>
-        <fieldset className={styles.reasons}><legend className="visuallyHidden">Выберите причину для {activeItem.productTitle}</legend>{reasons.map(reason=><label key={reason}><input type="radio" name="return-reason" checked={active.reason===reason} onChange={()=>update(editing,{reason})}/><span>{returnReasonLabels[reason]}</span></label>)}</fieldset>
+        <fieldset className={styles.reasons}><legend className="visuallyHidden">Выберите причину для {activeItem.productTitle}</legend>{reasons.map(reason=><label key={reason}><Radio  name="return-reason" checked={active.reason===reason} onChange={()=>update(editing,{reason})}/><span>{returnReasonLabels[reason]}</span></label>)}</fieldset>
         <label className={styles.comment}>Комментарий<textarea maxLength={1000} value={active.comment} onChange={event=>update(editing,{comment:event.target.value})}/></label>
         <label className={styles.upload}>Фотографии товара<input type="file" accept={PHOTO_FILE_ACCEPT} multiple onChange={event=>{
           const next=Array.from(event.target.files??[]);event.target.value="";

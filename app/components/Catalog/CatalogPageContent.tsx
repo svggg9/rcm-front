@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { cache, type ReactNode } from "react";
 
 import { API_URL } from "../../lib/api";
+import { hasTooManyCatalogSearchTerms, normalizeCatalogSearch } from "../../lib/catalogSearch";
 import { CatalogClient } from "./CatalogClient";
 import { RecommendationsShowcase } from "../Recommendations/RecommendationsShowcase";
 import {
@@ -49,6 +50,7 @@ type NormalizedCatalogParams = {
   sortBy: SortValue;
   selectedView: CatalogView;
   selectedCollectionId?: number;
+  selectedBrandCollectionId?: number;
 };
 
 function buildCatalogSeoTitle(params: {
@@ -123,6 +125,7 @@ function buildCatalogCanonical(params: NormalizedCatalogParams & { page: number 
   if (params.selectedCollectionId !== undefined) {
     search.set("collection", String(params.selectedCollectionId));
   }
+  if (params.selectedBrandCollectionId !== undefined) search.set("brandCollection", String(params.selectedBrandCollectionId));
 
   const query = search.toString();
   return query ? `/catalog?${query}` : "/catalog";
@@ -134,18 +137,21 @@ function normalizeCatalogParams(params: CatalogSearchParams): NormalizedCatalogP
       .map(canonicalCategoryName).filter(Boolean)
   ));
   const selectedAudience = normalizeAudience(firstSearchParam(params.audience) || null);
-  const searchQuery = firstSearchParam(params.q).trim().slice(0, 120);
+  const searchQuery = normalizeCatalogSearch(firstSearchParam(params.q));
   const selectedBrands = normalizeSearchList(params.brands ?? params.brand);
   const selectedSizes = normalizeSearchList(params.sizes);
   let minPrice = parsePrice(params.minPrice);
   let maxPrice = parsePrice(params.maxPrice);
   let selectedView = normalizeCatalogView(firstSearchParam(params.view));
   let selectedCollectionId = parsePositiveId(params.collection);
+  let selectedBrandCollectionId = parsePositiveId(params.brandCollection);
+  if (selectedBrandCollectionId !== undefined) selectedCollectionId = undefined;
 
   if (selectedCategories.length > 0) {
     selectedView = "";
     selectedCollectionId = undefined;
-  } else if (selectedCollectionId !== undefined) {
+    selectedBrandCollectionId = undefined;
+  } else if (selectedCollectionId !== undefined || selectedBrandCollectionId !== undefined) {
     selectedView = "";
   }
 
@@ -165,30 +171,43 @@ function normalizeCatalogParams(params: CatalogSearchParams): NormalizedCatalogP
     sortBy: normalizeSort(firstSearchParam(params.sort)),
     selectedView,
     selectedCollectionId,
+    selectedBrandCollectionId,
   };
 }
 
-const getActiveCatalogCollections = cache(async (): Promise<CatalogCollectionOption[]> => {
+const getActiveCatalogCollections = cache(async (brandName?: string, audience: SelectedAudience = "all"): Promise<{
+  collections: CatalogCollectionOption[]; hasError: boolean;
+}> => {
   try {
-    const response = await fetch(`${API_URL}/api/storefront/home/collections`, {
-      next: { revalidate: 30 },
-    });
-    if (!response.ok) return [];
+    const query = new URLSearchParams();
+    if (brandName) query.set("brand", brandName);
+    if (brandName && audience !== "all") query.set("audience", audience);
+    const response = await fetch(`${API_URL}/api/storefront/home/collections${query.size ? `?${query}` : ""}`,
+      brandName ? { cache: "no-store", signal: AbortSignal.timeout(5000) } :
+        { next: { revalidate: 30 }, signal: AbortSignal.timeout(5000) });
+    if (!response.ok) throw new Error("Collections unavailable");
 
     const data: unknown = await response.json();
-    if (!Array.isArray(data)) return [];
+    if (!Array.isArray(data) || data.some(item => !item || typeof item !== "object" ||
+      typeof item.id !== "number" || !Number.isSafeInteger(item.id) || item.id <= 0 ||
+      typeof item.title !== "string" || !item.title.trim())) throw new Error("Invalid collections");
 
-    return data.filter(
-      (item): item is CatalogCollectionOption =>
-        Boolean(item) &&
-        typeof item === "object" &&
-        typeof (item as CatalogCollectionOption).id === "number" &&
-        typeof (item as CatalogCollectionOption).title === "string"
-    );
+    return { collections: data, hasError: false };
   } catch {
-    return [];
+    return { collections: [], hasError: true };
   }
 });
+
+async function getBrandCollectionOptions(slug: string, audience: SelectedAudience): Promise<{collections: CatalogCollectionOption[]; hasError: boolean}> {
+  try {
+    const response = await fetch(`${API_URL}/api/brands/${encodeURIComponent(slug)}/collections?audience=${audience}`,
+      {cache: "no-store", signal: AbortSignal.timeout(5000)});
+    if (!response.ok) throw new Error();
+    const data: unknown = await response.json();
+    if (!Array.isArray(data) || data.some(item => !item || !Number.isSafeInteger(item.id) || item.id <= 0 || typeof item.title !== "string" || !item.title.trim())) throw new Error();
+    return {collections: data.map(item => ({id: item.id, title: item.title, source: "brand"})), hasError: false};
+  } catch { return {collections: [], hasError: true}; }
+}
 
 export async function generateMetadata({
   searchParams,
@@ -199,7 +218,7 @@ export async function generateMetadata({
   const collections =
     normalized.selectedCollectionId === undefined
       ? []
-      : await getActiveCatalogCollections();
+      : (await getActiveCatalogCollections()).collections;
   const selectedCollection = collections.find(
     (collection) => collection.id === normalized.selectedCollectionId
   );
@@ -243,7 +262,7 @@ async function getCatalogProducts(params: CatalogProductsQuery): Promise<{
   try {
     const response = await fetch(
       `${API_URL}/api/products/page?${buildCatalogProductsQuery(params)}`,
-      params.q ? { cache: "no-store" } : { next: { revalidate: 60 } }
+      params.q || params.brands.length ? { cache: "no-store" } : { next: { revalidate: 60 } }
     );
 
     if (!response.ok) throw new Error("Catalog response failed");
@@ -356,13 +375,13 @@ async function getCatalogOptions(): Promise<{
 }
 
 export async function CatalogPageContent({
-  searchParams, brandName, basePath = "/catalog", header, footer,
+  searchParams, brandName, brandSlug, basePath = "/catalog", header, footer,
 }: {
   searchParams?: Promise<CatalogSearchParams>;
-  brandName?: string; basePath?: string; header?: ReactNode; footer?: ReactNode;
+  brandName?: string; brandSlug?: string; basePath?: string; header?: ReactNode; footer?: ReactNode;
 }) {
   const params = (searchParams ? await searchParams : {}) ?? {};
-  const normalized = normalizeCatalogParams(brandName ? { ...params, brands: [brandName], brand: undefined } : params);
+  const normalized = normalizeCatalogParams(brandName ? { ...params, brands: [brandName], brand: undefined } : { ...params, brandCollection: undefined });
   const canonical = (values: NormalizedCatalogParams) => {
     const url = new URL(buildCatalogCanonical(values), "http://localhost");
     if (brandName) url.searchParams.delete("brands");
@@ -374,9 +393,10 @@ export async function CatalogPageContent({
   }
   const effectiveSort: SortValue =
     normalized.sortBy || (normalized.selectedView === "new" ? "newest" : "");
+  const invalidSearch = hasTooManyCatalogSearchTerms(normalized.searchQuery);
   const canStartProductsImmediately =
-    normalized.selectedCategories.length === 0 && normalized.selectedCollectionId === undefined;
-  const earlyProducts = canStartProductsImmediately
+    normalized.selectedCategories.length === 0 && normalized.selectedCollectionId === undefined && normalized.selectedBrandCollectionId === undefined;
+  const earlyProducts = invalidSearch ? Promise.resolve({ products: [], totalPages: 1, totalProducts: 0, hasError: false }) : canStartProductsImmediately
     ? getCatalogProducts({
         audience: normalized.selectedAudience,
         categories: [],
@@ -390,28 +410,45 @@ export async function CatalogPageContent({
       })
     : Promise.resolve(null);
 
-  const [options, collections, prefetchedProducts] = await Promise.all([
+  const [options, collectionResult, ownCollectionResult, prefetchedProducts] = await Promise.all([
     getCatalogOptions(),
-    getActiveCatalogCollections(),
+    getActiveCatalogCollections(brandName, normalized.selectedAudience),
+    brandSlug ? getBrandCollectionOptions(brandSlug, normalized.selectedAudience) : Promise.resolve({ collections: [], hasError: false }),
     earlyProducts,
   ]);
+  const collections = [...ownCollectionResult.collections, ...collectionResult.collections];
+  const selectedBrandCollectionId = ownCollectionResult.hasError ? normalized.selectedBrandCollectionId :
+    collections.find(item => item.source === "brand" && item.id === normalized.selectedBrandCollectionId)?.id;
+  if (normalized.selectedBrandCollectionId !== undefined && selectedBrandCollectionId === undefined && !ownCollectionResult.hasError)
+    redirect(canonical({ ...normalized, selectedBrandCollectionId: undefined }));
   const selectedCollection = collections.find(
-    (collection) => collection.id === normalized.selectedCollectionId
+    (collection) => !collection.source && collection.id === normalized.selectedCollectionId
   );
-  const selectedCollectionId = selectedCollection?.id;
-  const effectiveNormalized = { ...normalized, selectedCollectionId };
+  const selectedCollectionId = collectionResult.hasError ? normalized.selectedCollectionId : selectedCollection?.id;
+  const effectiveNormalized = { ...normalized, selectedCollectionId, selectedBrandCollectionId };
 
   if (
     normalized.selectedCollectionId !== undefined &&
-    selectedCollectionId === undefined
+    selectedCollectionId === undefined && !collectionResult.hasError
   ) {
     redirect(canonical(effectiveNormalized));
   }
 
-  const categoryGroups = groupCatalogCategories(options.categories);
-  const selectedContext = await getSelectedCategoryContext(JSON.stringify(normalized.selectedCategories));
+  // Brand navigation describes its complete assortment, independently of the result page and narrow filters.
+  const brandScopeParams: NormalizedCatalogParams = { ...effectiveNormalized, selectedCategories: [], selectedCollectionId: undefined,
+    selectedSizes: [], minPrice: undefined, maxPrice: undefined, searchQuery: "", page: 1, sortBy: "", selectedView: "" };
+  const brandScopeRequest = brandName && !options.categoryError
+    ? getAvailableCategories(brandScopeParams, options.categories) : Promise.resolve(null);
+  const sameAsBrandScope = Boolean(brandName && !effectiveNormalized.selectedCollectionId && !normalized.selectedSizes.length &&
+    normalized.minPrice === undefined && normalized.maxPrice === undefined && !normalized.searchQuery);
+  const [selectedContext, brandCategories, mobileAvailableCategories] = await Promise.all([
+    getSelectedCategoryContext(JSON.stringify(normalized.selectedCategories)), brandScopeRequest,
+    invalidSearch || options.categoryError ? Promise.resolve(null) : sameAsBrandScope ? brandScopeRequest : getAvailableCategories(effectiveNormalized, options.categories),
+  ]);
+  const brandScopeError = Boolean(brandName && !options.categoryError && brandCategories === null);
+  const visibleCategories = brandName ? options.categories.filter(category => brandCategories?.includes(categoryValue(category))) : options.categories;
+  const categoryGroups = groupCatalogCategories(visibleCategories);
   const contextDictionary = [...new Map([...options.categories, ...selectedContext.categories].map(category => [category.id, category])).values()];
-  const mobileAvailableCategories = options.categoryError ? null : await getAvailableCategories(effectiveNormalized, options.categories);
   const selectedCategories = normalizeCategorySelection(normalized.selectedCategories, groupCatalogCategories(contextDictionary));
   const categoryLabels = Object.fromEntries(contextDictionary.map(category => [categoryValue(category), category.label]));
   if (categoryGroups.length > 0 && selectedCategories.join("\n") !== normalized.selectedCategories.join("\n")) {
@@ -434,6 +471,7 @@ export async function CatalogPageContent({
       sort: effectiveSort,
       page: normalized.page,
       collectionId: selectedCollectionId,
+      brandCollectionId: selectedBrandCollectionId,
     }));
 
   if (!hasError && totalProducts > 0 && normalized.page > totalPages) {
@@ -444,13 +482,15 @@ export async function CatalogPageContent({
     <div className={`pageContainer ${styles.catalogContainer}`}>
       {header}
       <CatalogClient
+        key={`${basePath}|${brandName ?? ""}|${normalized.selectedAudience}`}
         basePath={basePath}
         lockedBrand={brandName}
         products={products}
         categoryGroups={categoryGroups}
-        categoryError={options.categoryError || selectedContext.hasError}
+        categoryError={options.categoryError || selectedContext.hasError || brandScopeError}
+        collectionsError={collectionResult.hasError || ownCollectionResult.hasError}
         categoryLabels={categoryLabels}
-        facetsError={!options.categoryError && mobileAvailableCategories === null}
+        facetsError={!invalidSearch && !options.categoryError && !brandScopeError && mobileAvailableCategories === null}
         mobileAvailableCategories={mobileAvailableCategories}
         brands={options.brands}
         sizes={options.sizes}
@@ -468,6 +508,7 @@ export async function CatalogPageContent({
         initialSort={normalized.sortBy}
         selectedView={normalized.selectedView}
         selectedCollectionId={selectedCollectionId}
+        selectedBrandCollectionId={selectedBrandCollectionId}
         hasError={hasError}
       />
       {footer}

@@ -1,8 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { AdminProductActions } from "./AdminProductActions";
 
 import { ProductListCard } from "../../components/ProductListCard";
+import { SectionHeader } from "../../components/ui/SectionHeader";
+import { AdminSearchForm } from "./AdminSearchForm";
+import { useSearchParams } from "next/navigation";
 import { Button } from "../../components/ui/Button";
 import { CabinetPanel } from "../../components/ui/CabinetPanel";
 import type { CabinetTabItem } from "../../components/ui/CabinetTabs";
@@ -30,11 +33,9 @@ type Props = {
   onOpenProduct: (id: number) => void;
   onPrefetchProduct?: (id: number) => void;
   onApprove: (id: number) => Promise<void>;
-  onBlock: (id: number) => Promise<void>;
+  onBlock: (id: number, reason: string) => Promise<void>;
   onUnblock: (id: number) => Promise<void>;
 };
-
-type ProductAction = "approve" | "block" | "unblock";
 
 const STATUSES: Array<ProductStatus | "ALL"> = [
   "MODERATION",
@@ -73,33 +74,18 @@ export function AdminProductsTab({
   onBlock,
   onUnblock,
 }: Props) {
-  const [pendingAction, setPendingAction] = useState<{
-    productId: number;
-    action: ProductAction;
-  } | null>(null);
+  const params = useSearchParams();
+  const filtered = Boolean(params.get("q") || params.get("seller"));
   const statusTabs: Array<CabinetTabItem<ProductStatus | "ALL">> = STATUSES.map(
     (value) => ({
       value,
       label: value === "ALL" ? "Все" : formatProductStatus(value),
-      count: statusCounts[value] ?? 0,
+      count: filtered ? undefined : statusCounts[value] ?? 0,
     })
   );
 
-  async function runAction(
-    productId: number,
-    action: ProductAction,
-    callback: (id: number) => Promise<void>
-  ) {
-    setPendingAction({ productId, action });
-    try {
-      await callback(productId);
-    } finally {
-      setPendingAction(null);
-    }
-  }
-
   return (
-    <CabinetPanel
+    <><SectionHeader title="Товары" large /><AdminSearchForm label="Название товара, артикул или бренд" withSeller /><CabinetPanel
       items={statusTabs}
       value={status}
       onChange={onStatusChange}
@@ -128,7 +114,7 @@ export function AdminProductsTab({
           <EmptyState
             icon="search"
             title="Товаров нет"
-            text="По выбранному статусу ничего не найдено"
+            text="По выбранным условиям ничего не найдено"
           />
         )
       ) : (
@@ -137,9 +123,7 @@ export function AdminProductsTab({
             {products.map((product) => {
             const date = formatDate(product.updatedAt);
             const productBusy = actionProductId === product.id;
-            const isPending = (action: ProductAction) =>
-              pendingAction?.productId === product.id &&
-              pendingAction.action === action;
+
 
             return (
               <ProductListCard
@@ -164,49 +148,7 @@ export function AdminProductsTab({
                 dateLabel={date ? `Обновлён ${date}` : null}
                 onOpen={() => onOpenProduct(product.id)}
                 onPrefetch={() => onPrefetchProduct?.(product.id)}
-                actions={
-                  <>
-                    {product.status === "MODERATION" ? (
-                      <Button
-                        type="button"
-                        variant="primary"
-                        disabled={productBusy}
-                        loading={isPending("approve")}
-                        onClick={() =>
-                          void runAction(product.id, "approve", onApprove)
-                        }
-                      >
-                        Одобрить
-                      </Button>
-                    ) : null}
-
-                    {product.status === "BLOCKED" ? (
-                      <Button
-                        type="button"
-                        variant="secondary"
-                        disabled={productBusy}
-                        loading={isPending("unblock")}
-                        onClick={() =>
-                          void runAction(product.id, "unblock", onUnblock)
-                        }
-                      >
-                        Разблокировать
-                      </Button>
-                    ) : (
-                      <Button
-                        type="button"
-                        variant="danger"
-                        disabled={productBusy}
-                        loading={isPending("block")}
-                        onClick={() =>
-                          void runAction(product.id, "block", onBlock)
-                        }
-                      >
-                        Заблокировать
-                      </Button>
-                    )}
-                  </>
-                }
+                actions={<AdminProductActions title={product.title} status={product.status} busy={productBusy} onApprove={()=>onApprove(product.id)} onBlock={reason=>onBlock(product.id,reason)} onUnblock={()=>onUnblock(product.id)} />}
               />
             );
             })}
@@ -219,6 +161,6 @@ export function AdminProductsTab({
           />
         </>
       )}
-    </CabinetPanel>
+    </CabinetPanel></>
   );
 }

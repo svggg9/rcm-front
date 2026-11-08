@@ -5,32 +5,33 @@ h4,
 h5,
 h6 {
   color: var(--black);
-  font-weight: 400;
-  letter-spacing: 0;
+  font-weight: var(--type-card-weight);
+  letter-spacing: var(--type-card-tracking);
+  overflow-wrap: anywhere;
 }
 
 h1,
 .textPageTitle {
   font-size: var(--font-3xl);
-  line-height: 1.1;
-  font-weight: 400;
-  letter-spacing: 0;
+  line-height: var(--type-page-line-height);
+  font-weight: var(--type-page-weight);
+  letter-spacing: var(--type-heading-tracking);
 }
 
 h2,
 .textSectionTitle {
   font-size: var(--font-2xl);
-  line-height: 1.15;
-  font-weight: 400;
-  letter-spacing: 0;
+  line-height: var(--type-section-line-height);
+  font-weight: var(--type-section-weight);
+  letter-spacing: var(--type-heading-tracking);
 }
 
 h3,
 .textTitle {
   font-size: var(--font-xl);
-  line-height: 1.25;
-  font-weight: 400;
-  letter-spacing: 0;
+  line-height: var(--type-card-line-height);
+  font-weight: var(--type-card-weight);
+  letter-spacing: var(--type-card-tracking);
 }
 
 p {
@@ -39,50 +40,50 @@ p {
 
 .textDisplay {
   font-size: var(--font-4xl);
-  line-height: 1;
-  font-weight: 400;
-  letter-spacing: 0;
+  line-height: var(--type-page-line-height);
+  font-weight: var(--type-page-weight);
+  letter-spacing: var(--type-heading-tracking);
 }
 
 .textBody {
   font-size: var(--font-md);
-  line-height: 1.4;
-  font-weight: 400;
+  line-height: var(--line-height-body);
+  font-weight: var(--font-weight-regular);
   letter-spacing: 0;
 }
 
 .textSmall {
   font-size: var(--font-sm);
-  line-height: 1.4;
-  font-weight: 300;
+  line-height: var(--line-height-small);
+  font-weight: var(--font-weight-regular);
   letter-spacing: 0;
 }
 
 .textCaption {
-  font-size: var(--font-xs);
-  line-height: 1.3;
-  font-weight: 300;
+  font-size: var(--caption-size, var(--font-xs));
+  line-height: var(--caption-line-height, 1.3);
+  font-weight: var(--caption-weight, 300);
   letter-spacing: 0;
 }
 
 .textPrice {
   font-size: var(--font-md);
   line-height: 1.2;
-  font-weight: 300;
+  font-weight: var(--font-weight-medium);
   letter-spacing: 0;
 }
 
 .textButton {
   font-size: var(--font-button);
-  line-height: 1.2;
-  font-weight: 400;
+  line-height: var(--button-line-height);
+  font-weight: var(--button-weight);
   letter-spacing: 0;
 }
 
 .textMicro {
-  font-size: 10px;
+  font-size: var(--font-micro);
   line-height: 1;
-  font-weight: 400;
+  font-weight: var(--font-weight-regular);
   letter-spacing: 0;
 }
 
@@ -91,13 +92,13 @@ p {
 }
 
 .gold {
-  color: var(--gold);
+  color: var(--gold-deep);
 }
 
 .uppercaseLabel {
   color: var(--muted);
-  font-size: 11px;
-  font-weight: 500;
+  font-size: var(--font-label-compact);
+  font-weight: var(--font-weight-medium);
   line-height: 1;
   letter-spacing: 0;
   text-transform: uppercase;

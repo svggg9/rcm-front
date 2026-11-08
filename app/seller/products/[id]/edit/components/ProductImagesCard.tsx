@@ -123,7 +123,7 @@ export function ProductImagesCard({
       ) : null}
 
       {invalid && (images.length < 3 || images.length > 10) ? (
-        <div className={styles.fieldErrorText}>
+        <div className={`fieldError ${styles.fieldErrorText}`}>
           Для модерации нужно от 3 до 10 фото товара.
         </div>
       ) : null}
@@ -158,6 +158,7 @@ export function ProductImagesCard({
 
               <ConfirmActionButton
                 type="button"
+                confirmVariant="danger"
                 confirmTitle="Удалить фото товара?"
                 confirmText="Чтобы вернуть фотографию, её потребуется загрузить заново"
                 onConfirm={() => onDeleteImage(image.id)}

@@ -9,8 +9,8 @@
 
 .title {
   color: var(--black);
-  font-size: 22px;
-  font-weight: 500;
+  font-size: var(--font-metric-sm);
+  font-weight: var(--font-weight-medium);
   letter-spacing: -0.02em;
 }
 
@@ -29,7 +29,7 @@
   scroll-snap-type: x mandatory;
   scroll-behavior: smooth;
 
-  padding: 0 48px 6px;
+  padding: 0 var(--space-9) 6px;
 
   scrollbar-width: none;
 }
@@ -45,7 +45,7 @@
 }
 
 .compact .scroller {
-  gap: 16px;
+  gap: var(--space-4);
 }
 
 .compact .item {
@@ -74,9 +74,9 @@
   transform: translateY(-50%);
 
   transition:
-    background var(--transition),
-    border-color var(--transition),
-    opacity var(--transition);
+    background var(--transition-medium),
+    border-color var(--transition-medium),
+    opacity var(--transition-medium);
 }
 
 .arrow:hover:not(:disabled) {
@@ -115,7 +115,7 @@
 
 @media (max-width: 768px) {
   .title {
-    font-size: 20px;
+    font-size: var(--font-title-sm);
   }
 
   .scroller {

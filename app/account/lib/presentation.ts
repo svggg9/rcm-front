@@ -1,7 +1,7 @@
 import type { Order, OrderListItem } from "../types";
 export function orderNumber(order: { id: number }) { return String(order.id); }
-export function shortDeliveryAddress(value: string) {
-  const parts = value.split(",").map(part => part.trim()).filter(part => part && part !== "Россия" && !/^\d{6}$/.test(part));
+export function shortDeliveryAddress(value: string | null) {
+  const parts = (value || "").split(",").map(part => part.trim()).filter(part => part && part !== "Россия" && !/^\d{6}$/.test(part));
   return parts.filter((part,index) => index === 0 || part !== parts[index-1]).join(", ");
 }
 export function orderDate(value: string) {
@@ -12,7 +12,7 @@ export function itemCount(value: number) {
   return `${value} ${last === 1 && n !== 11 ? "товар" : last >= 2 && last <= 4 && (n < 12 || n > 14) ? "товара" : "товаров"}`;
 }
 export function orderTone(order: Pick<Order | OrderListItem, "status" | "paymentStatus" | "deliveryStatus">) {
-  if (order.status === "CANCELED" || ["FAILED", "CANCELED"].includes(order.paymentStatus)) return "closed";
+  if (order.status === "CANCELED" || order.paymentStatus === "FAILED") return "closed";
   if (order.paymentStatus === "PENDING") return "pending";
   if (order.deliveryStatus === "DELIVERED") return "complete";
   return "normal";

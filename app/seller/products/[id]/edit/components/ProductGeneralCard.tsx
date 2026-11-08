@@ -3,6 +3,8 @@ import { useId } from "react";
 import { CategoryPicker } from "../../../../../components/ui/CategoryPicker";
 import { SegmentedControl } from "../../../../../components/ui/SegmentedControl";
 import { ProductDescriptionEditor } from "./ProductDescriptionEditor";
+import { ProductOptionalDetails } from "./ProductOptionalDetails";
+import type { ProductDetailsDraft } from "../../../../../lib/productDetails";
 import type { Audience } from "../types";
 import type { CategoryOption } from "../../../../../lib/categories";
 import styles from "../ProductEditPage.module.css";
@@ -11,6 +13,7 @@ type ValidationErrors = {
   title?: boolean;
   description?: boolean;
   composition?: boolean;
+  details?: Partial<Record<keyof ProductDetailsDraft, string>>;
   categoryId?: boolean;
   brandId?: boolean;
 };
@@ -23,6 +26,7 @@ type Props = {
   title: string;
   description: string;
   composition: string;
+  details: ProductDetailsDraft;
 
   categoryId: number | "";
   suggestedCategoryName: string;
@@ -37,6 +41,7 @@ type Props = {
   onTitleChange: (value: string) => void;
   onDescriptionChange: (value: string) => void;
   onCompositionChange: (value: string) => void;
+  onDetailsChange: (key: keyof ProductDetailsDraft, value: string) => void;
 
   onCategoryIdChange: (value: number | "") => void;
   onSuggestedCategoryNameChange: (value: string) => void;
@@ -50,6 +55,7 @@ export function ProductGeneralCard({
   title,
   description,
   composition,
+  details,
   categoryId,
   suggestedCategoryName,
   audience,
@@ -61,6 +67,7 @@ export function ProductGeneralCard({
   onTitleChange,
   onDescriptionChange,
   onCompositionChange,
+  onDetailsChange,
   onCategoryIdChange,
   onSuggestedCategoryNameChange,
   onAudienceChange,
@@ -148,18 +155,10 @@ export function ProductGeneralCard({
             ) : null}
           </div>
 
-          <details className={`${styles.fieldFull} ${styles.optionalSection}`} open={composition.trim() || validationErrors.composition ? true : undefined}>
-            <summary>Состав <span className={styles.fieldHint}>необязательно</span></summary>
-            <ProductDescriptionEditor
-              value={composition}
-              onChange={onCompositionChange}
-              fieldName="Состав"
-              maxLength={1000}
-              emptyText="Состав пока пустой"
-              invalid={validationErrors.composition}
-            />
-            {validationErrors.composition && <span className="fieldError">Не больше 1000 символов</span>}
-          </details>
+          <ProductOptionalDetails composition={composition} details={details}
+            category={categories.find(item => item.id === categoryId)?.name || currentCategoryLabel || ""}
+            compositionError={validationErrors.composition} errors={validationErrors.details ?? {}}
+            onCompositionChange={onCompositionChange} onChange={onDetailsChange} />
         </div>
       </section>
     </>

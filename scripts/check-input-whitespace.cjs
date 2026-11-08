@@ -65,9 +65,10 @@ for (const props of [{ type: "text" }, { type: "password" }, { type: "text", aut
   input.value = "Два слова"; free.props.onChange(event(input)); assert.equal(observed, "Два слова");
   const e = event(input, { key: " " }); free.props.onKeyDown(e); assert(!e.defaultPrevented);
 }
+const sharedField = load("app/components/ui/Field.tsx", { "react/jsx-runtime": jsx });
 const { PhoneInput } = load("app/components/ui/PhoneInput.tsx", {
   react: { useId: () => "phone", useCallback: fn => fn, useRef: value => ({ current: value }), useLayoutEffect() {} },
-  "react/jsx-runtime": jsx, "./Field": { Field: "Field" }, "./InputControl": { InputControl },
+  "react/jsx-runtime": jsx, "./Field": sharedField, "./InputControl": { InputControl },
   "../../lib/phone": load("app/lib/phone.ts", {}),
 });
 global.window = { requestAnimationFrame() {} };
@@ -80,6 +81,21 @@ phoneControl.props.onPaste(event(phoneElement, { clipboardData: { getData: () =>
 assert.equal(phoneValue, "+79991234567");
 phone = find(PhoneInput({ value: phoneValue, onChange() {} }), node => node.type === InputControl);
 assert.equal(phone.props.value, "(999) 123 45-67", "Automatic phone-mask spaces remain visible");
+const requiredPhone = PhoneInput({ id: "delivery-phone", value: "", required: true, hint: "Рабочий номер", error: "Укажите телефон",
+  size: "large", "aria-describedby": "external-help delivery-phone-hint", onChange() {} });
+phone = find(requiredPhone, node => node.type === InputControl);
+assert.equal(phone.props.required, true, "An obligatory phone is required on the native input, not only its visual label");
+assert.equal(phone.props["aria-required"], true);
+assert.equal(phone.props.id, "delivery-phone");
+assert.equal(phone.props["aria-describedby"], "external-help delivery-phone-hint delivery-phone-error");
+const renderedField = sharedField.Field(requiredPhone.props);
+assert.equal(renderedField.type, "div");
+assert.equal(renderedField.props.children[0].type, "label");
+assert.equal(renderedField.props.children[0].props.htmlFor, phone.props.id);
+assert.equal(renderedField.props.children[0].props.children, "Телефон", "A phone label does not include hints or repeated validation text");
+assert.equal(find(renderedField, node => node.props.id === "delivery-phone-error").props.children, "Укажите телефон");
+assert.equal(find(renderedField, node => node.props.id === "delivery-phone-hint").props.children, "Рабочий номер");
+assert.equal(renderedField.props["data-field-size"], "large");
 
 // Prevent future native fields from bypassing the shared rule.
 const missed = []; let nativeFields = 0;

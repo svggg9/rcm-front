@@ -1,0 +1,3 @@
+.scroller { position: relative; overflow-x: auto; min-width: 0; margin-block: var(--space-6); }
+.scroller:focus-visible { outline: var(--line-width-strong) solid var(--black); outline-offset: 2px; }
+.table { --table-min-width: 560px; --table-row-hover-background: var(--surface-hover); }

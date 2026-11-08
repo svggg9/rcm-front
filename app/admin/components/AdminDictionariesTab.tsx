@@ -205,7 +205,7 @@ function DictionaryCreateForm({
           autoComplete="off"
         />
         {validationMessage ? (
-          <small className={styles.fieldError}>{validationMessage}</small>
+          <small className={`fieldError ${styles.fieldError}`}>{validationMessage}</small>
         ) : null}
       </label>
 
@@ -477,7 +477,7 @@ function DictionaryRow({
             }}
           />
           {validationMessage ? (
-            <small className={styles.fieldError}>{validationMessage}</small>
+            <small className={`fieldError ${styles.fieldError}`}>{validationMessage}</small>
           ) : null}
         </label>
       ) : (

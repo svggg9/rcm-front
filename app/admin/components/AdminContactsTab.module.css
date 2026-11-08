@@ -4,17 +4,17 @@
 }
 
 .title {
-  margin: 0 0 24px;
+  margin: 0 0 var(--space-6);
   color: var(--black);
-  font-size: 24px;
-  font-weight: 400;
+  font-size: var(--font-title-md);
+  font-weight: var(--font-weight-regular);
 }
 
 .total,
 .notice,
 .error {
-  margin: 0 0 16px;
-  font-size: 14px;
+  margin: 0 0 var(--space-4);
+  font-size: var(--font-sm);
 }
 
 .total,
@@ -23,18 +23,18 @@
 }
 
 .error {
-  color: var(--danger);
+  color: var(--error);
 }
 
 .list {
   display: grid;
-  gap: 16px;
+  gap: var(--space-4);
 }
 
 .card {
   min-width: 0;
-  padding: 20px;
-  border: 1px solid var(--line);
+  padding: var(--space-5);
+  border: var(--line-width-default) solid var(--line);
   background: var(--white);
   overflow-wrap: anywhere;
 }
@@ -44,27 +44,27 @@
   align-items: center;
   flex-wrap: wrap;
   justify-content: space-between;
-  gap: 12px;
+  gap: var(--space-3);
 }
 
 .heading h2 {
   margin: 0;
-  font-size: 18px;
-  font-weight: 400;
+  font-size: var(--font-title-xs);
+  font-weight: var(--font-weight-regular);
 }
 
 .facts {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 14px 24px;
-  margin: 20px 0;
-  font-size: 14px;
+  gap: 14px var(--space-6);
+  margin: var(--space-5) 0;
+  font-size: var(--font-sm);
 }
 
 .facts dt {
-  margin-bottom: 4px;
+  margin-bottom: var(--space-1);
   color: var(--muted);
-  font-size: 12px;
+  font-size: var(--font-helper);
 }
 
 .facts dd {
@@ -78,9 +78,9 @@
 }
 
 .message {
-  margin: 0 0 20px;
+  margin: 0 0 var(--space-5);
   white-space: pre-wrap;
-  font-size: 14px;
+  font-size: var(--font-sm);
   line-height: 1.6;
 }
 
@@ -88,7 +88,7 @@
   display: flex;
   align-items: flex-end;
   flex-wrap: wrap;
-  gap: 12px;
+  gap: var(--space-3);
 }
 
 .statusControl > :first-child {
@@ -97,8 +97,8 @@
 }
 
 .saving {
-  padding-bottom: 12px;
-  font-size: 13px;
+  padding-bottom: var(--space-3);
+  font-size: var(--font-xs);
 }
 
 .pagination {
@@ -106,14 +106,14 @@
   align-items: center;
   justify-content: center;
   flex-wrap: wrap;
-  gap: 12px;
-  margin-top: 20px;
-  font-size: 13px;
+  gap: var(--space-3);
+  margin-top: var(--space-5);
+  font-size: var(--font-xs);
 }
 
 @media (max-width: 480px) {
   .card { padding: 14px; }
   .facts { grid-template-columns: minmax(0, 1fr); }
   .statusControl > :first-child { width: 100%; }
-  .pagination { gap: 8px; }
+  .pagination { gap: var(--space-2); }
 }

@@ -1,19 +1,19 @@
-.picker { display: grid; gap: 24px; min-width: 0; color: var(--black); font-size: 14px; line-height: 20px; font-weight: 400; }
+.picker { display: grid; gap: var(--space-6); min-width: 0; color: var(--black); font-size: var(--font-sm); line-height: var(--line-height-small); font-weight: var(--font-weight-regular); }
 .map { height: 290px; min-width: 0; }
 .list { display: grid; }
-.item { display: flex; justify-content: space-between; align-items: center; gap: 16px; width: 100%; padding: 20px 0; border-bottom: 1px solid var(--line-subtle); text-align: left; font-weight: 400; }
-.item > span { display: grid; gap: 4px; min-width: 0; overflow-wrap: anywhere; }
+.item { display: flex; justify-content: space-between; align-items: center; gap: var(--space-4); width: 100%; padding: var(--space-5) 0; border-bottom: var(--line-width-default) solid var(--line-subtle); text-align: left; font-weight: var(--font-weight-regular); }
+.item > span { display: grid; gap: var(--space-1); min-width: 0; overflow-wrap: anywhere; }
 .item:hover { color: var(--muted); }
 .item:focus-visible, .textButton:focus-visible { outline: 2px solid var(--black); outline-offset: 3px; }
-.provider { display: block; font-size: 12px; line-height: 18px; text-transform: uppercase; }
-.details { display: grid; gap: 16px; overflow-wrap: anywhere; }
-.instructions { display: grid; gap: 4px; font-size: 12px; line-height: 18px; }
+.provider { display: block; font-size: var(--font-helper); line-height: var(--caption-line-height); text-transform: uppercase; }
+.details { display: grid; gap: var(--space-4); overflow-wrap: anywhere; }
+.instructions { display: grid; gap: var(--space-1); font-size: var(--font-helper); line-height: var(--caption-line-height); }
 .instructions > span, .muted { color: var(--muted); }
 .loading { display: grid; place-items: center; }
 .loading > * { grid-area: 1 / 1; }
 .skeleton { width: 100%; height: 100%; }
 .loading > :global(.loaderInline) { z-index: 1; }
-.primary { width: 100%; min-height: 44px; font-size: 12px; line-height: 16px; font-weight: 400; text-transform: uppercase; padding: 12px; }
-.error { color: var(--danger); font-size: 12px; line-height: 18px; }
+.primary { width: 100%; min-height: 44px; font-size: var(--font-helper); line-height: 16px; font-weight: var(--font-weight-regular); text-transform: uppercase; padding: var(--space-3); }
+.error { color: var(--error); font-size: var(--font-helper); line-height: var(--caption-line-height); }
 .textButton { display: block; min-height: 44px; text-decoration: underline; }
 @media (max-width: 700px) { .map { height: 240px; } }

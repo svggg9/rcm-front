@@ -1,5 +1,6 @@
 import {
   AlertCircle,
+  ArrowRight,
   ArrowUpRight,
   Bell,
   Box,
@@ -42,6 +43,7 @@ import {
 
 export type IconName =
   | "alert"
+  | "arrow-right"
   | "arrow-up-right"
   | "bell"
   | "cancel-circle"
@@ -104,6 +106,7 @@ type CustomIconName =
 
 const icons: Record<Exclude<IconName, CustomIconName>, LucideIcon> = {
   alert: AlertCircle,
+  "arrow-right": ArrowRight,
   "arrow-up-right": ArrowUpRight,
   bell: Bell,
   cart: ShoppingCart,

@@ -44,7 +44,7 @@ export function AccountBrandsTab() {
         <EmptyState
           title="Сохранённых брендов пока нет"
           text="Нажмите на сердце на странице бренда"
-          actions={<Link href="/catalog" className="buttonPrimary">Перейти в каталог</Link>}
+          actions={<Link href="/catalog" className="buttonPrimary">В каталог</Link>}
         />
       ) : (
         <ul className={styles.grid}>

@@ -4,6 +4,8 @@ import { Suspense, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
 import { API_URL, apiFetch } from "../lib/api";
+import { Button } from "../components/ui/Button";
+import { Banner } from "../components/ui/Banner";
 
 type PaymentResult = "CONFIRMED" | "REJECTED" | "CANCELED";
 
@@ -116,45 +118,47 @@ function MockPayPageContent() {
         ) : null}
 
         <div style={styles.actions}>
-          <button
+          <Button
             type="button"
+            variant="primary"
             onClick={() => void completePayment("CONFIRMED")}
             disabled={!canSubmit || submitting !== null}
-            style={styles.primaryBtn}
+            loading={submitting === "CONFIRMED"}
           >
             Оплатить успешно
-          </button>
+          </Button>
 
-          <button
+          <Button
             type="button"
             onClick={() => void completePayment("REJECTED")}
             disabled={!canSubmit || submitting !== null}
-            style={styles.secondaryBtn}
+            loading={submitting === "REJECTED"}
           >
             Ошибка оплаты
-          </button>
+          </Button>
 
-          <button
+          <Button
             type="button"
             onClick={() => void completePayment("CANCELED")}
             disabled={!canSubmit || submitting !== null}
-            style={styles.secondaryBtn}
+            loading={submitting === "CANCELED"}
           >
             Отменить оплату
-          </button>
+          </Button>
         </div>
 
-        {error ? <div style={styles.error}>{error}</div> : null}
+        {error ? <Banner tone="danger">{error}</Banner> : null}
 
-        <button
+        <Button
           type="button"
+          variant="utility"
+          size="compact"
           onClick={() =>
             orderId ? router.push(`/account?tab=orders&orderId=${encodeURIComponent(orderId)}`) : router.push("/account?tab=orders")
           }
-          style={styles.linkBtn}
         >
           Вернуться без оплаты
-        </button>
+        </Button>
       </div>
     </div>
   );
@@ -171,7 +175,7 @@ export default function MockPayPage() {
 const styles: Record<string, React.CSSProperties> = {
   page: {
     minHeight: "100vh",
-    background: "#f6f7f9",
+    background: "var(--soft)",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
@@ -180,74 +184,42 @@ const styles: Record<string, React.CSSProperties> = {
   card: {
     width: "100%",
     maxWidth: "560px",
-    background: "#fff",
-    border: "1px solid #e8e8e8",
+    background: "var(--white)",
+    border: "var(--line-width-default) solid var(--line)",
     padding: "24px",
     boxShadow: "0 6px 24px rgba(0,0,0,0.06)",
   },
   kicker: {
-    fontSize: "12px",
-    color: "#666",
+    fontSize: "var(--font-helper)",
+    color: "var(--muted)",
     textTransform: "uppercase",
     letterSpacing: "0.08em",
     marginBottom: "8px",
   },
   title: {
-    fontSize: "28px",
+    fontSize: "var(--font-title-lg)",
     lineHeight: 1.1,
     margin: "0 0 10px",
-    color: "#111",
+    color: "var(--black)",
   },
   text: {
     margin: "0 0 18px",
-    color: "#555",
+    color: "var(--text)",
     lineHeight: 1.5,
   },
   metaBox: {
-    border: "1px solid #efefef",
-    background: "#fafafa",
+    border: "var(--line-width-default) solid var(--line)",
+    background: "var(--soft)",
     padding: "16px",
     marginBottom: "18px",
     display: "grid",
     gap: "8px",
-    color: "#333",
+    color: "var(--text)",
     wordBreak: "break-all",
   },
   actions: {
     display: "grid",
     gap: "12px",
     marginBottom: "18px",
-  },
-  primaryBtn: {
-    border: "none",
-    background: "#111",
-    color: "#fff",
-    padding: "14px 16px",
-    fontSize: "15px",
-    cursor: "pointer",
-  },
-  secondaryBtn: {
-    border: "1px solid #ddd",
-    background: "#fff",
-    color: "#111",
-    padding: "14px 16px",
-    fontSize: "15px",
-    cursor: "pointer",
-  },
-  error: {
-    border: "1px solid #ffd5d5",
-    background: "#fff3f3",
-    color: "#b00020",
-    padding: "12px 14px",
-    marginBottom: "18px",
-  },
-  linkBtn: {
-    border: "none",
-    background: "transparent",
-    color: "#555",
-    padding: 0,
-    cursor: "pointer",
-    textDecoration: "underline",
-    fontSize: "14px",
   },
 };

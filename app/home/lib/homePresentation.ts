@@ -1,5 +1,6 @@
 import type { HomeProduct, ProductShowcaseData } from "../types";
 import type { StorefrontHomeCollection } from "./getStorefrontHome";
+import type { StorefrontSection } from "../../lib/storefrontSections";
 import { buildCategoryTree, categoryFacetTotals, categoryValue, type CategoryFacet, type CategoryOption } from "../../lib/categories";
 
 export type HomeAudience = "men" | "women" | "all";
@@ -8,6 +9,15 @@ export function homeCatalogHref(audience: HomeAudience, filters: Record<string, 
   const search = new URLSearchParams(filters);
   if (audience !== "all") search.set("audience", audience);
   return `/catalog${search.size ? `?${search}` : ""}`;
+}
+
+/** A cover belongs to the editorial entry, independently of its target's products. */
+export function buildHomeSectionCards(sections: StorefrontSection[], audience: HomeAudience = "all") {
+  return sections.filter(section => section.active && section.available && section.coverImageUrl)
+    .slice().sort((a, b) => a.sortOrder - b.sortOrder || a.id - b.id)
+    .map(section => ({ ...section, href: homeCatalogHref(audience, section.kind === "CATEGORY"
+      ? { category: section.targetSlug || String(section.targetId) }
+      : { collection: String(section.targetId) }) }));
 }
 
 export function normalizeHomeProducts(data: unknown, audience: HomeAudience = "all"): HomeProduct[] {
@@ -55,10 +65,35 @@ export function buildHomeBlocks(
 }
 
 /** Use the shared hierarchy and complete audience facets, independently of the product preview page. */
-export function homeCategories(categories: CategoryOption[], facets: CategoryFacet[], audience: HomeAudience) {
+export function homeCategories(categories: CategoryOption[], facets: CategoryFacet[], audience: HomeAudience, includeEmpty = false) {
   const totals = categoryFacetTotals(categories, facets);
   return buildCategoryTree(categories)
-    .filter(category => category.effectiveActive && (totals.get(category.id) ?? 0) > 0)
+    .filter(category => category.effectiveActive && (includeEmpty || (totals.get(category.id) ?? 0) > 0))
     .map(category => ({ title: category.label, href: homeCatalogHref(audience, { category: categoryValue(category) }) }));
+}
+
+export type HomeNavigationItem = {
+  title: string;
+  href: string;
+  kind: "catalog" | "category" | "collection";
+};
+
+/** Categories and editorial collections share one storefront navigation. */
+export function buildHomeNavigation(
+  categories: { title: string; href: string }[],
+  collections: StorefrontHomeCollection[],
+  audience: HomeAudience = "all",
+): HomeNavigationItem[] {
+  const primaryCategories = ["Одежда", "Аксессуары"].flatMap(title => {
+    const category = categories.find(item => item.title.trim().toLocaleLowerCase("ru-RU") === title.toLocaleLowerCase("ru-RU"));
+    return category ? [{ ...category, title, kind: "category" as const }] : [];
+  });
+  return [
+    { title: "Весь каталог", href: homeCatalogHref(audience), kind: "catalog" },
+    ...primaryCategories,
+    { title: "Подарки", href: audience === "all" ? "/gifts" : `/gifts?audience=${audience}`, kind: "collection" },
+    ...collections.filter(item => item.products.length > 0 && item.title.trim().toLocaleLowerCase("ru-RU") !== "подарки")
+      .map(item => ({ title: item.title, href: homeCatalogHref(audience, { collection: String(item.id) }), kind: "collection" as const })),
+  ];
 }
 

@@ -41,10 +41,12 @@ async function run(){
   assert.equal(await presentation.accountApiError(Response.json({message:"SQL private stack",path:"/api/private"},{status:500}),"Безопасная ошибка"),"Безопасная ошибка");
   assert.equal(await presentation.accountApiError(new Response("<html>upstream</html>",{status:502}),"Безопасная ошибка"),"Безопасная ошибка");
   let mode="success";const calls=[];
+  const errors=load("app/lib/apiErrors.ts");
+  const transport={API_URL:"",apiFetch:async(url,options)=>{calls.push({url,options});if(mode==="network")throw new TypeError("Private network details");if(mode!=="success")return Response.json({message:"SQL private detail"},{status:Number(mode)});return Response.json({id:1,orderId:701,productId:407,variantId:901,quantity:1,reason:"DEFECT",status:"REQUESTED",productTitle:"Товар",photoUrls:[]});}};
+  const request=load("app/lib/apiRequest.ts",{"./api":transport,"./apiErrors":errors});
   const api=load("app/lib/returns.ts",{
-    "./api":{API_URL:"",apiFetch:async(url,options)=>{calls.push({url,options});if(mode==="network")throw new TypeError("Private network details");if(mode!=="success")return Response.json({message:"SQL private detail"},{status:Number(mode)});return Response.json({id:1,photoUrls:[]});}},
+    "./api":transport,"./apiErrors":errors,"./apiRequest":request,
     "./returnPhotoUrls":{resolveReturnPhotoUrl:value=>value},
-    "../account/lib/presentation":presentation,
     "./imageUploadPolicy":load("app/lib/imageUploadPolicy.ts"),
   });
   const input={orderId:701,productId:407,variantId:901,quantity:1,reason:"DEFECT",comment:" test ",photos:[new File(["test"],"test.png",{type:"image/png"})],requestKey:"00000000-0000-0000-0000-000000000001"};

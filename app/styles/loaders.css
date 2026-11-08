@@ -10,12 +10,12 @@
 
 .loaderPage {
   min-height: calc(100vh - var(--site-header-height));
-  padding: 48px 0;
+  padding: var(--space-9) 0;
 }
 
 .loaderBlock {
   min-height: 180px;
-  padding: 32px 0;
+  padding: var(--space-7) 0;
 }
 
 .loaderMark {

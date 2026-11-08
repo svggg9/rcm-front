@@ -1,6 +1,8 @@
+import { Checkbox } from "../../../../../components/ui/Checkbox";
 import { useId } from "react";
 import { VariantNumberInput } from "./VariantNumberInput";
 import { Button } from "../../../../../components/ui/Button";
+import { TextInput } from "../../../../../components/ui/TextInput";
 import { DesignSystemIcon as Icon } from "../../../../../components/ui/DesignSystemIcon";
 import { variantColorGroupKey, inconsistentProductPriceIndexes } from "../utils";
 import type { ProductVariant } from "../types";
@@ -27,7 +29,7 @@ export function ProductVariantsCard({ countInvalid, variants, validationErrors, 
   return <section id="product-variants" className={styles.card} aria-label="Варианты товара">
     <p className={styles.sectionIntro}>Одна цена для всех оттенков и размеров товара</p>
     {base && <label className={styles.field}><span>Цена товара, ₽</span>
-      <VariantNumberInput className={styles.input} value={mixedPrices ? null : base.price || null} disabled={operationalDisabled} placeholder="0" aria-label="Цена товара"
+      <VariantNumberInput className={`input ${styles.input}`} value={mixedPrices ? null : base.price || null} disabled={operationalDisabled} placeholder="0" aria-label="Цена товара"
         aria-invalid={priceError || undefined} aria-describedby={`${id}-price-hint${priceError ? ` ${id}-price-error` : ""}`} onValue={price => variants.forEach((_, index) => onUpdateVariant(index, { price: price ?? 0 }))} />
       <small id={`${id}-price-hint`} className={styles.fieldHint}>Изменение цены применяется ко всем вариантам и размерам</small>
       {priceError && <span id={`${id}-price-error`} className="fieldError">{mixedPrices ? "У товара разные цены — укажите общую цену для всех вариантов и размеров" : "Укажите одну цену больше нуля для всего товара"}</span>}
@@ -45,13 +47,11 @@ export function ProductVariantsCard({ countInvalid, variants, validationErrors, 
             {onOpenPhotos && <Button type="button" variant="ghost" disabled={variantStructureDisabled} onClick={() => onOpenPhotos(group.key)}>Фото оттенка</Button>}
           </div>
           <div className={styles.formGrid}>
-            <label className={styles.field}><span>Название оттенка <small className={styles.fieldHint}>необязательно</small></span>
-              <input className={styles.input} disabled={variantStructureDisabled} value={first.variant.color} maxLength={64} placeholder="Например, молочный" aria-invalid={colorError || undefined}
-                aria-describedby={colorError ? `${id}-${groupIndex}-color-error` : undefined} onChange={event => changeGroup({ color: event.target.value, colorId: "" })} />
-              {colorError && <span id={`${id}-${groupIndex}-color-error`} className="fieldError">Этот оттенок уже есть — добавьте размеры в его группу</span>}
-            </label>
+            <TextInput label="Название оттенка" hint="Необязательно" disabled={variantStructureDisabled} value={first.variant.color} maxLength={64} placeholder="Например, молочный"
+              error={colorError ? "Этот оттенок уже есть — добавьте размеры в его группу" : undefined}
+              onChange={event => changeGroup({ color: event.target.value, colorId: "" })} />
           </div>
-          <label className={styles.stockToggle}><input type="checkbox" checked={tracking} ref={element => { if (element) element.indeterminate = mixedTracking; }} disabled={operationalDisabled}
+          <label className={styles.stockToggle}><Checkbox  checked={tracking} ref={element => { if (element) element.indeterminate = mixedTracking; }} disabled={operationalDisabled}
             onChange={event => { const enabled = event.target.checked; group.rows.forEach(({ variant, index }) => onUpdateVariant(index, { stockTrackingEnabled: enabled, availableQuantity: enabled ? variant.availableQuantity ?? 0 : null })); }} />
             <span>Учитывать остатки{mixedTracking ? <small>Включено для части размеров</small> : null}</span>
           </label>
@@ -60,13 +60,11 @@ export function ProductVariantsCard({ countInvalid, variants, validationErrors, 
             {group.rows.map(({ variant, index }) => {
               const errors = validationErrors[index] ?? {};
               return <div key={variant.id ?? variant.clientKey ?? index} className={styles.sizeTableRow}>
-                <label className={styles.field}><span>Размер <small className={styles.fieldHint}>необязательно</small></span>
-                  <input className={styles.input} value={variant.size} maxLength={64} disabled={variantStructureDisabled} placeholder="Без размера" aria-invalid={errors.sizeId || undefined}
-                    aria-describedby={errors.sizeId ? `${id}-${index}-size-error` : undefined} onChange={event => onUpdateVariant(index, { sizeId: "", size: event.target.value })} />
-                  {errors.sizeId && <span id={`${id}-${index}-size-error`} className="fieldError">Размер повторяется</span>}
-                </label>
+                <TextInput label="Размер" hint="Необязательно" value={variant.size} maxLength={64} disabled={variantStructureDisabled} placeholder="Без размера"
+                  error={errors.sizeId ? "Размер повторяется" : undefined}
+                  onChange={event => onUpdateVariant(index, { sizeId: "", size: event.target.value })} />
                 <label className={styles.field}><span>На складе, шт.</span>
-                  {variant.stockTrackingEnabled ? <VariantNumberInput integer className={styles.input} value={variant.availableQuantity} disabled={operationalDisabled} placeholder="0" aria-label={`На складе: ${variant.color || `вариант ${groupIndex + 1}`}, ${variant.size || "без размера"}`}
+                  {variant.stockTrackingEnabled ? <VariantNumberInput integer className={`input ${styles.input}`} value={variant.availableQuantity} disabled={operationalDisabled} placeholder="0" aria-label={`На складе: ${variant.color || `вариант ${groupIndex + 1}`}, ${variant.size || "без размера"}`}
                     aria-invalid={errors.availableQuantity || undefined} aria-describedby={errors.availableQuantity ? `${id}-${index}-quantity-error` : undefined} onValue={availableQuantity => onUpdateVariant(index, { availableQuantity })} /> : <span className={styles.untrackedStock}>Без учёта</span>}
                   {errors.availableQuantity && <span id={`${id}-${index}-quantity-error`} className="fieldError">Введите целое количество от 0</span>}
                   {(variant.reservedQuantity ?? 0) > 0 && <small className={styles.fieldHint}>В резерве {variant.reservedQuantity} | Доступно {variant.stockTrackingEnabled ? Math.max(0, (variant.availableQuantity ?? 0) - (variant.reservedQuantity ?? 0)) : "без учёта"}</small>}
@@ -85,7 +83,7 @@ export function ProductVariantsCard({ countInvalid, variants, validationErrors, 
         onClick={() => onAddVariant({ groupKey: crypto.randomUUID(), colorwayId: null, colorId: "", color: "", price: base?.price ?? 0, availableQuantity: 0 })}><Icon name="plus" role="utility" />Добавить оттенок</Button>
     </div>
     {base && <details className={styles.optionalSection}><summary>Артикул продавца <span className={styles.fieldHint}>необязательно</span></summary>
-      <label className={styles.field}><span>Внутренний артикул</span><input className={styles.input} value={base.sellerArticle ?? ""} maxLength={64} disabled={operationalDisabled} onChange={event => variants.forEach((_, index) => onUpdateVariant(index, { sellerArticle: event.target.value }))} /></label>
+      <TextInput label="Внутренний артикул" value={base.sellerArticle ?? ""} maxLength={64} disabled={operationalDisabled} onChange={event => variants.forEach((_, index) => onUpdateVariant(index, { sellerArticle: event.target.value }))} />
     </details>}
   </section>;
 }

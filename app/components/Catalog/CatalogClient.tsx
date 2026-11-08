@@ -40,6 +40,7 @@ import { Icon } from "../ui/Icon";
 import { RequestError } from "../ui/RequestError";
 import { categoryValue } from "../../lib/categories";
 import { subscribeCategoriesChanged } from "../../lib/categoryEvents";
+import { hasTooManyCatalogSearchTerms } from "../../lib/catalogSearch";
 
 type Props = {
   basePath?: string;
@@ -48,6 +49,7 @@ type Props = {
   categoryGroups: CatalogCategoryGroup[];
   mobileAvailableCategories: string[] | null;
   categoryError?: boolean;
+  collectionsError?: boolean;
   facetsError?: boolean;
   categoryLabels?: Record<string, string>;
   brands: string[];
@@ -66,6 +68,7 @@ type Props = {
   initialSort: SortValue;
   selectedView: CatalogView;
   selectedCollectionId?: number;
+  selectedBrandCollectionId?: number;
   hasError: boolean;
 };
 
@@ -210,6 +213,7 @@ export function CatalogClient({
   products,
   categoryGroups: receivedCategoryGroups,
   mobileAvailableCategories,
+  collectionsError = false,
   categoryError = false,
   facetsError = false,
   categoryLabels = {},
@@ -229,9 +233,11 @@ export function CatalogClient({
   initialSort,
   selectedView,
   selectedCollectionId,
+  selectedBrandCollectionId,
   hasError,
 }: Props) {
   const router = useRouter();
+  const invalidSearch = hasTooManyCatalogSearchTerms(searchQuery);
   const [confirmedCategoryGroups, setConfirmedCategoryGroups] = useState(receivedCategoryGroups);
   if (!categoryError && confirmedCategoryGroups !== receivedCategoryGroups) {
     setConfirmedCategoryGroups(receivedCategoryGroups);
@@ -259,9 +265,12 @@ export function CatalogClient({
     [categoryGroups, selectedCategories]
   );
   const selectedCollection = useMemo(
-    () => collections.find((collection) => collection.id === selectedCollectionId),
-    [collections, selectedCollectionId]
+    () => collections.find((collection) => selectedBrandCollectionId !== undefined
+      ? collection.source === "brand" && collection.id === selectedBrandCollectionId
+      : !collection.source && collection.id === selectedCollectionId),
+    [collections, selectedCollectionId, selectedBrandCollectionId]
   );
+  const selectedCollectionLabel = selectedCollection?.title ?? (selectedCollectionId !== undefined ? "Подборка" : "");
   const mobileCategories = useMemo(
     () => getMobileCategoryChoices(categoryGroups, mobileAvailableCategories, selectedCategories, categoryLabels),
     [categoryGroups, mobileAvailableCategories, selectedCategories, categoryLabels]
@@ -298,6 +307,7 @@ export function CatalogClient({
         page?: number;
         view?: CatalogView;
         collectionId?: number;
+        brandCollectionId?: number;
       } = {}
     ) =>
       buildCatalogQuery({
@@ -326,6 +336,8 @@ export function CatalogClient({
         collectionId: Object.prototype.hasOwnProperty.call(overrides, "collectionId")
           ? overrides.collectionId
           : selectedCollectionId,
+        brandCollectionId: overrides.category || overrides.categories?.length ? undefined :
+          Object.prototype.hasOwnProperty.call(overrides, "brandCollectionId") ? overrides.brandCollectionId : selectedBrandCollectionId,
       }),
     [
       basePath,
@@ -338,6 +350,7 @@ export function CatalogClient({
       selectedBrands,
       selectedCategories,
       selectedCollectionId,
+      selectedBrandCollectionId,
       selectedSizes,
       selectedView,
     ]
@@ -403,8 +416,8 @@ export function CatalogClient({
     ? `Результаты для «${searchQuery}»`
     : selectedCategories.length > 0
       ? selectedCategories.map(categoryLabel).join(", ")
-      : selectedCollection
-        ? selectedCollection.title
+      : selectedCollectionLabel
+        ? selectedCollectionLabel
         : selectedView === "new"
           ? "Новинки"
           : selectedAudience === "all"
@@ -443,12 +456,13 @@ export function CatalogClient({
   ];
 
   return (
-    <div className={styles.catalogPage} aria-busy={isPending}>
+    <div className={styles.catalogPage} data-brand={Boolean(lockedBrand)} aria-busy={isPending}>
       {!lockedBrand && <h1 className={styles.visuallyHidden}>{title}</h1>}
 
       {categoryError ? <RequestError variant="inline" message="Не удалось загрузить категории" onRetry={() => startTransition(() => router.refresh())} loading={isPending} /> : null}
+      {collectionsError ? <RequestError variant="inline" message="Не удалось загрузить подборки" onRetry={() => startTransition(() => router.refresh())} loading={isPending} /> : null}
       {facetsError ? <RequestError variant="inline" message="Не удалось обновить доступные категории" onRetry={() => startTransition(() => router.refresh())} loading={isPending} /> : null}
-      {categoryGroups.length > 0 ? (
+      {!lockedBrand && categoryGroups.length > 0 ? (
         <nav className={styles.primaryCategories} aria-label="Основные категории">
           {categoryGroups.map((group) => (
             <span
@@ -481,10 +495,28 @@ export function CatalogClient({
         </nav>
       ) : null}
 
-      {selectedCategories.length === 0 ? (
+      {lockedBrand ? <div className={styles.brandNavigation}>
+        <ScrollableSubcategoryNav ariaLabel="Разделы бренда">
+          <Link href={queryFor({ categories: [], view: "", collectionId: undefined, brandCollectionId: undefined, sizes: [], minPrice: undefined, maxPrice: undefined, q: "", sort: "" })}
+            data-active={!selectedCategories.length && !selectedView && selectedCollectionId === undefined && selectedBrandCollectionId === undefined}>Все товары</Link>
+          {categoryGroups.map(group => <button key={group.value} type="button"
+            data-active={categoryGroupSelected(selectedCategories, group)}
+            aria-pressed={categoryGroupSelected(selectedCategories, group)} disabled={isPending}
+            onClick={() => toggleCategory(group.value)}>{group.name}</button>)}
+          {activeCategoryGroup?.categories.map(category => <button key={category.id} type="button"
+            data-active={selectedCategories.includes(categoryValue(category))}
+            aria-pressed={selectedCategories.includes(categoryValue(category))} disabled={isPending}
+            onClick={() => toggleCategory(categoryValue(category))}>{category.label}</button>)}
+          {collections.map(collection => <Link key={`${collection.source ?? "editorial"}:${collection.id}`}
+            href={queryFor({ categories: [], view: "", collectionId: collection.source ? undefined : collection.id,
+              brandCollectionId: collection.source ? collection.id : undefined, q: "" })}
+            data-active={collection.source ? selectedBrandCollectionId === collection.id : selectedCollectionId === collection.id}>{collection.title}</Link>)}
+        </ScrollableSubcategoryNav>
+      </div> : selectedCategories.length === 0 ? (
         <ScrollableSubcategoryNav key="discovery" ariaLabel="Подборки каталога">
-          {selectedView || selectedCollectionId !== undefined ? (
-            <Link href={queryFor({ view: "", collectionId: undefined, q: "" })}>
+          {lockedBrand || selectedView || selectedCollectionId !== undefined ? (
+            <Link href={queryFor({ view: "", collectionId: undefined, q: "" })}
+              data-active={!selectedView && selectedCollectionId === undefined}>
               Все товары
             </Link>
           ) : null}
@@ -533,7 +565,7 @@ export function CatalogClient({
         </ScrollableSubcategoryNav>
       ) : null}
 
-      <div className={styles.catalogToolbar}>
+      {!lockedBrand && <div className={styles.catalogToolbar}>
         {mobileCategories.length > 1 || selectedCategories.length > 0 ? (
           <button
             type="button"
@@ -542,12 +574,12 @@ export function CatalogClient({
             aria-expanded={categoriesOpen}
             onClick={() => setCategoriesOpen(true)}
           >
-            <span>{selectedCategories.length > 1 ? `Категории: ${selectedCategories.length}` : selectedCategory ? categoryLabel(selectedCategory) : selectedCollection?.title || (selectedView === "new" ? "Новинки" : "Все товары")}</span>
+            <span>{selectedCategories.length > 1 ? `Категории: ${selectedCategories.length}` : selectedCategory ? categoryLabel(selectedCategory) : selectedCollectionLabel || (selectedView === "new" ? "Новинки" : "Все товары")}</span>
             <Icon name="chevron-down" size={17} strokeWidth={1.5} />
           </button>
         ) : (
           <span className={styles.mobileCatalogContext}>
-            {selectedCategories.length > 1 ? `Категории: ${selectedCategories.length}` : selectedCategory ? categoryLabel(selectedCategory) : selectedCollection?.title || (selectedView === "new" ? "Новинки" : "Все товары")}
+            {selectedCategories.length > 1 ? `Категории: ${selectedCategories.length}` : selectedCategory ? categoryLabel(selectedCategory) : selectedCollectionLabel || (selectedView === "new" ? "Новинки" : "Все товары")}
           </span>
         )}
         <button
@@ -606,7 +638,7 @@ export function CatalogClient({
             </div>
           ) : null}
         </div>
-      </div>
+      </div>}
 
       {activeChips.length > 0 ? (
         <div className={styles.activeFilters} aria-label="Применённые фильтры">
@@ -625,6 +657,7 @@ export function CatalogClient({
         </div>
       ) : null}
 
+      {lockedBrand && !hasError && !invalidSearch ? <p className={styles.brandProductCount}>{productCountLabel(totalProducts)}</p> : null}
       <CatalogResults
         key={`${queryFor({ page: currentPage })}|${totalProducts}|${products.map((product) => product.id).join(",")}`}
         products={products}
@@ -639,14 +672,16 @@ export function CatalogClient({
           sort: displayedSort,
           page: currentPage,
           collectionId: selectedCollectionId,
+          brandCollectionId: selectedBrandCollectionId,
         }}
         totalPages={totalPages}
         totalProducts={totalProducts}
         hasError={hasError}
+        invalidSearch={invalidSearch}
         firstPageHref={queryFor({ page: 1 })}
       />
 
-      <p className={styles.productCount}>{productCountLabel(totalProducts)}</p>
+      {!lockedBrand && !invalidSearch ? <p className={styles.productCount}>{productCountLabel(totalProducts)}</p> : null}
 
       {totalPages > 1 ? (
         <nav className={styles.pagination} aria-label="Пагинация">
@@ -671,7 +706,7 @@ export function CatalogClient({
         </nav>
       ) : null}
 
-      {filtersOpen ? (
+      {!lockedBrand && filtersOpen ? (
         <CatalogFiltersDrawer
           key={queryFor({ page: currentPage })}
           open
@@ -685,7 +720,7 @@ export function CatalogClient({
           onClose={closeFilters}
         />
       ) : null}
-      {categoriesOpen ? (
+      {!lockedBrand && categoriesOpen ? (
         <CatalogCategorySheet
           categories={mobileCategories}
           selectedCategories={selectedCategories}

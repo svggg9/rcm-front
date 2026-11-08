@@ -1,0 +1,20 @@
+.mobileForm { min-width: 0; width: 100%; --field-control-height: 44px; --field-control-padding-inline: 10px; --field-control-size: var(--font-md); }
+
+@media (max-width: 640px) {
+  .dialog[open] {
+    --dialog-body-margin: 0;
+    width: 100vw;
+    max-width: none;
+    height: 100dvh;
+    max-height: 100dvh;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    overscroll-behavior: contain;
+  }
+  .dialog > footer { margin-top: auto; padding: var(--space-4) max(var(--space-4), env(safe-area-inset-right, 0px)) max(var(--space-4), env(safe-area-inset-bottom, 0px)) max(var(--space-4), env(safe-area-inset-left, 0px)); }
+  .submit { width: 100%; }
+}

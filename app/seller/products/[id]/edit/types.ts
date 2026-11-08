@@ -1,3 +1,5 @@
+import type { ProductDetails } from "../../../../lib/productDetails";
+
 export type Audience = "MEN" | "WOMEN" | "UNISEX";
 
 export type Option = {
@@ -68,6 +70,7 @@ export type SellerProduct = {
   title: string;
   description: string;
   composition: string | null;
+  details?: ProductDetails | null;
   article: string | null;
   brandId: number | null;
   brand: string | null;

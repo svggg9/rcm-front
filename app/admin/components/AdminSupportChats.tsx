@@ -1,5 +1,7 @@
 "use client";
 
+import { AdminSearchForm } from "./AdminSearchForm";
+import { FormSelect } from "../../components/ui/FormSelect";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -30,11 +32,11 @@ export function AdminSupportChats() {
 }
 
 function SupportChatList() {
-  const params = useSearchParams(); const router = useRouter();
+  const params = useSearchParams(); const router = useRouter(); const query=params.get("q")??"";
   const rawStatus = params.get("chatStatus");
   const status: SupportChatStatus | "ALL" = rawStatus && Object.hasOwn(SUPPORT_STATUSES, rawStatus) ? rawStatus as SupportChatStatus : "ALL";
   const rawPage = Number(params.get("chatPage")); const page = Number.isSafeInteger(rawPage) && rawPage > 0 ? rawPage : 0;
-  const [revision, setRevision] = useState(0); const key = `${status}:${page}:${revision}`;
+  const [revision, setRevision] = useState(0); const key = `${status}:${page}:${revision}:${query}`;
   const [result, setResult] = useState<{ key: string; data?: SupportChatPage; error?: string }>();
   useEffect(() => {
     let stopped = false; let controller: AbortController | undefined; let timer: ReturnType<typeof setTimeout> | undefined;
@@ -42,21 +44,19 @@ function SupportChatList() {
       if (stopped || document.hidden) return;
       if (timer) clearTimeout(timer);
       controller?.abort(); const active = new AbortController(); controller = active;
-      try { const data = await getSupportChats(status, page, active.signal); if (!stopped && !active.signal.aborted) setResult({ key, data }); }
+      try { const data = await getSupportChats(status, page, active.signal, query); if (!stopped && !active.signal.aborted) setResult({ key, data }); }
       catch (reason) { if (!stopped && !active.signal.aborted) setResult({ key, error: reason instanceof ApiRequestError ? reason.message : "Не удалось загрузить диалоги" }); }
       finally { if (!stopped && !active.signal.aborted && !document.hidden) timer = setTimeout(() => void load(), 5000); }
     }
     const refresh = () => { if (!document.hidden) void load(); else { if (timer) clearTimeout(timer); controller?.abort(); } };
     void load(); window.addEventListener("focus", refresh); window.addEventListener("online", refresh); document.addEventListener("visibilitychange", refresh);
     return () => { stopped = true; if (timer) clearTimeout(timer); controller?.abort(); window.removeEventListener("focus", refresh); window.removeEventListener("online", refresh); document.removeEventListener("visibilitychange", refresh); };
-  }, [status, page, key]);
+  }, [status, page, key, query]);
   const current = result?.key === key ? result : undefined;
   function navigate(values: Record<string, string>) { const next = new URLSearchParams(params); Object.entries(values).forEach(([key, value]) => next.set(key, value)); router.push(`/admin?${next}`, { scroll: false }); }
   function href(id: number) { const next = new URLSearchParams(params); next.set("chat", String(id)); return `/admin?${next}`; }
-  return <section className={styles.root} aria-label="Диалоги поддержки">
-    <div className={styles.tools}><label className={styles.status}>Статус<select aria-label="Статус диалогов" value={status} onChange={event => navigate({ chatStatus: event.target.value, chatPage: "0" })}>
-      <option value="ALL">Все диалоги</option>{Object.entries(SUPPORT_STATUSES).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
-    </select></label><Button loading={!current} onClick={() => setRevision(value => value + 1)}>Обновить список</Button></div>
+  return <section className={styles.root} aria-label="Диалоги поддержки"><AdminSearchForm label="Имя, Telegram или текст диалога" />
+    <div className={styles.tools}><FormSelect label="Статус диалогов" value={status} options={[{value:"ALL",label:"Все диалоги"},...Object.entries(SUPPORT_STATUSES).map(([value,label])=>({value,label}))]} onChange={value=>navigate({chatStatus:String(value||"ALL"),chatPage:"0"})} /><Button loading={!current} onClick={() => setRevision(value => value + 1)}>Обновить список</Button></div>
     {!current ? <CabinetSkeleton variant="list" rows={3} compact /> : current.error ? <RequestError message={current.error} onRetry={() => setRevision(value => value + 1)} /> : null}
     {current?.data && <>{current.data.content.length ? <div className={styles.list}>{current.data.content.map(chat => <Link className={styles.chatLink} href={href(chat.id)} key={chat.id} scroll={false}>
       <div><strong>{chat.name || "Личный диалог"}</strong>{chat.telegramUsername && <p className={styles.hint}>@{chat.telegramUsername.replace(/^@+/, "")}</p>}<p>{chat.lastMessage || "Сообщений пока нет"}</p></div>

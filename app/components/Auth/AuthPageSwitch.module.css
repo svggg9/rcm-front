@@ -8,13 +8,13 @@
 
 .link {
   color: var(--black);
-  font-weight: 600;
+  font-weight: var(--font-weight-semibold);
   text-decoration: underline;
   text-underline-offset: 3px;
 }
 
 .link:hover {
-  color: var(--gold);
+  color: var(--gold-deep);
 }
 
 .link[aria-disabled="true"] {

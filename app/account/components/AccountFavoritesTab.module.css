@@ -1,7 +1,7 @@
-﻿.page {
+.page {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: var(--space-5);
 }
 
 .header h2 {
@@ -12,19 +12,19 @@
   color: var(--black);
   font-size: var(--font-xl);
   line-height: 1.2;
-  font-weight: 400;
+  font-weight: var(--font-weight-regular);
 }
 
 .count {
   color: var(--gold-muted);
   font-size: var(--font-md);
-  font-weight: 400;
+  font-weight: var(--font-weight-regular);
 }
 
 .grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 24px 16px;
+  gap: var(--space-6) var(--space-4);
   min-height: 360px;
   margin: 0;
   padding: 0;
@@ -34,13 +34,13 @@
 @media (min-width: 900px) {
   .grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 28px 20px;
+    gap: 28px var(--space-5);
   }
 }
 
 @media (max-width: 560px) {
   .grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 20px 10px;
+    gap: var(--space-5) 10px;
   }
 }

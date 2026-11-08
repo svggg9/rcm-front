@@ -1,4 +1,6 @@
 "use client";
+import { useOrderActions } from "../../lib/useOrderActions";
+import { OrderWorkflowSummary } from "../../components/order-detail/OrderWorkflowSummary";
 import { paymentConfirmationUrl } from "../../lib/paymentRedirect";
 
 import { useEffect, useRef, useState } from "react";
@@ -38,6 +40,7 @@ export function AccountOrderDetails({
   formatDeliveryStatus,
   buildOrderStatusLabel,
 }: Props) {
+  const action = useOrderActions(order);
   const [clock, setClock] = useState(() => Date.now());
   const [group, setGroup] = useState<Order[] | null>(null);
   const [groupError, setGroupError] = useState(false);
@@ -70,28 +73,18 @@ export function AccountOrderDetails({
   const [returnsRetry,setReturnsRetry]=useState(0);
   const latestOrder = useRef({ order, onOrderUpdated });
   useEffect(() => { latestOrder.current = { order, onOrderUpdated }; }, [order, onOrderUpdated]);
-  const [cancellationWindowOpen, setCancellationWindowOpen] = useState(() =>
-    isCancellationWindowOpen(order.cancellationAvailableUntil)
-  );
-
-  const awaitingPayment = order.status === "NEW" && order.paymentStatus === "PENDING";
+  const awaitingPayment = action("PAY").allowed || (order.status === "NEW" && order.paymentStatus === "PENDING");
   const [paymentDeadlineOpen, setPaymentDeadlineOpen] = useState(() =>
     !order.paymentDueAt || new Date(order.paymentDueAt).getTime() > Date.now()
   );
-  const canPay = Boolean(group) && awaitingPayment && !checkingPayment && order.paymentAllowed !== false && paymentDeadlineOpen
-    && !order.unpaidCancellationPending && !order.paymentReviewRequired;
-  const canCancel =
-    order.cancellationAllowed &&
-    (awaitingPayment || cancellationWindowOpen) &&
-    !order.cancellationRequestedAt && !order.unpaidCancellationPending;
+  const canPay = Boolean(group) && !checkingPayment && action("PAY").allowed;
+  const canCancel = action("CANCEL").allowed;
+  const cancellingGroup = action("CANCEL").scope === "ORDER_GROUP";
   const cancellationPending =
     Boolean(order.cancellationRequestedAt || order.unpaidCancellationPending) &&
     order.paymentStatus !== "REFUNDED" &&
     order.status !== "CANCELED";
-  const returnsAvailable =
-    order.paymentStatus === "PAID" &&
-    (order.status === "COMPLETED" || order.deliveryStatus === "DELIVERED") &&
-    (order.returnAvailableUntil === undefined || Boolean(order.returnAvailableUntil && new Date(order.returnAvailableUntil).getTime() > Date.now()));
+  const returnsAvailable = action("REQUEST_RETURN").allowed;
 
   useEffect(() => {
     let cancelled = false;
@@ -123,21 +116,7 @@ export function AccountOrderDetails({
     return () => { cancelled = true; clearInterval(timer); };
   }, [order.id, returnsRetry]);
 
-  useEffect(() => {
-    const deadline = order.cancellationAvailableUntil
-      ? new Date(order.cancellationAvailableUntil).getTime()
-      : Number.NaN;
-    const remaining = deadline - Date.now();
 
-    setCancellationWindowOpen(Number.isFinite(deadline) && remaining > 0);
-    if (!Number.isFinite(deadline) || remaining <= 0) return;
-
-    const timeout = window.setTimeout(
-      () => setCancellationWindowOpen(false),
-      Math.min(remaining, 2_147_483_647)
-    );
-    return () => window.clearTimeout(timeout);
-  }, [order.cancellationAvailableUntil]);
 
   useEffect(() => {
     const deadline = order.paymentDueAt ? new Date(order.paymentDueAt).getTime() : Number.NaN;
@@ -197,7 +176,7 @@ export function AccountOrderDetails({
       const updatedOrder = (await response.json()) as Order;
       onOrderUpdated(
         updatedOrder,
-        awaitingPayment ? updatedOrder.orderGroupId : undefined
+        cancellingGroup ? updatedOrder.orderGroupId : undefined
       );
       setConfirmCancellation(false);
     } catch (error) {
@@ -215,6 +194,7 @@ export function AccountOrderDetails({
   const progressVisible = order.status !== "CANCELED" && !["RETURNED", "CANCELLED"].includes(order.deliveryStatus);
   const stages = ["Создан", "Готовится к отправке", "В пути", "Можно получить", "Получен"];
   return <section className={styles.page}>
+    <OrderWorkflowSummary workflow={order.workflow}/>
     <div className={styles.meta}><span className={styles.status} data-tone={orderTone(order)}>{buildOrderStatusLabel(order)}</span><time dateTime={order.createdAt}>{orderDate(order.createdAt)}</time></div>
     {awaitingPayment || cancellationPending || order.paymentReviewRequired || canCancel ? <div className={styles.actions}>
       {canPay && remaining !== null ? <div className={styles.deadline}>Оплатите в течение {Math.floor(remaining / 60)}:{String(remaining % 60).padStart(2,"0")}</div> : null}
@@ -227,7 +207,7 @@ export function AccountOrderDetails({
       {order.paymentReviewRequired && !cancellationPending ? <div className={styles.notice} role="status"><strong>Проверяем оплату</strong>Если деньги списаны, мы проверим платёж и сообщим результат</div> : null}
       {awaitingPayment && !paymentDeadlineOpen && !order.paymentReviewRequired && !cancellationPending ? <div className={styles.notice}>Срок оплаты истёк — проверяем завершение заказа</div> : null}
       {canCancel && !confirmCancellation ? <Button variant="ghost" onClick={() => setConfirmCancellation(true)}>Отменить заказ</Button> : null}
-      {canCancel && confirmCancellation ? <div className={styles.confirm}><strong>{awaitingPayment ? "Отменить неоплаченную покупку?" : "Отменить заказ?"}</strong><p>{awaitingPayment ? "Отменим все отправления этой покупки. Если платёж уже начат, сначала проверим его результат" : "Деньги вернутся тем же способом оплаты"}</p><Button variant="secondary" loading={cancelling} onClick={() => void handleCancel()}>Да, отменить</Button><Button variant="ghost" disabled={cancelling} onClick={() => setConfirmCancellation(false)}>Не отменять</Button></div> : null}
+      {canCancel && confirmCancellation ? <div className={styles.confirm}><strong>{cancellingGroup ? "Отменить неоплаченную покупку?" : "Отменить заказ?"}</strong><p>{cancellingGroup ? "Отменим все отправления этой покупки. Если платёж уже начат, сначала проверим его результат" : "Деньги вернутся тем же способом оплаты"}</p><Button variant="secondary" loading={cancelling} onClick={() => void handleCancel()}>Да, отменить</Button><Button variant="ghost" disabled={cancelling} onClick={() => setConfirmCancellation(false)}>Не отменять</Button></div> : null}
       {payError || cancellationError ? <div className={styles.error} role="alert">{payError || cancellationError}</div> : null}
     </div> : null}
     {group && group.length > 1 ? <div className={styles.group}><span>Отправления этой покупки:</span>{group.map(item => <Link key={item.id} href={`/account?tab=orders&orderId=${item.id}`} aria-current={item.id === order.id ? "page" : undefined}>№ {orderNumber(item)}</Link>)}</div> : null}
@@ -270,5 +250,4 @@ function paymentMethodLabel(value?: string | null) {
   if (value === "SBP") return "СБП";
   return "Способ оплаты уточняется";
 }
-function isCancellationWindowOpen(value: string | null) { return Boolean(value && new Date(value).getTime() > Date.now()); }
-function formatDeliveryMethod(value: string) { return value === "COURIER" ? "Курьером" : value === "PICKUP_POINT" || value === "PICKUP" ? "Пункт выдачи СДЭК" : "Доставка"; }
+function formatDeliveryMethod(value: string | null) { return value === "COURIER" ? "Курьером" : value === "PICKUP_POINT" || value === "PICKUP" ? "Пункт выдачи СДЭК" : "Доставка"; }

@@ -1,16 +1,19 @@
 .field { position: relative; width: 100%; }
 .field[data-open] { z-index: 20; }
-.dropdown { position: absolute; top: 100%; left: 0; right: 0; border: 1px solid var(--black); border-top: 0; background: var(--white); pointer-events: auto; }
-.trigger { width: 100%; min-height: 44px; padding: 12px 10px; text-align: left; font-size: 12px; line-height: 18px; font-weight: 400; text-transform: uppercase; }
+.field[data-open] > :global([data-product-size]) { border-bottom-width: 0; border-radius: var(--button-radius) var(--button-radius) 0 0; }
+.dropdown { position: absolute; top: 100%; left: 0; right: 0; overflow: hidden; border: var(--line-width-default) solid var(--button-primary-bg); border-top: 0; border-radius: 0 0 var(--button-radius) var(--button-radius); background: var(--white); pointer-events: auto; }
+.trigger { width: 100%; min-height: 44px; padding: var(--space-3) 10px; text-align: left; font-size: var(--font-helper); line-height: var(--caption-line-height); font-weight: var(--font-weight-regular); text-transform: uppercase; }
 .trigger:focus-visible { outline: 2px solid var(--black); outline-offset: 3px; }
 
 @media (max-width: 640px) {
+  .field[data-open] > :global([data-product-size]) { border-top-width: 0; border-bottom-width: var(--line-width-default); border-radius: 0 0 var(--button-radius) var(--button-radius); }
   .dropdown {
     /* Reserve the bottom navigation, purchase bar, heading and top safe area. */
     --size-options-list-max-height: min(274px, max(44px, calc(100dvh - var(--buyer-bottom-nav-height) - var(--product-purchase-height) - env(safe-area-inset-top, 0px) - 84px)));
     top: auto;
     bottom: 100%;
-    border-top: 1px solid var(--black);
+    border-top: var(--line-width-default) solid var(--button-primary-bg);
     border-bottom: 0;
+    border-radius: var(--button-radius) var(--button-radius) 0 0;
   }
 }

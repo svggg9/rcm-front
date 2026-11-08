@@ -1,12 +1,12 @@
 "use client";
 
-import Link from "next/link";
 import { useCallback, useMemo, useRef, useState, type CSSProperties } from "react";
 
 import { ProductCarousel } from "../ProductCarousel/ProductCarousel";
 import { ProductTile } from "../ProductTile/ProductTile";
 import type { CarouselProduct } from "../ProductCarousel/types";
 import styles from "./ProductShowcase.module.css";
+import { ProductShowcaseAction } from "./ProductShowcaseAction";
 
 type ShowcaseVariant = "grid" | "carousel";
 type ShowcaseDensity = "default" | "compact";
@@ -23,6 +23,7 @@ type Props = {
   description?: string | null;
   presentation?: "default" | "storefront";
   mobileLayout?: "rail" | "grid";
+  maxProducts?: number;
   onFavoriteChange?: (product: CarouselProduct, isFavorite: boolean) => void;
 };
 
@@ -38,6 +39,7 @@ export function ProductShowcase({
   description,
   presentation = "default",
   mobileLayout = "rail",
+  maxProducts,
   onFavoriteChange,
 }: Props) {
   const scrollerRef = useRef<HTMLUListElement | null>(null);
@@ -46,9 +48,9 @@ export function ProductShowcase({
   const visibleProducts = useMemo(
     () =>
       variant === "grid"
-        ? products.slice(0, density === "compact" ? 5 : 4)
+        ? products.slice(0, maxProducts ?? (density === "compact" ? 5 : 4))
         : products,
-    [density, products, variant]
+    [density, maxProducts, products, variant]
   );
   const label =
     actionLabel ?? (variant === "grid" ? "Каталог" : "Показать больше");
@@ -78,14 +80,12 @@ export function ProductShowcase({
       data-mobile-layout={mobileLayout}
     >
       <div className={styles.header}>
-        <div><h2 className={styles.title}>{title}</h2>
+        <div><h2 className={`${styles.title} ${presentation === "storefront" ? styles.storefrontTitle : ""}`.trim()}>{title}</h2>
           {description ? <p className={styles.description}>{description}</p> : null}
         </div>
 
         {href ? (
-          <Link href={href} className={styles.headerAction}>
-            {label}
-          </Link>
+          <ProductShowcaseAction href={href} label={label} className={styles.headerAction} />
         ) : null}
       </div>
 

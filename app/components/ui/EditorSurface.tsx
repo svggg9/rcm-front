@@ -7,7 +7,7 @@ import { Icon } from "./Icon";
 import styles from "./EditorSurface.module.css";
 import { RcmToaster } from "./RcmToaster";
 import { toast } from "./toast";
-import { lockModalScroll } from "./modalScrollLock";
+import { useModalDialog } from "./useModalDialog";
 
 export function requestEditorNavigation(action: () => void, { completed = false }: { completed?: boolean } = {}) {
   // A confirmed, successful mutation has already resolved the unsaved draft.
@@ -112,18 +112,7 @@ export function EditorSurface({ title, headerMeta, subtitle, headerActions, chil
       window.history.back();
     }
   },[dirty,busy,guardNavigation,titleId]);
-  useEffect(() => {
-    if (presentation === "page") return;
-    const dialog = ref.current!;
-    const focus = document.activeElement;
-    dialog.showModal();
-    const unlock = lockModalScroll();
-    return () => {
-      dialog.close();
-      unlock();
-      if (focus instanceof HTMLElement && focus.isConnected) focus.focus({ preventScroll: true });
-    };
-  }, [presentation]);
+  useModalDialog(ref, { enabled: presentation !== "page" });
   useEffect(() => {
     if (!toastId) return;
     return () => {
@@ -177,7 +166,7 @@ export function EditorSurface({ title, headerMeta, subtitle, headerActions, chil
           {subtitle ? <div className={styles.subtitle} title={typeof subtitle === "string" ? subtitle : undefined}>{subtitle}</div> : null}
         </div>
         {headerActions ? <div className={styles.headerActions}>{headerActions}</div> : null}
-        {presentation === "dialog" ? <Button variant="ghost" className={styles.close} aria-label={closeLabel} disabled={busy} onClick={requestClose}><Icon name="x" /></Button> : null}
+        {presentation === "dialog" ? <Button type="button" variant="ghost" iconOnly className={styles.close} aria-label={closeLabel} disabled={busy} onClick={requestClose}><Icon name="x" /></Button> : null}
       </header>
       {navigation ? <div className={styles.navigation} data-editor-navigation>{navigation}</div> : null}
     </>;

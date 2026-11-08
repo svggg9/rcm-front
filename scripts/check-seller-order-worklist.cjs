@@ -127,20 +127,32 @@ async function main() {
     const errors = [];
     page.on("pageerror", error => errors.push(error.message));
     await page.goto(origin + "/seller/orders");
+    // The heading can be server-rendered before the radio handlers are hydrated.
+    await page.waitForLoadState("networkidle");
     const results = page.getByRole("region", { name: "Список заказов", exact: true });
     const filters = page.getByRole("radiogroup", { name: "Фильтр заказов", exact: true });
+    const waitForOrderCount = count => page.waitForFunction(expected =>
+      document.querySelectorAll('[role="region"][aria-label="Список заказов"] article').length === expected, count);
+    const selectFilter = async label => {
+      await filters.getByRole("radio", { name: label, exact: true }).click();
+      await page.waitForFunction(expected =>
+        [...document.querySelectorAll('[role="radiogroup"][aria-label="Фильтр заказов"] [role="radio"]')]
+          .some(button => button.textContent.trim() === expected && button.getAttribute("aria-checked") === "true"), label);
+    };
     await page.getByRole("heading", { name: "Заказы", level: 1, exact: true }).waitFor();
     await page.getByRole("link", { name: /Подготовить отправку заказа/ }).waitFor();
     assert.equal(await filters.getByRole("radio", { name: "Нужно отправить", exact: true }).getAttribute("aria-checked"), "true", "Needs shipment is the default seller filter");
     assert.equal(await results.locator("article").count(), 1, "The initial seller worklist only contains the ready order");
-    await filters.getByRole("radio", { name: "Все", exact: true }).click();
+    await selectFilter("Все");
+    await waitForOrderCount(5);
     assert.equal(await results.locator("article").count(), 5);
     assert.equal(await page.getByRole("button", { name: /Ещё .* товар/ }).count(), 0, "No inline expansion");
     for (const label of ["Нужно отправить", "Не оплачены", "В доставке", "Завершённые", "Отменённые"]) {
-      await filters.getByRole("radio", { name: label, exact: true }).click();
+      await selectFilter(label);
+      await waitForOrderCount(1);
       assert.equal(await results.locator("article").count(), 1, label);
     }
-    await filters.getByRole("radio", { name: "Все", exact: true }).click();
+    await selectFilter("Все");
     const search = page.getByPlaceholder("Номер заказа, товар или получатель");
     const searchTrigger = page.getByRole("button", { name: "Поиск заказов", exact: true });
     await searchTrigger.click();
@@ -150,15 +162,16 @@ async function main() {
     await search.fill("нет такого заказа");
     await page.getByText("Заказов нет", { exact: true }).waitFor();
     await search.fill("Тестовый");
+    await waitForOrderCount(5);
     assert.equal(await results.locator("article").count(), 5);
     await page.keyboard.press("Escape");
     await searchPanel.waitFor({ state: "hidden" });
     assert.equal(await searchTrigger.evaluate(element => element === document.activeElement), true, "Escape restores search trigger focus");
-    await filters.getByRole("radio", { name: "Нужно отправить", exact: true }).click();
+    await selectFilter("Нужно отправить");
     await page.keyboard.press("ArrowRight");
     assert.equal(await filters.getByRole("radio", { name: "Не оплачены", exact: true }).getAttribute("aria-checked"), "true");
     assert.equal(await results.locator("article").count(), 1);
-    await filters.getByRole("radio", { name: "Все", exact: true }).click();
+    await selectFilter("Все");
     fs.mkdirSync(path.resolve("build/order-worklist-screenshots"), { recursive: true });
     for (const width of [1280, 390, 320]) {
       await page.setViewportSize({ width, height: 1000 });

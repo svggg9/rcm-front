@@ -8,7 +8,8 @@ import {ListLoadMore} from "../../components/ui/ListLoadMore";
 import {EditorSurface} from "../../components/ui/EditorSurface";
 import {Price} from "../../components/ui/Price";
 import {apiFetch,API_URL} from "../../lib/api";
-import {getAccountReturns,returnReasonLabels,returnStatusLabels,type AccountReturnListItem} from "../../lib/returns";
+import {getAccountReturns,getOrderReturns,returnAction,returnReasonLabels,returnStatusLabels,type AccountReturnListItem,type ReturnRequest} from "../../lib/returns";
+import {ReturnWorkflowSummary} from "../../components/order-detail/ReturnWorkflowSummary";
 import {accountApiError,orderDate} from "../lib/presentation";
 import {AccountOrdersTab} from "./AccountOrdersTab";
 import type {OrderListItem,PageResponse} from "../types";
@@ -19,6 +20,7 @@ export function AccountReturnsTab({onOpenOrders,onOpenOrder}:{onOpenOrders:()=>v
   const [choosing,setChoosing]=useState(false),[purchases,setPurchases]=useState<OrderListItem[]|null>(null),[purchaseTotal,setPurchaseTotal]=useState(0),[purchasePage,setPurchasePage]=useState(0),[purchaseLoading,setPurchaseLoading]=useState(false),[purchaseError,setPurchaseError]=useState(false);
   const busy=useRef(false),purchaseBusy=useRef(false);
   const [documents,setDocuments]=useState<Record<number,boolean>>({}),[downloading,setDownloading]=useState<number|null>(null);
+  const [details,setDetails]=useState<Record<number,ReturnRequest>>({}),[detailLoading,setDetailLoading]=useState<number|null>(null);
   useEffect(()=>{const controller=new AbortController();setLoading(true);setError(null);
     void getAccountReturns({signal:controller.signal}).then(result=>{setItems(result.items);setNextPage(result.page+1);setTotal(result.totalItems);}).catch(()=>{if(!controller.signal.aborted)setError("Не удалось загрузить возвраты");}).finally(()=>{if(!controller.signal.aborted)setLoading(false);});
     return()=>controller.abort();
@@ -34,8 +36,14 @@ export function AccountReturnsTab({onOpenOrders,onOpenOrder}:{onOpenOrders:()=>v
       setPurchases(current=>more?[...(current??[]),...page.content]:page.content);setPurchaseTotal(page.totalElements);setPurchasePage(page.number+1);
     }catch{setPurchaseError(true);}finally{purchaseBusy.current=false;setPurchaseLoading(false);}
   }
-  async function download(id:number,type:"waybill"|"barcode"){
-    if(downloading!==null)return;setDownloading(id);setError(null);
+  async function loadDetail(request:AccountReturnListItem){
+    if(detailLoading!==null)return;setDetailLoading(request.id);setError(null);
+    setDetails(current=>{const next={...current};delete next[request.id];return next;});
+    try{const result=(await getOrderReturns(request.orderId)).find(item=>item.id===request.id);if(!result)throw new Error("Возврат не найден — обновите список");setDetails(current=>({...current,[request.id]:result}));}
+    catch(failure){setError(failure instanceof Error?failure.message:"Не удалось проверить возврат");}finally{setDetailLoading(null);}
+  }
+  async function download(request:ReturnRequest,type:"waybill"|"barcode"){
+    if(downloading!==null||!returnAction(request,"DOWNLOAD_DOCUMENTS").allowed)return;const id=request.id;setDownloading(id);setError(null);
     try{
       if(!documents[id]){const ready=await apiFetch(`${API_URL}/api/returns/${id}/documents`);if(!ready.ok)throw new Error(await accountApiError(ready,"Документы пока недоступны"));setDocuments(current=>({...current,[id]:true}));}
       const response=await apiFetch(`${API_URL}/api/returns/${id}/documents/${type}`);
@@ -54,7 +62,11 @@ export function AccountReturnsTab({onOpenOrders,onOpenOrder}:{onOpenOrders:()=>v
       {request.adminComment?<p className={styles.comment}>{request.adminComment}</p>:null}
       {request.approvedRefundAmount!==null?<p className={styles.comment}>Подтверждённая сумма: <Price amount={request.approvedRefundAmount}/></p>:null}
       {request.trackingUrl?<a className={styles.orderLink} href={request.trackingUrl} target="_blank" rel="noreferrer">Отследить возврат ↗</a>:null}
-      {["WAITING_FOR_ITEM","IN_TRANSIT"].includes(request.status)?<div className={styles.documents}><Button variant="ghost" loading={downloading===request.id} onClick={()=>void download(request.id,"waybill")}>Накладная</Button><Button variant="ghost" disabled={downloading!==null} onClick={()=>void download(request.id,"barcode")}>Штрихкод</Button></div>:null}
+      {request.status==="WAITING_FOR_ITEM"&&request.manualDelivery===true?<p className={styles.comment}>Оператор согласует с вами способ возврата</p>:null}
+      {!details[request.id]?<Button variant="ghost" loading={detailLoading===request.id} disabled={detailLoading!==null} onClick={()=>void loadDetail(request)}>Действия по возврату</Button>:<>
+        <ReturnWorkflowSummary workflow={details[request.id].workflow} onRefresh={()=>void loadDetail(request)}/>
+        {returnAction(details[request.id],"DOWNLOAD_DOCUMENTS").allowed?<div className={styles.documents}><Button variant="ghost" loading={downloading===request.id} disabled={downloading!==null} onClick={()=>void download(details[request.id],"waybill")}>Накладная</Button><Button variant="ghost" disabled={downloading!==null} onClick={()=>void download(details[request.id],"barcode")}>Штрихкод</Button></div>:null}
+      </>}
     </article>)}</div><ListLoadMore loaded={items.length} total={total} loading={loadingMore} onLoadMore={loadMore}/><Button variant="secondary" onClick={()=>void choose()}>Оформить ещё возврат</Button></>:null}
     {choosing?<EditorSurface title="Выберите покупку" onClose={()=>setChoosing(false)}>
       {purchaseError?<div className={styles.error}>Не удалось загрузить покупки<Button variant="ghost" onClick={()=>void choose()}>Повторить</Button></div>:null}

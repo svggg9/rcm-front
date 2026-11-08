@@ -21,6 +21,7 @@ export function AdminSidebar({
       title="Админка"
       onNavigate={onNavigate}
       items={[
+        {href:"/admin?tab=overview",label:"Обзор",icon:"dashboard",active:currentTab==="overview"},
         {
           href: "/admin?tab=storefront",
           label: "Витрина",
@@ -42,10 +43,11 @@ export function AdminSidebar({
           icon: "shopping-bag",
           active: currentTab === "orders",
         },
+        {href:"/admin?tab=returns",label:"Возвраты",icon:"shopping-bag",active:currentTab==="returns"},
         {
           href: "/admin?tab=sellers",
           label: "Продавцы",
-          mobileLabel: "Заявки",
+          mobileLabel: "Продавцы",
           icon: "store",
           active: currentTab === "sellers",
         },
@@ -59,7 +61,7 @@ export function AdminSidebar({
         {
           href: "/admin?tab=dictionaries",
           label: "Справочники",
-          mobileLabel: "Словари",
+          mobileLabel: "Справочники",
           icon: "settings",
           active: currentTab === "dictionaries",
         },
@@ -72,11 +74,12 @@ export function AdminSidebar({
         },
         {
           href: "/admin?tab=delivery",
-          label: "СДЭК",
-          mobileLabel: "СДЭК",
+          label: "Доставка",
+          mobileLabel: "Доставка",
           icon: "truck",
           active: currentTab === "delivery",
         },
+        {href:"/admin?tab=activity",label:"История действий",icon:"file",active:currentTab==="activity"},
       ]}
     />
   );

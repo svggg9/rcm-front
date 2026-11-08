@@ -1,0 +1,7 @@
+.patterns { display: grid; gap: var(--space-7); margin-block: var(--space-6); }
+.patterns section { display: grid; gap: var(--space-3); min-width: 0; }
+.patterns h3 { font-size: var(--font-lg); font-weight: var(--font-weight-medium); }
+.tiles, .galleries { display: grid; grid-template-columns: repeat(2, minmax(0, 220px)); gap: var(--space-4); padding: 0; margin: 0; list-style: none; }
+.panel { width: min(100%, 390px); border: var(--line-width-default) solid var(--line); }
+.inline { display: flex; align-items: center; gap: var(--space-3); }
+.support { width: min(100%, 690px); min-width: 0; }

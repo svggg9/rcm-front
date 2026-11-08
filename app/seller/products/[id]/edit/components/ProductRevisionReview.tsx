@@ -1,8 +1,9 @@
 import Image from "next/image";
 import type { SellerProduct } from "../types";
 import styles from "../ProductEditPage.module.css";
+import { PRODUCT_DETAILS_FIELDS, normalizeProductDetails } from "../../../../../lib/productDetails";
 
-type Content = Pick<SellerProduct, "title" | "description" | "composition" | "category" | "audience" | "packageWidthCm" | "packageHeightCm" | "packageLengthCm" | "packageWeightKg"> & { variantSummary: string; photos: string[] };
+type Content = Pick<SellerProduct, "title" | "description" | "composition" | "details" | "category" | "audience" | "packageWidthCm" | "packageHeightCm" | "packageLengthCm" | "packageWeightKg"> & { variantSummary: string; photos: string[] };
 
 export function ProductRevisionReview({ source, current }: { source: SellerProduct; current: Content }) {
   const audience = { MEN: "Для мужчин", WOMEN: "Для женщин", UNISEX: "Для всех" };
@@ -13,6 +14,8 @@ export function ProductRevisionReview({ source, current }: { source: SellerProdu
     ["Кому подходит", audience[source.audience], audience[current.audience]],
     ["Описание", source.description, current.description],
     ["Состав", source.composition, current.composition],
+    ...PRODUCT_DETAILS_FIELDS.map(({ key, label }): [string, string, string] =>
+      [label, normalizeProductDetails(source.details)[key], normalizeProductDetails(current.details)[key]]),
     ["Варианты", variants, current.variantSummary],
     ["Длина упаковки, см", source.packageLengthCm, current.packageLengthCm],
     ["Ширина упаковки, см", source.packageWidthCm, current.packageWidthCm],

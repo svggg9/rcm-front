@@ -1,8 +1,8 @@
 .form {
   display: grid;
-  gap: 16px;
+  gap: var(--space-4);
   max-width: 620px;
-  margin-block: 24px;
+  margin-block: var(--space-6);
 }
 
 .form h3,

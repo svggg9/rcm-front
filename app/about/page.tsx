@@ -74,7 +74,7 @@ export default function AboutPage() {
               </Link>
 
               <Link className="buttonSecondary" href="/catalog">
-                Каталог
+                В каталог
               </Link>
             </div>
           </div>

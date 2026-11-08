@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef } from "react";
+import { useEffect, useRef } from "react";
 import styles from "./CabinetTabs.module.css";
 
 export type CabinetTabItem<T extends string> = {
@@ -37,9 +37,27 @@ export function CabinetTabs<T extends string>({
   disabled = false,
 }: Props<T>) {
   const tabRefs = useRef(new Map<T, HTMLButtonElement>());
+  const scrollerRef = useRef<HTMLDivElement>(null);
   const pinnedItem = pinFirst ? items[0] : null;
   const scrollItems = pinFirst ? items.slice(1) : items;
   const linkedPanel = Boolean(panelId);
+
+  useEffect(() => {
+    const scroller = scrollerRef.current;
+    if (!scroller) return;
+    const revealSelected = () => {
+      const selected = tabRefs.current.get(value);
+      if (!selected || !scroller.contains(selected)) return;
+      const viewport = scroller.getBoundingClientRect();
+      const target = selected.getBoundingClientRect();
+      if (target.left < viewport.left) scroller.scrollLeft -= viewport.left - target.left;
+      else if (target.right > viewport.right) scroller.scrollLeft += target.right - viewport.right;
+    };
+    revealSelected();
+    const observer = new ResizeObserver(revealSelected);
+    observer.observe(scroller);
+    return () => observer.disconnect();
+  }, [value]);
 
   function renderItem(item: CabinetTabItem<T>) {
     const active = item.value === value;
@@ -99,7 +117,7 @@ export function CabinetTabs<T extends string>({
           <div className={styles.pinned}>{renderItem(pinnedItem)}</div>
         ) : null}
 
-        <div className={styles.scroller}>
+        <div className={styles.scroller} ref={scrollerRef}>
           <div className={styles.list}>
             {scrollItems.map((item) => renderItem(item))}
           </div>

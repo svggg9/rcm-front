@@ -1,4 +1,10 @@
+import type { ProductDetails } from "../lib/productDetails";
+import type { StorefrontSection } from "../lib/storefrontSections";
+
 export type AdminTab =
+  | "overview"
+  | "returns"
+  | "activity"
   | "storefront"
   | "products"
   | "orders"
@@ -14,6 +20,21 @@ export type AdminStorefrontHome = {
   heroPositionX: number;
   heroPositionY: number;
   collections: AdminStorefrontCollection[];
+  sections: AdminStorefrontSection[];
+  newArrivalsCollectionId: number | null;
+  newArrivalsCount: number;
+};
+
+export type AdminStorefrontSection = StorefrontSection;
+
+export type AdminStorefrontSectionRequest = {
+  kind: StorefrontSection["kind"];
+  targetId: number;
+  active: boolean;
+  coverPositionX: number;
+  coverPositionY: number;
+  removeCover?: boolean;
+  file?: File;
 };
 
 export type AdminStorefrontProduct = {
@@ -74,11 +95,14 @@ export type AdminProductVariant = {
 };
 
 export type AdminProduct = {
+  details?: ProductDetails | null;
   colorways?: { id: number; colorId?: number | null; color: string | null; colorHex?: string | null }[];
   revisionSourceId?: number | null;
   id: number;
   title: string;
   description: string;
+  composition?: string | null;
+  article?: string | null;
   brand: string | null;
   categoryId: number | null;
   category: string | null;
@@ -243,97 +267,19 @@ export type PayoutGenerationResult = {
   }>;
 };
 
-export type AdminOrderStatus =
-  | "NEW"
-  | "CONFIRMED"
-  | "PROCESSING"
-  | "SHIPPED"
-  | "COMPLETED"
-  | "PAID"
-  | "CANCELED";
+export type AdminOrderStatus = import("../lib/order-contract").OrderStatus;
 
-export type AdminPaymentStatus =
-  | "PENDING"
-  | "PAID"
-  | "FAILED"
-  | "CANCELED"
-  | "REFUNDED";
+export type AdminPaymentStatus = import("../lib/order-contract").PaymentStatus;
 
-export type AdminDeliveryStatus =
-  | "PENDING"
-  | "READY_FOR_SHIPMENT"
-  | "READY_FOR_PICKUP"
-  | "IN_TRANSIT"
-  | "DELIVERED"
-  | "RETURNED"
-  | "CANCELLED";
+export type AdminDeliveryStatus = import("../lib/order-contract").DeliveryStatus;
 
-export type AdminOrderItem = {
-  productId: number;
-  productPublicId?: string | null;
-  variantId: number;
-  sellerId: number;
-  sku: string;
-  productTitle: string;
-  brandName: string | null;
-  size: string;
-  color: string;
-  imageUrl: string | null;
-  quantity: number;
-  price: number;
-  lineTotal: number;
-};
+export type AdminOrderItem = import("../lib/order-contract").OrderItem;
 
-export type AdminOrderDeliveryInfo = {
-  provider: string | null;
-  method: string | null;
-  requestId: string | null;
-  cdekNumber: string | null;
-  shipmentStatus: string | null;
-  trackingUrl: string | null;
-  priceAmount: number | null;
-  currency: string | null;
-};
+export type AdminOrderDeliveryInfo = import("../lib/order-contract").OrderDeliveryInfo;
 
-export type AdminOrder = {
-  id: number;
-  orderGroupId: string;
-  status: AdminOrderStatus;
-  paymentStatus: AdminPaymentStatus;
-  deliveryStatus: AdminDeliveryStatus;
-  subtotalAmount: number;
-  deliveryAmount: number;
-  discountAmount: number;
-  totalAmount: number;
-  currency: string;
-  recipientName: string;
-  recipientPhone: string;
-  deliveryAddress: string;
-  deliveryMethod: string;
-  fittingMode: string | null;
-  trackingNumber: string | null;
-  createdAt: string;
-  cancellationRequestedAt?: string | null;
-  cancelledAt?: string | null;
-  items: AdminOrderItem[];
-  delivery: AdminOrderDeliveryInfo | null;
-};
+export type AdminOrder = import("../lib/order-contract").Order;
 
-export type AdminOrderListItem = {
-  id: number;
-  orderGroupId: string;
-  status: AdminOrderStatus;
-  paymentStatus: AdminPaymentStatus;
-  deliveryStatus: AdminDeliveryStatus;
-  totalAmount: number;
-  currency: string;
-  recipientName: string;
-  firstProductTitle: string | null;
-  productTitles?: string[];
-  firstImageUrl: string | null;
-  itemsCount: number;
-  createdAt: string;
-};
+export type AdminOrderListItem = import("../lib/order-contract").SellerOrderListItem;
 
 export type CdekWebhookProcessingStatus =
   | "RECEIVED"
@@ -382,6 +328,13 @@ export type AdminSellerApplication = {
 };
 
 export type AdminInitialData = {
+  query?: string;
+  owner?: string;
+  sellerView?: string;
+  from?: string;
+  to?: string;
+  paymentFilter?: string;
+  deliveryFilter?: string;
   tab: AdminTab;
   tabDataLoaded: boolean;
   categoriesLoaded: boolean;

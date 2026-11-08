@@ -1,0 +1,7 @@
+.grid { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: var(--space-6); margin: 0; }
+.metric { min-width: 0; padding: var(--space-1) 0 var(--space-5); border-bottom: var(--line-width-hairline) solid var(--line); }
+.metric dt { font-size: var(--font-xs); line-height: var(--line-height-small); color: var(--muted); }
+.metric dd { display: flex; flex-direction: column; gap: var(--space-2); margin: 10px 0 0; min-width: 0; }
+.value { font-size: clamp(var(--font-metric-sm),2.2vw,var(--font-metric-lg)); line-height: 1.25; font-weight: var(--font-weight-semibold); font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.value > span { white-space: normal; overflow-wrap: anywhere; }
+@media(max-width:900px) { .grid { grid-template-columns: repeat(2,minmax(0,1fr)); gap: var(--space-5) var(--space-4); } }

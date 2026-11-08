@@ -72,7 +72,7 @@ function harness() {
   react.useCallback = fn => fn;
   const validation = load("app/lib/useFieldValidation.ts", { react });
   const { AuthForm } = load("app/components/Auth/AuthForm.tsx", {
-    react, "react/jsx-runtime": jsx, "next/link": { default: "a" },
+    react, "react/jsx-runtime": jsx, "next/link": { default: "a" }, "next/image": { default: "img" },
     "../../lib/authRequests": { AuthRequestError: requests.AuthRequestError,
       startEmailLogin: () => { starts++; return new Promise(resolve => { startResolve = resolve; }); },
       completeEmailLogin: () => { completions++; return new Promise(resolve => { completeResolve = resolve; }); },
@@ -84,7 +84,7 @@ function harness() {
     "../../lib/safeReturnPath": { safeReturnPath: value => value },
     "../../lib/authValidation": { validateAuthFields },
     "../../lib/useFieldValidation": validation, "../../lib/formValidation": { scrollToFirstValidationError() {} },
-    "../ui/Button": { Button: "Button" }, "../ui/Icon": { Icon: "Icon" },
+    "../ui/Button": { Button: "Button" }, "../ui/ActionPrompt": { ActionPrompt: "ActionPrompt" }, "../ui/Icon": { Icon: "Icon" },
     "../ui/Loader": load("app/components/ui/Loader.tsx", { "react/jsx-runtime": jsx }),
     "../ui/TextInput": { TextInput: "TextInput" }, "../ui/OneTimeCodeInput": { OneTimeCodeInput: "OneTimeCodeInput" },
     "./AuthForm.module.css": { default: {} },
@@ -101,6 +101,31 @@ function harness() {
 }
 async function handlers() {
   global.requestAnimationFrame = fn => { queueMicrotask(fn); return 1; };
+  const validationForm = harness();
+  const emailField = view => validationForm.find(view, node => node.type === "TextInput" && node.props.name === "email");
+  let validationView = validationForm.render();
+  emailField(validationView).props.onBlur?.();
+  assert.equal(emailField(validationForm.render()).props.error, undefined, "Leaving an untouched email is neutral");
+  emailField(validationView).props.onChange({ target: { value: "incomplete" } });
+  validationView = validationForm.render();
+  emailField(validationView).props.onBlur?.();
+  assert.equal(emailField(validationForm.render()).props.error, undefined, "Blur before submission does not reveal email validation");
+  validationView.props.onSubmit({ preventDefault() {} });
+  validationView = validationForm.render();
+  assert.equal(emailField(validationView).props.error, "Проверьте адрес электронной почты");
+  assert.equal(validationForm.counts().starts, 0, "An invalid email is rejected before an API request");
+  emailField(validationView).props.onChange({ target: { value: "still-invalid" } });
+  assert.equal(emailField(validationForm.render()).props.error, "Проверьте адрес электронной почты");
+  emailField(validationForm.render()).props.onChange({ target: { value: "fixed@example.test" } });
+  assert.equal(emailField(validationForm.render()).props.error, undefined, "Correcting email clears the displayed validation error");
+  validationForm.find(validationForm.render(), node => node.type === "Button" && node.props.children === "Войти по паролю").props.onClick();
+  validationView = validationForm.render();
+  const passwordField = view => validationForm.find(view, node => node.type === "TextInput" && node.props.name === "password");
+  passwordField(validationView).props.onBlur?.();
+  assert.equal(passwordField(validationForm.render()).props.error, undefined, "Password mode also stays neutral before submission");
+  validationView.props.onSubmit({ preventDefault() {} });
+  assert.equal(passwordField(validationForm.render()).props.error, "Введите пароль");
+  assert.equal(validationForm.counts().starts, 0, "Validation does not send an email or authenticate");
   const h = harness(); let view = h.render();
   h.find(view, node => node.type === "TextInput").props.onChange({ target: { value: "buyer@example.test" } });
   view = h.render(); const submit = { preventDefault() {} };
@@ -127,5 +152,34 @@ async function handlers() {
   assert(prevented); assert.equal(value, "123456", "Pasted formatting does not truncate six digits");
   input.props.onChange({ target: { value: "ab12-34cd56extra7" } }); assert.equal(value, "123456");
 }
-transport().then(handlers).then(() => console.log("Email auth: safe transport, deadlines contract, single-flight submit, automatic confirmation, auth synchronization, six-digit paste and accessibility passed"))
+function guestPrompts() {
+  let session = { isGuest: true, loading: false };
+  const opened = [];
+  const { GuestSignInPrompt } = load("app/components/Auth/GuestSignInPrompt.tsx", {
+    "react/jsx-runtime": require("react/jsx-runtime"),
+    "../../lib/useCurrentUser": { useCurrentUser: () => session },
+    "../AuthModal/useAuthModal": { useAuthModal: () => ({ openAuth: (...args) => opened.push(args) }) },
+    "../ui/ActionPrompt": { ActionPrompt: "ActionPrompt" },
+    "../ui/Button": { Button: "Button" },
+  });
+  for (const state of [
+    { isGuest: true, loading: true },
+    { isGuest: false, loading: true },
+    { isGuest: false, loading: false, hasResolved: false },
+    { isGuest: false, loading: false, error: new Error("session failed") },
+    { isGuest: false, loading: false, user: { id: 1 } },
+  ]) {
+    session = state;
+    assert.equal(GuestSignInPrompt({ returnPath: "/cart" }), null, "Only a confirmed guest sees the invitation");
+  }
+  session = { isGuest: true, loading: false };
+  for (const returnPath of ["/cart", "/favorites"]) {
+    const prompt = GuestSignInPrompt({ returnPath });
+    assert.equal(prompt.props.children.props.children, "Войти");
+    prompt.props.children.props.onClick();
+    assert.deepEqual(opened.at(-1), ["login", returnPath], "Login returns to the same commerce screen");
+  }
+  assert.equal(opened.length, 2);
+}
+transport().then(handlers).then(guestPrompts).then(() => console.log("Email auth: safe transport, deadlines contract, single-flight submit, automatic confirmation, auth synchronization, six-digit paste, guest invitations and accessibility passed"))
   .catch(error => { console.error(error); process.exitCode = 1; });

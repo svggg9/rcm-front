@@ -1,4 +1,5 @@
 "use client";
+import { DataTable } from "../../components/ui/DataTable";
 
 import { Loader } from "../../components/ui/Loader";
 import { Button } from "../../components/ui/Button";
@@ -161,7 +162,7 @@ export function AdminCdekTab({
       ) : (
         <>
           <div className={styles.financeTableWrap}>
-            <table className={styles.financeTable}>
+            <DataTable className={styles.financeTable}>
             <thead>
               <tr>
                 <th scope="col">Дата</th>
@@ -215,7 +216,7 @@ export function AdminCdekTab({
                 </tr>
               ))}
             </tbody>
-            </table>
+            </DataTable>
           </div>
           <ListLoadMore
             loaded={events.length}

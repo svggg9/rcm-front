@@ -5,10 +5,8 @@ import { Button } from "../../../components/ui/Button";
 import { LikeButton } from "../../../components/ui/LikeButton";
 import { ProductPhoto } from "../../../components/ProductPhoto";
 import { productColorPath } from "../../../lib/productUrls";
-import { productSummary } from "../../../lib/productPresentation";
 import { ProductArticleButton } from "./ProductArticleButton";
 import { ProductShareButton } from "./ProductShareButton";
-import { ProductDetailsAccordion } from "./ProductDetailsAccordion";
 import { ProductVariantSelect } from "./ProductVariantSelect";
 import styles from "../ProductPage.module.css";
 import type { Product, Variant } from "../lib/types";
@@ -37,7 +35,6 @@ export function ProductInfoPanel({ product, variants, selectedVariantId, onChang
     ? `${minPrice.toLocaleString("ru-RU")}–${maxPrice.toLocaleString("ru-RU")}` : currentPrice.toLocaleString("ru-RU");
   const returnPath = productColorPath(product, selectedColorway?.id);
   const brandHref = product.brandSlug ? `/brand/${product.brandSlug}?returnTo=${encodeURIComponent(returnPath)}` : null;
-  const summary = productSummary(product.description);
 
   return <aside className={styles.info} aria-label="Информация о товаре">
     <div className={styles.heading}>
@@ -66,7 +63,7 @@ export function ProductInfoPanel({ product, variants, selectedVariantId, onChang
           aria-label={`Цвет: ${colorway.color || "не указан"}`} aria-pressed={colorway.id === selectedColorway?.id}>
           {colorway.images?.[0] ? <ProductPhoto src={colorway.images[0]} alt="" sizes="64px"
             className={styles.colorwayImage} normalizeWhitespace />
-            : <span className={styles.colorwaySwatch} style={{ backgroundColor: colorway.colorHex || "#f7f7f7" }} aria-hidden="true" />}
+            : <span className={styles.colorwaySwatch} style={{ backgroundColor: colorway.colorHex || "var(--soft)" }} aria-hidden="true" />}
         </button>)}
       </div>}
       {isSellerView ? <Button type="button" variant="primary" className={styles.addBtn} onClick={onEditProduct}>Редактировать</Button>
@@ -83,7 +80,5 @@ export function ProductInfoPanel({ product, variants, selectedVariantId, onChang
       {isSellerView && selectedVariant?.sellerArticle && <div className={styles.sellerArticle}>Артикул продавца: {selectedVariant.sellerArticle}</div>}
     </div>
 
-    {summary.text && <p className={styles.productDescription}>{summary.text}</p>}
-    <ProductDetailsAccordion product={product} showDescription={summary.hasMore} brandHref={brandHref} />
   </aside>;
 }

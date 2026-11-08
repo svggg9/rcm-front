@@ -169,5 +169,5 @@ export function RecommendationsShowcase({ seedIds, excludeIds = [], audience = "
   return <ProductShowcase variant={presentation === "storefront" ? "grid" : "carousel"}
     presentation={presentation} mobileLayout={mobileLayout} title={presentation === "storefront" ? "Ещё для вас" : "Возможно, вам понравится"}
     products={visibleProducts.map(mapProductToCarouselProduct)} href={`/catalog${search.size ? `?${search}` : ""}`}
-    actionLabel="Смотреть всё" className={className} />;
+    actionLabel="Открыть" className={className} />;
 }

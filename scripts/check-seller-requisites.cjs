@@ -85,22 +85,31 @@ async function main() {
     const legalName = () => page.getByRole("textbox", {name: /^Юридическое название/});
     const inn = () => page.getByRole("textbox", {name: /^ИНН/});
     const lookup = () => page.getByRole("button", {name: "Заполнить по ИНН", exact: true});
+    const waitFilled = () => page.getByRole("status").filter({hasText: /DaData.*заполнены/}).waitFor();
+    async function numberIsFullyVisible() {
+      assert.equal(await inn().evaluate(input => {
+        const style = getComputedStyle(input);
+        const context = document.createElement("canvas").getContext("2d");
+        context.font = `${style.fontWeight} ${style.fontSize} ${style.fontFamily}`;
+        return context.measureText(input.value).width <= input.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
+      }), true, "The complete INN must fit beside its button");
+    }
     for (const width of [1280, 390, 320]) {
       saved = {...initial}; await page.setViewportSize({width, height: 1000}); await edit();
       const before = calls.filter(call => call.path.endsWith("/lookup/party")).length;
       await lookup().evaluate(button => { button.click(); button.click(); });
-      const dialog = page.getByRole("dialog", {name: "Найденные реквизиты", exact: true});
-      await dialog.waitFor();
+      await waitFilled();
       assert.equal(calls.filter(call => call.path.endsWith("/lookup/party")).length, before + 1);
-      assert.equal(await legalName().inputValue(), initial.legalName);
+      assert.equal(await legalName().inputValue(), "Общество Тест");
+      assert.equal(await page.getByRole("dialog").count(), 0, "Fill directly without a dialog");
+      const inputBox = await inn().boundingBox();
+      const buttonBox = await lookup().boundingBox();
+      assert.ok(buttonBox.x >= inputBox.x + inputBox.width, `Button is to the right at ${width}`);
+      assert.ok(Math.abs(buttonBox.y - inputBox.y) <= 3, `Input and button align at ${width}`);
+      await numberIsFullyVisible();
       assert.equal(calls.filter(call => call.method === "PUT").length, 0, "Lookup must never save");
       assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true, `No overflow at ${width}`);
-      await page.screenshot({path: path.join(output, `preview-${width}.png`), animations: "disabled"});
-      await dialog.getByRole("button", {name: "Отмена", exact: true}).click();
-      assert.equal(await legalName().inputValue(), initial.legalName);
-      await lookup().click(); await dialog.waitFor();
-      await dialog.getByRole("button", {name: "Применить к форме", exact: true}).click();
-      assert.equal(await legalName().inputValue(), "Общество Тест");
+      await page.screenshot({path: path.join(output, `inline-${width}.png`), animations: "disabled"});
     }
     await page.getByRole("button", {name: "Сохранить", exact: true}).click();
     await page.getByRole("button", {name: "Редактировать", exact: true}).waitFor();
@@ -110,13 +119,14 @@ async function main() {
     await page.reload();
     await page.getByRole("region", {name: "Сохранённые данные"}).getByText("Общество Тест", {exact: true}).waitFor();
     await edit("bank"); await page.getByRole("button", {name: "Заполнить по БИК", exact: true}).click();
-    await page.getByRole("dialog").getByRole("button", {name: "Применить к форме", exact: true}).click();
+    await waitFilled();
     assert.equal(await page.getByRole("textbox", {name: /^Банк/}).inputValue(), "Банк из справочника");
     assert.equal(await page.getByRole("textbox", {name: /^Расчетный счет/}).inputValue(), initial.checkingAccount);
     assert.equal(await page.getByRole("checkbox", {name: /оферту продавца/}).isChecked(), true);
     saved = {...initial, sellerType: "IP", inn: "784806113663", ogrnip: "304784722800160"}; await edit();
-    await lookup().click(); await page.getByRole("dialog").getByRole("button", {name: "Применить к форме", exact: true}).click();
+    await lookup().click(); await waitFilled();
     assert.equal(await page.getByRole("textbox", {name: /^ФИО/}).inputValue(), "Иванов Иван Иванович");
+    await numberIsFullyVisible();
     assert.equal(await page.getByRole("textbox", {name: /^Юридический адрес/}).inputValue(), initial.legalAddress);
     for (const failure of ["failure", "limit", "malformed"]) {
       mode = failure; await lookup().click(); await page.getByRole("alert").filter({hasText: /вручную/}).waitFor();
@@ -125,9 +135,17 @@ async function main() {
     }
     mode = "ok"; delay = 800;
     const response = page.waitForResponse(value => value.url().endsWith("/lookup/party"));
+    await page.getByRole("textbox", {name: /^ФИО/}).fill("Имя введено вручную");
     await lookup().click(); await inn().fill("784806113664"); await response;
     await page.waitForFunction(() => !document.querySelector('#seller-data-legal button[aria-busy="true"]'));
     assert.equal(await page.getByRole("dialog").count(), 0, "Stale response cannot replace newer input");
+    assert.equal(await page.getByRole("textbox", {name: /^ФИО/}).inputValue(), "Имя введено вручную");
+    await inn().fill("784806113663");
+    const editedResponse = page.waitForResponse(value => value.url().endsWith("/lookup/party"));
+    await lookup().click();
+    await page.getByRole("textbox", {name: /^ФИО/}).fill("Исправлено во время поиска");
+    await editedResponse; await waitFilled();
+    assert.equal(await page.getByRole("textbox", {name: /^ФИО/}).inputValue(), "Исправлено во время поиска");
     delay = 0;
     await page.getByText("Самозанятый", {exact: true}).click();
     assert.equal(await lookup().count(), 0);
@@ -138,9 +156,9 @@ async function main() {
     assert.equal(await lookup().count(), 0, "Verified seller remains protected");
     assert.deepEqual(errors, []);
     fs.writeFileSync(path.join(output, "result.json"), JSON.stringify({passed: true, widths: [1280, 390, 320],
-      cancel: true, applyThenSave: true, bankAccountPreserved: true, ipAddressPreserved: true,
+      directFill: true, buttonRightOfInput: true, manualEditsPreserved: true, separateSave: true, bankAccountPreserved: true, ipAddressPreserved: true,
       errorAndMalformedResponse: true, duplicateAndStaleRequests: true, manualWithoutKey: true, verifiedSeller: true}, null, 2));
-    console.log("PASS: seller requisites preview/cancel/apply/save/refresh; bank and IP data preserved; failures, stale and duplicate requests, no key, verified seller; 1280/390/320 fixture only");
+    console.log("PASS: inline INN/BIK fill, button right of input, separate save/refresh; manual edits, bank and IP data preserved; failures, stale and duplicate requests, no key, verified seller; 1280/390/320 fixture only");
   } catch (error) {
     fs.writeFileSync(path.join(output, "failure.log"), logs);
     fs.writeFileSync(path.join(output, "calls.json"), JSON.stringify(calls, null, 2));

@@ -22,6 +22,8 @@ import type { AdminStorefrontHome } from "../types";
 
 import styles from "./AdminStorefrontTab.module.css";
 import { AdminStorefrontCollections } from "./AdminStorefrontCollections";
+import { AdminNewArrivals } from "./AdminNewArrivals";
+import { AdminStorefrontSections } from "./AdminStorefrontSections";
 
 const FALLBACK_HERO_IMAGE = "/kazansky.jpg";
 
@@ -67,7 +69,12 @@ export function AdminStorefrontTab({
   const handleCollectionsChange = useCallback(
     (collections: AdminStorefrontHome["collections"]) => {
       setStorefront((current) =>
-        current ? { ...current, collections } : current
+        current ? { ...current, collections, sections: (current.sections ?? []).map(section => {
+          if (section.kind !== "COLLECTION") return section;
+          const target = collections.find(collection => collection.id === section.targetId);
+          return { ...section, title: target?.title ?? section.title, available: Boolean(target?.active && target.products.length) };
+        }), newArrivalsCollectionId: collections.some(collection => collection.id === current.newArrivalsCollectionId)
+          ? current.newArrivalsCollectionId : null } : current
       );
     },
     []
@@ -170,8 +177,8 @@ export function AdminStorefrontTab({
       setStorefront((current) => ({
         ...updated,
         collections: current?.collections ?? updated.collections,
+        sections: current?.sections ?? updated.sections,
       }));
-      onHomeChange?.(updated);
       setPosition({ x: updated.heroPositionX, y: updated.heroPositionY });
       setSavedPosition({ x: updated.heroPositionX, y: updated.heroPositionY });
       setSelectedFile(null);
@@ -258,8 +265,8 @@ export function AdminStorefrontTab({
       setStorefront((current) => ({
         ...updated,
         collections: current?.collections ?? updated.collections,
+        sections: current?.sections ?? updated.sections,
       }));
-      onHomeChange?.(updated);
       const nextPosition = {
         x: updated.heroPositionX,
         y: updated.heroPositionY,
@@ -292,6 +299,22 @@ export function AdminStorefrontTab({
         <h1>Витрина</h1>
       </div>
 
+      <AdminNewArrivals home={storefront} loading={loading} onSaved={settings => {
+        setStorefront(current => current ? { ...current, ...settings } : current);
+        invalidateParentStorefront();
+      }} />
+      <AdminStorefrontSections initialSections={storefront?.sections ?? []} collections={storefront?.collections ?? []}
+        loading={loading} onSectionsChange={sections => setStorefront(current => current ? { ...current, sections } : current)}
+        onMutationComplete={invalidateParentStorefront} />
+      <AdminStorefrontCollections
+        initialCollections={storefront?.collections ?? []}
+        loading={loading}
+        onCollectionsChange={handleCollectionsChange}
+        onMutationComplete={invalidateParentStorefront}
+      />
+      <details className={styles.savedImage}>
+        <summary>Сохранённое изображение витрины</summary>
+        <p className="textHint">В текущей компоновке главной изображение не используется</p>
       <div className={styles.form}>
         <div className={styles.fieldHead}>
           <span className={styles.label}>Главное изображение</span>
@@ -413,13 +436,7 @@ export function AdminStorefrontTab({
           }}
         />
       </div>
-
-      <AdminStorefrontCollections
-        initialCollections={storefront?.collections ?? []}
-        loading={loading}
-        onCollectionsChange={handleCollectionsChange}
-        onMutationComplete={invalidateParentStorefront}
-      />
+      </details>
     </section>
   );
 }

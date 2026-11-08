@@ -19,30 +19,30 @@
   color: var(--black);
   font-size: var(--font-lg);
   line-height: 1.2;
-  font-weight: 400;
+  font-weight: var(--font-weight-regular);
   letter-spacing: 0;
 }
 
 .form {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: var(--space-3);
 }
 
 .label {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--space-2);
   color: var(--black);
   font-size: var(--font-sm);
-  font-weight: 500;
+  font-weight: var(--font-weight-medium);
 }
 
 .input {
   width: 100%;
   height: 46px;
   padding: 0 14px;
-  border: 1px solid var(--line);
+  border: var(--line-width-default) solid var(--line);
   background: var(--white);
   color: var(--black);
   font-size: var(--font-md);
@@ -56,12 +56,12 @@
 .button {
   width: 100%;
   height: 50px;
-  margin-top: 8px;
-  border: 1px solid var(--black);
+  margin-top: var(--space-2);
+  border: var(--line-width-default) solid var(--black);
   background: var(--black);
   color: var(--white);
   font-size: var(--font-sm);
-  font-weight: 500;
+  font-weight: var(--font-weight-medium);
   cursor: pointer;
 }
 
@@ -87,7 +87,7 @@
   color: var(--muted);
   padding: 0;
   font-size: var(--font-xs);
-  font-weight: 400;
+  font-weight: var(--font-weight-regular);
   line-height: 1;
   cursor: pointer;
   transition: color 0.16s ease;
@@ -98,24 +98,26 @@
 }
 
 .error {
-  padding: 12px 0;
-  border-top: 1px solid var(--line);
-  border-bottom: 1px solid var(--line);
-  color: var(--danger);
+  padding: var(--space-3) 0;
+  border-top: var(--line-width-default) solid var(--line);
+  border-bottom: var(--line-width-default) solid var(--line);
+  color: var(--error);
   font-size: var(--font-sm);
 }
 
 .hint {
-  margin-top: 4px;
+  margin-top: var(--space-1);
   color: var(--muted);
-  font-size: var(--font-sm);
+  font-size: var(--font-helper);
+  line-height: var(--line-height-helper);
+  font-weight: var(--font-weight-regular);
 }
 
 .codeActions {
   display: flex;
   flex-wrap: wrap;
   justify-content: space-between;
-  gap: 8px 16px;
+  gap: var(--space-2) var(--space-4);
 }
 
 .textAction {
@@ -143,7 +145,7 @@
 
 @media (max-width: 768px) {
   .page {
-    padding: 48px 0;
+    padding: var(--space-9) 0;
   }
 
   .card {

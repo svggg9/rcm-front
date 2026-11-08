@@ -1,4 +1,6 @@
 "use client";
+import { Checkbox } from "../../components/ui/Checkbox";
+import { DataTable } from "../../components/ui/DataTable";
 import { ConfirmActionButton } from "../../components/ui/ConfirmActionButton";
 
 import Image from "next/image";
@@ -10,7 +12,7 @@ import { Button } from "../../components/ui/Button";
 import { EditorSurface } from "../../components/ui/EditorSurface";
 import { DesignSystemIcon } from "../../components/ui/DesignSystemIcon";
 import { FormMultiSelect } from "../../components/ui/FormMultiSelect";
-import { Price } from "../../components/ui/Price";
+import { ProductSelectionOrder } from "../../components/ui/ProductSelectionOrder";
 import { TextInput } from "../../components/ui/TextInput";
 import { StatusBadge } from "../../components/ui/StatusBadge";
 import { scrollToFirstValidationError } from "../../lib/formValidation";
@@ -185,18 +187,6 @@ export function SellerStorefrontCollections({ brandId, renderPanel }: Props) {
     if (!productsLoading && (productsPage < 0 || appliedProductQuery)) {
       void loadProducts(0, "", true);
     }
-  }
-
-  function moveProduct(productId: number, direction: -1 | 1) {
-    if (saving) return;
-    setSelectedIds(current => {
-      const index = current.indexOf(productId);
-      const target = index + direction;
-      if (index < 0 || target < 0 || target >= current.length) return current;
-      const next = [...current];
-      [next[index], next[target]] = [next[target], next[index]];
-      return next;
-    });
   }
 
   async function saveCollection() {
@@ -379,31 +369,8 @@ export function SellerStorefrontCollections({ brandId, renderPanel }: Props) {
               <p className={styles.empty}>Нет опубликованных товаров для подборки</p>
             )}
             {fieldErrors.products ? <div className="fieldError" data-validation-error="true" tabIndex={-1} role="alert">{fieldErrors.products}</div> : null}
-            {selectedIds.length > 0 ? <div className={styles.collectionPreview}>
-              <div className={styles.previewHeading}>
-                <strong>Предпросмотр подборки</strong>
-                <span>Порядок слева направо</span>
-              </div>
-              <ul className={styles.previewRail}>
-                {selectedIds.map((productId, index) => {
-                  const product = products.find(item => item.id === productId);
-                  return <li key={productId}>
-                    <div className={styles.previewCover}>
-                      {product?.coverImage ? <Image src={product.coverImage} alt="" fill sizes="180px" />
-                        : <DesignSystemIcon name="package" role="empty" />}
-                    </div>
-                    <span className={styles.previewName}>{product?.title?.trim() || `Товар №${productId}`}</span>
-                    {product?.minPrice != null ? <Price amount={product.minPrice} className={styles.previewPrice} /> : null}
-                    <span className={styles.orderActions}>
-                      <Button type="button" variant="ghost" aria-label={`Переместить ${product?.title || "товар"} влево`}
-                        disabled={saving || index === 0} onClick={() => moveProduct(productId, -1)}><DesignSystemIcon name="chevron-left" role="utility" /></Button>
-                      <Button type="button" variant="ghost" aria-label={`Переместить ${product?.title || "товар"} вправо`}
-                        disabled={saving || index === selectedIds.length - 1} onClick={() => moveProduct(productId, 1)}><DesignSystemIcon name="chevron-right" role="utility" /></Button>
-                    </span>
-                  </li>;
-                })}
-              </ul>
-            </div> : null}
+            <ProductSelectionOrder ids={selectedIds} products={products} disabled={saving}
+              onChange={ids => { selectedIdsRef.current = ids; setSelectedIds(ids); }} />
             {collectionProductId && selectedIds.includes(collectionProductId) && !products.some((product) => product.id === collectionProductId) ? (
               <p className={styles.preselectedProduct}>Добавлен товар: {collectionProductTitle || `№${collectionProductId}`}</p>
             ) : null}
@@ -440,10 +407,10 @@ export function SellerStorefrontCollections({ brandId, renderPanel }: Props) {
         <>
         {filteredCollections.length > 0 ? (
         <div className={styles.collectionList} role="region" aria-label="Подборки товаров" tabIndex={0}>
-          <table className={styles.collectionTable}>
+          <DataTable className={styles.collectionTable}>
             <thead><tr>
               <th scope="col"><label className={styles.checkboxTarget}>
-                <input ref={selectAllCollectionsRef} type="checkbox" className={styles.checkbox}
+                <Checkbox ref={selectAllCollectionsRef}
                   aria-label="Выбрать все показанные подборки" checked={allVisibleCollectionsSelected}
                   disabled={bulkBusy || removingId !== null}
                   onChange={() => setSelectedCollectionIds(allVisibleCollectionsSelected
@@ -464,7 +431,7 @@ export function SellerStorefrontCollections({ brandId, renderPanel }: Props) {
           {filteredCollections.map((collection) => (
             <tr key={collection.id}>
               <td><label className={styles.checkboxTarget}>
-                <input type="checkbox" className={styles.checkbox} aria-label={`Выбрать подборку ${collection.title}`}
+                <Checkbox   aria-label={`Выбрать подборку ${collection.title}`}
                   checked={selectedCollectionIds.has(collection.id)} disabled={bulkBusy || removingId !== null}
                   onChange={() => setSelectedCollectionIds(current => {
                     const next = new Set(current);
@@ -499,6 +466,7 @@ export function SellerStorefrontCollections({ brandId, renderPanel }: Props) {
               <ConfirmActionButton
                 type="button"
                 variant="ghost"
+                confirmVariant="danger"
                 className={styles.deleteButton}
                 aria-label={`Удалить подборку ${collection.title}`}
                 confirmTitle={`Удалить подборку «${collection.title}»?`}
@@ -514,7 +482,7 @@ export function SellerStorefrontCollections({ brandId, renderPanel }: Props) {
             </tr>
           ))}
             </tbody>
-          </table>
+          </DataTable>
         </div>
         ) : <div className={pageStyles.emptyState}><DesignSystemIcon name="search" role="empty" /><strong>Подборки не найдены</strong></div>}
         </>
@@ -529,7 +497,7 @@ export function SellerStorefrontCollections({ brandId, renderPanel }: Props) {
         <div className={styles.selectionActions}>
           <Button type="button" variant="secondary" disabled={bulkBusy} onClick={() => void updateSelectedCollections(true)}>Опубликовать</Button>
           <Button type="button" variant="tertiary" disabled={bulkBusy} onClick={() => void updateSelectedCollections(false)}>Скрыть</Button>
-          <ConfirmActionButton type="button" variant="ghost" className={styles.deleteButton}
+          <ConfirmActionButton type="button" variant="ghost" confirmVariant="danger" className={styles.deleteButton}
             aria-label="Удалить выбранные подборки" confirmTitle="Удалить выбранные подборки?"
             confirmText="Подборки исчезнут с витрины, сами товары останутся"
             disabled={bulkBusy} loading={bulkBusy} onConfirm={removeSelectedCollections}>

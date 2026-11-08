@@ -1,22 +1,22 @@
 .section {
   width: min(960px, 100%);
   margin-top: 64px;
-  padding-top: 32px;
-  border-top: 1px solid var(--line);
+  padding-top: var(--space-7);
+  border-top: var(--line-width-default) solid var(--line);
 }
 
 .header {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 24px;
+  gap: var(--space-6);
 }
 
 .header > div > span {
   display: block;
   margin-bottom: 6px;
-  color: var(--gold);
-  font-size: 10px;
+  color: var(--gold-deep);
+  font-size: var(--font-micro);
   letter-spacing: .1em;
   text-transform: uppercase;
 }
@@ -24,14 +24,14 @@
 .header h2 {
   margin: 0;
   font-size: var(--font-lg);
-  font-weight: 500;
+  font-weight: var(--font-weight-medium);
 }
 
 .header p {
   margin: 5px 0 0;
   color: var(--muted);
-  font-size: 12px;
-  font-weight: 300;
+  font-size: var(--font-helper);
+  font-weight: var(--font-weight-regular);
 }
 
 .header > button,
@@ -42,23 +42,23 @@
   justify-content: center;
   gap: 7px;
   padding: 0 15px;
-  border: 1px solid var(--black);
+  border: var(--line-width-default) solid var(--black);
   background: var(--black);
   color: var(--white);
   font: inherit;
-  font-size: 12px;
+  font-size: var(--font-helper);
   cursor: pointer;
 }
 
 .error {
   margin: 14px 0 0;
-  color: var(--danger);
-  font-size: 12px;
+  color: var(--error);
+  font-size: var(--font-helper);
 }
 
 .editor {
   margin-top: 22px;
-  padding: 20px;
+  padding: var(--space-5);
   background: var(--soft);
 }
 
@@ -68,13 +68,13 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 16px;
+  gap: var(--space-4);
 }
 
 .editorHead h3 {
   margin: 0;
-  font-size: 16px;
-  font-weight: 500;
+  font-size: var(--font-md);
+  font-weight: var(--font-weight-medium);
 }
 
 .editorHead > button {
@@ -92,7 +92,7 @@
 .fields {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
+  gap: var(--space-3);
   margin-top: 18px;
 }
 
@@ -100,13 +100,13 @@
   display: flex;
   flex-direction: column;
   gap: 7px;
-  font-size: 12px;
+  font-size: var(--font-helper);
 }
 
 .fields input {
   height: 42px;
   padding: 0 13px;
-  border: 1px solid var(--line);
+  border: var(--line-width-default) solid var(--line);
   background: var(--white);
   outline: none;
 }
@@ -119,15 +119,12 @@
   display: flex;
   align-items: flex-start;
   gap: 10px;
-  margin-top: 16px;
+  margin-top: var(--space-4);
   cursor: pointer;
 }
 
 .activeField input {
-  width: 17px;
-  height: 17px;
   margin: 2px 0 0;
-  accent-color: var(--black);
 }
 
 .activeField span {
@@ -137,23 +134,23 @@
 }
 
 .activeField strong {
-  font-size: 12px;
-  font-weight: 500;
+  font-size: var(--font-helper);
+  font-weight: var(--font-weight-medium);
 }
 
 .activeField small {
   color: var(--muted);
-  font-size: 11px;
-  font-weight: 300;
+  font-size: var(--font-label-compact);
+  font-weight: var(--font-weight-regular);
 }
 
 .pickerHead {
   margin: 22px 0 10px;
-  font-size: 12px;
+  font-size: var(--font-helper);
 }
 
 .pickerHead strong {
-  font-weight: 500;
+  font-weight: var(--font-weight-medium);
 }
 
 .pickerHead span {
@@ -163,14 +160,14 @@
 .productSearch {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
-  gap: 8px;
+  gap: var(--space-2);
   margin-bottom: 10px;
 }
 
 .productSearch input {
   min-width: 0;
   height: 40px;
-  padding: 0 12px;
+  padding: 0 var(--space-3);
   border: 0;
   background: var(--soft);
   color: var(--black);
@@ -179,16 +176,16 @@
 .productSearch button,
 .loadMore {
   min-height: 40px;
-  padding: 0 16px;
+  padding: 0 var(--space-4);
   border: 0;
   background: var(--black);
   color: var(--white);
-  font-size: 11px;
+  font-size: var(--font-label-compact);
 }
 
 .loadMore {
   display: block;
-  margin: 12px auto 0;
+  margin: var(--space-3) auto 0;
 }
 
 .productSearch button:disabled,
@@ -199,7 +196,7 @@
 .productGrid {
   display: grid;
   grid-template-columns: repeat(6, minmax(0, 1fr));
-  gap: 8px;
+  gap: var(--space-2);
   max-height: 480px;
   overflow-y: auto;
 }
@@ -208,7 +205,7 @@
   min-width: 0;
   padding: 6px;
   position: relative;
-  border: 1px solid transparent;
+  border: var(--line-width-default) solid transparent;
   background: var(--white);
   color: var(--black);
   text-align: left;
@@ -245,15 +242,15 @@
 
 .productGrid strong {
   margin-top: 6px;
-  font-size: 10px;
-  font-weight: 600;
+  font-size: var(--font-micro);
+  font-weight: var(--font-weight-semibold);
   text-transform: uppercase;
 }
 
 .productGrid > button > span:nth-child(3) {
   margin-top: 2px;
   color: var(--muted);
-  font-size: 10px;
+  font-size: var(--font-micro);
 }
 
 .productGrid i {
@@ -265,7 +262,7 @@
   position: absolute;
   top: 10px;
   right: 10px;
-  border: 1px solid var(--black);
+  border: var(--line-width-default) solid var(--black);
   background: var(--white);
   font-style: normal;
 }
@@ -283,9 +280,9 @@
 .editorActions button:first-child {
   min-height: 40px;
   padding: 0 15px;
-  border: 1px solid var(--black);
+  border: var(--line-width-default) solid var(--black);
   background: transparent;
-  font-size: 12px;
+  font-size: var(--font-helper);
 }
 
 .editorActions button:disabled {
@@ -295,7 +292,7 @@
 
 .list {
   display: grid;
-  gap: 8px;
+  gap: var(--space-2);
   margin-top: 22px;
 }
 
@@ -304,9 +301,9 @@
   display: grid;
   grid-template-columns: 34px minmax(150px, 1fr) auto auto;
   align-items: center;
-  gap: 16px;
-  padding: 12px 14px;
-  border: 1px solid var(--line);
+  gap: var(--space-4);
+  padding: var(--space-3) 14px;
+  border: var(--line-width-default) solid var(--line);
 }
 
 .orderActions {
@@ -330,25 +327,25 @@
 
 .published,
 .draft {
-  font-size: 9px;
-  font-weight: 600;
+  font-size: var(--font-counter);
+  font-weight: var(--font-weight-semibold);
   letter-spacing: .08em;
   text-transform: uppercase;
 }
 
-.published { color: #3f7449; }
+.published { color: var(--success); }
 .draft { color: var(--muted); }
 
 .card h3 {
   margin: 5px 0 0;
-  font-size: 15px;
-  font-weight: 500;
+  font-size: var(--font-ui);
+  font-weight: var(--font-weight-medium);
 }
 
 .card p {
   margin: 3px 0 0;
   color: var(--muted);
-  font-size: 11px;
+  font-size: var(--font-label-compact);
 }
 
 .thumbs {
@@ -361,7 +358,7 @@
   margin-left: -6px;
   position: relative;
   overflow: hidden;
-  border: 2px solid var(--white);
+  border: var(--line-width-strong) solid var(--white);
   background: var(--soft);
 }
 
@@ -370,15 +367,15 @@
 .cardActions {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: var(--space-1);
 }
 
 .cardActions button {
   min-height: 34px;
   padding: 0 10px;
-  border: 1px solid var(--line);
+  border: var(--line-width-default) solid var(--line);
   background: var(--white);
-  font-size: 11px;
+  font-size: var(--font-label-compact);
 }
 
 .cardActions button:last-child {
@@ -391,9 +388,9 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 1px dashed var(--line);
+  border: var(--line-width-default) dashed var(--line);
   color: var(--muted);
-  font-size: 12px;
+  font-size: var(--font-helper);
 }
 
 @media (max-width: 820px) {
@@ -403,7 +400,7 @@
 }
 
 @media (max-width: 620px) {
-  .section { margin-top: 48px; }
+  .section { margin-top: var(--space-9); }
   .header, .fields { display: flex; flex-direction: column; }
   .header > button { width: 100%; }
   .productGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); }

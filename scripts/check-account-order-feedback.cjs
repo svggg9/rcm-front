@@ -47,6 +47,7 @@ function account(query) {
   const placeholder = () => null;
   const RequestError = () => null;
   const cache = load("app/lib/useSessionResourceCache.ts", { react });
+  const orderPresentation = load("app/lib/order-presentation.ts", {});
   const client = load("app/account/AccountPageClient.tsx", {
     react, "react/jsx-runtime": jsx,
     "next/navigation": { useSearchParams: () => search, useRouter: () => ({ refresh() { refreshes++; }, push() {}, replace() {} }) },
@@ -54,6 +55,7 @@ function account(query) {
     "@/app/components/ui/toast": { toast: { error() {}, success() {} } },
     "../lib/api": { API_URL: "", apiFetch: (url, options) => new Promise((resolve, reject) => requests.push({ url, options, resolve, reject })) },
     "../lib/auth": { logout: async () => {} }, "../lib/useSessionResourceCache": cache,
+    "../lib/order-presentation": orderPresentation,
     "../components/ui/RequestError": { RequestError },
     "./components/AccountFrame": { AccountFrame: placeholder },
     "./components/AccountSkeleton": { AccountSkeleton: placeholder },

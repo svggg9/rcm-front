@@ -1,14 +1,17 @@
 import styles from "../ProductPage.module.css";
 
-import { parseDescription } from "../../../lib/productDescription";
+import { parseDescription, type TextBlock } from "../../../lib/productDescription";
 
 type Props = {
-  text: string;
+  text?: string;
   fallback: string;
+  blocks?: TextBlock[];
+  headingLevel?: 3 | 4;
 };
 
-export function ProductDescriptionText({ text, fallback }: Props) {
-  const blocks = parseDescription(text.trim());
+export function ProductDescriptionText({ text = "", fallback, blocks: suppliedBlocks, headingLevel = 4 }: Props) {
+  const blocks = suppliedBlocks ?? parseDescription(text.trim());
+  const Heading = headingLevel === 3 ? "h3" : "h4";
 
   if (blocks.length === 0) {
     return <p className={styles.text}>{fallback}</p>;
@@ -17,6 +20,9 @@ export function ProductDescriptionText({ text, fallback }: Props) {
   return (
     <div className={styles.richText}>
       {blocks.map((block, index) => {
+        if (block.type === "heading") {
+          return <Heading key={index} className={styles.descriptionHeading}>{block.text}</Heading>;
+        }
         if (block.type === "paragraph") {
           return (
             <p key={index} className={styles.text}>

@@ -122,7 +122,7 @@ export function AccountFavoritesTab() {
         <EmptyState
           title="В избранном пока пусто"
           text="Сохраняйте товары, чтобы вернуться к ним позже"
-          actions={<Link href="/catalog" className="buttonPrimary">Перейти в каталог</Link>}
+          actions={<Link href="/catalog" className="buttonPrimary">В каталог</Link>}
         />
       ) : (
         <ul className={styles.grid}>

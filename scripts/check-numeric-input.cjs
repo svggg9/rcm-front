@@ -25,16 +25,28 @@ assert(Number.isNaN(parse("9007199254740992", { fractionDigits: 0 })));
 assert(Number.isNaN(parse("6", { ...MONEY_RULES, max: 5 })));
 
 function mounted(initialProps) {
-  let cursor = 0, props = initialProps, pending = false, tree; const slots = [];
+  let cursor = 0, props = initialProps, pending = false, tree, effects = []; const slots = [];
   const { NumericInput } = load("app/components/ui/NumericInput.tsx", {
     react: {
       useState: initial => { const index = cursor++; if (!(index in slots)) slots[index] = initial; return [slots[index], update => { slots[index] = typeof update === "function" ? update(slots[index]) : update; pending = true; }]; },
-      useRef: () => ({ current: null }), useEffect: () => {},
+      useRef: () => { const index = cursor++; return slots[index] ?? (slots[index] = { current: null }); },
+      useEffect: (callback, dependencies) => {
+        const index = cursor++, previous = slots[index];
+        if (!previous || dependencies.some((value, key) => !Object.is(value, previous[key]))) effects.push(() => {
+          slots[index] = dependencies; callback();
+        });
+      },
     },
     "react/jsx-runtime": jsx, "./InputControl": { InputControl: "input-control" },
     "../../lib/inputWhitespace": whitespace, "../../lib/numericInput": numeric,
   });
-  function render() { do { pending = false; cursor = 0; tree = NumericInput(props); } while (pending); return api; }
+  function render() {
+    do {
+      pending = false; cursor = 0; effects = []; tree = NumericInput(props);
+      if (!pending) effects.forEach(effect => effect());
+    } while (pending);
+    return api;
+  }
   const api = {
     render, update(next) { props = { ...props, ...next }; return render(); },
     control: () => tree.props.children[0], hidden: () => tree.props.children[1],
@@ -71,4 +83,23 @@ input.blur(); assert.equal(input.control().props.value, "12,3");
 input = mounted({ defaultValue: "12,345", name: "price" });
 assert.equal(input.control().props["aria-invalid"], undefined); assert.equal(input.hidden().props.value, "");
 input.blur(); assert.equal(input.control().props["aria-invalid"], true);
-console.log("Numeric input: comma/dot, precision/bounds, blank/zero, unfinished drafts, invalid paste, controlled updates and canonical form value passed");
+const messages = [];
+input = mounted({ defaultValue: "2147483648", ...INTEGER_RULES, onValidationChange: message => messages.push(message) });
+assert.equal(messages.at(-1), "", "An untouched draft does not immediately show an error");
+input.blur();
+assert.equal(messages.at(-1), "Максимальное значение — 2147483647", "Blur explains the same range error as the invalid outline");
+input.change("2147483647"); assert.equal(messages.at(-1), ""); assert.equal(input.control().props["aria-invalid"], undefined);
+input.change("2147483648"); assert.equal(messages.at(-1), "Максимальное значение — 2147483647");
+input.update({ disabled: true }); assert.equal(messages.at(-1), "");
+input.update({ disabled: false }); assert.equal(messages.at(-1), "Максимальное значение — 2147483647");
+input.update({ readOnly: true }); assert.equal(messages.at(-1), "");
+input.update({ readOnly: false }); assert.equal(messages.at(-1), "Максимальное значение — 2147483647");
+input = mounted({ value: "0", ...WEIGHT_RULES, onValidationChange: message => messages.push(message) });
+input.blur(); assert.equal(messages.at(-1), "Минимальное значение — 0,001");
+input.update({ value: "0,125" }); assert.equal(messages.at(-1), "", "An external reset clears the previous validation message");
+assert.equal(input.control().props["aria-invalid"], undefined);
+input.update({ value: "0" }); assert.equal(messages.at(-1), "");
+input.blur(); assert.equal(messages.at(-1), "Минимальное значение — 0,001");
+input = mounted({ defaultValue: "0", ...WEIGHT_RULES, "aria-invalid": true, onValidationChange: message => messages.push(message) });
+assert.equal(messages.at(-1), "Минимальное значение — 0,001", "An explicit validation attempt exposes the numeric explanation");
+console.log("Numeric input: comma/dot, precision/bounds, blank/zero, unfinished drafts, invalid paste, controlled updates, canonical form value and visible validation lifecycle passed");

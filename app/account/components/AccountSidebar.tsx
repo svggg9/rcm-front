@@ -4,8 +4,8 @@ import type { MouseEvent } from "react";
 import styles from "./AccountSidebar.module.css";
 export type AccountTab = "home" | "profile" | "orders" | "returns" | "favorites" | "brands" | "info";
 export const accountTabTitles: Record<AccountTab, string> = { home: "Профиль", profile: "Личные данные", orders: "Заказы", returns: "Возвраты", favorites: "Избранное", brands: "Мои бренды", info: "Помощь" };
-export function AccountSidebar({ currentTab, showSellerCabinet = false, onNavigate, onLogout }: {
-  currentTab: AccountTab; ordersCount?: number; showSellerCabinet?: boolean; onNavigate?: (href: string) => void; onLogout: () => void;
+export function AccountSidebar({ currentTab, showSellerCabinet = false, onNavigate, onLogout, logoutPending = false }: {
+  currentTab: AccountTab; ordersCount?: number; showSellerCabinet?: boolean; onNavigate?: (href: string) => void; onLogout: () => void; logoutPending?: boolean;
 }) {
   const items = (["profile","orders","returns","favorites","brands"] as const).map(tab=>({tab,label:accountTabTitles[tab]}));
   function click(event: MouseEvent<HTMLAnchorElement>, href: string) {
@@ -19,7 +19,7 @@ export function AccountSidebar({ currentTab, showSellerCabinet = false, onNaviga
     <div className={styles.secondary}>
       <Link href="/account?tab=info" onClick={event=>click(event,"/account?tab=info")}>Помощь и контакты</Link>
       {showSellerCabinet ? <Link href="/seller/home" prefetch={false}>Кабинет продавца ↗</Link> : null}
-      <button type="button" onClick={onLogout}>Выйти</button>
+      <button type="button" onClick={onLogout} disabled={logoutPending}>{logoutPending ? "Выходим…" : "Выйти"}</button>
     </div>
   </aside>;
 }

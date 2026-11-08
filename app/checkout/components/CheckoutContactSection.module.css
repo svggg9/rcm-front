@@ -1,11 +1,11 @@
-.section { min-width: 0; font-size: 14px; line-height: 20px; font-weight: 400; }
-.header { display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 44px; margin-bottom: 12px; }
-.header h3 { margin: 0; font-size: 14px; line-height: 20px; font-weight: 400; text-transform: uppercase; }
+.section { min-width: 0; font-size: var(--font-sm); line-height: var(--line-height-small); font-weight: var(--font-weight-regular); }
+.header { display: flex; align-items: center; justify-content: space-between; gap: var(--space-4); min-height: 44px; margin-bottom: var(--space-3); }
+.header h3 { margin: 0; font-size: var(--font-md); line-height: var(--line-height-small); font-weight: var(--type-card-weight); }
 .edit { flex: 0 0 44px; height: 44px; display: grid; place-items: center; }
-.fields { display: grid; gap: 16px; }
-.fields :global(.input), .fields :global(.phoneInput) { font-size: 16px; }
-.summary { display: grid; gap: 4px; overflow-wrap: anywhere; }
+.fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-4); --field-control-size: var(--font-md); }
+.summary { display: grid; gap: var(--space-1); overflow-wrap: anywhere; }
 .summary p { margin: 0; }
-.muted { color: var(--muted); font-size: 12px; line-height: 18px; }
-.done { justify-self: start; min-height: 44px; padding: 0; text-decoration: underline; font-size: 12px; }
+.muted { color: var(--muted); font-size: var(--font-helper); line-height: var(--caption-line-height); }
+.done { justify-self: start; min-height: 44px; padding: 0; text-decoration: underline; font-size: var(--font-helper); }
 .done:focus-visible, .edit:focus-visible { outline: 2px solid var(--black); outline-offset: 3px; }
+@media (max-width: 480px) { .fields { grid-template-columns: 1fr; } }

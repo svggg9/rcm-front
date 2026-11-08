@@ -7,6 +7,13 @@ const ts = require('typescript');
 const React = require('react');
 const { renderToStaticMarkup } = require('react-dom/server');
 const filename = path.resolve(__dirname, '../app/seller/components/OrderProductsPreview.tsx');
+const loaderFilename = path.resolve(__dirname, '../app/components/ui/Loader.tsx');
+const loaderModule = new Module(loaderFilename, module);
+loaderModule.filename = loaderFilename;
+loaderModule.paths = Module._nodeModulePaths(path.dirname(loaderFilename));
+loaderModule._compile(ts.transpileModule(fs.readFileSync(loaderFilename, 'utf8'), {
+  compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX, esModuleInterop: true },
+}).outputText, loaderFilename);
 let expanded = false;
 const mod = new Module(filename, module);
 mod.filename = filename;
@@ -16,6 +23,7 @@ mod.require = name => {
     return typeof initial === 'boolean' ? [expanded, update => { expanded = update(expanded); }] : [initial, () => {}];
   } };
   if (name === 'next/image') return { __esModule: true, default: props => React.createElement('img', props) };
+  if (name === '../../components/ui/Loader') return loaderModule.exports;
   if (name.endsWith('/Icon')) return { Icon: () => React.createElement('svg') };
   if (name.endsWith('.css')) return { __esModule: true, default: new Proxy({}, { get: (_, key) => key }) };
   return require(name);
@@ -48,6 +56,10 @@ assert.equal((renderToStaticMarkup(preview(props)).match(/<li /g) || []).length,
 html = renderToStaticMarkup(preview({ ...props, details: null, loading: true }));
 assert.match(html, /Резервное название/);
 assert.doesNotMatch(html, /шт\./, 'Unknown quantities must not be invented');
+html = renderToStaticMarkup(preview({ ...props, order: { ...order, firstProductTitle: null }, details: null, loading: true }));
+assert.match(html, /aria-label="Загрузка товаров заказа"/);
+assert.match(html, /aria-busy="true"/);
+assert.doesNotMatch(html, /Состав заказа недоступен/);
 tree = preview({ ...props, details: null, error: true });
 const error = tree.props.children.find(child => child?.props?.role === 'status');
 error.props.children.find(child => child?.type === 'button').props.onClick();

@@ -1,5 +1,6 @@
 import { apiFetch, API_URL } from "../../lib/api";
 import { readApiError } from "../../lib/apiErrors";
+import { readPublicRequestError } from "../../lib/publicRequestErrors";
 
 export type SellerType = "IP" | "OOO" | "SELF_EMPLOYED";
 
@@ -117,11 +118,11 @@ export async function searchDeliveryCities(
   const response = await apiFetch(
     `${API_URL}/api/delivery/cities/search?query=${encodeURIComponent(
       query
-    )}&countryCode=RU`
+    )}&countryCode=RU`, { signal: AbortSignal.timeout(20_000) }
   );
 
   if (!response.ok) {
-    return [];
+    throw await readPublicRequestError(response, "Не удалось найти город — попробуйте ещё раз");
   }
 
   const data = (await response.json()) as DeliveryCityOption[];

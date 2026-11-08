@@ -5,19 +5,14 @@ import { useEffect, useRef, useState } from "react";
 import styles from "./Favorites.module.css";
 import { apiFetch, API_URL } from "../lib/api";
 import { getClientSession } from "../lib/client-session";
-import { getGuestFavoriteIds } from "../lib/favorites";
+import { FAVORITES_EVENT, getGuestFavoriteIds } from "../lib/favorites";
 import { EmptyState } from "../components/ui/EmptyState";
 import { RequestError } from "../components/ui/RequestError";
 import { AUTH_EVENT, SESSION_IDENTITY_EVENT } from "../lib/authEvents";
 import { SectionLoader } from "../components/ui/SectionLoader";
 import Link from "next/link";
 import { FavoriteCard } from "./FavoriteCard";
-import { Button } from "../components/ui/Button";
-import { Dialog } from "../components/ui/Dialog";
-import { ProductShowcase } from "../components/ProductShowcase/ProductShowcase";
-import type { CarouselProduct } from "../components/ProductCarousel/types";
-import { getStorefrontHome } from "../home/lib/getStorefrontHome";
-import { getHomePageData } from "../home/lib/getHomePageData";
+import { GuestSignInPrompt } from "../components/Auth/GuestSignInPrompt";
 
 type ProductVariantApi = {
   id: number;
@@ -49,13 +44,6 @@ type FavoriteProduct = {
   brandSlug?: string | null;
   images: string[];
   minPrice: number;
-};
-
-type FavoriteCollection = {
-  key: string;
-  title: string;
-  href: string;
-  products: CarouselProduct[];
 };
 
 function resolveMinPrice(product: ProductApi): number {
@@ -97,11 +85,9 @@ function toTileProduct(product: ProductApi): FavoriteProduct {
 
 export default function FavoritesPage() {
   const [products, setProducts] = useState<FavoriteProduct[]>([]);
-  const [collections, setCollections] = useState<FavoriteCollection[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
   const [reload, setReload] = useState(0);
-  const [collectionsOpen, setCollectionsOpen] = useState(false);
   const readVersion = useRef(0);
 
   useEffect(() => {
@@ -175,90 +161,21 @@ export default function FavoritesPage() {
       setLoadError(false);
       void load();
     }
+    function handleFavoritesChanged() {
+      void load();
+    }
 
     window.addEventListener(AUTH_EVENT, handleAuthChanged);
     window.addEventListener(SESSION_IDENTITY_EVENT, handleAuthChanged);
+    window.addEventListener(FAVORITES_EVENT, handleFavoritesChanged);
 
     return () => {
       alive = false;
       window.removeEventListener(AUTH_EVENT, handleAuthChanged);
       window.removeEventListener(SESSION_IDENTITY_EVENT, handleAuthChanged);
+      window.removeEventListener(FAVORITES_EVENT, handleFavoritesChanged);
     };
   }, [reload]);
-
-  useEffect(() => {
-    let alive = true;
-
-    async function loadCollections() {
-      const storefront = await getStorefrontHome();
-      if (!alive) return;
-
-      const managed = (storefront?.collections ?? [])
-        .map((collection) => ({
-          key: `managed-${collection.id}`,
-          title: collection.title,
-          href: `/catalog?collection=${collection.id}`,
-          products: collection.products.map((product) => ({
-            id: product.id,
-            publicId: product.publicId,
-            title: product.title,
-            brand: product.brand,
-            category: product.category,
-            images: [product.coverImage, product.hoverImage].filter(
-              (image): image is string => Boolean(image)
-            ),
-            minPrice: product.minPrice,
-          })),
-        }))
-        .filter((collection) => collection.products.length > 0)
-        .slice(0, 3);
-
-      if (managed.length > 0) {
-        setCollections(managed);
-        return;
-      }
-
-      const fallback = await getHomePageData("all");
-      if (!alive) return;
-
-      const seenProductIds = new Set<number>();
-      const fallbackCandidates = fallback.blocks;
-      const automatic = fallbackCandidates.flatMap((collection, index) => {
-        const uniqueProducts = collection.products.filter(
-          (product) => !seenProductIds.has(product.id)
-        );
-
-        if (uniqueProducts.length < 2) return [];
-
-        uniqueProducts.forEach((product) => seenProductIds.add(product.id));
-
-        return [{
-          key: `automatic-${index}`,
-          title: collection.title,
-          href: collection.href,
-          products: uniqueProducts,
-        }];
-      });
-
-      const firstFallback = fallback.blocks[0];
-      if (automatic.length === 0 && firstFallback?.products.length) {
-        automatic.push({
-          key: "automatic-latest",
-          title: firstFallback.title,
-          href: firstFallback.href,
-          products: firstFallback.products,
-        });
-      }
-
-      setCollections(automatic);
-    }
-
-    void loadCollections().catch(() => { /* Optional content must not block favorites. */ });
-
-    return () => {
-      alive = false;
-    };
-  }, []);
 
   function handleFavoriteChange(productId: number, isFavorite: boolean) {
     if (isFavorite) return;
@@ -266,28 +183,11 @@ export default function FavoritesPage() {
     setProducts((current) => current.filter((product) => product.id !== productId));
   }
 
-  function handleCollectionFavoriteChange(
-    product: CarouselProduct,
-    isFavorite: boolean
-  ) {
-    if (!isFavorite) {
-      setProducts((current) => current.filter((item) => item.id !== product.id));
-      return;
-    }
-
-    setProducts((current) => {
-      if (current.some((item) => item.id === product.id)) return current;
-      return [...current, product];
-    });
-  }
-
   return (
     <div className="pageContainer">
       <div className={styles.page}>
         <div className={styles.header}>
           <h1 className={styles.pageTitle}>Избранное</h1>
-
-          {collections.length > 0 && <Button variant="secondary" className={styles.collectionsToggle} onClick={() => setCollectionsOpen(true)}>Подборки</Button>}
         </div>
 
         <div>
@@ -298,7 +198,8 @@ export default function FavoritesPage() {
           ) : loadError && !products.length ? (
             <RequestError message="Не удалось загрузить избранное" loading={loading} onRetry={() => setReload(value => value + 1)} />
           ) : products.length === 0 ? (
-            <EmptyState title="В избранном пока пусто" text="Сохраняйте товары, чтобы вернуться к ним позже" actions={<Link href="/catalog" className="buttonPrimary">Перейти в каталог</Link>} />
+            <EmptyState title="В избранном пока пусто" text="Сохраняйте товары, чтобы вернуться к ним позже" actions={<Link href="/catalog" className="buttonPrimary">В каталог</Link>}
+              footer={<GuestSignInPrompt returnPath="/favorites" />} />
           ) : (
             <ul className={styles.grid}>
               {products.map((product) => (
@@ -311,26 +212,6 @@ export default function FavoritesPage() {
             </ul>
           )}
         </div>
-
-        {collectionsOpen && <Dialog title="Подборки" size="wide" mobileFullscreen onClose={() => setCollectionsOpen(false)} actions={null}>
-          <section className={styles.collections} aria-label="Подборки">
-            <div className={styles.collectionList}>
-              {collections.map((collection) => (
-                <ProductShowcase
-                  key={collection.key}
-                  className={styles.collection}
-                  title={collection.title}
-                  products={collection.products}
-                  variant="grid"
-                  density="compact"
-                  href={collection.href}
-                  actionLabel="Смотреть все"
-                  onFavoriteChange={handleCollectionFavoriteChange}
-                />
-              ))}
-            </div>
-          </section>
-        </Dialog>}
       </div>
     </div>
   );

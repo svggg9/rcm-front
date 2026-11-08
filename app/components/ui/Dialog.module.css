@@ -1,81 +1,71 @@
 .dialog {
   margin: auto;
-  padding: 24px;
-  width: min(560px, calc(100vw - 32px));
+  padding: var(--space-6);
+  width: min(var(--dialog-width, 560px), calc(100vw - 32px));
   max-height: calc(100dvh - 32px);
   overflow-y: auto;
-  border: 1px solid var(--line);
+  border: var(--line-width-default) solid var(--line);
   border-radius: 0;
-  background: white;
+  background: var(--white);
   color: var(--black);
 }
-.dialog::backdrop { background: rgb(17 17 17 / 42%); }
-.wide { width: min(1000px, calc(100vw - 32px)); overflow: hidden; }
-.wide[open] { display: flex; flex-direction: column; }
-.wide .header, .wide .actions { flex-shrink: 0; }
-.wide .body { min-height: 0; overflow-y: auto; }
-.withNotifications[open] {
+.dialog::backdrop { background: var(--overlay-backdrop, rgb(17 17 17 / 42%)); }
+.wide { width: min(1000px, calc(100vw - 32px)); }
+:is(.wide, .withNotifications)[open] {
   display: flex;
   flex-direction: column;
   overflow: hidden;
 }
-.withNotifications .header,
-.withNotifications .actions { flex-shrink: 0; }
-.withNotifications .body {
+:is(.wide, .withNotifications) .header,
+:is(.wide, .withNotifications) .actions { flex-shrink: 0; }
+:is(.wide, .withNotifications) .body {
   min-height: 0;
   overflow-y: auto;
 }
-.header { display: flex; align-items: flex-start; gap: 12px; }
-.header h2 { flex: 1; margin: 0; font-size: 24px; line-height: 1.25; font-weight: 400; }
-.success { flex-shrink: 0; width: 24px; height: 24px; color: var(--success, #168447); }
-.close { flex-shrink: 0; display: grid; place-items: center; width: 40px; height: 40px; margin: -8px -8px 0 0; }
-.close:hover { background: #f5f5f5; }
-.close:focus-visible { outline: 2px solid var(--black); outline-offset: 2px; }
-.body { margin: 20px 0 24px; font-size: 15px; line-height: 21px; font-weight: 300; }
+.header { display: flex; align-items: flex-start; gap: var(--space-3); }
+.mobileHeader { display: none; }
+.header h2 { flex: 1; min-width: 0; margin: 0; font-size: var(--dialog-title-size, var(--font-xl)); line-height: var(--dialog-title-line-height, var(--type-card-line-height)); font-weight: var(--dialog-title-weight, var(--type-card-weight)); letter-spacing: var(--dialog-title-tracking, var(--type-card-tracking)); overflow-wrap: anywhere; }
+.success { flex-shrink: 0; width: 24px; height: 24px; color: var(--success); }
+.close { margin: var(--dialog-close-margin, -10px -10px 0 0); }
+.body { margin: var(--dialog-body-margin, var(--space-5) 0 var(--space-6)); font-size: var(--font-md); line-height: var(--line-height-body); font-weight: var(--font-weight-regular); }
 .body p { margin: 0; }
-.body [role="alert"] { margin-top: 16px; }
-.actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 12px; }
+.body [role="alert"] { margin-top: var(--space-4); }
+.actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: var(--space-3); }
 .actions:empty { display: none; }
 
 .actions > :global(*) {
   margin: 0;
 }
 
-.actions > :global(*) + :global(*) {
-  margin-left: 12px;
-}
-
-.dialog.confirmation { padding: 40px 46px; border: 0; }
-.confirmation::backdrop { background: rgb(0 0 0 / 50%); }
+.dialog.confirmation { padding: var(--space-8) 46px; border: 0; }
+.confirmation::backdrop { background: var(--overlay-confirmation-backdrop, rgb(0 0 0 / 50%)); }
 .confirmation .header { display: block; text-align: center; }
-.confirmation .header h2 { max-width: 440px; margin: 0 auto; font-size: var(--feedback-dialog-title-size); line-height: var(--feedback-dialog-title-line); font-weight: 400; text-transform: uppercase; }
+.confirmation .header h2 { max-width: 440px; margin: 0 auto; font-size: var(--feedback-dialog-title-size); line-height: var(--feedback-dialog-title-line); font-weight: var(--font-weight-regular); text-transform: uppercase; }
 .confirmation .close { position: absolute; top: 8px; right: 8px; width: 44px; height: 44px; margin: 0; }
 .confirmation .close svg { width: 32px; height: 32px; }
-.confirmation .body { margin: 24px 0 32px; color: var(--muted); font-size: 15px; line-height: 24px; font-weight: 400; text-align: center; }
+.confirmation .body { margin: var(--space-6) 0 var(--space-7); color: var(--muted); font-size: var(--font-ui); line-height: var(--line-height-body); font-weight: var(--font-weight-regular); text-align: center; }
 .confirmation .body > p { color: var(--muted); }
 .confirmation .actions > :global(*) { flex: 1; margin: 0; }
-.confirmation .actions > :global(button) { min-height: var(--feedback-action-height); height: auto; padding: 11px 16px; font-size: var(--feedback-action-size); line-height: var(--feedback-line-height); font-weight: 400; text-transform: uppercase; }
+.confirmation .actions > :global(button) { min-height: var(--feedback-action-height); height: auto; padding: 11px var(--space-4); font-size: var(--feedback-action-size); line-height: var(--feedback-line-height); font-weight: var(--font-weight-regular); text-transform: uppercase; }
 @media (max-width: 640px) {
-  .dialog.confirmation { padding: 40px 24px 32px; }
-  .confirmation .header h2 { font-size: 18px; line-height: 28px; }
+  .withMobileHeader > .header { display: none; }
+  .withMobileHeader > .mobileHeader { display: block; flex-shrink: 0; }
+  .dialog.confirmation { padding: var(--space-8) var(--space-6) var(--space-7); }
+  .confirmation .header h2 { font-size: var(--font-title-xs); line-height: var(--line-height-title-sm); }
 }
 @media (max-width: 480px) {
-  .dialog { padding: 20px; }
+  .dialog { padding: var(--space-5); }
   .actions { flex-direction: column; }
 
   .actions > :global(*) {
     width: 100%;
   }
 
-  .actions > :global(*) + :global(*) {
-    margin-left: 0;
-    margin-top: 12px;
-  }
 }
 @media (max-width: 700px) {
-  .mobileFullscreen { width: 100%; max-width: none; height: 100dvh; max-height: 100dvh; margin: 0; border: 0; padding: 20px; }
+  .mobileFullscreen { width: 100%; max-width: none; height: 100dvh; max-height: 100dvh; margin: 0; border: 0; padding: var(--space-5); }
   .mobileFullscreen[open] { display: flex; flex-direction: column; overflow: hidden; }
   .mobileFullscreen .header, .mobileFullscreen .actions { flex-shrink: 0; }
-  .mobileFullscreen .header h2 { font-size: 20px; line-height: 26px; text-transform: uppercase; }
+  .mobileFullscreen .header h2 { font-size: var(--font-title-sm); line-height: var(--line-height-title-xs); text-transform: uppercase; }
   .mobileFullscreen .body { overflow-y: auto; min-height: 0; flex: 1; margin-bottom: 0; }
 }

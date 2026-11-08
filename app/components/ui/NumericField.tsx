@@ -1,22 +1,32 @@
-import { useId } from "react";
-import { Field } from "./Field";
+"use client";
+
+import { useCallback, useId, useState } from "react";
+import { Field, getFieldDescriptionIds } from "./Field";
 import { NumericInput, type NumericInputProps } from "./NumericInput";
 
-type Props = NumericInputProps & {
+type Props = Omit<NumericInputProps, "size"> & {
   label: string;
   error?: string | null;
   hint?: string;
   fieldVariant?: "line" | "boxed";
+  size?: "default" | "large";
 };
 
-export function NumericField({ label, error, hint, fieldVariant = "line", required, className = "", ...props }: Props) {
-  const errorId = useId();
-  const visibleError = error?.trim();
-  return <Field label={label} required={required} hint={hint} variant={fieldVariant}>
-    <NumericInput {...props} required={required} aria-required={required || undefined}
+export function NumericField({ label, error, hint, fieldVariant = "line", required, className = "", size = "default", onValidationChange, ...props }: Props) {
+  const generatedId = useId();
+  const controlId = props.id ?? generatedId;
+  const [internalError, setInternalError] = useState("");
+  const visibleError = error?.trim() || internalError;
+  const validationChanged = useCallback((message: string) => {
+    setInternalError(message);
+    onValidationChange?.(message);
+  }, [onValidationChange]);
+  return <Field label={label} controlId={controlId} required={required} hint={hint} error={visibleError} variant={fieldVariant}
+    size={size} disabled={props.disabled} readOnly={props.readOnly}>
+    <NumericInput {...props} id={controlId} required={required} aria-required={required || undefined}
       className={`input ${visibleError ? "inputError" : ""} ${className}`.trim()}
-      aria-invalid={!!visibleError || props["aria-invalid"] || undefined}
-      aria-describedby={[props["aria-describedby"], visibleError ? errorId : null].filter(Boolean).join(" ") || undefined} />
-    {visibleError ? <div className="fieldError" id={errorId}>{visibleError}</div> : null}
+      aria-invalid={!!error?.trim() || props["aria-invalid"] || undefined}
+      aria-describedby={getFieldDescriptionIds(controlId, { hint, error: visibleError, describedBy: props["aria-describedby"] })}
+      onValidationChange={validationChanged} />
   </Field>;
 }

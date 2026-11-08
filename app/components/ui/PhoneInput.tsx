@@ -11,12 +11,12 @@ import {
   getRussianPhoneDigits,
   normalizeRussianPhone,
 } from "../../lib/phone";
-import { Field } from "./Field";
+import { Field, getFieldDescriptionIds } from "./Field";
 import { InputControl } from "./InputControl";
 
 type Props = Omit<
   InputHTMLAttributes<HTMLInputElement>,
-  "type" | "value" | "onChange"
+  "type" | "value" | "onChange" | "size"
 > & {
   label?: string;
   error?: string | null;
@@ -25,6 +25,7 @@ type Props = Omit<
   hideLabel?: boolean;
   value: string;
   onChange: (event: React.ChangeEvent<HTMLInputElement>) => void;
+  size?: "default" | "large";
 };
 
 function createChangeEvent(
@@ -62,19 +63,16 @@ export function PhoneInput({
   className = "",
   error,
   required,
+  size = "default",
   ...props
 }: Props) {
   const inputRef = useRef<HTMLInputElement | null>(null);
   const pendingCaretRef = useRef<number | null>(null);
-  const errorId = useId();
+  const generatedId = useId();
+  const controlId = props.id ?? generatedId;
   const displayValue = formatRussianPhoneInput(value);
   const visibleError = error?.trim();
-  const describedBy = [
-    props["aria-describedby"],
-    visibleError ? errorId : null,
-  ]
-    .filter(Boolean)
-    .join(" ") || undefined;
+  const describedBy = getFieldDescriptionIds(controlId, { hint, error: visibleError, describedBy: props["aria-describedby"] });
 
   const restorePendingCaret = useCallback(() => {
     const caret = pendingCaretRef.current;
@@ -128,10 +126,15 @@ export function PhoneInput({
   return (
     <Field
       label={label}
+      controlId={controlId}
       required={required}
       hint={hint}
       variant={fieldVariant}
       hideLabel={hideLabel}
+      error={visibleError}
+      disabled={props.disabled}
+      readOnly={props.readOnly}
+      size={size}
     >
       <span
         className={`phoneInputShell ${visibleError ? "inputError" : ""}`.trim()}
@@ -139,6 +142,7 @@ export function PhoneInput({
         <span className="phoneInputPrefix">+7</span>
         <InputControl
           {...props}
+          id={controlId}
           spacePolicy="formatted"
           ref={inputRef}
           type="tel"
@@ -151,6 +155,8 @@ export function PhoneInput({
           minLength={15}
           maxLength={32}
           title={title}
+          required={required}
+          aria-required={required || undefined}
           aria-invalid={visibleError ? "true" : props["aria-invalid"]}
           aria-describedby={describedBy}
           onChange={handleChange}
@@ -158,11 +164,6 @@ export function PhoneInput({
           onBlur={handleBlur}
         />
       </span>
-      {visibleError ? (
-        <div id={errorId} className="fieldError">
-          {visibleError}
-        </div>
-      ) : null}
     </Field>
   );
 }

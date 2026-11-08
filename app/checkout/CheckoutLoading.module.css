@@ -11,13 +11,13 @@
 .layout {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(280px, 360px);
-  gap: 32px;
+  gap: var(--space-7);
   align-items: start;
 }
 
 .main {
   display: grid;
-  gap: 20px;
+  gap: var(--space-5);
 }
 
 .sectionTall {

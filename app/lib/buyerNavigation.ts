@@ -6,6 +6,7 @@ export type BuyerMobilePage = {
   tab?: BuyerTab;
   title?: string;
   backHref?: string;
+  panel?: boolean;
 };
 
 /** Buyer chrome follows the current route, never the user's seller/admin role. */
@@ -15,8 +16,8 @@ export function getBuyerMobilePage(
 ): BuyerMobilePage | null {
   if (pathname === "/") return { tab: "home" };
   if (pathname === "/catalog") return { tab: "catalog" };
-  if (pathname === "/favorites") return { tab: "favorites" };
-  if (pathname === "/cart") return { tab: "cart" };
+  if (pathname === "/favorites") return { tab: "favorites", title: "Избранное", panel: true };
+  if (pathname === "/cart") return { tab: "cart", panel: true };
   if (pathname === "/account") {
     if (search.get("orderId")) {
       return { title: "Заказ", backHref: "/account?tab=orders" };

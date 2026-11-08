@@ -32,7 +32,7 @@ export function IconOptionsPreview() {
           <span className={styles.label}>{iconSizes[role]} px</span>
         </li>)}
       </ul>
-      <p className={styles.note}>Контур 1,5, чёрный цвет. Цветные иконки — только для статусов. Размеры и образы согласованы, перенос на рабочие экраны — отдельно</p>
+      <p className={styles.note}>Контур1,5 и currentColor. Цветные иконки используются для смысловых состояний; фирменные знаки сохраняют свои цвета. Общий DesignSystemIcon уже используется на рабочих экранах</p>
     </div>
   );
 }

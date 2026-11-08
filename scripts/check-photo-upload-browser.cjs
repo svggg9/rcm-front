@@ -85,7 +85,7 @@ const server = http.createServer(async (req, res) => {
     return res.end("ok");
   }
   res.setHeader("Content-Type", "text/html; charset=utf-8");
-  res.end(`<!doctype html><html lang="ru"><head><meta name="viewport" content="width=device-width,initial-scale=1"><style>${globalCss}\n${moduleStyles.join("\n")}\n*{box-sizing:border-box}body{margin:0;font-family:Inter,Arial,sans-serif;color:var(--black);line-height:1.5}main{width:min(560px,calc(100% - 32px));margin:24px auto}button,input,select{font-family:inherit}svg{max-width:100%;flex-shrink:0}p{margin:0}h2{margin:0}.fieldError{color:var(--danger)}</style></head><body><main>${render()}</main><script type="module" src="/fixture.js"></script></body></html>`);
+  res.end(`<!doctype html><html lang="ru"><head><meta name="viewport" content="width=device-width,initial-scale=1"><style>${globalCss}\n${moduleStyles.join("\n")}\n*{box-sizing:border-box}body{margin:0;font-family:Inter,Arial,sans-serif;color:var(--black);line-height:1.5}main{width:min(560px,calc(100% - 32px));margin:24px auto}button,input,select{font-family:inherit}svg{max-width:100%;flex-shrink:0}p{margin:0}h2{margin:0}.fieldError{color:var(--error)}</style></head><body><main>${render()}</main><script type="module" src="/fixture.js"></script></body></html>`);
 });
 
 async function main() {

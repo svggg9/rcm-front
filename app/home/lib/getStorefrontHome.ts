@@ -1,4 +1,6 @@
 import { API_URL } from "../../lib/api";
+import { normalizeStorefrontSections, type StorefrontSection } from "../../lib/storefrontSections";
+import { normalizeNewArrivalsCount } from "../../lib/storefrontSettings";
 
 export type StorefrontHome = {
   heroImageUrl: string | null;
@@ -6,6 +8,9 @@ export type StorefrontHome = {
   heroPositionX: number;
   heroPositionY: number;
   collections: StorefrontHomeCollection[];
+  sections: StorefrontSection[];
+  newArrivalsCollectionId: number | null;
+  newArrivalsCount: number;
 };
 
 export type StorefrontHomeCollection = {
@@ -25,6 +30,7 @@ export type StorefrontHomeProduct = {
   coverImage: string | null;
   hoverImage: string | null;
   minPrice: number;
+  inStock: boolean;
 };
 
 function normalizeStorefrontHome(data: unknown): StorefrontHome | null {
@@ -72,6 +78,7 @@ function normalizeStorefrontHome(data: unknown): StorefrontHome | null {
                 coverImage: typeof product.coverImage === "string" ? product.coverImage : null,
                 hoverImage: typeof product.hoverImage === "string" ? product.hoverImage : null,
                 minPrice: typeof product.minPrice === "number" ? product.minPrice : 0,
+                inStock: product.inStock !== false,
               }];
             })
           : [];
@@ -84,13 +91,17 @@ function normalizeStorefrontHome(data: unknown): StorefrontHome | null {
       })
     : [];
 
-  return { heroImageUrl, updatedAt, heroPositionX, heroPositionY, collections };
+  const newArrivalsCollectionId = typeof raw.newArrivalsCollectionId === "number" && Number.isSafeInteger(raw.newArrivalsCollectionId) && raw.newArrivalsCollectionId > 0
+    ? raw.newArrivalsCollectionId : null;
+  return { heroImageUrl, updatedAt, heroPositionX, heroPositionY, collections,
+    sections: normalizeStorefrontSections(raw.sections), newArrivalsCollectionId,
+    newArrivalsCount: normalizeNewArrivalsCount(raw.newArrivalsCount) };
 }
 
 export async function getStorefrontHome(): Promise<StorefrontHome | null> {
   try {
     const response = await fetch(`${API_URL}/api/storefront/home`, {
-      next: { revalidate: 30 },
+      cache: "no-store",
       signal: AbortSignal.timeout(5000),
     });
 

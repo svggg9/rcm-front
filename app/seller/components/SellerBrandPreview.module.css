@@ -1,20 +1,20 @@
 .dialog { width: min(1200px, calc(100vw - 32px)); }
-.toolbar { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px 20px; margin-bottom: 20px; }
+.toolbar { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: var(--space-3) var(--space-5); margin-bottom: var(--space-5); }
 .toolbar > div { max-width: 100%; }
-.dialog .note, .dialog .catalogNote { color: var(--muted); font-size: 13px; line-height: 20px; font-weight: 400; }
-.workspace { padding: 24px; background: var(--soft); }
+.dialog .note, .dialog .catalogNote { color: var(--muted); font-size: var(--font-helper); line-height: var(--line-height-helper); font-weight: var(--font-weight-regular); }
+.workspace { padding: var(--space-6); background: var(--soft); }
 .canvas { width: 100%; margin-inline: auto; background: var(--white); container: storefront-preview / inline-size; }
 .mobile { max-width: 390px; }
-.content { min-width: 0; padding: 32px; overflow-wrap: anywhere; }
-.content .about { margin-top: 4px; padding-top: 24px; border-color: var(--line-subtle); }
-.dialog .description, .dialog .facts { margin: 20px 0; }
+.content { min-width: 0; padding: var(--space-7); overflow-wrap: anywhere; }
+.content .about { margin-top: var(--space-1); padding-top: var(--space-6); border-color: var(--line-subtle); }
+.dialog .description, .dialog .facts { margin: var(--space-5) 0; }
 .dialog .catalogNote { margin-top: 28px; }
-@container storefront-preview (max-width: 560px) { .content { padding: 24px 20px; } }
+@container storefront-preview (max-width: 560px) { .content { padding: var(--space-6) var(--space-5); } }
 @media (max-width: 700px) {
   .dialog { width: 100%; max-width: none; }
-  .workspace { padding: 12px; }
+  .workspace { padding: var(--space-3); }
 }
 @media (max-width: 390px) {
   .workspace { padding: 0; background: none; }
-  .content { padding: 20px 0; }
+  .content { padding: var(--space-5) 0; }
 }

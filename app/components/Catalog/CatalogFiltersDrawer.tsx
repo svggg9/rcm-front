@@ -1,10 +1,12 @@
 "use client";
+import { Checkbox } from "../ui/Checkbox";
 import { categoryDepth, categoryValue } from "../../lib/categories";
 
 import { NumericInput } from "../ui/NumericInput";
 import { MONEY_RULES, parseNumericInput } from "../../lib/numericInput";
 
 import { Button } from "../ui/Button";
+import { SegmentedControl } from "../ui/SegmentedControl";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import styles from "./Catalog.module.css";
@@ -17,6 +19,7 @@ import type {
 } from "./catalogTypes";
 import { audienceLabels, categoryGroupSelected, sortLabels, toggleCategorySelection } from "./catalogUtils";
 import { Icon } from "../ui/Icon";
+import { lockModalScroll } from "../ui/modalScrollLock";
 
 type Props = {
   open: boolean;
@@ -113,8 +116,7 @@ export function CatalogFiltersDrawer({
   useEffect(() => {
     if (!open) return;
 
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
+    const unlock = lockModalScroll();
     closeButtonRef.current?.focus();
     const inertedElements: Array<{
       element: HTMLElement;
@@ -169,7 +171,7 @@ export function CatalogFiltersDrawer({
 
     window.addEventListener("keydown", handleKeyDown);
     return () => {
-      document.body.style.overflow = previousOverflow;
+      unlock();
       for (const item of inertedElements) {
         item.element.inert = item.inert;
         if (item.ariaHidden === null) item.element.removeAttribute("aria-hidden");
@@ -257,19 +259,8 @@ export function CatalogFiltersDrawer({
         <div className={styles.drawerContent}>
           <section className={`${styles.filterSection} ${styles.mobileFilterSection}`} aria-labelledby="catalog-audience-title">
             <h3 id="catalog-audience-title">Для кого</h3>
-            <div className={styles.audienceOptions}>
-              {(["all", "women", "men"] as SelectedAudience[]).map((value) => (
-                <button
-                  key={value}
-                  type="button"
-                  className={styles.audienceOption}
-                  aria-pressed={audience === value}
-                  onClick={() => setAudience(value)}
-                >
-                  {audienceLabels[value]}
-                </button>
-              ))}
-            </div>
+            <SegmentedControl<SelectedAudience> ariaLabel="Для кого" value={audience} onChange={setAudience}
+              items={(["all", "women", "men"] as const).map(value => ({ value, label: audienceLabels[value] }))} />
           </section>
 
           <section className={`${styles.filterSection} ${styles.desktopCategorySection}`}>
@@ -382,8 +373,8 @@ export function CatalogFiltersDrawer({
                 const checked = selectedBrands.includes(brand);
                 return (
                   <label key={brand} className={styles.checkboxRow} data-selected={checked}>
-                    <input
-                      type="checkbox"
+                    <Checkbox appearance="hidden" size={16}
+
                       checked={checked}
                       onChange={() => setSelectedBrands((current) => toggleValue(current, brand))}
                     />

@@ -1,406 +1,166 @@
+/* Layout belongs to the wrapper; appearance comes from the shared field tokens. */
 .field,
-.fieldFull {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.fieldFull {
-  grid-column: 1 / -1;
-}
-
-.field > span:first-child,
-.fieldFull > span:first-child {
-  position: static;
-  color: var(--black);
-  font-size: 12px;
-  font-weight: 400;
-  line-height: 1.25;
-  letter-spacing: -0.01em;
-}
-
-.field:focus-within > span:first-child,
-.fieldFull:focus-within > span:first-child {
-  z-index: 70;
-}
-
-.required::after {
-  content: " *";
-  color: var(--required-mark);
-  font-weight: 500;
-}
-
-.requiredEmpty {
-  border-color: var(--select-border-color, var(--black));
-  background: var(--white);
-}
+.fieldFull { position: relative; }
+.fieldFull { grid-column: 1 / -1; }
+.field > :is(label, span):first-child,
+.fieldFull > :is(label, span):first-child { position: static; }
+.required::after { content: " *"; color: var(--required-mark); font-weight: var(--field-label-weight); }
 
 .select {
   position: relative;
   width: 100%;
-  border: 1px solid var(--select-border-color, var(--black));
-  background: var(--white);
-  transition: border-color 0.18s ease, background 0.18s ease;
+  height: var(--field-control-height, 44px);
+  border: var(--line-width-default) solid var(--field-control-border-color, var(--select-border-color, var(--black)));
+  border-radius: var(--field-control-radius);
+  background: var(--field-control-background, var(--white));
+  transition: border-color var(--transition-fast), background-color var(--transition-fast);
   z-index: 5;
 }
+.requiredEmpty { background: var(--field-control-background, var(--white)); }
+.select:has(> :is(button, input):not(:disabled):not([aria-invalid="true"])):hover { background: var(--surface-hover); }
+.select:has(> :focus-visible) { outline: var(--field-focus-width, 1px) solid var(--black); outline-offset: var(--field-focus-offset, 2px); }
 
-.select.requiredEmpty {
-  border-color: var(--select-border-color, var(--black));
-  background: var(--white);
-}
+.selectOpen { border-bottom-color: transparent; z-index: 40; }
+.select.invalid { border-color: var(--error); outline-color: var(--error); }
+.selectOpen.invalid { border-bottom-color: transparent; }
+.select.invalid .menu { border-color: var(--error); border-top-color: transparent; }
+.selectDisabled { color: var(--muted); }
+.field:not([data-readonly=true]) .selectDisabled,
+.fieldFull:not([data-readonly=true]) .selectDisabled { opacity: 1; background: var(--field-disabled-background); border-color: var(--field-disabled-border); color: var(--field-disabled-color); }
+.selectDisabled .selectButton,
+.selectDisabled .chevron,
+.selectDisabled .comboboxInput { color: inherit; }
+.field[data-readonly=true] .select,
+.fieldFull[data-readonly=true] .select { background: var(--field-readonly-background); }
 
-.selectOpen {
-  border-color: var(--select-border-color, var(--black));
-  border-bottom-color: transparent !important;
-  background: var(--white);
-  z-index: 40;
-}
-
-.selectOpen.requiredEmpty {
-  background: var(--white);
-  border-color: var(--select-border-color, var(--black));
-  border-bottom-color: transparent !important;
-}
-
-.select.invalid,
-.selectOpen.invalid,
-.selectOpen.requiredEmpty.invalid {
-  border-color: var(--danger) !important;
-  background: var(--white) !important;
-}
-
-.selectOpen.invalid,
-.selectOpen.requiredEmpty.invalid {
-  border-bottom-color: transparent !important;
-}
-
-.select.invalid .menu,
-.selectOpen.invalid .menu {
-  border-color: var(--danger);
-}
-
-.selectOpen.invalid .menu {
-  border-top-color: transparent !important;
-}
-
-.selectDisabled {
-  background: var(--soft);
-  color: var(--muted);
+.selectButton,
+.comboboxInput,
+.option {
+  color: var(--black);
+  font-family: inherit;
+  font-size: var(--field-control-size, 14px);
+  line-height: var(--field-control-line-height, 21px);
+  font-weight: var(--field-control-weight, 400);
+  letter-spacing: normal;
 }
 
 .selectButton {
   width: 100%;
-  height: var(--field-control-height, 44px);
-  padding: 0 43px 0 15px;
+  height: 100%;
+  padding: 0 43px 0 var(--field-control-padding-inline, 15px);
   border: 0;
   background: transparent;
-  color: var(--black);
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 14px;
-  font-size: 14px;
-  line-height: 1.4;
-  font-weight: 400;
   text-align: left;
   outline: none;
   cursor: pointer;
 }
+.selectButton:disabled { color: var(--muted); cursor: not-allowed; }
+.selectButton[aria-readonly=true] { cursor: text; }
+.selectButton > :is(.selectValue, .selectPlaceholderValue) { flex: 1; min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.placeholder { color: var(--muted); }
 
-.selectButton:disabled {
-  color: var(--muted);
-  cursor: not-allowed;
-}
+/* Compact quantity keeps its 44px touch target without enlarging the visible box. */
+.compact { --select-border-color: var(--line-subtle); }
+.compact .select { height: 32px; margin: 6px 0; }
+.compact .selectButton { position: relative; height: 100%; padding: 0 25px 0 10px; gap: 6px; }
+.compact .selectButton::before { content: ""; position: absolute; inset: calc(-6px - var(--line-width-default)) 0; }
+.compact .selectOpen .selectButton::before { bottom: 0; }
+.compact .chevron { right: 8px; width: 14px; height: 14px; }
+.compact .option { padding-inline: 10px; }
 
-.compact {
-  --select-border-color: var(--line-subtle);
-}
-
-.compact .select {
-  margin: 6px 0;
-}
-
-.compact .selectButton {
-  position: relative;
-  height: 32px;
-  padding: 0 25px 0 10px;
-  gap: 6px;
-}
-
-/* A compact visible field keeps a 44px touch target. */
-.compact .selectButton::before {
-  content: "";
-  position: absolute;
-  inset: -6px 0;
-}
-
-.compact .selectOpen .selectButton::before {
-  bottom: 0;
-}
-
-.compact .selectValue,
-.compact .optionValue {
-  font-size: 12px;
-}
-
-.compact .chevron {
-  right: 8px;
-  width: 14px;
-  height: 14px;
-}
-
-.compact .chevron svg {
-  width: 14px;
-  height: 14px;
-}
-
-.compact .option {
-  padding: 0 10px;
-}
-
-.placeholder {
-  color: var(--muted);
-}
-
-/* Inline values keep their geometry when editing is enabled. */
+/* The profile variant changes geometry through an explicit role, not a page override. */
 .field[data-field-variant=inline],
-.fieldFull[data-field-variant=inline] {
-  gap: 7px;
-}
-
+.fieldFull[data-field-variant=inline] { --field-control-size: var(--font-md); --field-control-line-height: var(--line-height-body); gap: var(--field-inline-gap, 7px); }
 .field[data-field-variant=inline] .select,
-.fieldFull[data-field-variant=inline] .select {
-  border-color: transparent transparent var(--line);
-  background: var(--white);
-}
-
+.fieldFull[data-field-variant=inline] .select { height: var(--field-inline-height, 29px); border-color: transparent transparent var(--line); background: var(--white); }
 .field[data-field-variant=inline] .selectOpen,
-.fieldFull[data-field-variant=inline] .selectOpen {
-  border-color: var(--black);
-}
-
+.fieldFull[data-field-variant=inline] .selectOpen { border-color: var(--black); border-bottom-color: transparent; }
+.field[data-field-variant=inline] .select.invalid,
+.fieldFull[data-field-variant=inline] .select.invalid { border-color: var(--error); }
+.field[data-field-variant=inline] .selectOpen.invalid,
+.fieldFull[data-field-variant=inline] .selectOpen.invalid { border-bottom-color: transparent; }
 .field[data-field-variant=inline] .selectButton,
-.fieldFull[data-field-variant=inline] .selectButton {
-  height: 27px;
-  padding: 0 30px 3px 0;
-}
-
+.fieldFull[data-field-variant=inline] .selectButton { height: var(--field-inline-select-height, 27px); padding: 0 30px 3px 0; }
 .field[data-field-variant=inline] .selectButton::before,
-.fieldFull[data-field-variant=inline] .selectButton::before {
-  content: "";
-  position: absolute;
-  inset: -9px 0;
-}
-
+.fieldFull[data-field-variant=inline] .selectButton::before { content: ""; position: absolute; inset: -9px 0; }
 .field[data-field-variant=inline] .selectOpen .selectButton::before,
-.fieldFull[data-field-variant=inline] .selectOpen .selectButton::before {
-  bottom: 0;
-}
-
+.fieldFull[data-field-variant=inline] .selectOpen .selectButton::before { bottom: 0; }
 .field[data-field-variant=inline] .selectButton:disabled,
-.fieldFull[data-field-variant=inline] .selectButton:disabled {
-  color: var(--black);
-  cursor: default;
-}
-
+.fieldFull[data-field-variant=inline] .selectButton:disabled { color: var(--black); cursor: default; }
 .field[data-field-variant=inline] .chevron,
-.fieldFull[data-field-variant=inline] .chevron {
-  right: 0;
-  top: 12px;
-}
-
+.fieldFull[data-field-variant=inline] .chevron { right: 0; top: 12px; }
 .field[data-readonly=true] .chevron,
-.fieldFull[data-readonly=true] .chevron {
-  visibility: hidden;
-}
+.fieldFull[data-readonly=true] .chevron { visibility: hidden; }
 
-.comboboxInput {
-  width: 100%;
-  height: var(--field-control-height, 44px);
-  padding: 0 43px 0 15px;
-  border: 0;
-  background: transparent;
-  color: #000;
-  font-size: 14px;
-  line-height: 1.4;
-  font-weight: 400;
-  letter-spacing: 0;
-  outline: none;
-}
+.comboboxInput { width: 100%; height: 100%; padding: 0 43px 0 var(--field-control-padding-inline, 15px); border: 0; background: transparent; outline: none; }
+.comboboxInputWithBadge { padding-right: 112px; }
+.comboboxBadge { position: absolute; right: 36px; top: 50%; transform: translateY(-50%); border: var(--line-width-default) solid var(--gold-border); background: var(--gold-light); padding: 3px 7px; color: var(--state-text-color, var(--black)); font-size: var(--font-xs); white-space: nowrap; pointer-events: none; }
 
-.comboboxInputWithBadge {
-  padding-right: 112px;
-}
-
-.comboboxBadge {
-  position: absolute;
-  right: 36px;
-  top: 50%;
-  transform: translateY(-50%);
-  border: 1px solid rgba(138, 106, 47, 0.2);
-  background: rgba(201, 162, 79, 0.08);
-  padding: 3px 7px;
-  color: var(--warning);
-  font-size: var(--font-xs);
-  white-space: nowrap;
-  pointer-events: none;
-}
-
-.chevron {
-  position: absolute;
-  right: 16px;
-  top: 50%;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 20px;
-  height: 20px;
-  border: 0;
-  padding: 0;
-  background: transparent;
-  color: #000;
-  cursor: pointer;
-  transform: translateY(-50%);
-  transition: transform 0.18s ease, color 0.18s ease;
-}
-
-.chevron svg {
-  display: block;
-  width: 100%;
-  height: 100%;
-}
-
-.chevron path {
-  fill: none;
-  stroke: currentColor;
-  stroke-width: 1.5;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-}
-
-.selectOpen .chevron {
-  color: var(--black);
-  transform: translateY(-50%) rotate(180deg);
-}
+.chevron { position: absolute; right: 16px; top: 50%; display: inline-flex; align-items: center; justify-content: center; width: 20px; height: 20px; border: 0; padding: 0; background: transparent; color: var(--black); cursor: pointer; transform: translateY(-50%); transition: transform var(--transition-fast), color var(--transition-fast); }
+.chevron svg { display: block; width: 100%; height: 100%; }
+.chevron path { fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+.selectOpen .chevron { transform: translateY(-50%) rotate(180deg); }
 
 .menu {
   position: absolute;
-  left: -1px;
-  right: -1px;
+  left: calc(-1 * var(--line-width-default));
+  right: calc(-1 * var(--line-width-default));
   top: 100%;
   z-index: 50;
   display: grid;
   grid-template-rows: 0fr;
-  border: 1px solid var(--select-border-color, var(--black));
-  border-top: 1px solid transparent;
+  visibility: hidden;
+  border: var(--line-width-default) solid var(--field-control-border-color, var(--select-border-color, var(--black)));
+  border-top-color: transparent;
+  border-radius: 0 0 var(--field-control-radius) var(--field-control-radius);
   background: var(--white);
   overflow: hidden;
   pointer-events: none;
-  transition: grid-template-rows 0.18s ease, border-top-color 0.18s ease;
+  transition: grid-template-rows var(--transition-fast);
 }
+.selectOpen .menu { grid-template-rows: 1fr; visibility: visible; pointer-events: auto; }
+.selectOpen[data-side=top],
+:is(.field, .fieldFull)[data-field-variant=inline] .selectOpen[data-side=top] {
+  border-top-color: transparent;
+  border-bottom-color: var(--field-control-border-color, var(--select-border-color, var(--black)));
+}
+.selectOpen.invalid[data-side=top],
+:is(.field, .fieldFull)[data-field-variant=inline] .selectOpen.invalid[data-side=top] { border-bottom-color: var(--error); }
+.select[data-side=top] > .menu {
+  top: auto;
+  bottom: 100%;
+  border-top-color: var(--field-control-border-color, var(--select-border-color, var(--black)));
+  border-bottom-color: transparent;
+  border-radius: var(--field-control-radius) var(--field-control-radius) 0 0;
+}
+.select.invalid[data-side=top] > .menu { border-top-color: var(--error); border-bottom-color: transparent; }
+.options { min-height: 0; max-height: var(--dropdown-max-height, 260px); overflow: auto; overscroll-behavior: contain; scrollbar-width: thin; scrollbar-color: var(--black) transparent; }
+.options::-webkit-scrollbar { width: 2px; }
+.options::-webkit-scrollbar-track { background: transparent; }
+.options::-webkit-scrollbar-thumb { background: var(--black); border: 0; border-radius: 0; }
+.options::-webkit-scrollbar-button { display: none; }
 
-.selectOpen .menu {
-  grid-template-rows: 1fr;
-  border-top-color: transparent !important;
-  pointer-events: auto;
-}
-
-.options {
-  min-height: 0;
-  max-height: 260px;
-  overflow: auto;
-  scrollbar-width: thin;
-  scrollbar-color: #d6d6d6 transparent;
-}
-
-.options::-webkit-scrollbar {
-  width: 2px;
-}
-
-.options::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.options::-webkit-scrollbar-thumb {
-  background: #d6d6d6;
-  border: 0;
-  border-radius: 0;
-}
-
-.options::-webkit-scrollbar-button {
-  display: none;
-}
-
-.option {
-  width: 100%;
-  min-height: 44px;
-  padding: 0 15px;
-  border: 0;
-  background: var(--white);
-  color: var(--black);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  font-size: 14px;
-  line-height: 1.4;
-  font-weight: 400;
-  text-align: left;
-  cursor: pointer;
-}
-
-.option:hover,
-.option[aria-selected="true"] {
-  background: var(--soft);
-}
-
-.option:disabled {
-  color: var(--muted);
-  cursor: not-allowed;
-}
-
-.optionMuted {
-  color: var(--muted);
-}
-
-.optionLabel {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.optionCheck {
-  flex: 0 0 18px;
-  width: 18px;
-  height: 18px;
-  color: var(--black);
-}
-
-.empty {
-  padding: 11px 14px;
-  color: var(--muted);
-  font-size: var(--font-sm);
-  line-height: 1.4;
-  font-weight: 400;
-}
+.option { width: 100%; min-height: 44px; padding: 0 var(--field-control-padding-inline, 15px); border: 0; background: var(--white); display: flex; align-items: center; justify-content: space-between; gap: 16px; text-align: left; cursor: pointer; }
+.option:hover:not(:disabled),
+.option[aria-selected="true"] { background: var(--surface-hover); }
+.option:focus-visible { outline: var(--field-focus-width, 1px) solid var(--black); outline-offset: calc(-1 * var(--field-focus-width, 1px)); }
+.option:disabled { opacity: var(--field-disabled-opacity, 0.55); color: var(--muted); cursor: not-allowed; }
+.optionMuted { color: var(--muted); }
+.optionLabel { min-width: 0; padding-block: 10px; overflow-wrap: anywhere; white-space: normal; }
+.optionCheck { flex: 0 0 18px; width: 18px; height: 18px; color: var(--black); }
+.empty { padding: 11px 14px; color: var(--muted); font-size: var(--font-sm); line-height: var(--line-height-small); font-weight: var(--field-control-weight, 400); }
+.empty > :global(.loaderInline) { display: flex; margin: 0 auto; }
 .selectValue,
-.optionValue {
-  color: #000;
-  font-size: 14px;
-  line-height: 1.4;
-  font-weight: 400;
-  letter-spacing: 0;
-}
-
+.optionValue { color: inherit; font: inherit; letter-spacing: inherit; }
 .selectPlaceholderValue,
 .optionPlaceholder,
 .comboboxInput.placeholder,
-.comboboxInput::placeholder {
-  color: var(--muted);
-  font-size: var(--font-sm);
-  line-height: 1.4;
-  font-weight: 400;
-  letter-spacing: 0;
+.comboboxInput::placeholder { color: var(--muted); font-size: var(--font-placeholder); line-height: var(--field-control-line-height, 21px); font-weight: var(--field-control-weight, 400); letter-spacing: normal; }
+
+@media (prefers-reduced-motion: reduce) {
+  .select, .chevron, .menu { transition: none; }
 }

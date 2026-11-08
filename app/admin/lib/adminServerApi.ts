@@ -39,12 +39,13 @@ async function serverFetch<T>(path: string): Promise<T | null> {
 export async function getAdminProductsServer(
   status: ProductStatus | "ALL",
   page = 0,
-  size = 50
+  size = 50,
+  q = "", seller = ""
 ): Promise<PageResponse<AdminProductListItem> | null> {
   const query =
     status === "ALL"
-      ? `page=${page}&size=${size}`
-      : `status=${status}&page=${page}&size=${size}`;
+      ? `page=${page}&size=${size}&q=${encodeURIComponent(q)}${seller ? `&seller=${encodeURIComponent(seller)}` : ""}`
+      : `status=${status}&page=${page}&size=${size}&q=${encodeURIComponent(q)}${seller ? `&seller=${encodeURIComponent(seller)}` : ""}`;
 
   return serverFetch<PageResponse<AdminProductListItem>>(
     `/api/admin/products/list?${query}`
@@ -67,10 +68,11 @@ export async function getAdminProductServer(
 
 export async function getAdminOrdersServer(
   page = 0,
-  size = 50
+  size = 50,
+  q = "", paymentStatus = "", deliveryStatus = "", seller = "", from = "", to = ""
 ): Promise<PageResponse<AdminOrderListItem> | null> {
   return serverFetch<PageResponse<AdminOrderListItem>>(
-    `/api/admin/orders/list?page=${page}&size=${size}`
+    `/api/admin/orders/list?page=${page}&size=${size}&q=${encodeURIComponent(q)}${seller ? `&seller=${encodeURIComponent(seller)}` : ""}${paymentStatus ? `&paymentStatus=${encodeURIComponent(paymentStatus)}` : ""}${deliveryStatus ? `&deliveryStatus=${encodeURIComponent(deliveryStatus)}` : ""}${from ? `&from=${encodeURIComponent(from)}` : ""}${to ? `&to=${encodeURIComponent(to)}` : ""}`
   );
 }
 
@@ -101,12 +103,13 @@ export async function getAdminDictionaryServer(
 export async function getAdminSellerApplicationsServer(
   status: SellerApplicationStatus | "ALL",
   page = 0,
-  size = 50
+  size = 50,
+  q = ""
 ): Promise<PageResponse<AdminSellerApplication> | null> {
   const query =
     status === "ALL"
-      ? `page=${page}&size=${size}`
-      : `status=${status}&page=${page}&size=${size}`;
+      ? `page=${page}&size=${size}&q=${encodeURIComponent(q)}`
+      : `status=${status}&page=${page}&size=${size}&q=${encodeURIComponent(q)}`;
 
   return serverFetch<PageResponse<AdminSellerApplication>>(
     `/api/admin/seller-applications?${query}`

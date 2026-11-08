@@ -1,4 +1,5 @@
 "use client";
+import { Checkbox } from "../components/ui/Checkbox";
 
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import Link from "next/link";
@@ -278,10 +279,10 @@ export function ContactForm() {
         />
         <div className={styles.consent}>
           <div className={styles.consentRow}>
-            <input
+            <Checkbox
               id="contact-privacy"
               name="privacyAccepted"
-              type="checkbox"
+
               required
               checked={form.privacyAccepted}
               onBlur={() => validation.touch("privacyAccepted")}

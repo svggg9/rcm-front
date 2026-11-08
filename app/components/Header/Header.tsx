@@ -14,16 +14,21 @@ import { useAuthModal } from "../AuthModal/useAuthModal";
 import { Icon } from "../ui/Icon";
 import { FavoritesNavigationIcon } from "../BuyerNavigation/FavoritesNavigationIcon";
 import { BuyerBottomNavigation } from "../BuyerNavigation/BuyerBottomNavigation";
+import { MobilePanelHeader } from "../BuyerNavigation/MobilePanelHeader";
+import { ProductSearch } from "../ui/ProductSearch";
+import { BuyerSearchInline } from "../BuyerNavigation/BuyerSearchInline";
+import { isBuyerSearchEntry } from "../BuyerNavigation/BuyerSearchDialog";
 import { getBuyerMobilePage } from "../../lib/buyerNavigation";
+import { useBuyerPanelReturn } from "../../lib/useBuyerPanelReturn";
+import { handleBuyerPanelAction } from "../../lib/buyerPanelActions";
 import { HeaderIcon } from "./HeaderIcon";
 import { isSellerCabinetPath, SellerHeader } from "./SellerHeader";
-import { Dialog } from "../ui/Dialog";
 import { Button } from "../ui/Button";
-import { TextInput } from "../ui/TextInput";
 import { loadMenuCategories, type MenuCategory } from "./menuCategories";
 import { subscribeCategoriesChanged } from "../../lib/categoryEvents";
 import { RequestError } from "../ui/RequestError";
 import { toast } from "../ui/toast";
+import { useModalDialog } from "../ui/useModalDialog";
 
 type HeaderProps = {
   initialCategories: MenuCategory[] | null;
@@ -43,11 +48,13 @@ function HeaderContent({ initialCategories }: HeaderProps) {
   const searchParams = useSearchParams();
   const headerRef = useRef<HTMLElement | null>(null);
   const menuDialogRef = useRef<HTMLDialogElement | null>(null);
+  const desktopSearchButtonRef = useRef<HTMLButtonElement | null>(null);
 
   const activeCategory = searchParams.get("category");
   const activeAudience = searchParams.get("audience") || "all";
   const activeSearch = searchParams.get("q") || "";
   const buyerMobilePage = getBuyerMobilePage(pathname, searchParams);
+  const panelReturn = useBuyerPanelReturn(pathname, searchParams.toString());
 
   const [categories, setCategories] = useState<MenuCategory[]>(initialCategories ?? []);
   const [loadingCategories, setLoadingCategories] = useState(initialCategories === null);
@@ -55,6 +62,17 @@ function HeaderContent({ initialCategories }: HeaderProps) {
   const [categoryLoadAttempt, setCategoryLoadAttempt] = useState(0);
   const [menuOpen, setMenuOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
+  const [desktopSearchOpen, setDesktopSearchOpen] = useState(false);
+  const [desktopSearchDraft, setDesktopSearchDraft] = useState<{ routeQuery: string; value: string } | null>(null);
+
+  useEffect(() => {
+    const restoreSearch = (event: PopStateEvent) => {
+      if (isBuyerSearchEntry(event.state)) setSearchOpen(true);
+    };
+    if (isBuyerSearchEntry(window.history.state)) setSearchOpen(true);
+    window.addEventListener("popstate", restoreSearch);
+    return () => window.removeEventListener("popstate", restoreSearch);
+  }, []);
 
   const { user, isAuthenticated: isAuth, loading: authLoading, error: authError, reload: reloadUser } = useCurrentUser();
   const cartCount = useCartCount();
@@ -63,16 +81,7 @@ function HeaderContent({ initialCategories }: HeaderProps) {
   const { openAuth } = useAuthModal();
 
 
-  useEffect(() => {
-    if (!menuOpen) return;
-    const dialog = menuDialogRef.current;
-    const trigger = document.activeElement;
-    dialog?.showModal();
-    return () => {
-      dialog?.close();
-      if (trigger instanceof HTMLElement && trigger.isConnected) trigger.focus();
-    };
-  }, [menuOpen]);
+  useModalDialog(menuDialogRef, { enabled: menuOpen });
 
 
   useEffect(() => subscribeCategoriesChanged(() => setCategoryLoadAttempt(attempt => attempt + 1)), []);
@@ -133,16 +142,6 @@ function HeaderContent({ initialCategories }: HeaderProps) {
     return () => observer.disconnect();
   }, []);
 
-  useEffect(() => {
-    if (!menuOpen) return;
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-
-    return () => {
-      document.body.style.overflow = previousOverflow;
-    };
-  }, [menuOpen]);
-
   function buildCatalogUrl(params: {
     category?: string | null;
     audience?: string | null;
@@ -193,7 +192,10 @@ function HeaderContent({ initialCategories }: HeaderProps) {
   return (
     <>
     <header className={styles.header} ref={headerRef} data-buyer-mobile={buyerMobilePage ? "true" : undefined} data-buyer-account={pathname === "/account" ? "true" : undefined} data-buyer-home={pathname === "/" || pathname === "/catalog" ? "true" : undefined}>
-      {buyerMobilePage && pathname !== "/" && pathname !== "/catalog" && pathname !== "/account" ? (
+      {buyerMobilePage?.panel ? <MobilePanelHeader className={styles.panelBar} title={buyerMobilePage.title}
+        onBack={() => { if (!handleBuyerPanelAction("back")) panelReturn.back(); }}
+        onClose={() => { if (!handleBuyerPanelAction("close")) panelReturn.close(); }} /> :
+      buyerMobilePage && pathname !== "/" && pathname !== "/catalog" && pathname !== "/account" ? (
         <div className={styles.buyerBar}>
           <div className={styles.buyerLeading}>
             {buyerMobilePage.backHref ? (
@@ -221,18 +223,23 @@ function HeaderContent({ initialCategories }: HeaderProps) {
             <HeaderIcon name="menu" />
           </button>
 
-          <button type="button" className={styles.iconBtn} aria-label="Поиск" onClick={() => setSearchOpen(true)}>
-            <HeaderIcon name="search" />
-          </button>
+          <div className={styles.desktopSearch}>
+            {desktopSearchOpen ? <div className={styles.headerSearch}><ProductSearch key={activeSearch}
+              initialQuery={desktopSearchDraft?.routeQuery === activeSearch ? desktopSearchDraft.value : activeSearch} autoFocus
+              onQueryChange={value => setDesktopSearchDraft({ routeQuery: activeSearch, value })}
+              escapeClosesSearch onEscape={() => { setDesktopSearchOpen(false); requestAnimationFrame(() => desktopSearchButtonRef.current?.focus()); }}
+              onDismiss={() => setDesktopSearchOpen(false)}
+              onSearch={q => { setDesktopSearchDraft(null); setDesktopSearchOpen(false); router.push(`/catalog?${new URLSearchParams({ q }).toString()}`); }}
+              onProduct={href => { setDesktopSearchDraft(null); setDesktopSearchOpen(false); router.push(href); }} /></div> :
+              <button ref={desktopSearchButtonRef} type="button" className={styles.iconBtn} aria-label="Поиск" aria-expanded={false}
+                onClick={() => setDesktopSearchOpen(true)}><HeaderIcon name="search" /></button>}
+          </div>
 
-          <Link href="/favorites" className={`${styles.iconBtn} ${favoritesCount > 0 ? styles.iconBtnActive : ""}`} aria-label={favoritesCount > 0 ? `Избранное: ${favoritesCount}` : "Избранное"}>
-            <FavoritesNavigationIcon count={favoritesCount} />
-          </Link>
           </div>
 
           <Link href="/" className={styles.logo} aria-label="рцмаркет — главная">
             <Image
-              src="/brand/wordmark-gold-white.svg"
+              src="/brand/wordmark-gold-black.svg"
               alt="рцмаркет"
               width={794}
               height={100}
@@ -242,6 +249,9 @@ function HeaderContent({ initialCategories }: HeaderProps) {
           </Link>
 
           <div className={styles.actions}>
+          <Link href="/favorites" className={styles.iconBtn} aria-label={favoritesCount > 0 ? `Избранное: ${favoritesCount}` : "Избранное"}>
+            <FavoritesNavigationIcon count={favoritesCount} />
+          </Link>
             {isAuth ? (
               <Link href="/account" className={styles.iconBtn} aria-label="Личный кабинет">
                 <HeaderIcon name="user" />
@@ -270,6 +280,11 @@ function HeaderContent({ initialCategories }: HeaderProps) {
 
       )}
 
+      {searchOpen && !isSellerCabinetPath(pathname) ? <BuyerSearchInline className={styles.mobileSearchRow} closeClassName={styles.iconBtn}
+        initialQuery={activeSearch} onClose={() => setSearchOpen(false)}
+          onSearch={q => { setSearchOpen(false); router.push(`/catalog?${new URLSearchParams({ q }).toString()}`); }}
+          onProduct={href => { setSearchOpen(false); router.push(href); }} /> : null}
+
 
       {menuOpen ? (
         <dialog
@@ -278,21 +293,6 @@ function HeaderContent({ initialCategories }: HeaderProps) {
           className={styles.mobilePanel}
           aria-label="Меню сайта"
           onCancel={() => setMenuOpen(false)}
-          onKeyDown={(event) => {
-            if (event.key !== "Tab") return;
-            const controls = Array.from(
-              event.currentTarget.querySelectorAll<HTMLElement>("button:not(:disabled), a[href]")
-            ).filter((element) => element.tabIndex >= 0 && element.getClientRects().length > 0);
-            const first = controls[0];
-            const last = controls[controls.length - 1];
-            if (event.shiftKey && document.activeElement === first) {
-              event.preventDefault();
-              last?.focus();
-            } else if (!event.shiftKey && document.activeElement === last) {
-              event.preventDefault();
-              first?.focus();
-            }
-          }}
           onClick={(event) => {
             if (event.target === event.currentTarget) setMenuOpen(false);
           }}
@@ -369,7 +369,7 @@ function HeaderContent({ initialCategories }: HeaderProps) {
         </dialog>
       ) : null}
     </header>
-    {buyerMobilePage && !pathname.startsWith("/checkout") && !searchParams.get("orderId") ? (
+    {buyerMobilePage && !buyerMobilePage.panel && !pathname.startsWith("/checkout") && !searchParams.get("orderId") ? (
       <BuyerBottomNavigation
         activeTab={buyerMobilePage.tab}
         cartCount={cartCount}
@@ -378,21 +378,6 @@ function HeaderContent({ initialCategories }: HeaderProps) {
         onMenu={openMobileMenu}
         onSearch={() => setSearchOpen(true)}
       />
-    ) : null}
-    {searchOpen ? (
-      <Dialog title="Поиск" onClose={() => setSearchOpen(false)}
-        actions={<Button type="submit" form="buyer-search-form">Найти</Button>}>
-        <form id="buyer-search-form" role="search" onSubmit={event => {
-          event.preventDefault();
-          const q = String(new FormData(event.currentTarget).get("q") ?? "").trim();
-          if (!q) return;
-          setSearchOpen(false);
-          router.push(`/catalog?${new URLSearchParams({ q }).toString()}`);
-        }}>
-          <TextInput label="Название или артикул" type="search" name="q" required maxLength={120}
-            defaultValue={activeSearch} autoFocus />
-        </form>
-      </Dialog>
     ) : null}
     </>
   );

@@ -1,5 +1,6 @@
 "use client";
 
+import { useConfirmation } from "../../components/ui/ConfirmActionButton";
 import { Loader } from "../../components/ui/Loader";
 import { useEffect, useRef, useState } from "react";
 import { Button } from "../../components/ui/Button";
@@ -9,6 +10,7 @@ import { findReviewOrders, operationMoney, paymentRequest, type LatePayment, typ
 import styles from "./AdminPaymentReview.module.css";
 
 export function AdminLatePayments() {
+  const {confirm,confirmation}=useConfirmation();
   const [page, setPage] = useState(0);
   const [data, setData] = useState<OperationPage<LatePayment> | null>(null);
   const [revision, setRevision] = useState(0);
@@ -42,7 +44,7 @@ export function AdminLatePayments() {
   async function refund(row: LatePayment, orderId: number) {
     if (inFlight.current) return;
     const remaining = row.amount - row.refundedAmount - row.pendingRefundAmount;
-    if (remaining <= 0 || !window.confirm(`Создать возврат по заказу №${orderId} из платежа №${row.paymentId}? Сумма ограничена оплатой этого заказа и уже созданными возвратами.`)) return;
+    if (remaining <= 0 || !await confirm({title:"Создать возврат",text:`Заказ №${orderId}, платёж №${row.paymentId}. Сумма ограничена оплатой этого заказа и уже созданными возвратами`,label:"Создать возврат"})) return;
     inFlight.current = true; setBusy(true); setActionError("");
     try {
       await paymentRequest(`/api/admin/payment-review/${orderId}/late-refund?paymentId=${row.paymentId}`, { method: "POST" });
@@ -51,10 +53,10 @@ export function AdminLatePayments() {
       });
       setSelection(null);
       window.dispatchEvent(new Event("refund-operations-changed"));
-    } catch (reason) { setActionError(reason instanceof Error ? reason.message : "Не удалось создать запрос возврата"); }
+    } catch (reason) { setSelection(null); setActionError(reason instanceof Error ? reason.message : "Результат операции неизвестен — обновите данные и сверьте состояние перед повтором"); }
     finally { inFlight.current = false; setBusy(false); setRevision(value => value + 1); }
   }
-  return <section className={styles.panel} aria-label="Поздние платежи" aria-busy={busy || loading}>
+  return <>{confirmation}<section className={styles.panel} aria-label="Поздние платежи" aria-busy={busy || loading}>
     <div className={styles.heading}><h2>Поздние платежи{data ? ` · ${data.totalElements}` : ""}</h2>
       <Button variant="ghost" disabled={busy} onClick={() => setRevision(value => value + 1)}>Обновить</Button></div>
     <p>Каждая оплаченная попытка показана отдельно. Возврат не возобновляет отменённый заказ.</p>
@@ -84,5 +86,5 @@ export function AdminLatePayments() {
       <div className={styles.actions}>{selection.orders.map(orderId => <Button key={orderId} disabled={busy} onClick={() => void refund(selection.payment, orderId)}>Возврат по заказу №{orderId}</Button>)}</div>
       {actionError && <p className={styles.error} role="alert">{actionError}</p>}
     </Dialog>}
-  </section>;
+  </section></>;
 }

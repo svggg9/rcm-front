@@ -1,5 +1,6 @@
 "use client";
 
+import { AdminSearchForm } from "./AdminSearchForm";
 import { Loader } from "../../components/ui/Loader";
 import { useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -59,6 +60,7 @@ export function AdminContactsTab() {
   return <div className={styles.page}><h1 className={styles.title}>Обращения</h1>
     <CabinetPanel items={[{ value: "chats", label: "Диалоги" }, { value: "email", label: "Email" }]}
       value={email ? "email" : "chats"} onChange={changeView} ariaLabel="Каналы обращений">
+      {email && <AdminSearchForm label="Имя, email, номер заказа или текст обращения" />}
       {!email && <AdminSupportChats />}
       {(email || emailVisited) && <div hidden={!email}><EmailContacts /></div>}
     </CabinetPanel>
@@ -66,6 +68,7 @@ export function AdminContactsTab() {
 }
 
 function EmailContacts() {
+  const query=useSearchParams().get("q")??"";
   const [status, setStatus] = useState<Filter>("NEW");
   const [page, setPage] = useState(0);
   const [revision, setRevision] = useState(0);
@@ -77,7 +80,7 @@ function EmailContacts() {
   const [busyId, setBusyId] = useState<number | null>(null);
   const [replyDrafts, setReplyDrafts] = useState<Record<number, ContactReplyDraft>>({});
   const actionController = useRef<AbortController | null>(null);
-  const key = `${status}:${page}:${revision}`;
+  const key = `${status}:${page}:${revision}:${query}`;
   const loading = result?.key !== key;
   const data = !loading ? result?.data : null;
   const error = !loading ? result?.error : "";
@@ -85,7 +88,7 @@ function EmailContacts() {
 
   useEffect(() => {
     const controller = new AbortController();
-    void getContactMessages(status, page, controller.signal)
+    void getContactMessages(status, page, controller.signal,query)
       .then((nextData) => {
         if (controller.signal.aborted) return;
         if (page > 0 && page >= nextData.totalPages) {
@@ -103,7 +106,7 @@ function EmailContacts() {
         }
       });
     return () => controller.abort();
-  }, [key, page, status]);
+  }, [key, page, status, query]);
 
   useEffect(() => () => actionController.current?.abort(), []);
 

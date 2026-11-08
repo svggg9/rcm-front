@@ -1,5 +1,5 @@
 .catalogPage {
-  padding: 24px 0 64px;
+  padding: var(--space-6) 0 64px;
 }
 
 .catalogTop {
@@ -11,16 +11,16 @@
   display: flex;
   align-items: center;
   justify-content: flex-start;
-  gap: 8px;
-  margin-bottom: 20px;
+  gap: var(--space-2);
+  margin-bottom: var(--space-5);
 }
 
 .heading {
   max-width: 720px;
   margin: 0;
   color: var(--black);
-  font-size: clamp(28px, 4vw, 42px);
-  font-weight: 400;
+  font-size: clamp(var(--font-title-lg), 4vw, 42px);
+  font-weight: var(--font-weight-regular);
   line-height: 1.05;
   letter-spacing: -0.035em;
   text-transform: uppercase;
@@ -47,10 +47,10 @@
 
 .brandDescription {
   margin: 0;
-  color: #333333;
-  font-size: 14px;
+  color: var(--black);
+  font-size: var(--font-sm);
   line-height: 1.55;
-  font-weight: 300;
+  font-weight: var(--font-weight-regular);
   letter-spacing: 0;
 }
 
@@ -104,49 +104,49 @@
 .brandCarousel.brandCarouselContained { width: 100%; margin-left: 0; aspect-ratio: 16 / 7; }
 @container storefront-preview (max-width: 560px) {
   .brandCarousel.brandCarouselContained { aspect-ratio: 4 / 5; }
-  .heading { font-size: 28px; }
-  .brandDescription { font-size: 13px; }
+  .heading { font-size: var(--font-title-lg); }
+  .brandDescription { font-size: var(--font-xs); }
 }
 
 .storefrontCollections {
   display: flex;
   flex-direction: column;
-  gap: 48px;
+  gap: var(--space-9);
   padding-top: 44px;
 }
 
 .collectionHeader {
   max-width: 620px;
-  margin-bottom: 20px;
+  margin-bottom: var(--space-5);
 }
 
 .collectionHeader h2 {
   margin: 0;
   color: var(--black);
-  font-size: 24px;
+  font-size: var(--font-title-md);
   line-height: 1.15;
-  font-weight: 500;
+  font-weight: var(--font-weight-medium);
 }
 
 .collectionHeader p {
   margin: 7px 0 0;
   color: var(--muted);
-  font-size: 13px;
+  font-size: var(--font-xs);
   line-height: 1.45;
-  font-weight: 300;
+  font-weight: var(--font-weight-regular);
 }
 
 .collectionGrid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 16px;
+  gap: var(--space-4);
   margin: 0;
   padding: 0;
   list-style: none;
 }
 
 .results {
-  padding-top: 24px;
+  padding-top: var(--space-6);
   scroll-margin-top: calc(var(--site-header-height) + 20px);
 }
 
@@ -154,15 +154,15 @@
   display: flex;
   align-items: baseline;
   gap: 10px;
-  margin-bottom: 20px;
+  margin-bottom: var(--space-5);
 }
 
 .catalogHeader h2 {
   margin: 0;
   color: var(--black);
-  font-size: 24px;
+  font-size: var(--font-title-md);
   line-height: 1.15;
-  font-weight: 400;
+  font-weight: var(--font-weight-regular);
 }
 
 .count {
@@ -180,15 +180,15 @@
 
 @media (max-width: 560px) {
   .catalogPage {
-    padding-top: 20px;
+    padding-top: var(--space-5);
   }
 
   .heading {
-    font-size: 28px;
+    font-size: var(--font-title-lg);
   }
 
   .brandDescription {
-    font-size: 13px;
+    font-size: var(--font-xs);
   }
 
   .brandCarousel {
@@ -211,30 +211,31 @@
 }
 
 .shortDescription { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-.aboutLink { color: var(--black); font-size: 13px; text-underline-offset: 3px; }
+.aboutLink { color: var(--black); font-size: var(--font-xs); text-underline-offset: 3px; }
 /* Controls and product grid share Catalog.module.css. */
-.filterBar { display: flex; align-items: end; flex-wrap: wrap; gap: 16px; margin: 0 0 24px; }
+.filterBar { display: flex; align-items: end; flex-wrap: wrap; gap: var(--space-4); margin: 0 0 var(--space-6); }
 .filterBar > div { flex: 0 1 320px; }
-.filterBar > button { min-height: 44px; padding-inline: 20px; }
+.filterBar > button { min-height: 44px; padding-inline: var(--space-5); }
 .filterBar > details { margin-left: auto; }
 .brandPagination { display: flex; }
-.collectionDescription { margin: 0 0 20px; font-size: 13px; line-height: 1.5; }
-.catalogEmpty { padding: 40px 16px; text-align: center; border-block: .5px solid #a8a8a8; font-size: 14px; }
-.catalogEmpty a { color: #111; text-underline-offset: 3px; }
+.collectionDescription { margin: 0 0 var(--space-5); font-size: var(--font-xs); line-height: 1.5; }
+.catalogEmpty { padding: var(--space-8) var(--space-4); text-align: center; border-block: var(--line-width-hairline) solid var(--line); font-size: var(--font-sm); }
+.catalogEmpty a { color: var(--black); text-underline-offset: 3px; }
 
-.about { margin-top: 40px; border-top: .5px solid #a8a8a8; padding-top: 20px; scroll-margin-top: calc(var(--site-header-height) + 20px); container: storefront-preview / inline-size; }
-.about summary { cursor: pointer; font-size: 18px; }
-.aboutDescription { max-width: 720px; white-space: pre-line; font-size: 14px; line-height: 1.6; margin: 20px 0; }
-.brandFacts { font-size: 13px; margin: 20px 0; }
+.about { margin-top: var(--space-8); border-top: var(--line-width-hairline) solid var(--line); padding-top: var(--space-5); scroll-margin-top: calc(var(--site-header-height) + 20px); container: storefront-preview / inline-size; }
+.about summary { cursor: pointer; font-size: var(--font-title-xs); }
+.aboutDescription { max-width: 720px; white-space: pre-line; font-size: var(--font-sm); line-height: 1.6; margin: var(--space-5) 0; }
+.brandFacts { font-size: var(--font-xs); margin: var(--space-5) 0; }
 @media (max-width: 640px) {
-  .filterBar { gap: 12px; }
+  .filterBar { gap: var(--space-3); }
   .filterBar > div { flex: 1 1 100%; }
   .filterBar > details { display: block; }
   .brandPagination { display: flex; }
-  .catalogHeader h2 { font-size: 20px; }
+  .catalogHeader h2 { font-size: var(--font-title-sm); }
 }
 
-.catalogHeaderBrand { padding-top: 24px; }
+.catalogHeaderBrand { padding-top: var(--space-6); }
+.catalogHeaderBrand .headingWrap { margin-bottom: 0; }
 
 .catalogHeaderBrand .about { margin-top: 0; border-top: 0; padding-top: 0; }
 .catalogHeaderBrand .about summary { font-size: var(--font-sm); line-height: 1.4; }

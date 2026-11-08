@@ -16,33 +16,36 @@ body:has([data-store-actions]) .rcmToaster:not(.rcmToaster--editor) {
   border: 0 !important;
   background: var(--soft) !important;
   color: var(--black) !important;
-  padding: 16px 56px 16px 16px !important;
+  padding: var(--space-4) 56px var(--space-4) var(--space-4) !important;
   font-size: var(--font-sm) !important;
   text-align: left !important;
   font-family: inherit !important;
   display: grid !important;
   grid-template-columns: 20px minmax(0, 1fr) !important;
   align-items: start !important;
-  gap: 12px !important;
+  gap: var(--space-3) !important;
   box-shadow: none !important;
 }
 
 .rcmToast[data-type="success"] {
   background: var(--feedback-success-bg) !important;
+  border: var(--line-width-default) solid var(--feedback-success-border) !important;
 }
 .rcmToast[data-type="error"] {
-  background: var(--white) !important;
-  border: 1px solid var(--line) !important;
+  background: var(--feedback-danger-bg) !important;
+  border: var(--line-width-default) solid var(--feedback-danger-border) !important;
   font-size: var(--feedback-body-size) !important;
   line-height: var(--feedback-line-height) !important;
 }
-.rcmToast[data-type="error"] .rcmToastTitle { font-size: var(--feedback-body-size) !important; line-height: var(--feedback-line-height) !important; font-weight: 400 !important; }
-.rcmToast[data-type="error"] .rcmToastDescription { color: var(--muted) !important; font-size: var(--feedback-body-size) !important; line-height: var(--feedback-line-height) !important; font-weight: 400 !important; }
+.rcmToast[data-type="error"] .rcmToastTitle { font-size: var(--feedback-body-size) !important; line-height: var(--feedback-line-height) !important; font-weight: var(--font-weight-regular) !important; }
+.rcmToast[data-type="error"] .rcmToastDescription { color: var(--muted) !important; font-size: var(--feedback-body-size) !important; line-height: var(--feedback-line-height) !important; font-weight: var(--font-weight-regular) !important; }
 .rcmToast[data-type="warning"] {
   background: var(--feedback-warning-bg) !important;
+  border: var(--line-width-default) solid var(--feedback-warning-border) !important;
 }
 .rcmToast[data-type="info"] {
   background: var(--feedback-info-bg) !important;
+  border: var(--line-width-default) solid var(--feedback-info-border) !important;
 }
 .rcmToast [data-icon] {
   grid-column: 1;
@@ -52,9 +55,9 @@ body:has([data-store-actions]) .rcmToaster:not(.rcmToaster--editor) {
 }
 .rcmToast [data-icon] svg { margin: 0 !important; }
 .rcmToast[data-type="success"] [data-icon] { color: var(--success); }
-.rcmToast[data-type="error"] [data-icon] { color: var(--danger); }
+.rcmToast[data-type="error"] [data-icon] { color: var(--error); }
 .rcmToast[data-type="warning"] [data-icon] { color: var(--warning); }
-.rcmToast[data-type="info"] [data-icon] { color: var(--gold-deep); }
+.rcmToast[data-type="info"] [data-icon] { color: var(--feedback-info-color, var(--gold-deep)); }
 .rcmToast [data-content] {
   grid-column: 2;
   min-width: 0;
@@ -70,14 +73,14 @@ body:has([data-store-actions]) .rcmToaster:not(.rcmToaster--editor) {
   max-width: 100%;
   margin: 0 !important;
   height: auto !important;
-  min-height: 42px;
-  padding: 8px 16px !important;
-  border: 1px solid var(--black) !important;
+  min-height: 44px;
+  padding: var(--space-2) var(--space-4) !important;
+  border: var(--line-width-default) solid var(--black) !important;
   border-radius: var(--radius-none) !important;
   background: transparent !important;
   color: var(--black) !important;
   font: inherit !important;
-  font-weight: 500 !important;
+  font-weight: var(--font-weight-medium) !important;
   white-space: normal;
   text-align: left;
   transition: none !important;
@@ -85,9 +88,9 @@ body:has([data-store-actions]) .rcmToaster:not(.rcmToaster--editor) {
 .rcmToast:not(:has([data-icon])) .rcmToastAction,
 .rcmToast:not(:has([data-icon])) .rcmToastCancel { grid-column: 1 / -1; }
 .rcmToast [data-close-button] {
-  inset: 8px 8px auto auto !important;
-  width: 36px !important;
-  height: 36px !important;
+  inset: 4px 4px auto auto !important;
+  width: 44px !important;
+  height: 44px !important;
   padding: 0 !important;
   border: 0 !important;
   border-radius: var(--radius-none) !important;
@@ -109,19 +112,21 @@ body:has([data-store-actions]) .rcmToaster:not(.rcmToaster--editor) {
 
 .rcmToastTitle {
   width: 100%;
+  overflow-wrap: anywhere;
   text-align: left !important;
   color: var(--black) !important;
   font-size: var(--font-sm) !important;
-  font-weight: 500 !important;
-  line-height: 21px !important;
+  font-weight: var(--font-weight-medium) !important;
+  line-height: var(--line-height-ui) !important;
 }
 .rcmToastDescription {
   width: 100%;
+  overflow-wrap: anywhere;
   text-align: left !important;
   color: var(--black) !important;
   font-size: var(--font-sm) !important;
-  font-weight: 300 !important;
-  line-height: 21px !important;
+  font-weight: var(--font-weight-regular) !important;
+  line-height: var(--line-height-ui) !important;
 }
 
 /* Native modal notifications stay in the top layer, above the action footer. */

@@ -70,8 +70,10 @@ async function main() {
       [() => new Response("<html>private proxy failure</html>", { status: 502 }), operation.fallback, "http", 502],
       [() => Response.json({ message: "Unauthorized" }, { status: 401 }), "Войдите в аккаунт ещё раз", "http", 401],
       [() => new Response("rate limited", { status: 429 }), "Слишком много запросов — попробуйте позже", "http", 429],
-      [() => { throw new TypeError("Failed to fetch internal-host.example"); }, operation.fallback, "network", 0],
-      [() => { throw new DOMException("private timeout", "TimeoutError"); }, "Сервер не ответил — попробуйте ещё раз", "timeout", 0],
+      [() => { throw new TypeError("Failed to fetch internal-host.example"); }, operation.method === "GET" ? operation.fallback
+        : "Не удалось подтвердить результат — обновите данные перед повтором", "network", 0],
+      [() => { throw new DOMException("private timeout", "TimeoutError"); }, operation.method === "GET"
+        ? "Сервер не ответил — попробуйте ещё раз" : "Не удалось подтвердить результат — обновите данные перед повтором", "timeout", 0],
     ];
     for (const [response, message, kind, status] of failures) {
       const before = requests.length;
@@ -81,9 +83,10 @@ async function main() {
     }
     if (operation.data !== undefined) {
       respond = () => new Response("<html>unexpected successful response</html>", { status: 200 });
-      await rejected(operation.run, operation.fallback, "invalid-response", 200);
+      const message = operation.method === "GET" ? operation.fallback : "Не удалось подтвердить результат — обновите данные перед повтором";
+      await rejected(operation.run, message, "invalid-response", 200);
       respond = () => Response.json({ unexpected: "shape" });
-      await rejected(operation.run, operation.fallback, "invalid-response", 200);
+      await rejected(operation.run, message, "invalid-response", 200);
     }
     const cancelled = new DOMException("Operation cancelled", "AbortError");
     respond = () => { throw cancelled; };

@@ -12,6 +12,8 @@ import { ProductShowcase } from "../../components/ProductShowcase/ProductShowcas
 
 import { ProductGallery } from "./components/ProductGallery";
 import { ProductInfoPanel } from "./components/ProductInfoPanel";
+import { ProductDetailsAccordion } from "./components/ProductDetailsAccordion";
+import { productColorPath } from "../../lib/productUrls";
 
 import type { Product } from "./lib/types";
 import { useCurrentUser } from "../../lib/useCurrentUser";
@@ -118,10 +120,6 @@ export default function ProductPageClient({
     if (!viewerOpen || !displayImages.length) return;
 
     function onKeyDown(event: KeyboardEvent) {
-      if (event.key === "Escape") {
-        setViewerOpen(false);
-      }
-
       if (event.key === "ArrowRight") {
         setViewerIndex((prev) => (prev + 1) % displayImages.length);
       }
@@ -134,12 +132,9 @@ export default function ProductPageClient({
     }
 
     window.addEventListener("keydown", onKeyDown);
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
 
     return () => {
       window.removeEventListener("keydown", onKeyDown);
-      document.body.style.overflow = previousOverflow;
     };
   }, [viewerOpen, displayImages]);
 
@@ -308,6 +303,10 @@ export default function ProductPageClient({
               onChangeColorway={handleChangeColorway}
             />
           </div>
+
+          <ProductDetailsAccordion product={product} brandHref={product.brandSlug
+            ? `/brand/${product.brandSlug}?returnTo=${encodeURIComponent(productColorPath(product, selectedColorwayId))}`
+            : null} />
 
           <ProductShowcase
             className={styles.relatedSection}

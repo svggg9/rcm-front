@@ -1,12 +1,14 @@
 import { API_URL } from "../../lib/config";
 import type { HomePageData } from "../types";
 import { buildHomeBlocks, normalizeHomeProducts } from "./homePresentation";
+import { normalizeNewArrivalsCount } from "../../lib/storefrontSettings";
 
 export async function getHomePageData(
   audience: "men" | "women" | "all" = "all",
+  count?: number,
 ): Promise<HomePageData> {
   try {
-    const search = new URLSearchParams({ page: "0", size: "24", sort: "newest" });
+    const search = new URLSearchParams({ page: "0", size: String(Math.max(24, normalizeNewArrivalsCount(count))), sort: "newest" });
     if (audience !== "all") search.set("audience", audience);
     const response = await fetch(`${API_URL}/api/products/page?${search}`, {
       next: { revalidate: 120 },

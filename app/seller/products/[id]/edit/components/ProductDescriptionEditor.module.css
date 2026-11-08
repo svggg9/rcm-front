@@ -2,9 +2,9 @@
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 8px;
-  padding: 12px;
-  border-bottom: 0.5px solid var(--line);
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border-bottom: var(--line-width-hairline) solid var(--line);
 }
 
 .action {
@@ -12,14 +12,14 @@
 }
 
 .action :global(.buttonContent) {
-  gap: 8px;
+  gap: var(--space-2);
 }
 
 .itemRow {
   display: grid;
   grid-template-columns: 20px minmax(0, 1fr) auto;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-2);
   min-width: 0;
 }
 
@@ -31,7 +31,7 @@
 .itemActions {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: var(--space-1);
 }
 
 .iconAction {
@@ -44,7 +44,7 @@
 @media (max-width: 600px) {
   .itemRow {
     grid-template-columns: 20px minmax(0, 1fr);
-    row-gap: 4px;
+    row-gap: var(--space-1);
   }
 
   .itemActions {

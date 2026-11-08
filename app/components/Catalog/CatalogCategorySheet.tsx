@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
 import { Icon } from "../ui/Icon";
+import { lockModalScroll } from "../ui/modalScrollLock";
 import styles from "./Catalog.module.css";
 
 export type MobileCategoryChoice = { value: string; label: string; depth?: number; path?: string; parentValue?: string | null };
@@ -44,8 +45,7 @@ export function CatalogCategorySheet({
 
   useEffect(() => {
     const trigger = document.activeElement instanceof HTMLElement ? document.activeElement : null;
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
+    const unlock = lockModalScroll();
     const siblings = Array.from(document.body.children).filter(
       (element): element is HTMLElement => element instanceof HTMLElement && element !== layerRef.current
     );
@@ -78,7 +78,7 @@ export function CatalogCategorySheet({
     window.addEventListener("keydown", handleKeyDown);
     media.addEventListener("change", handleViewport);
     return () => {
-      document.body.style.overflow = previousOverflow;
+      unlock();
       previousInert.forEach(({ element, inert }) => { element.inert = inert; });
       window.removeEventListener("keydown", handleKeyDown);
       media.removeEventListener("change", handleViewport);

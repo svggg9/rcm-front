@@ -1,3 +1,5 @@
+import { publicRequestErrorMessage } from "../../lib/publicRequestErrors";
+
 export class CheckoutActionError extends Error {}
 
 const messages: Record<string, string> = {
@@ -10,15 +12,17 @@ const messages: Record<string, string> = {
   "Cart is empty": "Корзина пуста — добавьте товары",
 };
 
-export async function readCheckoutFailure(response: Response, fallback: string): Promise<{ message: string; code: string }> {
+export async function readCheckoutFailure(response: Response, fallback: string, publicRateLimit = false): Promise<{ message: string; code: string }> {
   const text = await response.text().catch(() => "");
   let code = "";
   try {
     const data: unknown = JSON.parse(text);
     if (data && typeof data === "object" && "message" in data && typeof data.message === "string") code = data.message;
   } catch { /* Internal text/HTML is never UI copy. */ }
-  return { message: messages[code] ?? fallback, code };
+  const message = publicRateLimit && (response.status === 429 || response.status === 503)
+    ? publicRequestErrorMessage(response, fallback) : messages[code] ?? fallback;
+  return { message, code };
 }
-export async function readCheckoutError(response: Response, fallback: string): Promise<string> {
-  return (await readCheckoutFailure(response, fallback)).message;
+export async function readCheckoutError(response: Response, fallback: string, publicRateLimit = false): Promise<string> {
+  return (await readCheckoutFailure(response, fallback, publicRateLimit)).message;
 }

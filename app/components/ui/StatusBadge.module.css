@@ -8,30 +8,30 @@
 
   border: 0;
 
-  font-size: 10px;
-  font-weight: 500;
+  font-size: var(--font-micro);
+  font-weight: var(--font-weight-medium);
   letter-spacing: 0;
 }
 
 .size-compact {
   min-height: 20px;
   padding: 0 7px;
-  font-size: 10px;
+  font-size: var(--font-micro);
 }
 
 .size-regular {
   min-height: 24px;
-  padding: 0 8px;
+  padding: 0 var(--space-2);
   font-size: var(--font-xs);
 }
 
 .tone-default {
-  background: #ececea;
+  background: var(--soft);
   color: var(--black);
 }
 
 .tone-success {
-  background: var(--badge-success-bg, #d7f4df);
+  background: var(--badge-success-bg);
   color: var(--badge-success-color, var(--black));
 }
 
@@ -41,6 +41,6 @@
 }
 
 .tone-danger {
-  background: var(--badge-danger-bg, #ffd9d9);
+  background: var(--badge-danger-bg);
   color: var(--badge-danger-color, var(--black));
 }

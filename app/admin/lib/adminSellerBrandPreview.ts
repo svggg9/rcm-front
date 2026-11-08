@@ -1,6 +1,8 @@
 import type { CatalogProduct } from "../../components/Catalog/catalogTypes";
 import { normalizeProducts } from "../../components/Catalog/catalogUtils";
-import { API_URL, apiFetch } from "../../lib/api";
+import { API_URL } from "../../lib/api";
+import { ApiRequestError, isRequestCancelled, readApiError, readApiJson, toApiError } from "../../lib/apiErrors";
+import { requestApiResponse } from "../../lib/apiRequest";
 
 type AdminBrandReference = {
   id: number;
@@ -52,11 +54,13 @@ const pendingPreviews = new Map<
 export async function getAdminSellerBrandPreview(params: {
   userId: number;
   brandName: string;
+  brandId?: number;
   allowNameFallback: boolean;
   signal?: AbortSignal;
 }): Promise<AdminSellerBrandPreview | null> {
+  if (params.signal?.aborted) throw new DOMException("Запрос отменён", "AbortError");
   const cacheKey = [
-    params.userId,
+    params.userId, params.brandId ?? "",
     params.brandName.trim().toLocaleLowerCase("ru-RU"),
     params.allowNameFallback ? "fallback" : "owner",
   ].join(":");
@@ -65,23 +69,31 @@ export async function getAdminSellerBrandPreview(params: {
     return previewCache.get(cacheKey) ?? null;
   }
 
-  const pending = pendingPreviews.get(cacheKey);
+  // A caller-owned signal must never cancel another consumer's shared promise.
+  const pending = params.signal ? undefined : pendingPreviews.get(cacheKey);
   if (pending) return pending;
 
-  const request = loadAdminSellerBrandPreview(params)
+  const request: Promise<AdminSellerBrandPreview | null> = loadAdminSellerBrandPreview(params)
     .then((preview) => {
-      previewCache.set(cacheKey, preview);
+      if (preview && !params.signal?.aborted) previewCache.set(cacheKey, preview);
       return preview;
     })
-    .finally(() => pendingPreviews.delete(cacheKey));
+    .catch((reason: unknown) => {
+      if (isRequestCancelled(reason)) throw reason;
+      throw toApiError(reason, "Не удалось загрузить данные бренда — попробуйте ещё раз");
+    })
+    .finally(() => {
+      if (pendingPreviews.get(cacheKey) === request) pendingPreviews.delete(cacheKey);
+    });
 
-  pendingPreviews.set(cacheKey, request);
+  if (!params.signal) pendingPreviews.set(cacheKey, request);
   return request;
 }
 
 async function loadAdminSellerBrandPreview(params: {
   userId: number;
   brandName: string;
+  brandId?: number;
   allowNameFallback: boolean;
   signal?: AbortSignal;
 }): Promise<AdminSellerBrandPreview | null> {
@@ -90,42 +102,51 @@ async function loadAdminSellerBrandPreview(params: {
   if (!reference) return null;
 
   const [brandResponse, productsResponse] = await Promise.all([
-    apiFetch(`${API_URL}/api/brands/${encodeURIComponent(reference.slug)}`, {
+    requestApiResponse(`${API_URL}/api/brands/${encodeURIComponent(reference.slug)}`, {
       signal: params.signal,
-    }),
-    apiFetch(
+    }, "Не удалось загрузить профиль бренда — попробуйте ещё раз"),
+    requestApiResponse(
       `${API_URL}/api/products/brand/${encodeURIComponent(
         reference.slug
       )}?page=0&size=12`,
-      { signal: params.signal }
+      { signal: params.signal }, "Не удалось загрузить товары магазина — попробуйте ещё раз"
     ),
   ]);
 
-  const brand = brandResponse.ok
-    ? normalizePublicBrand(await brandResponse.json(), reference)
+  if (!brandResponse.ok && brandResponse.status !== 404) {
+    throw await readApiError(brandResponse, "Не удалось загрузить профиль бренда — попробуйте ещё раз");
+  }
+  const brandData: unknown = brandResponse.ok
+    ? await readApiJson(brandResponse, "Не удалось прочитать профиль бренда — попробуйте ещё раз")
     : null;
+  if (brandResponse.ok && (!isRecord(brandData) || typeof brandData.name !== "string" || brandData.slug !== reference.slug)) {
+    throw new ApiRequestError("Не удалось прочитать профиль бренда — попробуйте ещё раз", "invalid-response");
+  }
+  const brand = brandData ? normalizePublicBrand(brandData, reference) : null;
 
   if (!productsResponse.ok) {
-    return { reference, brand, products: [], totalProducts: 0 };
+    throw await readApiError(productsResponse, "Не удалось загрузить товары магазина — попробуйте ещё раз");
   }
 
-  const productsData: unknown = await productsResponse.json();
-  const productsRecord = isRecord(productsData) ? productsData : {};
+  const productsData: unknown = await readApiJson(productsResponse, "Не удалось прочитать товары магазина — попробуйте ещё раз");
+  if (!isRecord(productsData) || !Array.isArray(productsData.content)
+    || !Number.isSafeInteger(productsData.totalElements) || (productsData.totalElements as number) < productsData.content.length
+    || productsData.content.some(item => !isRecord(item) || !Number.isSafeInteger(item.id) || typeof item.title !== "string")) {
+    throw new ApiRequestError("Не удалось прочитать товары магазина — попробуйте ещё раз", "invalid-response");
+  }
 
   return {
     reference,
     brand,
-    products: normalizeProducts(productsRecord.content),
-    totalProducts:
-      typeof productsRecord.totalElements === "number"
-        ? productsRecord.totalElements
-        : 0,
+    products: normalizeProducts(productsData.content),
+    totalProducts: productsData.totalElements as number,
   };
 }
 
 async function resolveBrandReference(params: {
   userId: number;
   brandName: string;
+  brandId?: number;
   allowNameFallback: boolean;
   signal?: AbortSignal;
 }) {
@@ -134,17 +155,21 @@ async function resolveBrandReference(params: {
     brandName: params.brandName.trim(),
     allowNameFallback: String(params.allowNameFallback),
   });
-  const response = await apiFetch(
+  if(params.brandId) query.set("brandId",String(params.brandId));
+  const response = await requestApiResponse(
     `${API_URL}/api/admin/dictionaries/brands/resolve?${query.toString()}`,
-    { signal: params.signal }
+    { signal: params.signal }, "Не удалось загрузить связь продавца с брендом — попробуйте ещё раз"
   );
 
   if (response.status === 404) return null;
   if (!response.ok) {
-    throw new Error("Не удалось загрузить связь продавца с брендом");
+    throw await readApiError(response, "Не удалось загрузить связь продавца с брендом — попробуйте ещё раз");
   }
 
-  return normalizeBrandReferences([await response.json()])[0] ?? null;
+  const value = await readApiJson(response, "Не удалось прочитать связь продавца с брендом — попробуйте ещё раз");
+  const reference = normalizeBrandReferences([value])[0];
+  if (!reference) throw new ApiRequestError("Не удалось прочитать связь продавца с брендом — попробуйте ещё раз", "invalid-response");
+  return reference;
 }
 
 function normalizeBrandReferences(value: unknown): AdminBrandReference[] {

@@ -7,7 +7,7 @@
   width: 100%;
   min-width: 0;
   display: flex;
-  gap: 4px;
+  gap: var(--space-1);
 }
 
 .shellPinned {
@@ -33,11 +33,11 @@
 }
 
 .list {
-  width: 100%;
-  min-width: 0;
+  width: max-content;
+  min-width: 100%;
   display: flex;
   justify-content: center;
-  gap: 4px;
+  gap: var(--space-1);
 }
 
 .item {
@@ -49,7 +49,7 @@
   align-items: center;
   justify-content: center;
   gap: 6px;
-  padding: 0 8px;
+  padding: 0 var(--space-2);
   border: 0;
   background: var(--surface-hover);
   color: var(--content-primary);
@@ -61,7 +61,7 @@
     color var(--transition-fast);
 }
 
-.item:hover {
+.item:hover:not(:disabled) {
   background: var(--soft);
   color: var(--content-primary-hover-label);
 }
@@ -73,6 +73,16 @@
 
 .itemActive:hover {
   background: transparent;
+}
+
+.item:focus-visible {
+  outline: 2px solid var(--black);
+  outline-offset: -4px;
+}
+
+.item:disabled {
+  color: var(--muted);
+  cursor: not-allowed;
 }
 
 .label {
@@ -96,11 +106,11 @@
 }
 
 .gold .item {
-  background: rgba(201, 162, 79, 0.12);
+  background: var(--gold-light);
 }
 
-.gold .item:hover {
-  background: rgba(201, 162, 79, 0.18);
+.gold .item:hover:not(:disabled) {
+  background: var(--surface-hover);
 }
 
 .gold .itemActive {
@@ -113,7 +123,7 @@
 
 .line .shell,
 .line .list {
-  gap: 24px;
+  gap: var(--space-6);
 }
 
 .line .list {
@@ -128,6 +138,7 @@
   padding: 0 0 9px;
   background: transparent;
   color: var(--muted);
+  transition: background-color var(--transition-fast), color var(--transition-fast);
 }
 
 .line .item::after {
@@ -136,19 +147,19 @@
   right: 0;
   bottom: 0;
   left: 0;
-  height: 2px;
+  height: var(--line-width-strong);
   background: transparent;
 }
 
-.line .item:hover,
-.line.gold .item:hover {
+.line .item:hover:not(:disabled),
+.line.gold .item:hover:not(:disabled) {
   background: transparent;
   color: var(--black);
 }
 
-.line .item:hover::after,
-.line.gold .item:hover::after {
-  background: var(--black);
+.line .item:hover:not(.itemActive):not(:disabled),
+.line.gold .item:hover:not(.itemActive):not(:disabled) {
+  background: var(--surface-hover);
 }
 
 .line .itemActive,
@@ -157,16 +168,12 @@
 }
 
 .line .itemActive::after {
-  background: var(--tabs-active-line, var(--gold));
-}
-
-.line .itemActive:hover::after {
-  background: var(--tabs-active-line, var(--gold));
+  background: var(--tabs-active-line, var(--black));
 }
 
 .segmented .shell,
 .segmented .list {
-  gap: 8px;
+  gap: var(--space-2);
 }
 
 .segmented .list {
@@ -179,13 +186,13 @@
   min-width: 0;
   min-height: 40px;
   padding: 0 14px;
-  gap: 8px;
+  gap: var(--space-2);
   background: transparent;
   color: var(--muted);
-  font-weight: 600;
+  font-weight: var(--font-weight-semibold);
 }
 
-.segmented .item:hover {
+.segmented .item:hover:not(:disabled) {
   background: var(--surface-hover);
   color: var(--black);
 }
@@ -220,11 +227,11 @@
   }
 
   .list {
-    gap: 4px;
+    gap: var(--space-1);
   }
 
   .shell {
-    gap: 4px;
+    gap: var(--space-1);
   }
 
   .gold .list,
@@ -235,8 +242,8 @@
   .gold .item {
     flex: 0 0 auto;
     min-width: auto;
-    padding-right: 8px;
-    padding-left: 8px;
+    padding-right: var(--space-2);
+    padding-left: var(--space-2);
   }
 
   .gold .pinned .item {
@@ -253,13 +260,13 @@
     min-width: 124px;
     min-height: 44px;
     justify-content: center;
-    padding: 0 8px;
+    padding: 0 var(--space-2);
     gap: 6px;
   }
 
   .line .list,
   .line .shell {
-    gap: 20px;
+    gap: var(--space-5);
   }
 
   .line .item,
@@ -282,7 +289,7 @@
 @media (max-width: 420px) {
   .item {
     min-width: 116px;
-    padding: 0 8px;
+    padding: 0 var(--space-2);
   }
 
   .pinned .item {
@@ -292,13 +299,13 @@
   .gold .item,
   .gold .pinned .item {
     min-width: auto;
-    padding-right: 8px;
-    padding-left: 8px;
+    padding-right: var(--space-2);
+    padding-left: var(--space-2);
   }
 
   .line .list,
   .line .shell {
-    gap: 20px;
+    gap: var(--space-5);
   }
 
   .line .item,
@@ -311,7 +318,7 @@
 
 .text .shell,
 .text .list {
-  gap: 24px;
+  gap: var(--space-6);
 }
 
 .text .list {
@@ -325,22 +332,23 @@
   padding: 0;
   background: transparent;
   color: var(--muted);
-  font-size: 15px;
-  line-height: 21px;
-  font-weight: 400;
+  font-size: var(--font-ui);
+  line-height: var(--line-height-ui);
+  font-weight: var(--font-weight-regular);
   text-decoration: none;
   transition: none;
 }
 
-.text .item:hover {
-  background: transparent;
+.text .item:hover:not(:disabled) {
+  background: var(--surface-hover);
   color: var(--black);
 }
 
 .text .itemActive,
 .text .itemActive:hover {
   background: transparent;
-  color: var(--gold-deep);
+  color: var(--black);
+  font-weight: var(--font-weight-medium);
 }
 
 .text .item:focus-visible {
@@ -350,7 +358,7 @@
 
 @media (max-width: 760px) {
   .text .shell,
-  .text .list { gap: 20px; }
+  .text .list { gap: var(--space-5); }
   .text .item { min-height: 44px; }
 }
 
@@ -368,22 +376,21 @@
   flex: 0 0 auto;
   min-width: 0;
   min-height: 48px;
-  padding: 0 20px;
-  border-right: 1px solid var(--line);
+  padding: 0 var(--space-5);
+  border-right: var(--line-width-hairline) solid var(--line);
   background: transparent;
   color: var(--muted);
   font-size: var(--font-sm);
-  line-height: 21px;
-  font-weight: 400;
+  line-height: var(--line-height-ui);
+  font-weight: var(--font-weight-regular);
   text-decoration: none;
 }
 
-.panel .item:hover { background: var(--surface-hover); color: var(--black); }
+.panel .item:hover:not(:disabled) { background: var(--surface-hover); color: var(--black); }
 .panel .itemActive,
-.panel .itemActive:hover { background: var(--white); color: var(--black); font-weight: 500; }
+.panel .itemActive:hover { background: var(--white); color: var(--black); font-weight: var(--font-weight-medium); }
 .panel .item:focus-visible { outline: 2px solid var(--black); outline-offset: -4px; }
-.panel .item:disabled { cursor: default; }
 
 @media (max-width: 640px) {
-  .panel .item { min-height: 44px; padding-inline: 16px; }
+  .panel .item { min-height: 44px; padding-inline: var(--space-4); }
 }

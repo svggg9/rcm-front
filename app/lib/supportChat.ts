@@ -78,8 +78,8 @@ export function adminSupportTransport(id: number): SupportTransport {
     },
   };
 }
-export async function getSupportChats(status: SupportChatStatus | "ALL", page: number, signal: AbortSignal): Promise<SupportChatPage> {
-  const query = new URLSearchParams({ page: String(page), size: "20" }); if (status !== "ALL") query.set("status", status);
+export async function getSupportChats(status: SupportChatStatus | "ALL", page: number, signal: AbortSignal, q = ""): Promise<SupportChatPage> {
+  const query = new URLSearchParams({ page: String(page), size: "20", q }); if (status !== "ALL") query.set("status", status);
   const result = await data(await request(`?${query}`, { signal }));
   if (!record(result) || !Array.isArray(result.content) || !result.content.every(chat) || !Number.isSafeInteger(result.totalPages) || !Number.isSafeInteger(result.totalElements)) return invalid();
   return result as SupportChatPage;

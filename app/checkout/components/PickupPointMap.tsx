@@ -9,7 +9,9 @@ import styles from "./PickupPointMap.module.css";
 type Props = {
   points: DeliveryOption[];
   selectedId: string;
-  onSelect: (id: string) => void;
+  onSelect?: (id: string) => void;
+  preview?: boolean;
+  className?: string;
 };
 
 type YandexPlacemark = {
@@ -39,6 +41,7 @@ type YandexMapsApi = {
       center: [number, number];
       zoom: number;
       controls: string[];
+      behaviors?: string[];
     }
   ) => YandexMapInstance;
   Placemark: new (
@@ -53,6 +56,8 @@ type YandexMapsApi = {
       iconImageHref?: string;
       iconImageSize?: [number, number];
       iconImageOffset?: [number, number];
+      openBalloonOnClick?: boolean;
+      openHintOnHover?: boolean;
     }
   ) => YandexPlacemark;
 };
@@ -81,7 +86,7 @@ let yandexMapsPromise: Promise<YandexMapsApi> | null = null;
 
 class MapLoadError extends Error {}
 
-function hasValidCoordinates(point: DeliveryOption): point is DeliveryOption & { latitude: number; longitude: number } {
+export function hasValidCoordinates(point: DeliveryOption): point is DeliveryOption & { latitude: number; longitude: number } {
   return typeof point.latitude === "number" && Number.isFinite(point.latitude)
     && point.latitude >= -90 && point.latitude <= 90
     && typeof point.longitude === "number" && Number.isFinite(point.longitude)
@@ -181,7 +186,7 @@ function loadYandexMaps() {
   return request;
 }
 
-export function PickupPointMap({ points, selectedId, onSelect }: Props) {
+export function PickupPointMap({ points, selectedId, onSelect, preview = false, className = "" }: Props) {
   const mapRef = useRef<HTMLDivElement | null>(null);
   const mapInstanceRef = useRef<YandexMapInstance | null>(null);
   const placemarksRef = useRef<YandexPlacemark[]>([]);
@@ -240,8 +245,9 @@ export function PickupPointMap({ points, selectedId, onSelect }: Props) {
         if (!mapInstanceRef.current) {
           mapInstanceRef.current = new mapsApi.Map(mapRef.current, {
             center: [first.latitude, first.longitude],
-            zoom: 12,
-            controls: ["zoomControl"],
+            zoom: preview ? 16 : 12,
+            controls: preview ? [] : ["zoomControl"],
+            ...(preview ? { behaviors: [] } : {}),
           });
         }
 
@@ -265,13 +271,16 @@ export function PickupPointMap({ points, selectedId, onSelect }: Props) {
               iconImageHref: buildMarkerIcon(point.id === selectedId),
               iconImageSize: point.id === selectedId ? [34, 44] : [28, 36],
               iconImageOffset: point.id === selectedId ? [-17, -44] : [-14, -36],
+              ...(preview ? { openBalloonOnClick: false, openHintOnHover: false } : {}),
             }
           );
 
-          placemark.events.add("click", () => {
-            clickedMarkerIdRef.current = point.id !== centeredSelectedIdRef.current ? point.id : null;
-            onSelectRef.current(point.id);
-          });
+          if (!preview) {
+            placemark.events.add("click", () => {
+              clickedMarkerIdRef.current = point.id !== centeredSelectedIdRef.current ? point.id : null;
+              onSelectRef.current?.(point.id);
+            });
+          }
 
           map.geoObjects.add(placemark);
           placemarksRef.current.push(placemark);
@@ -288,7 +297,7 @@ export function PickupPointMap({ points, selectedId, onSelect }: Props) {
             bounds[1][1] = Math.max(bounds[1][1], point.longitude);
           });
           if (bounds[0][0] === bounds[1][0] && bounds[0][1] === bounds[1][1]) {
-            await map.setCenter([first.latitude, first.longitude], 14);
+            await map.setCenter([first.latitude, first.longitude], preview ? 16 : 14);
           } else {
             await map.setBounds(bounds, { zoomMargin: [48, 32, 32, 32], duration: 0 });
           }
@@ -297,7 +306,7 @@ export function PickupPointMap({ points, selectedId, onSelect }: Props) {
         } else if (selectedId && selectedId !== centeredSelectedIdRef.current && selectedId !== clickedMarkerIdRef.current) {
           const selectedPoint = validPoints.find(point => point.id === selectedId);
           if (selectedPoint) {
-            await map.setCenter([selectedPoint.latitude, selectedPoint.longitude], 14);
+            await map.setCenter([selectedPoint.latitude, selectedPoint.longitude], preview ? 16 : 14);
             if (disposed) return;
           }
         }
@@ -323,10 +332,12 @@ export function PickupPointMap({ points, selectedId, onSelect }: Props) {
     return () => {
       disposed = true;
     };
-  }, [points, selectedId, attempt]);
+  }, [points, selectedId, attempt, preview]);
+
+  if (preview && (mapState === "error" || mapState === "empty")) return null;
 
   return (
-    <div className={`pickup-point-map ${styles.container}`} role="region" aria-label="Карта пунктов СДЭК" aria-busy={mapState === "loading"}>
+    <div className={`pickup-point-map ${styles.container} ${preview ? styles.preview : ""} ${className}`.trim()} role="region" aria-label={preview ? "Расположение пункта выдачи на карте" : "Карта пунктов СДЭК"} aria-busy={mapState === "loading"}>
       {mapState === "loading" ? (
         <div className={`pickup-point-map__loader ${styles.loader}`} role="status" aria-label="Загрузка карты">
           <span aria-hidden="true" />

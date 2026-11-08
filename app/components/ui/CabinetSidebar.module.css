@@ -4,22 +4,22 @@
   width: 100%;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: var(--space-4);
   padding: 0;
   border: 0;
   background: var(--white);
 }
 
 .head {
-  padding-bottom: 4px;
+  padding-bottom: var(--space-1);
 }
 
 .subtitle {
   margin-bottom: 6px;
-  color: var(--gold);
-  font-size: 13px;
+  color: var(--black);
+  font-size: var(--font-xs);
   line-height: 1.2;
-  font-weight: 500;
+  font-weight: var(--font-weight-medium);
   letter-spacing: 0;
   text-transform: uppercase;
 }
@@ -27,9 +27,9 @@
 .title {
   display: block;
   color: var(--black);
-  font-size: 24px;
+  font-size: var(--font-title-md);
   line-height: 1.15;
-  font-weight: 500;
+  font-weight: var(--font-weight-medium);
 }
 
 .identity {
@@ -49,7 +49,7 @@
   flex: 1 1 auto;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-2);
 }
 
 .identityContent .title {
@@ -66,11 +66,11 @@
   display: inline-flex;
   align-items: center;
   padding: 0 7px;
-  background: #eeeeec;
-  color: #555552;
-  font-size: 10px;
+  background: var(--soft);
+  color: var(--black);
+  font-size: var(--font-micro);
   line-height: 1;
-  font-weight: 600;
+  font-weight: var(--font-weight-semibold);
   letter-spacing: 0.01em;
   white-space: nowrap;
 }
@@ -103,14 +103,14 @@
   display: flex;
   align-items: center;
   justify-content: flex-start;
-  gap: 8px;
+  gap: var(--space-2);
   padding: 0;
   border: 0;
   background: transparent;
   color: var(--content-primary);
-  font-size: 15px;
+  font-size: var(--font-ui);
   line-height: 1.2;
-  font-weight: 400;
+  font-weight: var(--font-weight-regular);
   text-align: left;
   text-decoration: none;
   font-family: inherit;
@@ -129,7 +129,7 @@
   text-overflow: ellipsis;
   white-space: nowrap;
   text-align: left;
-  transition: color var(--transition-fast);
+  transition: background-color var(--transition-fast), color var(--transition-fast);
 }
 
 .mobileLabel {
@@ -141,10 +141,8 @@
   color: var(--black);
 }
 
-.item:hover .labelWrap {
-  text-decoration: underline;
-  text-underline-offset: 4px;
-  text-decoration-thickness: 1px;
+.item:hover:not(:disabled):not(.itemActive) {
+  background: var(--surface-hover);
 }
 
 .item:active {
@@ -155,7 +153,7 @@
 .itemActive {
   background: transparent;
   color: var(--black);
-  font-weight: 600;
+  font-weight: var(--font-weight-semibold);
 }
 
 .itemActive:hover {
@@ -176,7 +174,7 @@
   width: 24px;
   height: 24px;
   padding: 0;
-  border: 1px solid var(--black);
+  border: var(--line-width-default) solid var(--black);
   background: var(--white);
   color: var(--black);
   display: inline-flex;
@@ -205,7 +203,7 @@
 }
 
 .footer {
-  padding-top: 8px;
+  padding-top: var(--space-2);
 }
 
 @media (max-width: 900px) {
@@ -255,11 +253,14 @@
     min-width: 0;
     width: 100%;
     flex-direction: row;
-    gap: 0;
+    gap: var(--space-5);
     overflow-x: auto;
+    padding: 0 var(--space-4);
+    border-bottom: var(--line-width-hairline) solid var(--line);
   }
 
   .mobileInline .itemRow {
+    width: auto;
     flex: 0 0 auto;
     min-width: max-content;
   }
@@ -273,14 +274,18 @@
     gap: 6px;
   }
 
+  .mobileInline .itemActive {
+    box-shadow: inset 0 calc(-1 * var(--line-width-strong)) var(--black);
+  }
+
   .mobileInline .itemWithAction {
-    padding-right: 4px;
+    padding-right: var(--space-1);
   }
 
   .mobileInline .itemAction {
     width: 22px;
     height: 22px;
-    margin-right: 8px;
+    margin-right: var(--space-2);
   }
 
   .mobileInline .desktopLabel {

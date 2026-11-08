@@ -1,6 +1,7 @@
 import { emitAuthChanged } from "./authEvents";
 import { emitCartChanged } from "./cartEvents";
 import { API_URL } from "./config";
+import { clearCheckoutDraft } from "../checkout/lib/checkoutDraft";
 
 const GUEST_CART_KEY = "guest_cart_id";
 const USER_CART_KEY = "user_cart_id";
@@ -29,16 +30,20 @@ export function clearAuth() {
 }
 
 export async function logout() {
-  try {
-    await fetch(`${API_URL}/api/auth/logout`, {
-      method: "POST",
-      credentials: "include",
-    });
-  } catch {
-    // ignore
-  }
+  const response = await fetch(`${API_URL}/api/auth/logout`, {
+    method: "POST",
+    credentials: "include",
+    signal: AbortSignal.timeout(15000),
+    redirect: "error",
+  });
+  if (response.status !== 204) throw new Error("Logout was not confirmed");
 
-  clearAuth();
+  // The draft key depends on the cart ID, so clear it before clearing auth.
+  // Failure to access storage must not hide the already confirmed server logout.
+  let storageCleared = true;
+  try { clearCheckoutDraft(); } catch { storageCleared = false; }
+  try { clearAuth(); } catch { storageCleared = false; }
+  return { storageCleared };
 }
 
 // ---------------- CART ----------------

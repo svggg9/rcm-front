@@ -26,6 +26,8 @@ const { ProductVariantsCard } = load("app/seller/products/[id]/edit/components/P
   "react/jsx-runtime": { jsx, jsxs: jsx, Fragment: "fragment" },
   "./VariantNumberInput": { VariantNumberInput: "number-input" },
   "../../../../../components/ui/Button": { Button: "button" },
+  "../../../../../components/ui/Checkbox": { Checkbox: "checkbox" },
+  "../../../../../components/ui/TextInput": { TextInput: "text-input" },
   "../../../../../components/ui/DesignSystemIcon": { DesignSystemIcon: "icon" },
   "../utils": utils,
   "../ProductEditPage.module.css": { default: {} },

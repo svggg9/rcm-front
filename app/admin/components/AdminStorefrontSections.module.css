@@ -1,0 +1,26 @@
+.list { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr)); gap: var(--space-6); margin: 0; padding: 0; list-style: none; }
+.item { display: grid; grid-template-columns: 128px minmax(0, 1fr); align-items: start; gap: var(--space-5); min-width: 0; padding-bottom: var(--space-5); border-bottom: var(--line-width-default) solid var(--line); }
+.preview, .details { min-width: 0; }
+.details { display: grid; gap: var(--space-3); padding-top: var(--space-1); }
+.details p { margin: 0; }
+.badges { display: flex; align-items: center; flex-wrap: wrap; gap: var(--space-2); }
+.controls { display: flex; flex-wrap: wrap; gap: 2px; }
+.iconButton { width: 44px; min-width: 44px; height: 44px; padding: 0; }
+.editor { display: grid; gap: var(--space-5); min-width: 0; }
+.editor > p { margin: 0; }
+.coverLayout { display: grid; grid-template-columns: minmax(0, 220px) minmax(0, 1fr); align-items: start; gap: var(--space-6); }
+.coverPreview, .coverControls { min-width: 0; }
+.coverControls { display: grid; gap: var(--space-4); }
+.coverControls > p { margin: 0; }
+.fileActions { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+.fileActions button { min-height: 44px; }
+.fileInput { display: none; }
+.slider { display: block; width: 100%; min-width: 0; height: 32px; margin: 0; accent-color: var(--black); }
+.slider:focus-visible { outline: 2px solid var(--black); outline-offset: 4px; }
+@media (max-width: 700px) {
+  .coverLayout { grid-template-columns: minmax(0, 1fr); gap: var(--space-5); }
+  .coverPreview { width: min(220px, 100%); justify-self: center; }
+}
+@media (max-width: 390px) {
+  .item { grid-template-columns: 96px minmax(0, 1fr); gap: var(--space-3); }
+}

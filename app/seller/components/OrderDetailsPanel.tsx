@@ -1,3 +1,5 @@
+import { useOrderActions } from "../../lib/useOrderActions";
+import { OrderWorkflowSummary } from "../../components/order-detail/OrderWorkflowSummary";
 import Image from "next/image";
 import { Button } from "../../components/ui/Button";
 import { Banner } from "../../components/ui/Banner";
@@ -23,6 +25,7 @@ type Props = {
 };
 
 export function OrderDetailsPanel({ order, details, loading, error, onRetry, audience, showDeliveryLabel, onOpenOrder, openButtonLabel }: Props) {
+  const action = useOrderActions(details || {});
   const paymentLabels = { PAID: "Оплачено", PENDING: "Ожидает оплаты", FAILED: "Ошибка оплаты", CANCELED: "Оплата отменена", REFUNDED: "Деньги возвращены" };
   const deliveryLabels = { PENDING: "Оформление доставки", READY_FOR_SHIPMENT: "К отправке", IN_TRANSIT: "В пути", READY_FOR_PICKUP: "Ожидает получения", DELIVERED: "Доставлен", RETURNED: "Возвращён", CANCELLED: "Отменён" };
   const pickup = details?.deliveryMethod === "PICKUP_POINT" || details?.deliveryMethod === "PICKUP";
@@ -31,6 +34,7 @@ export function OrderDetailsPanel({ order, details, loading, error, onRetry, aud
     && ["PENDING", "READY_FOR_SHIPMENT"].includes(order.deliveryStatus) ? shippingDeadline(details?.paidAt) : undefined;
   const headingPrefix = `order-details-${audience}-${order.id}`;
   return <div className={styles.details}>
+    {details && <OrderWorkflowSummary workflow={details.workflow}/>}
     <section aria-label="Товары в заказе" className={styles.products}>
       {loading ? <CabinetSkeleton variant="list" rows={1} compact /> : error ? <Banner tone="danger" role="alert"
         actions={<Button onClick={onRetry}>Повторить</Button>}>
@@ -86,7 +90,7 @@ export function OrderDetailsPanel({ order, details, loading, error, onRetry, aud
         </address>
         <div className={styles.actions}>
           {details?.delivery?.trackingUrl && <a href={details.delivery.trackingUrl} target="_blank" rel="noreferrer" className="buttonSecondary">Отследить</a>}
-          {audience === "seller" && details?.delivery && showDeliveryLabel && <a href={`${API_URL}/api/seller/orders/${order.id}/delivery-label`} target="_blank" rel="noreferrer" className="buttonSecondary">Накладная СДЭК</a>}
+          {audience === "seller" && details?.delivery && showDeliveryLabel && action("DOWNLOAD_LABEL").allowed && <a href={`${API_URL}/api/seller/orders/${order.id}/delivery-label`} target="_blank" rel="noreferrer" className="buttonSecondary">Накладная СДЭК</a>}
           {onOpenOrder && <Button variant="primary" onClick={() => onOpenOrder(order.id)}>{openButtonLabel}</Button>}
         </div>
       </div>

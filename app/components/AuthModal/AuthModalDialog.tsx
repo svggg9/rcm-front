@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { AuthForm } from "../Auth/AuthForm";
+import { AuthForm, AUTH_ENTRY_TITLE } from "../Auth/AuthForm";
+import authStyles from "../Auth/AuthForm.module.css";
 import { Dialog } from "../ui/Dialog";
 import { safeReturnPath } from "../../lib/safeReturnPath";
 import type { AuthModalMode, AuthModalOptions } from "./useAuthModal";
@@ -17,8 +18,8 @@ type Props = {
 export default function AuthModalDialog({ returnPath, onClose }: Props) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
-  return <Dialog title="Вход или регистрация" actions={null} busy={busy} onClose={onClose}>
-    <AuthForm next={returnPath} onBusyChange={setBusy} onAuthenticated={() => {
+  return <Dialog title={AUTH_ENTRY_TITLE} className={authStyles.dialog} actions={null} busy={busy} onClose={onClose}>
+    <AuthForm next={returnPath} showEntryTitle={false} onBusyChange={setBusy} onAuthenticated={() => {
       onClose();
       if (returnPath !== "/") router.push(safeReturnPath(returnPath));
       router.refresh();

@@ -16,6 +16,7 @@ import type { SellerBrand, SellerDashboardSummary } from "../types";
 import { SellerOrderCard } from "./SellerOrderCard";
 import { SellerHomeTasks } from "./SellerHomeTasks";
 import { SellerNextActions } from "./SellerNextActions";
+import { SellerHomeProducts } from "./SellerHomeProducts";
 import { telegramUrl } from "../../lib/telegram";
 import styles from "./SellerOverview.module.css";
 
@@ -53,6 +54,15 @@ export function SellerOverview({ active, brand, summary, onboarding, onNavigate,
   const orders = useOverviewResource(loadOrders, active);
   const supportTelegramUrl = telegramUrl(summary?.supportTelegramUrl);
   return <div className={styles.overview} data-seller-overview>
+    <section className={`${styles.section} ${styles.store}`} aria-label="Магазин">
+      <h1>Ваш магазин</h1>
+      <Link href="/seller/store" className={styles.storeIdentity}>
+        <span><strong>{brand?.name || "Магазин"}</strong><span>Настроить магазин</span></span>
+      </Link>
+    </section>
+    <div className={styles.products} data-seller-product-preview>
+      <SellerHomeProducts active={active} />
+    </div>
     <div className={styles.work} data-seller-work>
       <section className={styles.section} aria-label="Действия">
         <h2>Действия</h2>
@@ -97,13 +107,6 @@ export function SellerOverview({ active, brand, summary, onboarding, onNavigate,
     </div>
 
     <aside className={styles.summary} aria-label="Сводка магазина" data-seller-summary>
-      <section className={styles.section} aria-label="Магазин">
-        <h1>Ваш магазин</h1>
-        <Link href="/seller/store" className={styles.storeIdentity}>
-          <span><strong>{brand?.name || "Магазин"}</strong><span>Настроить магазин</span></span>
-        </Link>
-      </section>
-
       <section className={styles.section} aria-label="Финансы">
         <header className={styles.heading}><h2>Финансы</h2><Link href="/seller/finance" aria-label="Все финансы"><Icon name="arrow-up-right" role="utility" /></Link></header>
         <div className={styles.balances}>

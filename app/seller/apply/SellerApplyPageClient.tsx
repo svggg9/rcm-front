@@ -169,15 +169,6 @@ export function SellerApplyPageClient() {
   }, [isAuthenticated, sendApplication, userLoading, sessionError]);
 
   useEffect(() => {
-    const username = user?.username?.trim();
-    if (!username || !isValidEmail(username)) return;
-
-    setForm((current) =>
-      current.email ? current : { ...current, email: username }
-    );
-  }, [user?.username]);
-
-  useEffect(() => {
     if (!isAuthenticated) return;
 
     let cancelled = false;

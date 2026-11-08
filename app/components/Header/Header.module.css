@@ -3,16 +3,18 @@
   top: 0;
   left: 0;
   right: 0;
-  z-index: 300;
-  background: var(--black);
-  color: var(--white);
+  z-index: var(--z-header);
+  background: var(--white);
+  color: var(--black);
 }
 
 .buyerBar {
   display: none;
 }
+.header .panelBar { display: none; }
 
 @media (max-width: 640px) {
+  .header .panelBar { display: grid; }
   .header[data-buyer-mobile="true"] .top {
     display: none;
   }
@@ -22,9 +24,9 @@
     grid-template-columns: 44px minmax(0, 1fr) 44px;
     align-items: center;
     height: var(--mobile-buyer-header-height);
-    padding: env(safe-area-inset-top, 0px) max(12px, env(safe-area-inset-right, 0px)) 0 max(12px, env(safe-area-inset-left, 0px));
-    background: var(--black);
-    color: var(--white);
+    padding: env(safe-area-inset-top, 0px) max(var(--space-3), env(safe-area-inset-right, 0px)) 0 max(var(--space-3), env(safe-area-inset-left, 0px));
+    background: var(--white);
+    color: var(--black);
   }
 
   .buyerLogo {
@@ -41,8 +43,8 @@
 
   .buyerTitle {
     text-align: center;
-    font-size: 15px;
-    font-weight: 500;
+    font-size: var(--font-ui);
+    font-weight: var(--font-weight-medium);
   }
 
   .buyerUtility {
@@ -54,7 +56,7 @@
     padding: 0;
     border: 0;
     background: transparent;
-    color: var(--white);
+    color: inherit;
     cursor: pointer;
   }
 
@@ -82,9 +84,12 @@
   grid-area: leading;
   display: flex;
   align-items: center;
-  gap: 20px;
+  gap: var(--space-5);
   justify-self: start;
 }
+
+.headerSearch { width: clamp(150px, 21vw, 280px); min-width: 0; }
+.mobileSearchRow { display: none; }
 
 .menuBtn {
   display: inline-flex;
@@ -95,7 +100,7 @@
   padding: 0;
   border: 0;
   background: transparent;
-  color: var(--white);
+  color: inherit;
   cursor: pointer;
 }
 
@@ -110,7 +115,7 @@
 
 .top {
   border-bottom: 0;
-  background: var(--black);
+  background: var(--white);
 }
 
 .top .inner {
@@ -119,7 +124,7 @@
   grid-template-areas: "leading logo actions";
   grid-template-columns: 1fr auto 1fr;
   align-items: center;
-  gap: 24px;
+  gap: var(--space-6);
 }
 
 .logo {
@@ -144,7 +149,7 @@
   display: flex;
   align-items: center;
   justify-self: end;
-  gap: 20px;
+  gap: var(--space-5);
 }
 
 .iconBtn {
@@ -157,7 +162,7 @@
   justify-content: center;
   width: 44px;
   height: 44px;
-  color: var(--white);
+  color: inherit;
   cursor: pointer;
   transition:
     transform var(--transition-fast),
@@ -179,7 +184,7 @@
 }
 
 .iconBtn svg {
-  color: var(--white);
+  color: inherit;
   fill: transparent;
 }
 
@@ -192,7 +197,7 @@
   height: 5px;
   border-radius: 50%;
   background: var(--gold);
-  box-shadow: 0 0 0 2px var(--black);
+  box-shadow: 0 0 0 2px var(--white);
   pointer-events: none;
   animation: commerceMarkerIn 180ms ease-out both;
 }
@@ -249,11 +254,11 @@
   height: 44px;
   padding: 0 14px;
   border: 0;
-  border-bottom: 2px solid transparent;
+  border-bottom: var(--line-width-strong) solid transparent;
   background: transparent;
   color: var(--black);
-  font-size: 12px;
-  font-weight: 400;
+  font-size: var(--font-helper);
+  font-weight: var(--font-weight-regular);
   white-space: nowrap;
   cursor: pointer;
   transition:
@@ -267,7 +272,7 @@
 
 .categoryActive {
   border-bottom-color: var(--black);
-  font-weight: 500;
+  font-weight: var(--font-weight-medium);
 }
 
 .search {
@@ -281,10 +286,10 @@
 .searchInput {
   width: 100%;
   height: 36px;
-  border: 1px solid var(--line);
+  border: var(--line-width-default) solid var(--line);
   background: var(--white);
   padding: 0 42px 0 14px;
-  font-size: 13px;
+  font-size: var(--font-xs);
   outline: none;
   transition: border-color var(--transition-fast);
 }
@@ -324,7 +329,7 @@
   --menu-width: min(400px, calc(100vw - 64px));
   position: fixed;
   inset: 0;
-  z-index: 600;
+  z-index: var(--z-menu);
   background: transparent;
   color: var(--content-primary);
   width: 100%;
@@ -347,14 +352,14 @@
 .searchPanel {
   background: var(--white);
   color: var(--black);
-  padding: 20px max(24px, calc((100vw - 1376px) / 2));
-  border-bottom: 1px solid var(--line);
+  padding: var(--space-5) max(var(--space-6), calc((100vw - 1376px) / 2));
+  border-bottom: var(--line-width-default) solid var(--line);
 }
 
-.searchPanel label { display: block; margin-bottom: 8px; font-size: 15px; }
-.searchRow { display: flex; gap: 12px; align-items: center; }
-.searchRow input { min-width: 0; flex: 1; height: 48px; border: 1px solid var(--black); background: var(--white); color: var(--black); border-radius: 0; padding: 0 14px; font: inherit; font-size: 16px; }
-.searchRow button { height: 48px; border: 1px solid var(--black); border-radius: 0; padding: 0 20px; background: var(--black); color: var(--white); font: inherit; cursor: pointer; }
+.searchPanel label { display: block; margin-bottom: var(--space-2); font-size: var(--font-ui); }
+.searchRow { display: flex; gap: var(--space-3); align-items: center; }
+.searchRow input { min-width: 0; flex: 1; height: 48px; border: var(--line-width-default) solid var(--black); background: var(--white); color: var(--black); border-radius: 0; padding: 0 14px; font: inherit; font-size: var(--font-md); }
+.searchRow button { height: 48px; border: var(--line-width-default) solid var(--black); border-radius: 0; padding: 0 var(--space-5); background: var(--black); color: var(--white); font: inherit; cursor: pointer; }
 .searchRow .searchClose { display: grid; place-items: center; width: 44px; flex: none; padding: 0; background: var(--white); color: var(--black); border: 0; }
 
 .mobileDrawer {
@@ -396,17 +401,17 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 20px;
+  gap: var(--space-5);
   width: 100%;
   min-height: 64px;
   margin: 0;
-  padding: 18px 24px;
+  padding: 18px var(--space-6);
   border: 0;
   background: var(--white);
   color: var(--black);
-  font-size: 16px;
+  font-size: var(--font-md);
   line-height: 1.3;
-  font-weight: 400;
+  font-weight: var(--font-weight-regular);
   text-align: left;
   text-decoration: none;
   cursor: pointer;
@@ -420,37 +425,37 @@
   width: 12px;
   height: 12px;
   margin-right: 5px;
-  border-top: 1px solid currentColor;
-  border-right: 1px solid currentColor;
+  border-top: var(--line-width-default) solid currentColor;
+  border-right: var(--line-width-default) solid currentColor;
   transform: rotate(45deg);
 }
 .mobileCategory:hover, .mobileProfileLink:hover { background: var(--soft); }
-.mobileCategoryActive { font-weight: 600; }
+.mobileCategoryActive { font-weight: var(--font-weight-semibold); }
 .mobileCategory:focus-visible, .mobileProfileLink:focus-visible { outline-offset: -4px; }
 
 .mobileAccount {
-  padding-bottom: calc(24px + env(safe-area-inset-bottom, 0px));
+  padding-bottom: calc(var(--space-6) + env(safe-area-inset-bottom, 0px));
   background: var(--white);
 }
 
-.mobileProfileLink { font-size: 15px; min-height: 60px; }
-.mobileMenuEmphasis { font-weight: 600; }
+.mobileProfileLink { font-size: var(--font-ui); min-height: 60px; }
+.mobileMenuEmphasis { font-weight: var(--font-weight-semibold); }
 
 .mobileAuthActions {
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  padding: 24px;
+  gap: var(--space-3);
+  padding: var(--space-6);
 }
 
 .mobileAction { width: 100%; min-width: 0; min-height: 44px; }
 
 .mobileMenuMessage {
   display: grid;
-  gap: 16px;
-  padding: 20px 24px;
+  gap: var(--space-4);
+  padding: var(--space-5) var(--space-6);
   color: var(--muted);
-  font-size: 15px;
+  font-size: var(--font-ui);
 }
 
 .mobileMenuMessage button { justify-self: start; }
@@ -467,10 +472,10 @@
 
 @media (max-width: 640px) {
   .mobileClose { top: max(10px, env(safe-area-inset-top, 0px)); }
-  .mobileCategory, .mobileProfileLink { min-height: 56px; padding: 16px 20px; gap: 12px; font-size: 15px; }
+  .mobileCategory, .mobileProfileLink { min-height: 56px; padding: var(--space-4) var(--space-5); gap: var(--space-3); font-size: var(--font-ui); }
   .mobileChevron { width: 10px; height: 10px; }
-  .mobileAuthActions { padding: 20px 20px 12px; gap: 8px; }
-  .mobileMenuMessage { padding: 20px; }
+  .mobileAuthActions { padding: var(--space-5) var(--space-5) var(--space-3); gap: var(--space-2); }
+  .mobileMenuMessage { padding: var(--space-5); }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -479,6 +484,8 @@
 }
 
 @media (max-width: 1100px) {
+  .leadingActions { gap: var(--space-2); }
+  .headerSearch { width: clamp(130px, 19vw, 220px); }
   .top .inner {
     min-height: 80px;
     grid-template-areas: "leading logo actions";
@@ -508,7 +515,17 @@
   }
 }
 
+@media (min-width: 641px) and (max-width: 820px) {
+  .top .inner { gap: var(--space-2); }
+  .logoImg { width: 150px; }
+  .actions { gap: var(--space-2); }
+  .headerSearch { width: clamp(150px, 24vw, 200px); }
+}
+
 @media (max-width: 640px) {
+  .desktopSearch { display: none; }
+  .mobileSearchRow { display: flex; align-items: flex-start; gap: var(--space-2); padding: var(--space-2) var(--space-3); background: var(--white); }
+  .mobileSearchRow > button { flex: 0 0 44px; }
   .inner {
     width: min(100%, calc(100% - 24px));
   }
@@ -518,7 +535,7 @@
     grid-template-areas: "leading logo actions";
     grid-template-columns: 1fr auto 1fr;
     padding: 0;
-    gap: 8px;
+    gap: var(--space-2);
   }
 
   .menuBtn {
@@ -542,9 +559,9 @@
     gap: 0;
   }
 
-  .searchPanel { padding: 16px 12px; }
+  .searchPanel { padding: var(--space-4) var(--space-3); }
   .searchRow { gap: 6px; }
-  .searchRow button { padding-inline: 12px; }
+  .searchRow button { padding-inline: var(--space-3); }
 
   .bottom {
     display: none;
@@ -564,14 +581,14 @@
   .header[data-buyer-home="true"] .top { display: none; }
   .buyerBar { background: var(--white); color: var(--black); }
   .buyerUtility { color: var(--black); }
-  .buyerTitle { text-align: left; font-size: 12px; font-weight: 400; text-transform: uppercase; }
+  .buyerTitle { text-align: left; font-size: var(--font-helper); font-weight: var(--font-weight-regular); text-transform: uppercase; }
   .buyerLeading:empty { display: none; }
   .buyerBar:has(.buyerLeading:empty) { grid-template-columns: minmax(0, 1fr) 44px; }
 }
 
 @media (max-width: 640px) {
   .mobileAccount { margin-top: auto; padding-bottom: env(safe-area-inset-bottom, 0px); }
-  .mobileAccount .mobileProfileLink:has(svg) { justify-content: flex-start; gap: 12px; }
+  .mobileAccount .mobileProfileLink:has(svg) { justify-content: flex-start; gap: var(--space-3); }
   .mobileProfileLink svg { width: 24px; height: 24px; flex: none; }
 }
 

@@ -1,56 +1,64 @@
-.table {
+.dataTable {
   width: 100%;
+  min-width: var(--table-min-width, 0);
   border-collapse: collapse;
-}
-
-.tableHead {
-  border-bottom: 1px solid var(--line);
-}
-
-.tableHead th {
-  padding: 0 16px 12px 0;
-
-  color: var(--muted);
-
-  font-size: var(--font-xs);
-  font-weight: 500;
-  letter-spacing: 0.08em;
-  text-align: left;
-  text-transform: uppercase;
-  white-space: nowrap;
-}
-
-.tableRow {
-  border-bottom: 1px solid var(--line);
-}
-
-.tableRow td {
-  padding: 16px 16px 16px 0;
-
   color: var(--black);
-
-  font-size: var(--font-sm);
-  vertical-align: middle;
+  text-align: var(--table-align, left);
+  font-size: var(--table-font-size, var(--font-xs));
+  line-height: var(--table-line-height, 1.5);
+  font-variant-numeric: var(--table-numeric, normal);
 }
 
-.tableCellMuted {
-  color: var(--muted);
+:where(.dataTable) :is(th, td) {
+  padding: var(--table-cell-padding, 14px 12px);
+  border: 0;
+  border-bottom: var(--table-border-width, var(--line-width-default)) solid var(--table-border-color, var(--line));
+  text-align: var(--table-align, left);
+  vertical-align: var(--table-cell-align, top);
+  white-space: var(--table-cell-white-space, normal);
+  font-weight: var(--table-cell-weight, inherit);
 }
 
-.tableCellRight {
-  text-align: right;
+:where(.dataTable) th {
+  color: var(--table-heading-color, var(--muted));
+  font-size: var(--table-heading-size, inherit);
+  font-weight: var(--table-heading-weight, 500);
+  white-space: var(--table-heading-white-space, var(--table-cell-white-space, normal));
 }
 
-.tableActions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 8px;
+:where(.dataTable) thead { background: var(--table-heading-background, transparent); }
+:where(.dataTable) thead th {
+  height: var(--table-heading-height, auto);
+  padding: var(--table-heading-padding, var(--table-cell-padding, 14px 12px));
 }
 
-.tableEmpty {
-  padding: 32px 0;
-  border-bottom: 1px solid var(--line);
-
-  color: var(--muted);
-  font-size: var(--font-sm);
+:where(.dataTable) td { overflow-wrap: var(--table-overflow-wrap, anywhere); }
+:where(.dataTable) a {
+  color: var(--black);
+  text-decoration: var(--table-link-decoration, underline);
+  text-underline-offset: 3px;
 }
+
+:where(.dataTable tbody tr) {
+  background: var(--table-row-background, transparent);
+  border-top: var(--table-row-border-width, 0) solid var(--line);
+  transition: background-color var(--transition-fast);
+}
+:where(.dataTable tbody tr:hover) { background: var(--table-row-hover-background, var(--table-row-background, transparent)); }
+
+:where(.dataTable) small {
+  display: block;
+  margin-top: 5px;
+  max-width: 280px;
+  font-size: var(--table-note-size, 11px);
+  line-height: 1.5;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :where(.dataTable tbody tr) { transition: none; }
+}
+
+.tableCellMuted { color: var(--muted); }
+.tableCellRight { text-align: right; }
+.tableActions { display: flex; justify-content: flex-end; gap: var(--space-2); }
+.tableEmpty { padding: var(--space-7) 0; border-bottom: var(--line-width-default) solid var(--line); color: var(--muted); font-size: var(--font-sm); }

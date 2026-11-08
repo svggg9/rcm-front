@@ -2,6 +2,7 @@
 
 import { useEffect, useLayoutEffect, useRef } from "react";
 import { usePathname } from "next/navigation";
+import { consumeBuyerPanelScroll, restoreBuyerPanelScroll } from "../lib/buyerPanelReturn";
 
 function isCabinet(path: string) {
   return /^\/(seller|admin)(\/|$)/.test(path);
@@ -22,8 +23,10 @@ export function NavigationScrollReset() {
   }, []);
 
   useLayoutEffect(() => {
+    const returnTarget = consumeBuyerPanelScroll(window.location.pathname + window.location.search + window.location.hash);
     const previous = previousPath.current;
     previousPath.current = pathname;
+    if (returnTarget) return restoreBuyerPanelScroll(returnTarget);
     if (previous === pathname) return;
     const isHistoryNavigation = historyTarget.current === pathname;
     historyTarget.current = null;

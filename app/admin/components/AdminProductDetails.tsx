@@ -1,6 +1,7 @@
 import { useRef, useState, type ReactNode } from "react";
 import Image from "next/image";
 
+import { SettingsSection } from "../../components/ui/SettingsSection";
 import styles from "../Admin.module.css";
 import type { AdminProduct, DictionaryItem } from "../types";
 import { Price } from "../../components/ui/Price";
@@ -12,6 +13,11 @@ import { FormSelect } from "../../components/ui/FormSelect";
 import { TextInput } from "../../components/ui/TextInput";
 import { RequestError } from "../../components/ui/RequestError";
 import { eligibleCategoryParents, normalizeCategories } from "../../lib/categories";
+import { Textarea } from "../../components/ui/Textarea";
+import { AdminProductActions } from "./AdminProductActions";
+import { useAdminResource } from "../lib/workspaceApi";
+import { AdminProductComparison } from "./AdminProductComparison";
+import { ProductDetailsContent } from "../../product/[id]/components/ProductDetailsContent";
 import { AdminProductColors } from "./AdminProductColors";
 
 type Props = {
@@ -28,10 +34,10 @@ type Props = {
     parentId?: number | null;
   }) => Promise<void>;
   onAssignColor?: (groupId: number, colorId: number | null, expectedName: string | null) => Promise<void>;
-  onApprove: () => void;
+  onApprove: () => Promise<void>;
   onReturnToRevision: (comment: string) => void;
-  onBlock: () => void;
-  onUnblock: () => void;
+  onBlock: (reason: string) => Promise<void>;
+  onUnblock: () => Promise<void>;
 };
 
 function formatStatus(status: string) {
@@ -47,7 +53,7 @@ function formatStatus(status: string) {
     case "ARCHIVED":
       return "В архиве";
     case "BLOCKED":
-      return "Отклонен";
+      return "Заблокирован";
     default:
       return status;
   }
@@ -93,6 +99,7 @@ export function AdminProductDetails({
   onUnblock,
 }: Props) {
   const loading = actionProductId === product.id;
+  const dates=useAdminResource<{createdAt:string;updatedAt:string}>(`products/${product.id}/dates`);
 
   const [revisionComment, setRevisionComment] = useState("");
   const [categorySelection, setCategorySelection] = useState<{ savedId: number | null; value: number | "" }>({
@@ -146,13 +153,12 @@ export function AdminProductDetails({
   return (
     <>
       <div className={styles.detailsHeader}>
-        <button
-          type="button"
-          className={`${styles.backBtn} textButton`}
+        <Button
+          type="button" variant="ghost"
           onClick={onBack}
         >
           Назад
-        </button>
+        </Button>
 
         <div className={styles.detailsTitleBlock}>
           <h1 className={`${styles.sectionTitleNoMargin} textTitle`}>
@@ -171,16 +177,15 @@ export function AdminProductDetails({
 
       <div className={styles.detailsLayout}>
         <main className={styles.detailsMain}>
+          {product.status==="BLOCKED" && product.moderationComment && <Banner tone="danger" title="Причина блокировки">{product.moderationComment}</Banner>}
           {product.revisionSourceId && <Banner tone="info" title={`Изменения товара №${product.revisionSourceId}`}>
             Одобрение обновит существующую карточку, сохранив текущие цены и резервы
           </Banner>}
-          <section className={styles.detailsSection}>
-            <h2 className={`${styles.detailsSectionTitle} textBody`}>
-              Основные данные
-            </h2>
+          <SettingsSection title="Основные данные">
 
             <div className={styles.infoGrid}>
               <InfoRow label="Название" value={product.title} />
+              <InfoRow label="Артикул" value={product.article || "—"} />
               <InfoRow label="Бренд" value={product.brand || "—"} />
               <InfoRow label="Категория" value={product.category || "—"} />
               {product.suggestedCategoryName ? (
@@ -190,19 +195,17 @@ export function AdminProductDetails({
                   valueClassName={styles.suggestedCategory}
                 />
               ) : null}
-              <InfoRow label="Аудитория" value={product.audience || "—"} />
+              <InfoRow label="Аудитория" value={({MEN:"Для него",WOMEN:"Для неё",UNISEX:"Для всех"}[product.audience]) || product.audience || "—"} />
             </div>
 
             <div className={styles.descriptionBlock}>
-              <div className={`${styles.infoLabel} textSmall`}>Описание</div>
-              <p className="textSmall">
-                {product.description || "Описание не заполнено"}
-              </p>
+              {!product.description.trim() && <p className="textSmall">Описание не заполнено</p>}
+              <ProductDetailsContent description={product.description} composition={product.composition} details={product.details} />
             </div>
-          </section>
+          </SettingsSection>
 
-          <section className={styles.detailsSection}>
-            <h2 className={`${styles.detailsSectionTitle} textBody`}>Фото</h2>
+          <AdminProductComparison key={product.id} product={product} />
+          <SettingsSection title="Фото">
 
             <div className={styles.gallery}>
               {product.images?.length ? (
@@ -223,12 +226,9 @@ export function AdminProductDetails({
                 </div>
               )}
             </div>
-          </section>
+          </SettingsSection>
 
-          <section className={styles.detailsSection}>
-            <h2 className={`${styles.detailsSectionTitle} textBody`}>
-              Варианты
-            </h2>
+          <SettingsSection title="Варианты">
 
             {onAssignColor && <AdminProductColors key={product.id} product={product} disabled={loading || assigning} onAssign={onAssignColor} />}
             <div className={styles.variantList}>
@@ -255,12 +255,9 @@ export function AdminProductDetails({
                 </div>
               )}
             </div>
-          </section>
+          </SettingsSection>
 
-          <section className={styles.detailsSection}>
-            <h2 className={`${styles.detailsSectionTitle} textBody`}>
-              Модерация
-            </h2>
+          <SettingsSection title="Модерация">
 
             {product.suggestedCategoryName ? (
               <div className={styles.categoryProposal}>
@@ -295,15 +292,7 @@ export function AdminProductDetails({
             </div>
             {assignmentError && !categoryError ? <RequestError variant="inline" message={assignmentError} /> : null}
 
-            <label className={styles.adminTextareaField} data-ui="field">
-              <span className="textCaption">Комментарий модератора</span>
-              <textarea
-                value={revisionComment}
-                onChange={(event) => setRevisionComment(event.target.value)}
-                className={`${styles.textarea} textBody`}
-                rows={4}
-              />
-            </label>
+            <Textarea label="Комментарий модератора" value={revisionComment} onChange={event=>setRevisionComment(event.target.value)} rows={4} maxLength={1000} disabled={loading} />
 
             {product.moderationComment ? (
               <div className={styles.infoBlock}>
@@ -315,14 +304,11 @@ export function AdminProductDetails({
                 </span>
               </div>
             ) : null}
-          </section>
+          </SettingsSection>
         </main>
 
         <aside className={styles.detailsAside}>
-          <section className={styles.detailsSection}>
-            <h2 className={`${styles.detailsSectionTitle} textBody`}>
-              Информация
-            </h2>
+          <SettingsSection title="Информация">
 
             <div className={styles.infoGrid}>
               <InfoRow
@@ -333,65 +319,24 @@ export function AdminProductDetails({
                   </StatusBadge>
                 }
               />
-              <InfoRow label="Создан" value={formatDate(product.createdAt)} />
-              <InfoRow label="Обновлен" value={formatDate(product.updatedAt)} />
+              {dates.error && <RequestError variant="inline" message={dates.error} onRetry={dates.refresh} />}
+              <InfoRow label="Создан" value={formatDate(product.createdAt || dates.data?.createdAt)} />
+              <InfoRow label="Обновлен" value={formatDate(product.updatedAt || dates.data?.updatedAt)} />
               <InfoRow label="Фото" value={String(product.images?.length ?? 0)} />
               <InfoRow
                 label="Варианты"
                 value={String(product.variants?.length ?? 0)}
               />
             </div>
-          </section>
+          </SettingsSection>
 
-          <section className={styles.detailsSection}>
-            <h2 className={`${styles.detailsSectionTitle} textBody`}>
-              Действия
-            </h2>
+          <SettingsSection title="Действия">
 
             <div className={styles.detailsActions}>
-              {product.status === "MODERATION" ? (
-                <>
-                  <button
-                    type="button"
-                    className={`${styles.primaryBtn} textButton`}
-                    onClick={onApprove}
-                    disabled={loading}
-                  >
-                    Одобрить
-                  </button>
-
-                  <button
-                    type="button"
-                    className={`${styles.secondaryBtn} textButton`}
-                    onClick={handleReturnToRevision}
-                    disabled={loading || !revisionComment.trim()}
-                  >
-                    На доработку
-                  </button>
-                </>
-              ) : null}
-
-              {product.status === "BLOCKED" ? (
-                <button
-                  type="button"
-                  className={`${styles.secondaryBtn} textButton`}
-                  onClick={onUnblock}
-                  disabled={loading}
-                >
-                  Вернуть в работу
-                </button>
-              ) : (
-                <button
-                  type="button"
-                  className={`${styles.dangerBtn} textButton`}
-                  onClick={onBlock}
-                  disabled={loading}
-                >
-                  Отклонить
-                </button>
-              )}
+              <AdminProductActions title={product.title} status={product.status} busy={loading} onApprove={onApprove} onBlock={onBlock} onUnblock={onUnblock} />
+              {product.status==="MODERATION" && <Button variant="secondary" disabled={loading || !revisionComment.trim()} onClick={handleReturnToRevision}>На доработку</Button>}
             </div>
-          </section>
+          </SettingsSection>
         </aside>
       </div>
     </>

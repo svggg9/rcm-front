@@ -1,4 +1,5 @@
 import { ProductShowcase } from "../../components/ProductShowcase/ProductShowcase";
+import { ProductShowcaseAction } from "../../components/ProductShowcase/ProductShowcaseAction";
 import { ProductShowcaseData } from "../types";
 import styles from "./ProductRailSection.module.css";
 import Link from "next/link";
@@ -18,12 +19,12 @@ export function ProductRailSection({ block }: ProductRailSectionProps) {
         sizes="(max-width: 640px) 45vw, 360px" className={styles.image} normalizeWhitespace /> : null}
     </Link>
     <div className={styles.spotlightInfo}>
-      <h2>{block.title}</h2>
+      <h2 className={styles.title}>{block.title}</h2>
       {block.description ? <p className={styles.description}>{block.description}</p> : null}
       {single.brand ? <span className={styles.brand}>{single.brand}</span> : null}
       <Link className={styles.productName} href={productPath(single)}>{single.title}</Link>
       <span>{single.minPrice > 0 ? <Price amount={single.minPrice} /> : "Цена по запросу"}</span>
-      <Link className={styles.more} href={block.href}>Смотреть всё</Link>
+      <ProductShowcaseAction href={block.href} label="Открыть" />
     </div>
   </section>;
   return (
@@ -35,8 +36,9 @@ export function ProductRailSection({ block }: ProductRailSectionProps) {
       title={block.title}
       description={block.description}
       products={block.products}
+      maxProducts={block.products.length}
       href={block.href}
-      actionLabel="Смотреть всё"
+      actionLabel="Открыть"
     />
   );
 }

@@ -1,4 +1,9 @@
 .stableContent:global(.buttonContent) { display: inline-grid; }
 .stableContent > * { grid-area: 1 / 1; justify-self: center; align-self: center; }
-.label { white-space: nowrap; }
-.hidden { visibility: hidden; }
+.label { display: inline-flex; align-items: center; justify-content: inherit; gap: var(--button-icon-gap, 8px); min-width: 0; white-space: inherit; }
+.label > svg, .icon { flex-shrink: 0; width: var(--button-icon-size, 20px); height: var(--button-icon-size, 20px); }
+.icon { display: inline-flex; align-items: center; justify-content: center; }
+.icon > :is(svg, img) { width: 100%; height: 100%; object-fit: contain; }
+/* Opacity preserves the accessible name and the width while the spinner is visible. */
+.hidden { opacity: 0; }
+.visuallyHidden { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }

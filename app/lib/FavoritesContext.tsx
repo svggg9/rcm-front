@@ -74,6 +74,13 @@ export function FavoritesProvider({
           const data: unknown = await response.json();
           if (!Array.isArray(data) || !data.every(id => Number.isSafeInteger(id) && id > 0)) throw new ApiRequestError("Не удалось загрузить избранное", "invalid-response");
           ids = [...new Set(data as number[])];
+        } else if (ids.length > 0) {
+          const response = await apiFetch(`${API_URL}/api/products/public-by-ids?ids=${ids.join(",")}`, { signal: AbortSignal.timeout(15_000) });
+          if (!response.ok) throw await readApiError(response, "Не удалось загрузить избранное");
+          const data: unknown = await response.json();
+          if (!Array.isArray(data) || !data.every(product => product && Number.isSafeInteger(product.id) && product.id > 0)) throw new ApiRequestError("Не удалось загрузить избранное", "invalid-response");
+          const publicIds = new Set(data.map(product => product.id as number));
+          ids = ids.filter(id => publicIds.has(id));
         }
         if (ticket === requestVersion.current && revision === getClientSessionRevision()) setConfirmed({ revision, ids, hasLoaded: true });
       } catch { /* Keep the confirmed favorites; an unavailable session is never a guest. */ }
@@ -90,6 +97,10 @@ export function FavoritesProvider({
 
   useEffect(() => () => { requestVersion.current++; pendingRead.current = null; }, []);
   useEffect(() => { mutations.current.clear(); }, [session.revision]);
+
+  useEffect(() => {
+    if (pathname === "/favorites" && !session.loading && session.hasResolved && !session.error) void refresh();
+  }, [pathname, refresh, session.loading, session.hasResolved, session.error]);
 
   useEffect(() => {
     if (skipCommerceLoad) return;
@@ -116,8 +127,8 @@ export function FavoritesProvider({
           requestVersion.current++;
           pendingRead.current = null;
           if (!user) {
-            const ids = isFav ? removeGuestFavorite(id) : addGuestFavorite(id);
-            setConfirmed({ revision, ids, hasLoaded: true });
+            if (isFav) removeGuestFavorite(id); else addGuestFavorite(id);
+            setConfirmed(prev => prev.revision !== revision ? prev : { ...prev, ids: isFav ? prev.ids.filter(value => value !== id) : [...new Set([...prev.ids, id])] });
             return;
           }
           const response = await apiFetch(`${API_URL}/api/favorites/${id}`, { method: isFav ? "DELETE" : "POST", signal: AbortSignal.timeout(15_000) });

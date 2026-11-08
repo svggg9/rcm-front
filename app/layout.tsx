@@ -14,7 +14,6 @@ import "./styles/buttons.css";
 import "./styles/forms.css";
 import "./styles/badges.css";
 import "./styles/states.css";
-import "./styles/modals.css";
 import "./styles/loaders.css";
 import "./styles/media.css";
 import "./styles/utils.css";
@@ -25,7 +24,7 @@ import "./styles/alerts.css";
 import "./styles/skeletons.css";
 import "./styles/actions.css";
 
-import { Inter } from "next/font/google";
+import { Manrope } from "next/font/google";
 import type { Metadata, Viewport } from "next";
 
 import { Header } from "./components/Header/Header";
@@ -35,9 +34,9 @@ import { FormValidationBoundary } from "./components/ui/FormValidationBoundary";
 import { FavoritesProvider } from "./lib/FavoritesContext";
 import { AuthModalProvider } from "./components/AuthModal/AuthModalProvider";
 
-const inter = Inter({
+const manrope = Manrope({
   subsets: ["latin", "cyrillic"],
-  variable: "--font-inter",
+  variable: "--font-manrope",
   display: "swap",
 });
 
@@ -60,7 +59,7 @@ export default async function RootLayout({
   const menuCategories = await loadMenuCategories().catch(() => null);
 
   return (
-    <html lang="ru" className={inter.variable}>
+    <html lang="ru" className={manrope.variable}>
       <body>
         <FavoritesProvider>
           <AuthModalProvider>

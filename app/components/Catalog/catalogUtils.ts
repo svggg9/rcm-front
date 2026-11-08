@@ -173,6 +173,7 @@ export function buildCatalogProductsQuery(params: CatalogProductsQuery): string 
   if (params.q) search.set("q", params.q);
   if (params.sort) search.set("sort", params.sort);
   if (params.collectionId !== undefined) search.set("collectionId", String(params.collectionId));
+  if (params.brandCollectionId !== undefined) search.set("brandCollectionId", String(params.brandCollectionId));
   search.set("page", String(Math.max(0, params.page - 1)));
   search.set("size", "48");
   return search.toString();
@@ -310,6 +311,7 @@ export function buildCatalogQuery(params: {
   sort?: SortValue;
   view?: CatalogView;
   collectionId?: number;
+  brandCollectionId?: number;
 }): string {
   const searchParams = new URLSearchParams();
 
@@ -350,6 +352,7 @@ export function buildCatalogQuery(params: {
   if (params.collectionId !== undefined) {
     searchParams.set("collection", String(params.collectionId));
   }
+  if (params.brandCollectionId !== undefined) searchParams.set("brandCollection", String(params.brandCollectionId));
 
   const query = searchParams.toString();
   return query ? `${params.basePath ?? "/catalog"}?${query}` : params.basePath ?? "/catalog";

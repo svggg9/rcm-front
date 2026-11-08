@@ -6,6 +6,9 @@ const source = fs.readFileSync('app/seller/products/[id]/edit/ProductEditPageCli
 const utilsExports = {};
 new Function('exports', ts.transpileModule(fs.readFileSync('app/seller/products/[id]/edit/utils.ts', 'utf8'),
   {compilerOptions:{module:ts.ModuleKind.CommonJS, target:ts.ScriptTarget.ES2020}}).outputText)(utilsExports);
+const detailsExports = {};
+new Function('exports', ts.transpileModule(fs.readFileSync('app/lib/productDetails.ts', 'utf8'),
+  {compilerOptions:{module:ts.ModuleKind.CommonJS, target:ts.ScriptTarget.ES2020}}).outputText)(detailsExports);
 const ast = ts.createSourceFile('editor.tsx', source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
 const functions = [];
 function visit(node) {
@@ -15,7 +18,8 @@ function visit(node) {
 visit(ast);
 const code = ts.transpileModule(functions.join('\n'), { compilerOptions: { target: ts.ScriptTarget.ES2020 } }).outputText;
 function setup({ valid = false, dirty = true, failSave = false, stale = false, variantsInput = [], revision = false, failReview = false,
-  onboardingStatus = {legalCompleted:true, agreementAccepted:true}, onboardingError = false } = {}) {
+  onboardingStatus = {legalCompleted:true, agreementAccepted:true}, onboardingError = false,
+  detailsInput = {features:'',measurements:'',care:'',cityOfOrigin:''} } = {}) {
   const calls = []; const notifications = []; let validationCalls = 0; let confirmed = false;
   const noop = () => {};
   const context = {
@@ -24,6 +28,7 @@ function setup({ valid = false, dirty = true, failSave = false, stale = false, v
     dirty, product: {status:'DRAFT', revisionSourceId:revision ? 5 : null}, productId: 7, API_URL: '', title:'', description:'', composition:'', categoryId:'', brandId:1,
     suggestedCategoryName:'', audience:'UNISEX', packageWidthCm:'', packageHeightCm:'', packageLengthCm:'', packageWeightKg:'', variants:variantsInput,
     inconsistentProductPriceIndexes: utilsExports.inconsistentProductPriceIndexes,
+    details: detailsInput, normalizeProductDetails: detailsExports.normalizeProductDetails, productDetailsErrors: detailsExports.productDetailsErrors,
     canEditProductOperations: () => true, isProductStatusPublishable: () => true,
     setValidationErrors: noop, setSaveSucceeded: noop, setSaving: noop, setDirty: noop, setPublishing: noop,
     setPublishSucceeded: noop, setPublishSuccessOpen: value => { confirmed = value; }, setProduct: noop, setVariants: noop, setImages: noop,
@@ -54,6 +59,13 @@ function setup({ valid = false, dirty = true, failSave = false, stale = false, v
   assert.equal(test.validationCalls(), 0);
   assert.equal(JSON.parse(test.calls[0].body).title, '');
   assert.equal(JSON.parse(test.calls[0].body).packageWidthCm, null);
+  assert.deepEqual(JSON.parse(test.calls[0].body).details, detailsExports.normalizeProductDetails());
+  const richDetails = {features:'Прямой силуэт\nКарманы',measurements:'Размер M\nДлина: 75 см',care:'Стирка при 30 °C',cityOfOrigin:'Россия'};
+  test = setup({detailsInput: richDetails}); await test.saveProduct();
+  assert.deepEqual(JSON.parse(test.calls[0].body).details, richDetails, 'Optional details are part of the shared save snapshot');
+  test = setup({detailsInput: {...richDetails,cityOfOrigin:'x'.repeat(121)}});
+  assert.equal(await test.saveProduct(), false); assert.equal(test.calls.length,0,'Invalid optional details must not be sent');
+  test = setup(); await test.saveProduct();
   assert.deepEqual(test.notifications, [{type:'success',message:'Товар сохранён'}]);
   test = setup({failSave:true});
   assert.equal(await test.saveProduct(), false);

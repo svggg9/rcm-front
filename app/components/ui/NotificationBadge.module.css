@@ -7,7 +7,7 @@
   background: var(--gold-deep);
   color: var(--white);
   font-family: inherit;
-  font-weight: 600;
+  font-weight: var(--font-weight-semibold);
   font-variant-numeric: tabular-nums;
 }
 
@@ -19,9 +19,9 @@
 .counter {
   min-width: 18px;
   height: 18px;
-  padding-inline: 4px;
-  font-size: 11px;
-  line-height: 18px;
+  padding-inline: var(--space-1);
+  font-size: var(--font-label-compact);
+  line-height: var(--caption-line-height);
 }
 
 .badge.muted {
@@ -29,4 +29,4 @@
 }
 .success { background: var(--success); }
 .warning { background: var(--warning); }
-.danger { background: var(--danger); }
+.danger { background: var(--error); }

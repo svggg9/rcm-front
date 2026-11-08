@@ -2,7 +2,7 @@
 .emptyState,
 .errorState,
 .noticeState {
-  padding: 24px 0;
+  padding: var(--space-6) 0;
 
   font-size: var(--font-md);
   line-height: 1.5;
@@ -14,9 +14,9 @@
 }
 
 .errorState {
-  color: var(--danger);
+  color: var(--state-text-color);
 }
 
 .noticeState {
-  color: var(--gold);
+  color: var(--state-text-color);
 }

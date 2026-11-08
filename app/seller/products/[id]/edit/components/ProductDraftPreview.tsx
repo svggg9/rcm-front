@@ -2,11 +2,12 @@
 import {useState} from "react";
 import Image from "next/image";
 import {Price} from "../../../../../components/ui/Price";
-import {ProductDescriptionText} from "../../../../../product/[id]/components/ProductDescriptionText";
-import type {ProductVariant,ProductImageItem} from "../types";
+import {ProductDetailsContent} from "../../../../../product/[id]/components/ProductDetailsContent";
+import type {ProductDetails} from "../../../../../lib/productDetails";
+import type {ProductVariant,ProductImageItem,Audience} from "../types";
 import styles from "../ProductEditPage.module.css";
 import { Button } from "../../../../../components/ui/Button";
-export function ProductDraftPreview({title,brand,description,composition,variants,images}:{title:string;brand:string;description:string;composition:string;variants:ProductVariant[];images:ProductImageItem[]}){
+export function ProductDraftPreview({title,brand,description,composition,details,category,audience,variants,images}:{title:string;brand:string;description:string;composition:string;details?:ProductDetails;category?:string;audience?:Audience;variants:ProductVariant[];images:ProductImageItem[]}){
  const [selected,setSelected]=useState(0);const [photo,setPhoto]=useState(0);const variant=variants[selected] ?? variants[0];
  const visibleImages=images.filter(i=>!variant?.colorwayId || i.colorwayId === variant.colorwayId || !i.colorwayId);
  const image=visibleImages[photo] ?? visibleImages[0];
@@ -17,7 +18,6 @@ export function ProductDraftPreview({title,brand,description,composition,variant
  <span>{brand}</span><h2>{title || "Название товара"}</h2>
  {variant && Number.isFinite(variant.price) && <Price amount={variant.price} />}
  <div className={styles.descriptionEditorToolbar}>{variants.map((v,i)=><Button variant={selected === i ? "primary" : "secondary"} type="button" key={v.id ?? v.clientKey ?? i} aria-pressed={selected === i} onClick={()=>{setSelected(i);setPhoto(0);}}>{[v.color,v.size].filter(Boolean).join(" / ") || "Без размера"}{v.availableQuantity === 0 ? " — нет в наличии" : ""}</Button>)}</div>
- <h3>Описание</h3><ProductDescriptionText text={description} fallback="Описание не заполнено" />
- {composition && <><h3>Состав</h3><ProductDescriptionText text={composition} fallback="" /></>}
+ <ProductDetailsContent description={description} composition={composition} details={details} category={category} audience={audience} />
  </div>;
 }

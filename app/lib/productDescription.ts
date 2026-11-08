@@ -1,5 +1,6 @@
 export type TextBlock =
   | { type: "paragraph"; text: string }
+  | { type: "heading"; text: string }
   | { type: "ul" | "ol" | "dash" | "square"; items: string[] };
 
 export function parseDescription(value: string): TextBlock[] {
@@ -32,9 +33,23 @@ export function parseDescription(value: string): TextBlock[] {
   for (const rawLine of normalizedValue.split(/\r?\n/)) {
     const line = rawLine.trim();
 
+    if (/^###\s*$/.test(line)) {
+      flushParagraph();
+      flushList();
+      continue;
+    }
+
     if (!line) {
       flushParagraph();
       flushList();
+      continue;
+    }
+
+    const headingMatch = line.match(/^###\s+(.+)$/);
+    if (headingMatch) {
+      flushParagraph();
+      flushList();
+      blocks.push({ type: "heading", text: headingMatch[1].trim() });
       continue;
     }
 
@@ -76,6 +91,6 @@ export function parseDescription(value: string): TextBlock[] {
 
 
 export function serializeDescription(blocks: TextBlock[]): string {
- return blocks.map(block=>block.type === "paragraph" ? block.text.trim() : block.items.filter(item=>item.trim()).map((item,i)=>`${block.type === "square" ? "▪" : block.type === "ol" ? `${i+1}.` : block.type === "dash" ? "—" : "•"} ${item.trim()}`).join("\n")).filter(Boolean).join("\n\n");
+ return blocks.map(block=>block.type === "heading" ? `### ${block.text.trim()}` : block.type === "paragraph" ? block.text.trim() : block.items.filter(item=>item.trim()).map((item,i)=>`${block.type === "square" ? "▪" : block.type === "ol" ? `${i+1}.` : block.type === "dash" ? "—" : "•"} ${item.trim()}`).join("\n")).filter(Boolean).join("\n\n");
 }
-export function hasDescriptionContent(value: string): boolean { return parseDescription(value).some(b=>b.type === "paragraph" ? Boolean(b.text.replace(/^[▪•*—-]\s*$/gm, "").trim()) : b.items.some(t=>t.trim())); }
+export function hasDescriptionContent(value: string): boolean { return parseDescription(value).some(b=>b.type === "paragraph" || b.type === "heading" ? Boolean(b.text.replace(/^[▪•*—-]\s*$/gm, "").trim()) : b.items.some(t=>t.trim())); }

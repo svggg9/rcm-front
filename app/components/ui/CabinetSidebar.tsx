@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { Icon, type IconName } from "./Icon";
 import { Loader } from "./Loader";
@@ -52,6 +52,25 @@ export function CabinetSidebar({
 }: Props) {
   const activeItem = items.find((item) => item.active);
   const activeItemKey = activeItem ? getItemKey(activeItem) : null;
+  const navRef = useRef<HTMLElement>(null);
+  useEffect(() => {
+    if (!mobileInline) return;
+    const nav = navRef.current;
+    if (!nav) return;
+    function revealActive() {
+      const active = nav!.querySelector<HTMLElement>('[aria-current="page"]');
+      if (!active || nav!.scrollWidth <= nav!.clientWidth) return;
+      const item = active.getBoundingClientRect();
+      const bounds = nav!.getBoundingClientRect();
+      if (item.left < bounds.left || item.right > bounds.right) {
+        nav!.scrollLeft += item.left - bounds.left - (nav!.clientWidth - item.width) / 2;
+      }
+    }
+    revealActive();
+    const observer = new ResizeObserver(revealActive);
+    observer.observe(nav);
+    return () => observer.disconnect();
+  }, [activeItemKey, mobileInline]);
   const [pendingNavigation, setPendingNavigation] = useState<{
     from: string | null;
     to: string;
@@ -90,7 +109,7 @@ export function CabinetSidebar({
         </div>
       ) : null}
 
-      <nav className={styles.nav} aria-label={ariaLabel}>
+      <nav ref={navRef} className={styles.nav} aria-label={ariaLabel}>
         {items.map((item) => {
           const itemKey = getItemKey(item);
           const isActive = pendingActiveKey

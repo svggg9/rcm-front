@@ -3,12 +3,12 @@
   .navigation {
     position: fixed;
     inset: auto 0 0;
-    z-index: 290;
+    z-index: var(--z-buyer-navigation);
     display: grid;
     grid-template-columns: 1fr 1fr minmax(112px, 2.2fr) 1fr 1fr;
     align-items: center;
     height: var(--buyer-bottom-nav-height);
-    padding: 0 max(8px, env(safe-area-inset-right, 0px)) env(safe-area-inset-bottom, 0px) max(8px, env(safe-area-inset-left, 0px));
+    padding: 0 max(var(--space-2), env(safe-area-inset-right, 0px)) env(safe-area-inset-bottom, 0px) max(var(--space-2), env(safe-area-inset-left, 0px));
     background: var(--white);
     color: var(--black);
   }
@@ -27,6 +27,6 @@
   }
   .item svg { width: 24px; height: 24px; }
   .item:focus-visible { outline: 1px solid var(--black); outline-offset: -4px; }
-  .logo { padding: 0 8px; }
+  .logo { padding: 0 var(--space-2); }
   .logo img { display: block; width: 100%; max-width: 150px; height: auto; }
 }

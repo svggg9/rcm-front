@@ -27,6 +27,7 @@ import { CartContentSkeleton } from "../components/ui/CommerceSkeleton";
 import { ConfirmActionButton } from "../components/ui/ConfirmActionButton";
 import { RequestError } from "../components/ui/RequestError";
 import { Button } from "../components/ui/Button";
+import { registerBuyerPanelActions } from "../lib/buyerPanelActions";
 
 import styles from "./Cart.module.css";
 
@@ -255,6 +256,16 @@ function CartPageContent() {
     return visibleItems.reduce((sum, item) => sum + item.quantity, 0);
   }, [visibleItems]);
 
+  useEffect(() => registerBuyerPanelActions(action => {
+    if (mutationInFlight.current || checkoutInFlight.current || authBusy || clearing) return true;
+    if (action === "back" && checkoutRequested) {
+      setInlineAuth(false);
+      router.replace("/cart", { scroll: false });
+      return true;
+    }
+    return false;
+  }), [authBusy, clearing, checkoutRequested, router]);
+
   function goCheckout() {
     if (authLoading || busy || !visibleItems.length || overLimit || unavailable) return;
 
@@ -271,13 +282,13 @@ function CartPageContent() {
   return (
     <div className="pageContainer">
       <div className={styles.page}>
-        <div className={styles.top}>
-          <h1 className={styles.title}>Корзина</h1>
-          {!cartLoading && visibleItems.length > 0 && <ConfirmActionButton className={styles.clearBtn}
+        <h1 className="visuallyHidden">Корзина</h1>
+        {!cartLoading && visibleItems.length > 0 && <div className={styles.top}>
+          <ConfirmActionButton className={styles.clearBtn}
             confirmTitle="Вы уверены, что хотите очистить корзину?"
             confirmText={`При очистке корзины все добавленные ранее товары (${totalQuantity}) будут удалены`}
-            confirmLabel="Очистить корзину" showCancel={false} disabled={busy} onConfirm={handleClear}>Очистить</ConfirmActionButton>}
-        </div>
+            confirmLabel="Очистить корзину" showCancel={false} disabled={busy} onConfirm={handleClear}>Очистить</ConfirmActionButton>
+        </div>}
         {actionError && <p className={styles.cartNotice} role="alert">{actionError}</p>}
         {overLimit && <p className={styles.cartNotice} role="alert">{PRODUCT_QUANTITY_LIMIT_MESSAGE}</p>}
 
@@ -288,7 +299,7 @@ function CartPageContent() {
           <CartContentSkeleton />
         ) : loadError && visibleItems.length === 0 ? (
           <RequestError message={sessionError ? "Не удалось проверить вход" : "Не удалось загрузить корзину"} text="Попробуйте ещё раз" loading={loading || authLoading}
-            onRetry={retryCart} secondaryAction={<Link href="/catalog" className="buttonSecondary">Каталог</Link>} />
+            onRetry={retryCart} secondaryAction={<Link href="/catalog" className="buttonSecondary">В каталог</Link>} />
         ) : visibleItems.length === 0 ? (
           <EmptyCart />
         ) : (

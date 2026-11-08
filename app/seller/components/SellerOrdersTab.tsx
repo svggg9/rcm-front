@@ -274,9 +274,7 @@ function isCompletedOrder(order: SellerOrderCardListItem) {
 function isCanceledOrder(order: SellerOrderCardListItem) {
   return (
     order.status === "CANCELED" ||
-    order.paymentStatus === "FAILED" ||
-    order.paymentStatus === "CANCELED" ||
-    order.deliveryStatus === "RETURNED" ||
+    order.paymentStatus === "FAILED" ||    order.deliveryStatus === "RETURNED" ||
     order.deliveryStatus === "CANCELLED"
   );
 }

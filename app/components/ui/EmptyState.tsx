@@ -6,6 +6,7 @@ type Props = {
   title: string;
   text?: ReactNode;
   actions?: ReactNode;
+  footer?: ReactNode;
   /** Failure icon; empty illustrations are explicitly chosen by the screen. */
   icon?: IconName;
   illustration?: ReactNode;
@@ -16,6 +17,7 @@ export function EmptyState({
   title,
   text,
   actions,
+  footer,
   icon,
   illustration,
   tone = "default",
@@ -28,6 +30,7 @@ export function EmptyState({
       <h2 className="emptyStateTitle">{title}</h2>
       {text ? <div className="emptyStateText">{text}</div> : null}
       {actions ? <div className="emptyStateActions">{actions}</div> : null}
+      {footer ? <div className="emptyStateFooter">{footer}</div> : null}
     </div>
   );
 }

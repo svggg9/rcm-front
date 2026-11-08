@@ -1,7 +1,7 @@
-﻿.page {
+.page {
   display: flex;
   flex-direction: column;
-  gap: 32px;
+  gap: var(--space-7);
 }
 
 .section {
@@ -19,7 +19,7 @@
 .textButton {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: var(--space-1);
   border: 0;
   padding: 0;
   background: transparent;
@@ -36,7 +36,7 @@
 .ordersList {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: var(--space-4);
 }
 
 .profileSection {
@@ -45,6 +45,6 @@
 
 @media (max-width: 760px) {
   .page {
-    gap: 24px;
+    gap: var(--space-6);
   }
 }

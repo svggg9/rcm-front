@@ -1,13 +1,13 @@
 .page {
   width: 100%;
-  margin: 24px 0 56px;
+  margin: var(--space-6) 0 56px;
 }
 
 .layout {
   width: 100%;
   display: grid;
   grid-template-columns: 260px minmax(0, 1fr);
-  gap: 40px;
+  gap: var(--space-8);
   align-items: start;
 }
 
@@ -18,7 +18,7 @@
 @media (max-width: 900px) {
   .layout {
     grid-template-columns: 1fr;
-    gap: 24px;
+    gap: var(--space-6);
     justify-content: stretch;
   }
 }
@@ -27,7 +27,7 @@
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 20px;
+  gap: var(--space-5);
 
   margin-bottom: 15px;
   padding-bottom: 0;
@@ -41,7 +41,7 @@
 }
 
 .sectionTitle {
-  margin-bottom: 24px;
+  margin-bottom: var(--space-6);
 }
 
 .muted {
@@ -56,13 +56,11 @@
 
   border-bottom: 0;
 
-  color: var(--danger);
+  color: var(--error);
 }
 
 .refreshBtn,
 .backBtn,
-.primaryBtn,
-.secondaryBtn,
 .dangerBtn {
   min-height: 38px;
   padding: 0 14px;
@@ -78,41 +76,24 @@
 }
 
 .refreshBtn,
-.backBtn,
-.secondaryBtn {
-  border: 1px solid var(--line);
+.backBtn {
+  border: var(--line-width-default) solid var(--line);
   background: var(--white);
   color: var(--black);
 }
 
 .refreshBtn:hover,
-.backBtn:hover,
-.secondaryBtn:hover {
+.backBtn:hover {
   border-color: var(--black);
   background: var(--soft);
 }
 
-.primaryBtn {
-  border: 1px solid var(--black);
-  background: var(--black);
-  color: var(--white);
-}
-
-.primaryBtn:hover:not(:disabled) {
-  color: var(--white);
-  background: var(--black);
-  box-shadow: none;
-  opacity: 0.72;
-}
-
 .dangerBtn {
-  border: 1px solid var(--black);
+  border: var(--line-width-default) solid var(--black);
   background: rgba(155, 44, 44, 0.045);
-  color: var(--danger);
+  color: var(--error);
 }
 
-.primaryBtn:disabled,
-.secondaryBtn:disabled,
 .dangerBtn:disabled,
 .refreshBtn:disabled {
   opacity: 0.4;
@@ -195,10 +176,10 @@
 .productMetaLine {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-2);
   flex-wrap: wrap;
 
-  margin-top: 4px;
+  margin-top: var(--space-1);
   color: var(--muted);
 }
 
@@ -214,7 +195,7 @@
   display: flex;
   flex-direction: column;
   align-items: flex-end;
-  gap: 8px;
+  gap: var(--space-2);
 
   min-width: 132px;
 }
@@ -226,7 +207,7 @@
 .productActions {
   display: flex;
   justify-content: flex-end;
-  gap: 8px;
+  gap: var(--space-2);
   flex-wrap: wrap;
 }
 
@@ -235,9 +216,9 @@
 .detailsHeader {
   display: flex;
   align-items: flex-start;
-  gap: 12px;
+  gap: var(--space-3);
 
-  margin-bottom: 20px;
+  margin-bottom: var(--space-5);
   padding-bottom: 0;
   border-bottom: 0;
 }
@@ -252,7 +233,7 @@
 
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-2);
   flex-wrap: wrap;
 
   color: var(--muted);
@@ -261,7 +242,7 @@
 .detailsLayout {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 340px;
-  gap: 48px;
+  gap: var(--space-9);
   align-items: start;
 }
 
@@ -281,7 +262,7 @@
 }
 
 .detailsAside .detailsSectionTitle {
-  margin-bottom: 12px;
+  margin-bottom: var(--space-3);
 }
 
 .detailsSectionTitle {
@@ -303,7 +284,7 @@
   grid-template-columns: repeat(auto-fill, minmax(104px, 1fr));
   gap: 10px;
 
-  margin-bottom: 24px;
+  margin-bottom: var(--space-6);
 }
 
 .galleryImageWrap {
@@ -323,7 +304,7 @@
 .galleryEmpty {
   grid-column: 1 / -1;
 
-  padding: 32px 0;
+  padding: var(--space-7) 0;
 
   border-bottom: 0;
 
@@ -338,7 +319,7 @@
 }
 
 .descriptionBlock p {
-  margin-top: 8px;
+  margin-top: var(--space-2);
 
   color: var(--black);
 }
@@ -351,7 +332,7 @@
 .variantRow {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto auto;
-  gap: 16px;
+  gap: var(--space-4);
   align-items: center;
 
   padding: 10px 0;
@@ -372,7 +353,7 @@
 .infoRow {
   display: flex;
   justify-content: space-between;
-  gap: 16px;
+  gap: var(--space-4);
 
   padding: 7px 0;
 
@@ -391,8 +372,8 @@
 .detailsActions {
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  margin-top: 12px;
+  gap: var(--space-3);
+  margin-top: var(--space-3);
 }
 
 .moderationGrid {
@@ -400,7 +381,7 @@
   grid-template-columns: minmax(0, 1fr) auto;
   gap: 10px;
   align-items: end;
-  margin-bottom: 12px;
+  margin-bottom: var(--space-3);
 }
 
 .categoryProposal {
@@ -409,40 +390,40 @@
   justify-content: space-between;
   gap: 14px;
 
-  margin-bottom: 12px;
-  padding: 12px;
+  margin-bottom: var(--space-3);
+  padding: var(--space-3);
 
   background: var(--soft);
 }
 
 .categoryProposalValue {
-  margin-top: 4px;
+  margin-top: var(--space-1);
   color: var(--warning);
 }
 
 .adminField {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--space-2);
 }
 
 .adminField span {
   color: var(--black);
-  font-size: 12px;
+  font-size: var(--font-helper);
   line-height: 1.25;
-  font-weight: 300;
+  font-weight: var(--font-weight-regular);
 }
 
 .adminInput,
 .adminSelect {
   width: 100%;
   min-height: 44px;
-  border: 0.5px solid var(--black);
+  border: var(--line-width-hairline) solid var(--black);
   background: var(--white);
-  color: #333333;
+  color: var(--black);
   padding: 0 15px;
-  font-size: 14px;
-  font-weight: 400;
+  font-size: var(--font-sm);
+  font-weight: var(--font-weight-regular);
   outline: none;
 }
 
@@ -455,15 +436,15 @@
   position: relative;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--space-2);
 }
 
 .adminTextareaField span {
   position: static;
   color: var(--black);
-  font-size: 12px;
+  font-size: var(--font-helper);
   line-height: 1.25;
-  font-weight: 300;
+  font-weight: var(--font-weight-regular);
 }
 
 /* sellers */
@@ -496,7 +477,7 @@
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 16px;
+  gap: var(--space-4);
 }
 
 .sellerTitleBlock {
@@ -508,13 +489,13 @@
 }
 
 .sellerSubline {
-  margin-top: 4px;
+  margin-top: var(--space-1);
   color: var(--muted);
 }
 
 .sellerDescription {
   max-width: 720px;
-  margin-top: 8px;
+  margin-top: var(--space-2);
   color: var(--muted);
 
   display: -webkit-box;
@@ -535,11 +516,11 @@
 }
 
 .sellerMetaGrid {
-  margin-top: 12px;
+  margin-top: var(--space-3);
 
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 8px 18px;
+  gap: var(--space-2) 18px;
 
   border-top: 0;
   border-left: 0;
@@ -554,7 +535,7 @@
   display: flex;
   align-items: baseline;
   justify-content: space-between;
-  gap: 12px;
+  gap: var(--space-3);
   min-width: 0;
 }
 
@@ -562,7 +543,7 @@
   display: flex;
   flex-direction: column;
   gap: 6px;
-  padding-top: 12px;
+  padding-top: var(--space-3);
 }
 
 .sellerActions {
@@ -570,12 +551,12 @@
   gap: 10px;
   flex-wrap: wrap;
 
-  margin-top: 12px;
+  margin-top: var(--space-3);
 }
 
 .actionNotice {
   margin-bottom: 15px;
-  padding: 10px 12px;
+  padding: 10px var(--space-3);
 }
 
 .actionNoticeSuccess {
@@ -585,7 +566,7 @@
 
 .actionNoticeError {
   background: rgba(155, 44, 44, 0.06);
-  color: var(--danger);
+  color: var(--error);
 }
 
 @media (max-width: 1024px) {
@@ -607,12 +588,12 @@
 
 @media (max-width: 768px) {
   .page {
-    margin-top: 12px;
-    margin-bottom: 40px;
+    margin-top: var(--space-3);
+    margin-bottom: var(--space-8);
   }
 
   .layout {
-    gap: 12px;
+    gap: var(--space-3);
   }
 
   .header,
@@ -623,14 +604,12 @@
   }
 
   .header {
-    gap: 12px;
-    margin-bottom: 12px;
+    gap: var(--space-3);
+    margin-bottom: var(--space-3);
   }
 
   .refreshBtn,
   .backBtn,
-  .primaryBtn,
-  .secondaryBtn,
   .dangerBtn {
     min-height: 40px;
   }
@@ -650,7 +629,7 @@
 
   .productCard {
     grid-template-columns: 90px minmax(0, 1fr);
-    gap: 12px;
+    gap: var(--space-3);
     padding: 0 14px 10px 0;
   }
 
@@ -689,8 +668,8 @@
 
   .gallery {
     grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 8px;
-    margin-bottom: 12px;
+    gap: var(--space-2);
+    margin-bottom: var(--space-3);
   }
 
   .detailsActions button,
@@ -704,7 +683,7 @@
   .productCard {
     grid-template-columns: 77px minmax(0, 1fr);
     gap: 10px;
-    padding: 0 12px 10px 0;
+    padding: 0 var(--space-3) 10px 0;
   }
 
   .productPreview {
@@ -732,7 +711,7 @@
 
   .sellerHeader {
     flex-direction: column;
-    gap: 8px;
+    gap: var(--space-2);
   }
 
   .sellerMetaGrid > div {
@@ -754,7 +733,7 @@
 .dictionaryGrid {
   display: grid;
   grid-template-columns: 1fr;
-  gap: 20px;
+  gap: var(--space-5);
 }
 
 .dictionarySection {
@@ -766,8 +745,8 @@
   display: flex;
   align-items: baseline;
   justify-content: space-between;
-  gap: 16px;
-  margin-bottom: 16px;
+  gap: var(--space-4);
+  margin-bottom: var(--space-4);
 }
 
 .dictionaryHeader h2 {
@@ -791,12 +770,12 @@
   width: 100%;
   min-height: 44px;
   padding: 0 15px;
-  border: 0.5px solid var(--black);
+  border: var(--line-width-hairline) solid var(--black);
   background: var(--white);
-  color: #333333;
+  color: var(--black);
   font: inherit;
-  font-size: 14px;
-  font-weight: 400;
+  font-size: var(--font-sm);
+  font-weight: var(--font-weight-regular);
 }
 
 .dictionaryInput:focus {
@@ -813,7 +792,7 @@
   grid-template-columns: minmax(0, 1fr) auto auto;
   gap: 14px;
   align-items: center;
-  padding: 8px 0;
+  padding: var(--space-2) 0;
   border-bottom: 0;
 }
 
@@ -821,7 +800,7 @@
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--space-1);
 }
 
 .dictionaryName span {
@@ -846,7 +825,7 @@
 .financeSummary > div {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--space-1);
 }
 
 .financeSummary span {
@@ -855,13 +834,13 @@
 
 .financeSummary strong {
   color: var(--black);
-  font-weight: 600;
+  font-weight: var(--font-weight-semibold);
 }
 
 .financeFilters {
   display: grid;
   grid-template-columns: 260px minmax(0, 1fr);
-  gap: 12px;
+  gap: var(--space-3);
   align-items: end;
 
   margin-bottom: 18px;
@@ -873,28 +852,10 @@
 }
 
 .financeTable {
-  width: 100%;
-  min-width: 860px;
-  border-collapse: collapse;
-}
-
-.financeTable th,
-.financeTable td {
-  padding: 9px 12px 9px 0;
-  text-align: left;
-  vertical-align: top;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
-}
-
-.financeTable th {
-  color: var(--muted);
-  font-size: var(--font-xs);
-  font-weight: 500;
-}
-
-.financeTable td {
-  color: var(--black);
-  font-size: var(--font-sm);
+  --table-min-width: 860px;
+  --table-cell-padding: 9px 12px 9px 0;
+  --table-font-size: var(--font-sm);
+  --table-heading-size: var(--font-xs);
 }
 
 .financeTable td span {
@@ -907,7 +868,7 @@
 .financeCredit,
 .financeDebit {
   white-space: nowrap;
-  font-weight: 600;
+  font-weight: var(--font-weight-semibold);
 }
 
 .financeCredit {
@@ -915,7 +876,7 @@
 }
 
 .financeDebit {
-  color: var(--danger) !important;
+  color: var(--error) !important;
 }
 
 .dictionaryCategoryForm {
@@ -930,7 +891,7 @@
 .statusFailed,
 .statusIgnored,
 .statusReceived {
-  font-weight: 500;
+  font-weight: var(--font-weight-medium);
 }
 
 .statusProcessed {
@@ -939,7 +900,7 @@
 
 .statusFailed,
 .cdekError {
-  color: var(--danger) !important;
+  color: var(--error) !important;
 }
 
 .statusIgnored,
@@ -959,7 +920,7 @@
 .rawPayload {
   max-width: 520px;
   max-height: 240px;
-  margin-top: 8px;
+  margin-top: var(--space-2);
   padding: 10px;
 
   overflow: auto;
@@ -987,14 +948,14 @@
 .dictionaryActions {
   display: flex;
   justify-content: flex-end;
-  gap: 8px;
+  gap: var(--space-2);
   flex-wrap: wrap;
 }
 
 .dictionaryCheck {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-2);
   color: var(--black);
 }
 
@@ -1014,13 +975,13 @@
   width: 100%;
   min-height: 120px;
   resize: vertical;
-  border: 0.5px solid var(--black);
-  background: #fff;
-  padding: 12px 15px;
+  border: var(--line-width-hairline) solid var(--black);
+  background: var(--white);
+  padding: var(--space-3) 15px;
   font: inherit;
-  color: #333333;
-  font-size: 14px;
-  font-weight: 400;
+  color: var(--black);
+  font-size: var(--font-sm);
+  font-weight: var(--font-weight-regular);
 }
 
 .textarea:focus {

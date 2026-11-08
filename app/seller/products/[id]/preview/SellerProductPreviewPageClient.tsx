@@ -116,6 +116,7 @@ function mapSellerProductToPreviewProduct(product: SellerProduct): Product {
     title: product.title || "Название товара",
     description: product.description || "",
     composition: product.composition || "",
+    details: product.details,
     article: product.article || undefined,
     brand: product.brand || "",
     brandSlug: null,

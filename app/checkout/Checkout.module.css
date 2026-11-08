@@ -1,11 +1,11 @@
 .page {
   width: 100%;
-  margin: 24px 0 48px;
+  margin: var(--space-6) 0 var(--space-9);
 }
 
 .empty {
-  padding: 24px 0;
-  border-bottom: 1px solid var(--line);
+  padding: var(--space-6) 0;
+  border-bottom: var(--line-width-default) solid var(--line);
   color: var(--muted);
   font-size: var(--font-md);
 }
@@ -15,7 +15,7 @@
   margin: 0 auto;
   display: grid;
   grid-template-columns: minmax(0, 680px) minmax(320px, 360px);
-  gap: 40px;
+  gap: var(--space-8);
   align-items: start;
   justify-content: center;
 }
@@ -27,8 +27,8 @@
 }
 
 .section {
-  padding: 24px 0;
-  border-bottom: 1px solid var(--line);
+  padding: var(--space-6) 0;
+  border-bottom: var(--line-width-default) solid var(--line);
   background: var(--white);
 }
 
@@ -40,14 +40,14 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 16px;
+  gap: var(--space-4);
   margin-bottom: 18px;
 }
 
 .sectionHeaderMain {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: var(--space-3);
 }
 
 .stepBadge {
@@ -59,23 +59,23 @@
   width: 24px;
   height: 24px;
 
-  border: 1px solid var(--black);
+  border: var(--line-width-default) solid var(--black);
 
   color: var(--black);
-  font-size: 12px;
-  font-weight: 500;
+  font-size: var(--font-helper);
+  font-weight: var(--font-weight-medium);
 }
 
 .sectionTitle {
   color: var(--black);
   font-size: var(--font-xl);
   line-height: 1.2;
-  font-weight: 500;
+  font-weight: var(--font-weight-medium);
   letter-spacing: -0.02em;
 }
 
 .sectionLead {
-  margin-top: 4px;
+  margin-top: var(--space-1);
   color: var(--muted);
   font-size: var(--font-sm);
   line-height: 1.45;
@@ -95,7 +95,7 @@
 .sectionBody {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: var(--space-4);
 }
 
 .sectionDisabled {
@@ -128,13 +128,13 @@
 .formGrid {
   display: grid;
   grid-template-columns: 1fr;
-  gap: 16px;
+  gap: var(--space-4);
 }
 
 .contactGrid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
+  gap: var(--space-3);
 }
 
 .contactGrid > :last-child:nth-child(odd) {
@@ -145,11 +145,11 @@
   position: relative;
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
-  gap: 12px;
+  gap: var(--space-3);
   align-items: start;
   min-height: 52px;
-  padding: 12px 14px;
-  border: 1px solid var(--line);
+  padding: var(--space-3) 14px;
+  border: var(--line-width-default) solid var(--line);
   background: var(--white);
   cursor: pointer;
 }
@@ -168,7 +168,7 @@
   width: 16px;
   height: 16px;
   margin-top: 2px;
-  border: 1px solid var(--line);
+  border: var(--line-width-default) solid var(--line);
   background: var(--white);
 }
 
@@ -188,7 +188,7 @@
 .checkboxTitle {
   color: var(--black);
   font-size: var(--font-sm);
-  font-weight: 500;
+  font-weight: var(--font-weight-medium);
   line-height: 1.35;
 }
 
@@ -202,14 +202,14 @@
 .field {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--space-2);
 }
 
 .label {
   color: var(--black);
-  font-size: 12px;
+  font-size: var(--font-helper);
   line-height: 1.25;
-  font-weight: 300;
+  font-weight: var(--font-weight-regular);
   letter-spacing: -0.01em;
 }
 
@@ -218,7 +218,7 @@
   height: 44px;
   padding: 0 15px;
 
-  border: 0.5px solid var(--black);
+  border: var(--line-width-hairline) solid var(--black);
   background: var(--white);
   color: var(--black);
 
@@ -236,10 +236,11 @@
 }
 
 .deliveryHint {
-  margin-top: 12px;
+  margin-top: var(--space-3);
   color: var(--muted);
-  font-size: var(--font-sm);
-  line-height: 1.5;
+  font-size: var(--font-helper);
+  line-height: var(--line-height-helper);
+  font-weight: var(--font-weight-regular);
 }
 
 .confirmBtn,
@@ -247,12 +248,12 @@
   min-height: 46px;
   padding: 0 18px;
 
-  border: 1px solid var(--black);
+  border: var(--line-width-default) solid var(--black);
   background: var(--black);
   color: var(--white);
 
   font-size: var(--font-sm);
-  font-weight: 500;
+  font-weight: var(--font-weight-medium);
 
   cursor: pointer;
 }
@@ -271,13 +272,13 @@
 .paymentMethods {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
+  gap: var(--space-3);
 }
 
 .paymentOption {
   min-height: 66px;
   padding: 13px 14px;
-  border: 1px solid var(--line);
+  border: var(--line-width-default) solid var(--line);
   background: var(--white);
   color: var(--black);
   display: flex;
@@ -308,7 +309,7 @@
   display: block;
   color: var(--black);
   font-size: var(--font-sm);
-  font-weight: 500;
+  font-weight: var(--font-weight-medium);
   line-height: 1.35;
 }
 
@@ -322,7 +323,7 @@
 
 .error {
   padding: 14px 0;
-  color: var(--danger);
+  color: var(--error);
   font-size: var(--font-md);
 }
 
@@ -333,7 +334,7 @@
   top: calc(var(--site-header-height) + 24px);
 
   height: fit-content;
-  padding-top: 20px;
+  padding-top: var(--space-5);
 }
 
 
@@ -348,7 +349,7 @@
 .summaryItem {
   display: grid;
   grid-template-columns: 52px minmax(0, 1fr) auto;
-  gap: 12px;
+  gap: var(--space-3);
   align-items: center;
 }
 
@@ -364,16 +365,16 @@
 }
 
 .summaryItemTitle {
-  color: #333333;
+  color: var(--black);
   font-size: var(--font-sm);
-  font-weight: 400;
+  font-weight: var(--font-weight-regular);
   line-height: 1.35;
 }
 
 .summaryItemMeta {
   display: flex;
   flex-wrap: wrap;
-  gap: 4px 10px;
+  gap: var(--space-1) 10px;
   margin-top: 3px;
 
   color: var(--muted);
@@ -383,45 +384,45 @@
 .summaryItemPrice {
   color: var(--black);
   font-size: var(--font-sm);
-  font-weight: 300;
+  font-weight: var(--font-weight-regular);
   white-space: nowrap;
 }
 
 .summaryBlock {
-  margin-bottom: 20px;
+  margin-bottom: var(--space-5);
 }
 
 .summaryRow,
 .summaryTotal {
   display: flex;
   justify-content: space-between;
-  gap: 16px;
+  gap: var(--space-4);
 
   padding: 10px 0;
 
   color: var(--black);
-  font-size: 14px;
-  font-weight: 400;
+  font-size: var(--font-sm);
+  font-weight: var(--font-weight-regular);
 }
 
 .summaryRow {
-  font-weight: 300;
+  font-weight: var(--font-weight-regular);
 }
 
 .summaryTotal {
   flex-wrap: wrap;
-  margin-bottom: 20px;
+  margin-bottom: var(--space-5);
 
   font-size: var(--font-xl);
-  font-weight: 500;
+  font-weight: var(--font-weight-medium);
 }
 
 .totalPending {
   flex-basis: 100%;
   color: var(--muted);
-  font-size: 11px;
+  font-size: var(--font-label-compact);
   line-height: 1.35;
-  font-weight: 400;
+  font-weight: var(--font-weight-regular);
 }
 
 @media (max-width: 1024px) {
@@ -436,15 +437,15 @@
 
 @media (max-width: 768px) {
   .page {
-    margin-top: 20px;
+    margin-top: var(--space-5);
   }
 
   .section {
-    padding: 20px 0;
+    padding: var(--space-5) 0;
   }
 
   .summary {
-    padding-top: 16px;
+    padding-top: var(--space-4);
   }
 
 
@@ -457,7 +458,7 @@
 .inlineFields {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
-  gap: 12px;
+  gap: var(--space-3);
   align-items: end;
 }
 
@@ -471,19 +472,19 @@
   position: relative;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--space-2);
 }
 
 .cityOptions {
-  border: 1px solid var(--line);
+  border: var(--line-width-default) solid var(--line);
   background: var(--white);
 }
 
 .cityOption {
   width: 100%;
-  padding: 12px 14px;
+  padding: var(--space-3) 14px;
   border: 0;
-  border-bottom: 1px solid var(--line);
+  border-bottom: var(--line-width-default) solid var(--line);
   background: var(--white);
   color: var(--black);
   text-align: left;
@@ -503,7 +504,7 @@
 .addressSuggest {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--space-2);
 }
 
 .checkRow {
@@ -523,12 +524,12 @@
 .threeColumns {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 12px;
+  gap: var(--space-3);
 }
 
 .deliveryInfoBlock {
-  padding: 16px;
-  border: 1px solid var(--line);
+  padding: var(--space-4);
+  border: var(--line-width-default) solid var(--line);
   background: var(--soft);
   color: var(--black);
   font-size: var(--font-sm);
@@ -556,8 +557,8 @@
 }
 
 .selectedPickupBox {
-  padding: 16px;
-  border: 1px solid var(--line);
+  padding: var(--space-4);
+  border: var(--line-width-default) solid var(--line);
   background: var(--white);
 }
 
@@ -565,7 +566,7 @@
   margin-bottom: 6px;
   color: var(--black);
   font-size: var(--font-sm);
-  font-weight: 500;
+  font-weight: var(--font-weight-medium);
 }
 
 .selectedPickupAddress {
@@ -575,7 +576,7 @@
 }
 
 .selectedPickupMeta {
-  margin-top: 4px;
+  margin-top: var(--space-1);
   color: var(--muted);
   font-size: var(--font-sm);
 }
@@ -583,11 +584,11 @@
 .summaryActions {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: var(--space-3);
 }
 
 .summaryActions .summaryTotal {
-  margin-bottom: 8px;
+  margin-bottom: var(--space-2);
 }
 
 .finalSubmitButton {
@@ -595,7 +596,7 @@
 }
 
 .disclaimer {
-  margin-top: 12px;
+  margin-top: var(--space-3);
   max-width: 620px;
   color: var(--muted);
   font-size: var(--font-xs);
@@ -608,7 +609,7 @@
   }
 
   .layout {
-    gap: 24px;
+    gap: var(--space-6);
   }
 
   .summary {
@@ -616,26 +617,26 @@
   }
 
   .summaryItems {
-    gap: 16px;
-    margin-bottom: 20px;
+    gap: var(--space-4);
+    margin-bottom: var(--space-5);
   }
 
   .summaryItem {
-    gap: 12px;
+    gap: var(--space-3);
   }
 
   .summaryItemPrice {
-    font-weight: 500;
+    font-weight: var(--font-weight-medium);
   }
 
   .summaryBlock {
-    margin-bottom: 12px;
-    border-top: 1px solid var(--line);
+    margin-bottom: var(--space-3);
+    border-top: var(--line-width-default) solid var(--line);
   }
 
   .summaryRow {
     align-items: flex-start;
-    font-size: 13px;
+    font-size: var(--font-xs);
   }
 
   .summaryRow > span:last-child {
@@ -649,26 +650,26 @@
     bottom: 0;
     left: 0;
     gap: 10px;
-    padding: 12px 16px calc(12px + env(safe-area-inset-bottom, 0px));
-    border-top: 1px solid var(--line);
+    padding: var(--space-3) var(--space-4) calc(var(--space-3) + env(safe-area-inset-bottom, 0px));
+    border-top: var(--line-width-default) solid var(--line);
     background: var(--white);
   }
 
   .summaryActions .summaryTotal {
     align-items: center;
-    gap: 4px 16px;
+    gap: var(--space-1) var(--space-4);
     margin: 0;
     padding: 0;
-    font-size: 16px;
+    font-size: var(--font-md);
   }
 
   .summaryTotal > span:first-child {
-    font-size: 13px;
-    font-weight: 400;
+    font-size: var(--font-xs);
+    font-weight: var(--font-weight-regular);
   }
 
   .totalPending {
-    font-size: 11px;
+    font-size: var(--font-label-compact);
   }
 
   .finalSubmitButton {
@@ -676,6 +677,6 @@
   }
 
   .disclaimer {
-    font-size: 11px;
+    font-size: var(--font-label-compact);
   }
 }

@@ -3,6 +3,7 @@
 import { Loader } from "../ui/Loader";
 import { useEffect, useId, useRef, useState, type FormEvent } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { AuthRequestError, completeEmailLogin, loginWithPassword, startEmailLogin } from "../../lib/authRequests";
 import { ensureGuestCartId, getGuestCartId } from "../../lib/auth";
 import { completeAuth } from "../../lib/completeAuth";
@@ -12,22 +13,25 @@ import { validateAuthFields } from "../../lib/authValidation";
 import { useFieldValidation } from "../../lib/useFieldValidation";
 import { scrollToFirstValidationError } from "../../lib/formValidation";
 import { Button } from "../ui/Button";
+import { ActionPrompt } from "../ui/ActionPrompt";
 import { Icon } from "../ui/Icon";
 import { TextInput } from "../ui/TextInput";
 import { OneTimeCodeInput } from "../ui/OneTimeCodeInput";
 import styles from "./AuthForm.module.css";
 
 type Step = "email" | "code" | "password";
+export const AUTH_ENTRY_TITLE = "Войти или зарегистрироваться";
 // Keep the resend gate when switching views or reopening the shared form.
 const resendDeadlines = new Map<string, number>();
 const retryDeadlines = new Map<string, number>();
 
-export function AuthForm({ next = "/", onAuthenticated, onBack, onBusyChange, disabled = false }: {
+export function AuthForm({ next = "/", onAuthenticated, onBack, onBusyChange, disabled = false, showEntryTitle = true }: {
   next?: string;
   onAuthenticated: () => void | Promise<void>;
   onBack?: () => void;
   onBusyChange?: (busy: boolean) => void;
   disabled?: boolean;
+  showEntryTitle?: boolean;
 }) {
   const form = useRef<HTMLFormElement>(null);
   const lock = useRef(false);
@@ -144,21 +148,27 @@ export function AuthForm({ next = "/", onAuthenticated, onBack, onBusyChange, di
     try { await startYandexAuth(safeReturnPath(next)); }
     catch (failure) { showFailure(failure); finish(); }
   }
-  const title = step === "code" ? "Введите код из письма" : step === "password" ? "Войти с паролем" : "Введите электронную почту";
+  const title = step === "code" ? "Введите код из письма" : step === "password" ? "Войти по паролю" : AUTH_ENTRY_TITLE;
+  const yandexButton = <Button type="button" variant="secondary" size="large" className={styles.method} startIcon={<Image src="/logos/yandex-id-icon.svg" width={20} height={20} alt="" />} aria-label="Войти через Яндекс ID" disabled={blocked} onClick={() => void yandex()}>
+    Войти с Яндекс ID
+  </Button>;
+  const modeToggle = <Button type="button" variant={step === "password" ? "ghost" : "utility"} size={step === "password" ? "default" : "compact"} className={styles.modeToggle} reserveLabelSpace={false} disabled={blocked} onClick={() => reset(step === "password" ? "email" : "password")}>
+    {step === "password" ? "Войти по коду" : "Войти по паролю"}
+  </Button>;
 
   return <form ref={form} className={styles.form} noValidate autoComplete="on" aria-busy={busy || undefined}
-    aria-labelledby={`${id}-title`} onSubmit={event => {
+    aria-labelledby={step !== "email" || showEntryTitle ? `${id}-title` : undefined}
+    aria-label={step === "email" && !showEntryTitle ? AUTH_ENTRY_TITLE : undefined} onSubmit={event => {
       event.preventDefault();
       if (step === "email") void sendCode(); else void authenticate();
     }}>
     {(onBack || step !== "email") && <button type="button" className={styles.back} onClick={back} disabled={blocked}>
       <Icon name="chevron-left" size={20} strokeWidth={1} />Назад
     </button>}
-    <div className={styles.intro}>
-      <h2 id={`${id}-title`}>{title}</h2>
-      <p>{step === "code" ? <>Чтобы подтвердить <span>{identity}</span></> : step === "password"
-        ? "Используйте пароль своего аккаунта" : "Отправим письмо с кодом для входа или создания аккаунта"}</p>
-    </div>
+    {(step !== "email" || showEntryTitle) && <div className={styles.intro}>
+      <h2 id={`${id}-title`} className={step === "email" ? `${styles.entryHeading} textTitle` : undefined}>{title}</h2>
+      {step !== "email" && <p>{step === "code" ? <>Чтобы подтвердить <span>{identity}</span></> : "Используйте пароль своего аккаунта"}</p>}
+    </div>}
     {step === "code" ? <>
       <OneTimeCodeInput value={code} disabled={blocked} error={error} enterKeyHint="done" onChange={value => {
         if (lock.current) return;
@@ -172,34 +182,36 @@ export function AuthForm({ next = "/", onAuthenticated, onBack, onBusyChange, di
         </button>
       </div>
       <button type="submit" className="visuallyHidden" tabIndex={-1} disabled={blocked || code.length !== 6}>Подтвердить код</button>
-    </> : <>
-      <TextInput label="Электронная почта" id={`${id}-email`} name="email" type="email" autoComplete="email" enterKeyHint="next" maxLength={254}
-        value={email} error={emailError} disabled={blocked} required onBlur={() => validation.touch("email")} onChange={event => {
+    </> : <div className={styles.credentials}>
+      <TextInput label="Введите электронную почту" id={`${id}-email`} name="email" type="email" autoComplete="email" enterKeyHint="next" maxLength={254}
+        value={email} error={emailError} disabled={blocked} required onChange={event => {
           setEmail(event.target.value); validation.changed("email"); setError(null); setNow(Date.now());
         }} />
-      {step === "password" && <div className={styles.password}>
+      {step === "password" &&
         <TextInput label="Пароль" name="password" type={passwordVisible ? "text" : "password"} autoComplete="current-password" autoCapitalize="none" autoCorrect="off" spellCheck={false} enterKeyHint="done"
-          value={password} error={passwordError} disabled={blocked} required className={styles.passwordInput}
-          onBlur={() => validation.touch("password")}
-          onChange={event => { setPassword(event.target.value); validation.changed("password"); setError(null); }} />
-        <button type="button" className={styles.reveal} aria-label={passwordVisible ? "Скрыть пароль" : "Показать пароль"}
-          disabled={blocked} onClick={() => setPasswordVisible(!passwordVisible)}>
-          <Icon name={passwordVisible ? "eye-off" : "eye"} size={18} strokeWidth={1} />
-        </button>
-      </div>}
+          value={password} error={passwordError} disabled={blocked} required
+          trailing={<Button type="button" variant="ghost" iconOnly aria-label={passwordVisible ? "Скрыть пароль" : "Показать пароль"}
+            disabled={blocked} onClick={() => setPasswordVisible(!passwordVisible)}>
+            <Icon name={passwordVisible ? "eye-off" : "eye"} size={20} strokeWidth={1} />
+          </Button>}
+          onChange={event => { setPassword(event.target.value); validation.changed("password"); setError(null); }} />}
       {error && <p className={styles.error} role="alert">{error}</p>}
       {step === "password" && <Link className={styles.forgot} href={`/auth/password/reset?next=${encodeURIComponent(safeReturnPath(next))}`}
         aria-disabled={blocked || undefined} onClick={event => { if (blocked) event.preventDefault(); }}>Забыли пароль?</Link>}
-      <Button type="submit" variant="primary" className={styles.primary} loading={busy} disabled={disabled || !identity || (step === "password" ? !password : retrySeconds > 0)}>
-        {step === "password" ? "Войти" : retrySeconds > 0 ? `Повторить через ${retrySeconds} с` : seconds > 0 ? "Ввести код" : "Получить код"}
-      </Button>
-    </>}
-    <div className={styles.alternatives}>
-      <button type="button" className={styles.textAction} disabled={blocked} onClick={() => reset(step === "password" ? "email" : "password")}>
-        {step === "password" ? "Войти по коду" : "Войти с паролем"}
-      </button>
-      <button type="button" className={styles.textAction} disabled={blocked} onClick={() => void yandex()}>Войти через Яндекс</button>
+      <div className={styles.submitActions}>
+        <Button type="submit" variant="primary" size="large" className={styles.primary} loading={busy} disabled={disabled || !identity || (step === "password" ? !password : retrySeconds > 0)}>
+          {step === "password" ? "Войти" : retrySeconds > 0 ? `Повторить через ${retrySeconds} с` : seconds > 0 ? "Ввести код" : "Получить код"}
+        </Button>
+        {yandexButton}
+      </div>
+    </div>}
+    {step === "code" && yandexButton}
+    <div className={styles.footer}>
+      {step === "email" && <div className={styles.legal}>
+        <Link href="/legal/terms" target="_blank">Условия использования</Link>
+        <Link href="/legal/privacy" target="_blank">Политика конфиденциальности</Link>
+      </div>}
+      {step === "password" ? <ActionPrompt className={styles.modePrompt} hint="Без пароля?">{modeToggle}</ActionPrompt> : modeToggle}
     </div>
-    {step === "email" && <p className={styles.legal}>Продолжая, вы принимаете <Link href="/legal/terms" target="_blank">условия использования</Link> и <Link href="/legal/privacy" target="_blank">политику конфиденциальности</Link></p>}
   </form>;
 }

@@ -8,6 +8,13 @@ const { chromium } = require(process.env.PLAYWRIGHT_PATH || "playwright");
 const origin = "http://localhost:13053";
 const api = "http://localhost:19653";
 const calls = [];
+const homeOnly = process.env.RCM_SELLER_HOME_ONLY === "1";
+let productMode = "ready";
+const previewProducts = Array.from({ length: 12 }, (_, index) => ({
+  id: 200 + index, title: index === 0 ? "Футболка свободного кроя из плотного хлопка" : `Футболка ${index + 1}`,
+  status: "ACTIVE", article: String(100200 + index), minPrice: 1500 + index * 100, totalStock: 5, variantsCount: 2,
+  coverImage: index === 0 ? null : "data:image/svg+xml;base64," + Buffer.from(`<svg xmlns="http://www.w3.org/2000/svg" width="180" height="240"><rect width="180" height="240" fill="#f5f3f0"/><path d="M58 38L35 48 16 82 43 98 50 83 50 205 130 205 130 83 137 98 164 82 145 48 122 38Q90 64 58 38Z" fill="${["#d4c3ad", "#333333", "#aeb7a8"][index % 3]}"/></svg>`).toString("base64"),
+}));
 const item = { productId: 1, variantId: 1, productTitle: "Тестовый товар", brandName: "Бренд", quantity: 1, price: 500, lineTotal: 500, imageUrl: null, size: "M", color: "Чёрный" };
 const order = { id: 10, orderGroupId: "test", status: "PROCESSING", paymentStatus: "PAID", deliveryStatus: "READY_FOR_SHIPMENT", createdAt: "2026-09-19T10:00:00Z", totalAmount: 500, subtotalAmount: 500, deliveryAmount: 0, discountAmount: 0, currency: "RUB", recipientName: "Тест", items: [item], firstProductTitle: item.productTitle, itemsCount: 1, delivery: null };
 order.productTitles = [item.productTitle, "Второй товар", "Третий товар"];
@@ -34,7 +41,11 @@ const server = http.createServer(async (req, res) => {
   if (url.pathname === "/api/auth/session") data = { id: 70, username: "seller", role: "SELLER" };
   else if (url.pathname === "/api/seller/brands") data = [{ id: 1, name: "Brand", description: "Описание магазина", wordmarkUrl: "/icons/like.svg" }];
   else if (url.pathname === "/api/seller/onboarding-status") data = { applicationCompleted: true, brandCompleted: true, legalCompleted: true, agreementAccepted: true, progress: 100, completedSteps: 4, totalSteps: 4 };
-  else if (url.pathname === "/api/seller/products/list") data = { content: [], totalElements: 0, totalPages: 0, number: 0 };
+  else if (url.pathname === "/api/seller/products/list") {
+    if (homeOnly && productMode === "error") { res.statusCode = 503; return res.end(JSON.stringify({ message: "Unavailable" })); }
+    const content = homeOnly && productMode === "ready" ? [{ ...previewProducts[0], id: 999, status: "DRAFT" }, ...previewProducts] : [];
+    data = { content, totalElements: content.length, totalPages: content.length ? 1 : 0, number: 0 };
+  }
   else if (url.pathname === "/api/seller/orders/list") data = { content: orders, totalElements: orders.length, totalPages: 1, number: 0 };
   else if (url.pathname === "/api/seller/orders/10") data = order;
   else if (url.pathname === "/api/seller/returns/list") data = { content: [request], totalElements: 1, totalPages: 1, number: 0 };
@@ -49,6 +60,7 @@ const server = http.createServer(async (req, res) => {
   else if (url.pathname === "/api/seller/finance/payouts" || url.pathname === "/api/seller/finance/operations") data = { content: [], totalElements: 0, totalPages: 0, number: 0 };
   else if (url.pathname === "/api/seller/dashboard-summary") data = { activeProducts: 0, attentionProducts: 0, totalProducts: 0, readyOrders: 0, activeOrders: 0, totalOrders: 0, estimatedBalance: 0, salesAmount: 0, commissionAmount: 0, availablePayout: 0, processingPayout: 0, inPayoutAmount: 0, failedPayouts: 0, telegramLinked: false, supportTelegramUrl: null, recentEvents: [] };
   else if (url.pathname === "/api/cart") data = { items: [] };
+  if (homeOnly && url.pathname === "/api/seller/dashboard-summary") data = { ...data, activeProducts: productMode === "ready" ? 12 : 0, totalProducts: productMode === "ready" ? 13 : 0 };
   res.end(JSON.stringify(data));
 });
 
@@ -77,9 +89,9 @@ async function main() {
     const errors = [];
     page.on("pageerror", error => errors.push(error.message));
     fs.mkdirSync(path.resolve("build/seller-width-screenshots"), { recursive: true });
-    for (const width of [1920, 1280, 768, 390, 320]) {
+    for (const width of homeOnly ? [1280, 390, 320] : [1920, 1280, 768, 390, 320]) {
       await page.setViewportSize({ width, height: 1000 });
-      for (const section of ["home", "products", "orders", "returns", "finance", "store", "legal"]) {
+      for (const section of homeOnly ? ["home"] : ["home", "products", "orders", "returns", "finance", "store", "legal"]) {
         await page.goto(origin + "/seller/" + section);
         await page.waitForLoadState("networkidle");
         const geometry = await page.locator("[data-seller-shell]").evaluate(shell => {
@@ -97,6 +109,30 @@ async function main() {
           assert.ok(Math.abs(box.left - geometry.shell.left) < 1, section + " left edge at " + width);
         }
         assert.equal(geometry.overflow, false, section + " overflow at " + width);
+        if (homeOnly) {
+          const preview = page.locator('[data-seller-product-preview]');
+          const rail = preview.getByRole('list', { name: 'Активные товары продавца' });
+          await rail.waitFor();
+          assert.equal(await rail.getByRole('link').count(), 12, 'Only active products appear');
+          assert.equal(await rail.locator('[href="/seller/products/999/edit"]').count(), 0, 'Draft products stay out of the preview');
+          assert.equal(await preview.getByRole('link', { name: 'Все активные' }).getAttribute('href'), '/seller/products?status=ACTIVE');
+          const storeBox = await page.getByRole('region', { name: 'Магазин', exact: true }).boundingBox();
+          const productsBox = await preview.boundingBox();
+          const workBox = await page.locator('[data-seller-work]').boundingBox();
+          if (width > 900) {
+            assert.ok(productsBox.x >= storeBox.x + storeBox.width, 'Products are right of the store');
+            assert.ok(Math.abs(productsBox.y - storeBox.y) < 2, 'Store and products start at the same height');
+          } else assert.ok(productsBox.y >= storeBox.y + storeBox.height, 'Mobile preview follows the store');
+          assert.ok(workBox.y >= productsBox.y + productsBox.height, 'Actions and tasks follow the preview');
+          assert.ok(await rail.evaluate(element => element.scrollWidth > element.clientWidth), 'Products overflow inside the row');
+          if (width > 600) await preview.getByRole('button', { name: 'Следующие товары', exact: true }).click();
+          else { await rail.hover(); await page.mouse.wheel(280, 0); }
+          await page.waitForFunction(() => document.querySelector('[aria-label="Активные товары продавца"]').scrollLeft > 0);
+          assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
+          await rail.getByRole('link').last().focus();
+          assert.ok(await rail.evaluate(element => element.scrollLeft > 0), 'Keyboard focus reveals off-screen cards');
+          await rail.evaluate(element => { element.scrollLeft = 0; });
+        }
         if (section === "store") {
           const form = await page.locator("#seller-brand-profile").boundingBox();
           assert.ok(Math.abs(form.x - geometry.shell.left) < 1, "Store form left");
@@ -127,8 +163,19 @@ async function main() {
         if (width === 1920 || width === 1280 || width === 390 || (section === "home" && width === 320)) await page.screenshot({ path: "build/seller-width-screenshots/" + section + "-" + width + ".png" });
       }
     }
+    if (homeOnly) {
+      const preview = page.locator('[data-seller-product-preview]');
+      productMode = 'error'; await page.reload();
+      await preview.getByText('Не удалось загрузить товары', { exact: true }).waitFor();
+      assert.equal(await preview.getByText('Активных товаров пока нет', { exact: true }).count(), 0);
+      productMode = 'ready'; await preview.getByRole('button', { name: 'Повторить', exact: true }).click();
+      await preview.getByRole('list', { name: 'Активные товары продавца' }).waitFor();
+      productMode = 'empty'; await page.reload();
+      await preview.getByText('Активных товаров пока нет', { exact: true }).waitFor();
+      assert.equal(await preview.getByRole('list').count(), 0);
+    }
     assert.deepEqual(errors, []);
-    console.log("PASS: seven seller sections share header/shell/content edges with a 1200px maximum at 1920/1280/768/390/320; no overflow; store main/preview fit the shell and its dirty save bar shares the full width; mock API only");
+    console.log(homeOnly ? 'PASS: store/products top row, active-only cards, scrolling/arrows/focus, 1280/390/320 without page overflow, error/retry and confirmed empty; fixture only' : "PASS: seven seller sections share header/shell/content edges with a 1200px maximum at 1920/1280/768/390/320; no overflow; store main/preview fit the shell and its dirty save bar shares the full width; mock API only");
   } catch (error) { console.error(logs.slice(-2500)); throw error; }
   finally { if (browser) await browser.close(); child.kill(); server.close(); }
 }

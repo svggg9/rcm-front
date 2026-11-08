@@ -1,11 +1,11 @@
 .alert, .alertSuccess, .alertWarning, .alertDanger {
-  padding: 16px; border: 0; color: var(--black); font-size: 15px; line-height: 21px; font-weight: 400;
+  padding: 14px var(--space-4); border: var(--line-width-default) solid; color: var(--black); font-size: var(--banner-body-size); line-height: var(--banner-line-height); font-weight: var(--font-weight-regular);
 }
-.alert { background: var(--feedback-info-bg); }
-.alertSuccess { background: var(--feedback-success-bg); }
-.alertWarning { background: var(--feedback-warning-bg); }
-.alertDanger { background: var(--white); border: 1px solid var(--line); font-size: var(--feedback-body-size); line-height: var(--feedback-line-height); }
-.alert > svg { color: var(--gold-deep); }
+.alert { color: var(--feedback-info-color, var(--gold-deep)); background: var(--feedback-info-bg); border-color: var(--feedback-info-border); }
+.alertSuccess { color: var(--state-text-color, var(--success)); background: var(--feedback-success-bg); border-color: var(--feedback-success-border); }
+.alertWarning { color: var(--state-text-color, var(--warning)); background: var(--feedback-warning-bg); border-color: var(--feedback-warning-border); }
+.alertDanger { color: var(--state-text-color, var(--error)); background: var(--feedback-danger-bg); border-color: var(--feedback-danger-border); }
+.alert > svg { color: var(--feedback-info-color, var(--gold-deep)); }
 .alertSuccess > svg { color: var(--success); }
 .alertWarning > svg { color: var(--warning); }
-.alertDanger > svg { color: var(--danger); }
+.alertDanger > svg { color: var(--error); }

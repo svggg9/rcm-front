@@ -215,7 +215,7 @@ function BrandImages({ brandId, embedded = false, onBusyChange }: Props) {
               onClick={() => void move(index, 1)} aria-label={`Переместить фотографию ${index + 1} вправо`}>
               <DesignSystemIcon name="chevron-right" role="utility" />
             </Button>
-            <ConfirmActionButton variant="utility" className={`${styles.iconButton} ${styles.deleteButton}`} reserveLabelSpace={false}
+            <ConfirmActionButton variant="utility" confirmVariant="danger" className={`${styles.iconButton} ${styles.deleteButton}`} reserveLabelSpace={false}
               disabled={disabled} confirmTitle="Удалить фотографию?"
               confirmText="Фотография исчезнет со страницы бренда"
               onConfirm={() => remove(image)} aria-label={`Удалить фотографию ${index + 1}`}>

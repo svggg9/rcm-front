@@ -1,3 +1,5 @@
+import type { ProductDetails } from "../../../lib/productDetails";
+
 export type Variant = {
   id: number;
   colorwayId?: number | null;
@@ -27,6 +29,7 @@ export type Product = {
   title: string;
   description: string;
   composition?: string;
+  details?: ProductDetails | null;
   article?: string;
   brand: string;
   brandSlug?: string | null;

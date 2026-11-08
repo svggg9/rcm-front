@@ -1,11 +1,12 @@
 "use client";
-import { useId, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import Image from "next/image";
 import { ConfirmActionButton } from "../../../../../components/ui/ConfirmActionButton";
 import { Button } from "../../../../../components/ui/Button";
 import { Banner } from "../../../../../components/ui/Banner";
 import { DesignSystemIcon } from "../../../../../components/ui/DesignSystemIcon";
 import { FormSelect } from "../../../../../components/ui/FormSelect";
+import { InfoHint } from "../../../../../components/ui/InfoHint";
 import type { ProductImageItem } from "../types";
 import styles from "./ProductPhotoEditor.module.css";
 import { hasLowResolutionPhoto } from "../../../../../lib/productPhotos";
@@ -42,12 +43,27 @@ export function ProductPhotoEditor({ images, colorways = [], shadeGroups, select
   const [uploadColorwayId, setUploadColorwayId] = useState<number | null>(null);
   const [dragActive, setDragActive] = useState(false);
   const [selectedId, setSelectedId] = useState<number | null>(null);
+  const thumbnailsRef = useRef<HTMLDivElement>(null);
+  const touchStart = useRef<{ x: number; y: number } | null>(null);
   const selected = images.find(image => image.id === selectedId) ?? images[0];
   const selectedIndex = selected ? images.indexOf(selected) : -1;
   const locked = mediaDisabled || uploading || reordering;
   const lowResolutionCount = images.filter(hasLowResolutionPhoto).length;
   const invalidCount = images.length < 3 || images.length > 10;
   const invalid = invalidImages && invalidCount;
+
+  useEffect(() => {
+    const strip = thumbnailsRef.current;
+    const item = strip?.querySelector<HTMLElement>('[data-selected="true"]');
+    if (!strip || !item) return;
+    if (item.offsetLeft < strip.scrollLeft) strip.scrollLeft = item.offsetLeft;
+    else if (item.offsetLeft + item.offsetWidth > strip.scrollLeft + strip.clientWidth)
+      strip.scrollLeft = item.offsetLeft + item.offsetWidth - strip.clientWidth;
+  }, [selected?.id, selectedIndex]);
+
+  function browse(direction: number) {
+    if (images.length > 1) setSelectedId(images[(selectedIndex + direction + images.length) % images.length].id);
+  }
 
   function uploadFiles(files: File[]) {
     setDragActive(false);
@@ -62,8 +78,21 @@ export function ProductPhotoEditor({ images, colorways = [], shadeGroups, select
     <h2 className={styles.title}>Фото товара</h2>
     {shadeGroups && shadeGroups.length > 1 && <FormSelect label="Добавить фото к оттенку" value={selectedGroupKey ?? shadeGroups[0].key} disabled={locked}
       options={shadeGroups.map(group => ({ value: group.key, label: group.color }))} onChange={value => { if (value) onGroupChange?.(value); }} />}
-    <p className={styles.hint}>Главное фото — товар целиком на белом фоне</p>
     <div className={`${styles.media} ${dragActive ? styles.dragActive : ""} ${invalid ? styles.invalid : ""}`}
+      role="region" aria-label="Просмотр фотографий товара" tabIndex={images.length > 1 ? 0 : undefined}
+      onKeyDown={event => {
+        if (event.target !== event.currentTarget) return;
+        if (event.key === "ArrowLeft" || event.key === "ArrowRight") { event.preventDefault(); browse(event.key === "ArrowLeft" ? -1 : 1); }
+      }}
+      onTouchStart={event => { const touch = event.touches[0]; touchStart.current = event.touches.length === 1 ? { x: touch.clientX, y: touch.clientY } : null; }}
+      onTouchCancel={() => { touchStart.current = null; }}
+      onTouchEnd={event => {
+        const start = touchStart.current; touchStart.current = null;
+        const touch = event.changedTouches[0];
+        if (!start || !touch) return;
+        const dx = touch.clientX - start.x, dy = touch.clientY - start.y;
+        if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy) * 1.3) browse(dx > 0 ? -1 : 1);
+      }}
       data-validation-error={invalid || undefined}
       onDragOver={event => { event.preventDefault(); if (!locked && event.dataTransfer.types.includes("Files")) setDragActive(true); }}
       onDragLeave={() => setDragActive(false)}
@@ -76,33 +105,39 @@ export function ProductPhotoEditor({ images, colorways = [], shadeGroups, select
           <span className={styles.emptyTitle}>Добавьте фотографии товара</span>
           <span>Перетащите сюда или выберите файлы</span>
         </button>}
-      {selectedIndex === 0 && <span className={styles.mainBadge}>Главное фото</span>}
+      {images.length > 1 && <>
+        <Button variant="ghost" className={`${styles.browseButton} ${styles.previous}`} aria-label="Предыдущее фото" onClick={() => browse(-1)}><DesignSystemIcon name="chevron-left" /></Button>
+        <Button variant="ghost" className={`${styles.browseButton} ${styles.next}`} aria-label="Следующее фото" onClick={() => browse(1)}><DesignSystemIcon name="chevron-right" /></Button>
+      </>}
       {images.length > 0 && <span className={styles.photoCount} aria-label={`Фото ${selectedIndex + 1} из ${images.length}`}>{selectedIndex + 1} / {images.length}</span>}
     </div>
     {images.length > 0 && <>
-      <div className={styles.thumbnails} aria-label="Фотографии товара">
-        {images.map((image, index) => <button key={image.id} type="button"
-          className={`${styles.thumbnail} ${image.id === selected.id ? styles.selected : ""} ${dragImageId === image.id ? styles.dragging : ""}`}
+      <div ref={thumbnailsRef} className={styles.thumbnails} aria-label="Фотографии товара">
+        {images.map((image, index) => <div key={image.id} className={styles.thumbnailItem} data-selected={image.id === selected.id}>
+          <div className={styles.thumbnailFrame}><button type="button"
+          className={`${styles.thumbnail} ${index === 0 ? styles.mainThumbnail : ""} ${image.id === selected.id ? styles.selected : ""} ${dragImageId === image.id ? styles.dragging : ""}`}
           aria-label={`Показать фото ${index + 1}${index === 0 ? ", главное" : ""}`} aria-pressed={image.id === selected.id}
           onClick={() => setSelectedId(image.id)} draggable={!locked}
           onDragStart={() => { if (!locked) onDragImageStart(image.id); }}
           onDragOver={event => event.preventDefault()}
           onDrop={event => { event.preventDefault(); if (!locked && dragImageId !== null) onMoveImage(image.id); }} onDragEnd={onDragImageEnd}>
-          <Image src={image.url} unoptimized={image.url.startsWith("blob:")} alt="" fill sizes="64px" className={styles.image} />
-        </button>)}
-      </div>
-      <div className={styles.toolbar}>
-        <div className={styles.orderControls}>
-          <Button variant="ghost" className={styles.iconButton} disabled={locked || selectedIndex === 0}
-            aria-label="Переместить фото раньше" onClick={() => onMoveImageByIndex(selectedIndex, selectedIndex - 1)}><DesignSystemIcon name="chevron-left" role="utility" /></Button>
-          <Button variant="ghost" className={styles.iconButton} disabled={locked || selectedIndex === images.length - 1}
-            aria-label="Переместить фото позже" onClick={() => onMoveImageByIndex(selectedIndex, selectedIndex + 1)}><DesignSystemIcon name="chevron-right" role="utility" /></Button>
-        </div>
-        {selectedIndex > 0 && <Button variant="ghost" className={styles.textButton} disabled={locked}
-          onClick={() => onMoveImageByIndex(selectedIndex, 0)}>Сделать главным</Button>}
-        <ConfirmActionButton variant="ghost" className={styles.iconButton} disabled={locked}
-          confirmTitle="Удалить фото товара?" confirmText="Фото будет удалено при автосохранении черновика"
-          aria-label="Удалить выбранное фото" onConfirm={() => onDeleteImage(selected.id)}><DesignSystemIcon name="trash" role="utility" /></ConfirmActionButton>
+          <Image src={image.url} unoptimized={image.url.startsWith("blob:")} alt="" fill sizes="132px" className={styles.image} />
+        </button>
+          {index === 0 && <InfoHint className={styles.mainInfo} label="Требования к главному фото"
+            text="Первое фото — главное, оно показывается в каталоге. Товар должен быть целиком на белом фоне." />}
+          </div>
+          <div className={styles.thumbnailControls}>
+          {image.id === selected.id && <>
+            <Button variant="ghost" className={styles.iconButton} disabled={locked || index === 0}
+              aria-label="Переместить фото раньше" onClick={() => onMoveImageByIndex(index, index - 1)}><DesignSystemIcon name="chevron-left" role="utility" /></Button>
+            <ConfirmActionButton variant="ghost" confirmVariant="danger" className={styles.iconButton} disabled={locked}
+              confirmTitle="Удалить фото товара?" confirmText="Фото будет удалено при автосохранении черновика"
+              aria-label="Удалить выбранное фото" onConfirm={() => onDeleteImage(image.id)}><DesignSystemIcon name="trash" role="utility" /></ConfirmActionButton>
+            <Button variant="ghost" className={styles.iconButton} disabled={locked || index === images.length - 1}
+              aria-label="Переместить фото позже" onClick={() => onMoveImageByIndex(index, index + 1)}><DesignSystemIcon name="chevron-right" role="utility" /></Button>
+          </>}
+          </div>
+        </div>)}
       </div>
     </>}
     {!shadeGroups && colorways.length > 0 && <>

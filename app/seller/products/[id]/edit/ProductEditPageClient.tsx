@@ -3,6 +3,7 @@ import { Loader } from "../../../../components/ui/Loader";
 import { PRODUCT_PHOTO_COUNT_ERROR, validProductPhotoCount, validateProductPhotoUpload } from "../../../../lib/productPhotos";
 
 import { hasDescriptionContent } from "../../../../lib/productDescription";
+import { normalizeProductDetails, productDetailsErrors, type ProductDetailsDraft } from "../../../../lib/productDetails";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
@@ -15,7 +16,6 @@ import { subscribeCategoriesChanged } from "../../../../lib/categoryEvents";
 import { Button } from "../../../../components/ui/Button";
 import { Banner } from "../../../../components/ui/Banner";
 import { Dialog } from "../../../../components/ui/Dialog";
-import { Icon } from "../../../../components/ui/Icon";
 import {
   scrollToFirstValidationError as scrollToFirstValidationErrorShared,
 } from "../../../../lib/formValidation";
@@ -58,15 +58,6 @@ const toast = {
   warning: (message: string, options?: ExternalToast) => globalToast.warning(message, { ...options, toasterId: "product-editor" }),
 };
 
-const MODAL_FOCUSABLE_SELECTOR = [
-  'a[href]',
-  'button:not(:disabled)',
-  'input:not(:disabled)',
-  'select:not(:disabled)',
-  'textarea:not(:disabled)',
-  '[tabindex]:not([tabindex="-1"])',
-].join(", ");
-
 type Props = {
   intercepted?: boolean;
   presentation?: "dialog" | "page";
@@ -82,6 +73,7 @@ type ValidationErrors = {
   title?: boolean;
   description?: boolean;
   composition?: boolean;
+  details?: Partial<Record<keyof ProductDetailsDraft, string>>;
   categoryId?: boolean;
   brandId?: boolean;
   images?: boolean;
@@ -211,6 +203,7 @@ export function ProductEditPageClient({
   const [titleDraftDirty, setTitleDraftDirty] = useState(false);
   const [description, setDescription] = useState(initialProduct.description ?? "");
   const [composition, setComposition] = useState(initialProduct.composition ?? "");
+  const [details, setDetails] = useState(() => normalizeProductDetails(initialProduct.details));
   const [categoryId, setCategoryId] = useState<number | "">(
     initialProduct.categoryId ?? ""
   );
@@ -303,9 +296,6 @@ export function ProductEditPageClient({
     return () => { scrollTarget.removeEventListener("scroll", onScroll); window.removeEventListener("resize", onScroll); cancelAnimationFrame(frame); };
   }, [presentation]);
   const editRevisionRef = useRef(0);
-  const publishSuccessDialogRef = useRef<HTMLDivElement | null>(null);
-  const publishSuccessCloseRef = useRef<HTMLButtonElement | null>(null);
-  const publishSuccessReturnFocusRef = useRef<HTMLElement | null>(null);
   const productPageMountedRef = useRef(true);
   const creatingNextProductRef = useRef(false);
 
@@ -368,85 +358,6 @@ export function ProductEditPageClient({
       }).finally(() => { if (!controller.signal.aborted) setCategoryLoading(false); });
     return () => controller.abort();
   }, [categoryLoadAttempt]);
-
-  useEffect(() => {
-    if (!publishSuccessOpen) return;
-
-    const previousBodyOverflow = document.body.style.overflow;
-    const previousDocumentOverflow = document.documentElement.style.overflow;
-    const returnFocusTarget = publishSuccessReturnFocusRef.current;
-    const pageContent = pageContentRef.current;
-
-    document.body.style.overflow = "hidden";
-    document.documentElement.style.overflow = "hidden";
-
-    const focusFrame = window.requestAnimationFrame(() => {
-      publishSuccessCloseRef.current?.focus({ preventScroll: true });
-    });
-
-    function handleModalKeyDown(event: KeyboardEvent) {
-      if (event.key === "Escape" && !creatingNextProductRef.current) {
-        event.preventDefault();
-        setPublishSuccessOpen(false);
-        return;
-      }
-
-      if (event.key !== "Tab") return;
-
-      const dialog = publishSuccessDialogRef.current;
-      if (!dialog) return;
-
-      const focusableElements = Array.from(
-        dialog.querySelectorAll<HTMLElement>(MODAL_FOCUSABLE_SELECTOR)
-      );
-      const firstFocusable = focusableElements[0];
-      const lastFocusable = focusableElements.at(-1);
-
-      if (!firstFocusable || !lastFocusable) {
-        event.preventDefault();
-        dialog.focus({ preventScroll: true });
-        return;
-      }
-
-      const activeElement = document.activeElement;
-
-      if (event.shiftKey) {
-        if (activeElement === firstFocusable || !dialog.contains(activeElement)) {
-          event.preventDefault();
-          lastFocusable.focus({ preventScroll: true });
-        }
-      } else if (
-        activeElement === lastFocusable ||
-        !dialog.contains(activeElement)
-      ) {
-        event.preventDefault();
-        firstFocusable.focus({ preventScroll: true });
-      }
-    }
-
-    document.addEventListener("keydown", handleModalKeyDown);
-
-    return () => {
-      window.cancelAnimationFrame(focusFrame);
-      document.removeEventListener("keydown", handleModalKeyDown);
-      document.body.style.overflow = previousBodyOverflow;
-      document.documentElement.style.overflow = previousDocumentOverflow;
-
-      window.requestAnimationFrame(() => {
-        if (
-          returnFocusTarget?.isConnected &&
-          !returnFocusTarget.matches(':disabled, [aria-disabled="true"]')
-        ) {
-          returnFocusTarget.focus({ preventScroll: true });
-          return;
-        }
-
-        if (pageContent?.isConnected) {
-          pageContent.focus({ preventScroll: true });
-        }
-      });
-    };
-  }, [publishSuccessOpen]);
 
   function markDirty() {
     editRevisionRef.current += 1;
@@ -557,6 +468,11 @@ export function ProductEditPageClient({
   if (composition.length > 1000) {
     nextErrors.composition = true;
     stepMessages.description.push("Состав должен быть не длиннее 1000 символов");
+  }
+  const detailsErrors = productDetailsErrors(details);
+  if (Object.keys(detailsErrors).length) {
+    nextErrors.details = detailsErrors;
+    stepMessages.description.push(...Object.values(detailsErrors));
   }
 
   if (!validProductPhotoCount(images.length)) {
@@ -684,6 +600,8 @@ export function ProductEditPageClient({
     const draftErrors: ValidationErrors = {};
     if (composition.length > 1000) draftErrors.composition = true;
     if (description.length > 2000) draftErrors.description = true;
+    const detailsErrors = productDetailsErrors(details);
+    if (Object.keys(detailsErrors).length) draftErrors.details = detailsErrors;
     for (const [key, value] of [["packageWidthCm", packageWidthCm], ["packageHeightCm", packageHeightCm], ["packageLengthCm", packageLengthCm], ["packageWeightKg", packageWeightKg]] as const) {
       if (value !== "" && (!Number.isFinite(value) || value <= 0)) draftErrors[key] = true;
     }
@@ -732,6 +650,7 @@ export function ProductEditPageClient({
           title: product?.status === "ACTIVE" ? product.title : title.trim(),
           description: product?.status === "ACTIVE" ? product.description : description.trim(),
           composition: composition.trim(),
+          details: product?.status === "ACTIVE" ? normalizeProductDetails(product.details) : details,
           categoryId: categoryId ? Number(categoryId) : null,
           suggestedCategoryName: suggestedCategoryName.trim() || null,
           brandId: brandId === "" ? null : Number(brandId),
@@ -986,10 +905,6 @@ export function ProductEditPageClient({
       return;
     }
     setRevisionReviewSource(null);
-    publishSuccessReturnFocusRef.current =
-      document.activeElement instanceof HTMLElement
-        ? document.activeElement
-        : null;
     publishRequestRef.current = true;
     setPublishSucceeded(false);
     setPublishing(true);
@@ -1448,6 +1363,7 @@ export function ProductEditPageClient({
                 title={title}
                 description={description}
                 composition={composition}
+                details={details}
                 categoryId={categoryId}
                 suggestedCategoryName={suggestedCategoryName}
                 audience={audience}
@@ -1465,6 +1381,14 @@ export function ProductEditPageClient({
                 onCompositionChange={(value) => {
                   clearValidationError("composition", value.length > 1000);
                   setComposition(value);
+                  markDirty();
+                }}
+                onDetailsChange={(key, value) => {
+                  const next = { ...details, [key]: value };
+                  setDetails(next);
+                  const errors = productDetailsErrors(next);
+                  setValidationErrors(current => ({ ...current, details: current.details && Object.keys(errors).length
+                    ? errors : undefined }));
                   markDirty();
                 }}
                 onCategoryIdChange={(value) => {
@@ -1580,7 +1504,7 @@ export function ProductEditPageClient({
       {revisionReviewSource && <Dialog title="Проверьте изменения карточки" onClose={() => setRevisionReviewSource(null)}
         actions={<><Button variant="secondary" onClick={() => setRevisionReviewSource(null)}>Вернуться к редактированию</Button>
           <Button variant="secondary" disabled={productMutationBusy} onClick={() => void publishProduct(true)}>Отправить изменения</Button></>}>
-        <ProductRevisionReview source={revisionReviewSource} current={{ title, description, composition,
+        <ProductRevisionReview source={revisionReviewSource} current={{ title, description, composition, details,
           category: suggestedCategoryName.trim() || categories.find(c => c.id === categoryId)?.name || product?.category || null,
           audience, packageWidthCm: numberOrNull(packageWidthCm), packageHeightCm: numberOrNull(packageHeightCm),
           packageLengthCm: numberOrNull(packageLengthCm), packageWeightKg: numberOrNull(packageWeightKg),
@@ -1589,7 +1513,10 @@ export function ProductEditPageClient({
         }} />
       </Dialog>}
       {draftPreviewOpen && <Dialog title="Предпросмотр товара" onClose={()=>setDraftPreviewOpen(false)} actions={<Button onClick={()=>setDraftPreviewOpen(false)}>Вернуться к редактированию</Button>}>
-        <ProductDraftPreview title={title} brand={brands.find(b=>b.id === brandId)?.name ?? product?.brand ?? ""} description={description} composition={composition} variants={variants} images={images} />
+        <ProductDraftPreview title={title} brand={brands.find(b=>b.id === brandId)?.name ?? product?.brand ?? ""}
+          description={description} composition={composition} details={details}
+          category={suggestedCategoryName.trim() || categories.find(c => c.id === categoryId)?.name || product?.category || ""}
+          audience={audience} variants={variants} images={images} />
       </Dialog>}
       {confirmation ? (
         <Dialog title={confirmation === "delete" ? (product?.revisionSourceId ? "Удалить изменения?" : "Удалить товар?") : product?.status === "ACTIVE" ? "Снять товар с витрины?" : "Перенести товар в архив?"}
@@ -1619,44 +1546,23 @@ export function ProductEditPageClient({
       ) : null}
 
       {publishSuccessOpen ? (
-        <div
-          className="modalOverlay"
-          role="presentation"
-          onMouseDown={(event) => {
-            if (event.currentTarget === event.target) {
-              setPublishSuccessOpen(false);
-            }
-          }}
+        <Dialog
+          title={product?.revisionSourceId ? "Изменения отправлены на модерацию" : "Товар отправлен на модерацию"}
+          success busy={creatingNextProduct} closeOnBackdrop fallbackFocusRef={pageContentRef}
+          onClose={() => setPublishSuccessOpen(false)}
+          actions={<>
+            <Button type="button" variant="secondary" disabled={creatingNextProduct}
+              onClick={() => router.push("/seller/products")}>
+              К товарам
+            </Button>
+            {!product?.revisionSourceId && <Button type="button" variant="primary" loading={creatingNextProduct}
+              onClick={() => void createNextProductDraft()}>
+              Добавить ещё товар
+            </Button>}
+          </>}
         >
-          <div
-            ref={publishSuccessDialogRef}
-            className={`modal ${styles.publishSuccessModal}`}
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="product-publish-success-title"
-            tabIndex={-1}
-          >
-            <div className="modalHeader">
-              <div>
-                <Icon name="check-circle" className={styles.publishSuccessIcon} />
-                <h2 className="modalTitle" id="product-publish-success-title">
-                  {product?.revisionSourceId ? "Изменения отправлены на модерацию" : "Товар отправлен на модерацию"}
-                </h2>
-              </div>
-              <button
-                ref={publishSuccessCloseRef}
-                type="button"
-                className="modalClose"
-                disabled={creatingNextProduct}
-                onClick={() => setPublishSuccessOpen(false)}
-                aria-label="Закрыть"
-              >
-                <Icon name="x" />
-              </button>
-            </div>
-
-            <div className="modalBody">
-              <p className={styles.publishSuccessText}>
+            <div className={styles.publishSuccessContent}>
+              <p>
                 {product?.revisionSourceId ? "Опубликованный товар остаётся в продаже. Изменения появятся после одобрения" : "Карточка получила статус «На модерации». Пока мы её проверяем, можно добавить следующий товар"}
               </p>
               {onboardingRequirementsPending ? (
@@ -1679,26 +1585,7 @@ export function ProductEditPageClient({
               </Link>
             </div>
 
-            <div className="modalFooter">
-              <Button
-                type="button"
-                variant="secondary"
-                disabled={creatingNextProduct}
-                onClick={() => router.push("/seller/products")}
-              >
-                К товарам
-              </Button>
-              {!product?.revisionSourceId && <Button
-                type="button"
-                variant="primary"
-                loading={creatingNextProduct}
-                onClick={() => void createNextProductDraft()}
-              >
-                Добавить ещё товар
-              </Button>}
-            </div>
-          </div>
-        </div>
+        </Dialog>
       ) : null}
     </div>
     </EditorSurface>

@@ -6,7 +6,6 @@ import { cache } from "react";
 import { API_URL } from "../../lib/api";
 import { BrandFavoriteButton } from "./BrandFavoriteButton";
 import { CatalogPageContent } from "../../components/Catalog/CatalogPageContent";
-import { BrandImageCarousel } from "./BrandImageCarousel";
 
 import styles from "./BrandPage.module.css";
 
@@ -143,20 +142,11 @@ export default async function BrandPage({
 
   const { brand } = data;
   return (
-    <CatalogPageContent searchParams={searchParams} brandName={brand.name} basePath={`/brand/${encodeURIComponent(brand.slug)}`}
+    <CatalogPageContent searchParams={searchParams} brandName={brand.name} brandSlug={brand.slug} basePath={`/brand/${encodeURIComponent(brand.slug)}`}
       header={<div className={styles.catalogHeaderBrand}>
-        <BrandPresentation name={brand.name} wordmarkUrl={brand.wordmarkUrl} description={brand.description} compact
+        <BrandPresentation name={brand.name} wordmarkUrl={brand.wordmarkUrl} compact
           action={<BrandFavoriteButton brand={{ id: brand.id, name: brand.name, slug: brand.slug,
             logoUrl: brand.logoUrl, country: brand.country }} />} />
-        <details className={styles.about} id="brand-about">
-          <summary>О бренде</summary>
-          {brand.description && <p className={styles.aboutDescription}>{brand.description}</p>}
-          {(brand.country || brand.foundationYear) && <p className={styles.brandFacts}>
-            {brand.country}{brand.country && brand.foundationYear ? ". " : ""}{brand.foundationYear ? `Основан в ${brand.foundationYear} году` : ""}
-          </p>}
-          <BrandImageCarousel images={brand.images ?? []} contained />
-          {!brand.description && !brand.country && !brand.foundationYear && !brand.images?.length && <p>Бренд пока не добавил информацию о себе.</p>}
-        </details>
       </div>}
     />
   );

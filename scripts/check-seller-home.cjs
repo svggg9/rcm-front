@@ -107,6 +107,9 @@ function render(overrides = {}, { orders, attention = {} } = {}) {
   } finally { overviewSnapshot = undefined; }
 }
 const active = render();
+assert.match(active, /data-seller-product-preview/);
+assert.match(active, /Активные товары/);
+assert.equal((active.match(/<h1\b/g) || []).length, 1, "The store keeps one main heading");
 for (const href of ["/seller/orders", "/seller/products?section=collections", "/seller/products?status=ACTIVE",
   "/seller/products?status=attention", "/seller/finance", "/seller/store", "/seller/legal", "/seller/legal?section=bank", "/seller/legal?section=contacts"]) {
   assert.ok(hasHref(active, href), `Overview links to ${href}`);

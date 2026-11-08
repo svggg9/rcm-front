@@ -1,4 +1,7 @@
-import { API_URL, apiFetch } from "../../lib/api";
+import { API_URL } from "../../lib/api";
+import { ApiRequestError, readApiError, readApiJson } from "../../lib/apiErrors";
+import { requestApiResponse } from "../../lib/apiRequest";
+import { isRefundOperation } from "./adminOperationQueueValidation";
 
 export type OperationPage<T> = { content: T[]; number: number; totalPages: number; totalElements: number };
 export type RefundOperation = {
@@ -11,15 +14,27 @@ export type LatePayment = {
   paymentId: number; externalPaymentId: string; orderGroupId: string; amount: number;
   currency: string; paidAt: string | null; refundedAmount: number; pendingRefundAmount: number;
 };
-export async function paymentRequest<T>(path: string, init?: RequestInit): Promise<T> {
-  const response = await apiFetch(`${API_URL}${path}`, init);
+export async function paymentRequest<T>(path: string, init: RequestInit = {}): Promise<T> {
+  const mutation = !["GET", "HEAD"].includes((init.method ?? "GET").toUpperCase());
+  const unknownResult = "Результат операции неизвестен — обновите данные и сверьте состояние перед повтором";
+  const fallback = mutation ? unknownResult : "Не удалось загрузить данные — попробуйте ещё раз";
+  const response = await requestApiResponse(`${API_URL}${path}`, init, fallback);
   if (!response.ok) {
-    const detail = await response.json().catch(() => null);
-    throw new Error(response.status === 403 ? "Нет доступа к операции" : response.status === 409
-      ? "Состояние операции изменилось. Обновите данные перед повтором"
-      : typeof detail?.message === "string" ? detail.message : "Не удалось выполнить операцию. Обновите данные и проверьте её состояние");
+    const failure = response.status === 409 ? "Состояние операции изменилось — обновите данные перед повтором" : fallback;
+    throw await readApiError(response, failure);
   }
-  return response.json();
+  const value: unknown = await readApiJson(response, fallback);
+  // Every mutation using this transport returns a RefundResponse. A malformed
+  // success cannot be treated as proof of completion or safely retried.
+  if (mutation) {
+    const operationId = path.match(/^\/api\/payments\/refund-operations\/(\d+)\//)?.[1];
+    const latePaymentId = path.match(/^\/api\/admin\/payment-review\/\d+\/late-refund\?paymentId=(\d+)$/)?.[1];
+    if (!isRefundOperation(value) || (operationId && value.id !== Number(operationId))
+        || (latePaymentId && value.paymentId !== Number(latePaymentId))) {
+      throw new ApiRequestError(unknownResult, "invalid-response", response.status);
+    }
+  }
+  return value as T;
 }
 export function refundLabel(row: RefundOperation): string {
   if (row.status === "SUCCEEDED") return "Возврат подтверждён";

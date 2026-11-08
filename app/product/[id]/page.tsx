@@ -1,53 +1,10 @@
-import { API_URL } from "../../lib/api";
 import ProductPageClient from "./ProductPageClient";
-import type { Product } from "./lib/types";
-import { mapProductToCarouselProduct } from "../../lib/productMappers";
-import type { CarouselProduct } from "../../components/ProductCarousel/types";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { productPath } from "../../lib/productUrls";
-import { cache } from "react";
+import { getProductPage } from "./lib/getProductPage";
 
 export const dynamic = "force-dynamic";
-
-type ProductPageData = {
-  product: Product;
-  related: CarouselProduct[];
-};
-
-const getProductPage = cache(async (id: string): Promise<ProductPageData | null> => {
-  const response = await fetch(
-    `${API_URL}/api/products/${encodeURIComponent(id)}/page?relatedLimit=12`,
-    {
-      cache: "no-store",
-    }
-  );
-
-  if (!response.ok) {
-    return null;
-  }
-
-  const data: unknown = await response.json();
-  if (!data || typeof data !== "object" || !("product" in data)) {
-    return null;
-  }
-
-  const payload = data as { product?: unknown; related?: unknown };
-  if (!payload.product || typeof payload.product !== "object") {
-    return null;
-  }
-
-  const related = Array.isArray(payload.related)
-    ? payload.related
-        .map((product) => mapProductToCarouselProduct(product))
-        .filter((product): product is CarouselProduct => product !== null)
-    : [];
-
-  return {
-    product: payload.product as Product,
-    related,
-  };
-});
 
 export async function generateMetadata({
   params,

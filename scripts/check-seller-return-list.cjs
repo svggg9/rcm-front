@@ -16,12 +16,14 @@ function load(file, imports) {
 
 const calls = [];
 let nextResponse;
+const errors = load("app/lib/apiErrors.ts", {});
+const transport = { API_URL: "https://invalid.test", apiFetch: async (url, options) => {
+  calls.push({ url, options }); return nextResponse;
+} };
+const request = load("app/lib/apiRequest.ts", { "./api": transport, "./apiErrors": errors });
 const api = load("app/lib/returns.ts", {
-  "./api": { API_URL: "https://invalid.test", apiFetch: async (url, options) => {
-    calls.push({ url, options }); return nextResponse;
-  } },
+  "./api": transport, "./apiErrors": errors, "./apiRequest": request,
   "./returnPhotoUrls": { resolveReturnPhotoUrl() { throw new Error("List must not process photos"); } },
-  "../account/lib/presentation": { accountApiError() { throw new Error("Buyer API must not be involved"); } },
   "./imageUploadPolicy": load("app/lib/imageUploadPolicy.ts", {}),
 });
 const presentation = load("app/seller/lib/sellerReturnListPresentation.ts", {});
@@ -48,7 +50,11 @@ async function run() {
   const controller = new AbortController();
   assert.deepEqual((await api.getSellerReturns({ signal: controller.signal })).items, initial);
   assert.match(calls.at(-1).url, /\/api\/seller\/returns\/list\?page=0&size=20$/);
-  assert.equal(calls.at(-1).options.signal, controller.signal);
+  const requestSignal = calls.at(-1).options.signal;
+  assert(requestSignal instanceof AbortSignal);
+  controller.abort();
+  assert.equal(requestSignal.aborted, true, "The bounded request still follows caller cancellation");
+  assert.equal(requestSignal.reason, controller.signal.reason);
   nextResponse = response(page([row(21), row(22), row(23)], 23, 1));
   assert.equal((await api.getSellerReturns({ page: 1 })).page, 1, "Second page metadata stays available");
   nextResponse = response(page([], 23, 2));

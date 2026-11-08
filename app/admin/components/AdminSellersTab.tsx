@@ -2,6 +2,9 @@
 
 import { useMemo, useState, type ReactNode } from "react";
 
+import { SettingsSection } from "../../components/ui/SettingsSection";
+import { Textarea } from "../../components/ui/Textarea";
+import { AdminSearchForm } from "./AdminSearchForm";
 import { Button } from "../../components/ui/Button";
 import { CabinetPanel } from "../../components/ui/CabinetPanel";
 import type { CabinetTabItem } from "../../components/ui/CabinetTabs";
@@ -202,7 +205,7 @@ export function AdminSellersTab({
   }
 
   return (
-    <><AdminSellerLegalRequests /><CabinetPanel
+    <><AdminSellerLegalRequests /><AdminSearchForm label="Бренд, контакт или email" /><CabinetPanel
       items={filterTabs}
       value={status}
       onChange={onStatusChange}
@@ -371,8 +374,7 @@ function SellerApplicationDetails({
   return (
     <section className={styles.detailsPage}>
       <header className={styles.detailsHeader}>
-        <Button type="button" variant="ghost" onClick={onBack}>
-          <Icon name="chevron-left" size={16} strokeWidth={1.5} />
+        <Button type="button" variant="ghost" startIcon={<Icon name="chevron-left" size={18} strokeWidth={1.5} />} onClick={onBack}>
           Назад
         </Button>
 
@@ -464,14 +466,7 @@ function SellerApplicationDetails({
           </DetailsSection>
 
           <DetailsSection title="Решение">
-            <label className={styles.textareaField} data-ui="field">
-              <span>Комментарий администратора</span>
-              <textarea
-                value={adminComment}
-                onChange={(event) => onAdminCommentChange(event.target.value)}
-                rows={5}
-              />
-            </label>
+            <Textarea label="Комментарий администратора" value={adminComment} onChange={event=>onAdminCommentChange(event.target.value)} rows={5} maxLength={1000} disabled={loading} />
 
             {application.adminComment ? (
               <div className={styles.textBlock}>
@@ -512,7 +507,7 @@ function SellerApplicationDetails({
               </div>
             ) : (
               <p className={styles.emptyText}>
-                Действия для этого статуса недоступны.
+                Действия для этого статуса недоступны
               </p>
             )}
           </DetailsSection>
@@ -537,10 +532,7 @@ function DetailsSection({
   children: ReactNode;
 }) {
   return (
-    <section className={styles.detailsSection}>
-      <h2>{title}</h2>
-      {children}
-    </section>
+    <SettingsSection title={title}>{children}</SettingsSection>
   );
 }
 

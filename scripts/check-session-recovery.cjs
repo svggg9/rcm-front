@@ -140,13 +140,13 @@ async function checkConsumers() {
   identity = { ...identity, revision: 1, loading: true }; assert.equal(await h.flush(counter.useCartCount), 0, "A new identity must not display another user's count");
   identity = { ...identity, loading: false, error: null }; countFailure = false; count = 2; assert.equal(await h.flush(counter.useCartCount), 2);
 
-  global.window = new EventTarget(); const f = hooks(); let sessionFailure = false, apiFailure = false, ids = [7], guestWrites = 0, writes = 0;
+  global.window = new EventTarget(); const f = hooks(); let sessionFailure = false, apiFailure = false, ids = [7], guestIds = [99, 100, 101], publicIds = [99, 101, 777], guestWrites = 0, writes = 0;
   identity = { user: user(1), loading: false, hasResolved: true, error: null, revision: 0 };
   const provider = load("app/lib/FavoritesContext.tsx", { react: f.react, "react/jsx-runtime": jsx, "next/navigation": { usePathname: () => "/catalog" },
     "./useCurrentUser": { useCurrentUser: () => identity }, "./apiErrors": errors,
     "./client-session": { getClientSession: async () => { if (sessionFailure) throw new errors.ApiRequestError("unavailable", "http", 503); return identity.user; }, getClientSessionRevision: () => identity.revision },
-    "./api": { API_URL: "", apiFetch: async (_url, options) => { if (options?.method) writes++; return apiFailure ? Response.json({}, { status: 502 }) : Response.json(ids); } },
-    "./favorites": { getGuestFavoriteIds: () => [99], addGuestFavorite() { guestWrites++; return [99]; }, removeGuestFavorite() { guestWrites++; return []; },
+    "./api": { API_URL: "", apiFetch: async (url, options) => { if (options?.method) writes++; return apiFailure ? Response.json({}, { status: 502 }) : Response.json(url.includes("/public-by-ids") ? publicIds.map(id => ({ id })) : ids); } },
+    "./favorites": { getGuestFavoriteIds: () => guestIds, addGuestFavorite(id) { guestWrites++; guestIds = [...new Set([...guestIds, id])]; return guestIds; }, removeGuestFavorite(id) { guestWrites++; guestIds = guestIds.filter(value => value !== id); return guestIds; },
       FAVORITES_EVENT: "favorites-changed", emitFavoritesChanged() { window.dispatchEvent(new Event("favorites-changed")); } },
   });
   const render = () => provider.FavoritesProvider({ children: null }).props.value;
@@ -157,7 +157,26 @@ async function checkConsumers() {
   identity = { ...identity, user: user(2), revision: 1, loading: true }; assert.deepEqual(f.render(render).favoriteIds, []);
   sessionFailure = false; apiFailure = false; ids = [8]; identity = { ...identity, loading: false };
   view = await f.flush(render); assert.deepEqual(view.favoriteIds, [8]);
+  identity = { ...identity, user: null, revision: 2 };
+  view = await f.flush(render);
+  assert.deepEqual(view.favoriteIds, [99, 101], "Guest badge excludes unpublished and unrelated products");
+  assert.equal(view.count, 2);
+  assert.deepEqual(guestIds, [99, 100, 101], "Hidden favorites are preserved for future republication");
+  apiFailure = true; await view.refresh(); view = await f.flush(render); assert.equal(view.count, 2, "A failed public read must not erase the confirmed count");
+  apiFailure = false; await view.toggle(99); view = await f.flush(render);
+  assert.deepEqual(view.favoriteIds, [101], "Guest mutation must not temporarily restore hidden IDs to the badge");
+  assert.equal(view.count, 1);
+  publicIds = []; await view.refresh(); view = await f.flush(render); assert.equal(view.count, 0, "A successful empty list hides the badge");
   console.log("PASS: cart/favorite counts survive same-user failures, unknown session cannot write guest favorites, account switch clears displayed private state and recovers");
+
+  const storage = new Map([["guest_favorite_ids", JSON.stringify([7, 7, 0, -1, 1.5, "8", null, Number.MAX_SAFE_INTEGER + 1])]]);
+  global.localStorage = { getItem: key => storage.get(key) ?? null, setItem: (key, value) => storage.set(key, value) };
+  const guestFavorites = load("app/lib/favorites.ts", { "./api": {}, "./client-session": {} });
+  assert.deepEqual(guestFavorites.getGuestFavoriteIds(), [7]);
+  guestFavorites.setGuestFavoriteIds([7, 7, 8, -1]);
+  assert.deepEqual(JSON.parse(storage.get("guest_favorite_ids")), [7, 8]);
+  delete global.localStorage;
+  console.log("PASS: favorites badge follows public products, preserves unpublished saves and last confirmed count, and ignores duplicate/invalid guest IDs");
 }
 
 (async () => { await checkSession(); await checkCart(); await checkConsumers(); })().catch(error => { console.error(error); process.exitCode = 1; });

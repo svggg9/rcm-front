@@ -4,8 +4,10 @@ import type { ReactNode } from "react";
 import Link from "next/link";
 import { Icon } from "../../../components/ui/Icon";
 import { ProductDescriptionText } from "./ProductDescriptionText";
+import { ProductDetailsContent } from "./ProductDetailsContent";
 import styles from "../ProductPage.module.css";
 import type { Product } from "../lib/types";
+import { purchaseInformation } from "../../../lib/purchaseInformation";
 
 function DetailSection({ title, children, defaultOpen = false }: { title: string; children: ReactNode; defaultOpen?: boolean }) {
   return <details className={styles.accItem} open={defaultOpen}>
@@ -14,31 +16,30 @@ function DetailSection({ title, children, defaultOpen = false }: { title: string
   </details>;
 }
 
-export function ProductDetailsAccordion({ product, showDescription, brandHref }: {
-  product: Product; showDescription: boolean; brandHref: string | null;
+export function ProductDetailsAccordion({ product, brandHref }: {
+  product: Product; brandHref: string | null;
 }) {
   const composition = product.composition?.trim();
   const brandDescription = product.brandDescription?.trim();
-  const category = product.category?.split("/").map(part => part.trim()).filter(Boolean).at(-1);
-  const audience = /одежд|обувь|аксессуар/i.test(product.category) && product.audience ? {
-    MEN: "Для мужчин", WOMEN: "Для женщин", UNISEX: "Унисекс",
-  }[product.audience] : null;
+  const hasDetails = Object.values(product.details ?? {}).some(value => value?.trim());
 
   return <div className={styles.accordion}>
-    {showDescription && <DetailSection title="Описание"><ProductDescriptionText text={product.description} fallback="" /></DetailSection>}
-    {composition && <DetailSection title="Состав" defaultOpen><ProductDescriptionText text={composition} fallback="" /></DetailSection>}
-    {(category || audience) && <DetailSection title="Характеристики" defaultOpen>
-      <dl className={styles.characteristics}>
-        {category && <div><dt>Категория</dt><dd>{category}</dd></div>}
-        {audience && <div><dt>Для кого</dt><dd>{audience}</dd></div>}
-      </dl>
+    {(product.description.trim() || composition || product.category || hasDetails) && <DetailSection title="О товаре" defaultOpen>
+      <ProductDetailsContent description={product.description} composition={composition} details={product.details}
+        category={product.category} audience={product.audience} />
     </DetailSection>}
-    <DetailSection title="Доставка">
-      <p className={styles.text}>Доставка в пункт выдачи СДЭК. Стоимость и срок появятся после выбора пункта при оформлении.</p>
+    <DetailSection title="Доставка и оплата">
+      <div className={styles.aboutGrid}>
+        <section className={styles.detailGroup}>
+          <h3 className={styles.detailHeading}>Доставка</h3>
+          <p className={styles.text}>{purchaseInformation.delivery}</p>
+        </section>
+        <section className={styles.detailGroup}>
+          <h3 className={styles.detailHeading}>Оплата</h3>
+          <p className={styles.text}>{purchaseInformation.payment}</p>
+        </section>
+      </div>
       <Link href="/contacts" className={styles.detailLink}>Задать вопрос</Link>
-    </DetailSection>
-    <DetailSection title="Оплата">
-      <p className={styles.text}>Онлайн на защищённой странице Т-Банка. Доступные способы оплаты будут показаны на стороне банка.</p>
     </DetailSection>
     {brandDescription && <DetailSection title="О бренде">
       <ProductDescriptionText text={brandDescription} fallback="" />

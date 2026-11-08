@@ -3,6 +3,7 @@
 import { useId, useRef } from "react";
 import { Button } from "./Button";
 import { DesignSystemIcon } from "./DesignSystemIcon";
+import { toggleTextEditorFormat, type TextEditorFormat } from "../../lib/textEditorFormatting";
 import styles from "./TextEditor.module.css";
 
 type Props = {
@@ -20,23 +21,23 @@ export function TextEditor({ value, onChange, label, maxLength = 2000, invalid, 
   const id = useId();
   const input = useRef<HTMLTextAreaElement>(null);
   const tooLong = value.length > maxLength;
-  function toggleList() {
+  function toggleFormat(format: TextEditorFormat) {
     const field = input.current;
     if (!field) return;
-    const start = field.selectionStart === 0 ? 0 : value.lastIndexOf("\n", field.selectionStart - 1) + 1;
-    const endOfLine = value.indexOf("\n", field.selectionEnd);
-    const end = endOfLine < 0 ? value.length : endOfLine;
-    const lines = value.slice(start, end).split("\n");
-    const remove = lines.every(line => /^▪\s/.test(line));
-    const replacement = lines.map(line => remove ? line.replace(/^▪\s/, "") : `▪ ${line}`).join("\n");
-    const next = value.slice(0, start) + replacement + value.slice(end);
-    if (next.length > maxLength) return;
-    onChange(next);
-    requestAnimationFrame(() => { field.focus(); field.setSelectionRange(start, start + replacement.length); });
+    const start = field.selectionStart, end = field.selectionEnd, direction = field.selectionDirection;
+    const next = toggleTextEditorFormat(value, start, end, format, maxLength);
+    if (next) onChange(next.value);
+    requestAnimationFrame(() => {
+      field.focus();
+      field.setSelectionRange(next?.selectionStart ?? start, next?.selectionEnd ?? end, direction);
+    });
   }
   return <div className={`${styles.editor} ${invalid || tooLong ? styles.invalid : ""}`}>
     <div className={styles.toolbar}>
-      <Button type="button" variant="ghost" reserveLabelSpace={false} onMouseDown={event => event.preventDefault()} onClick={toggleList} aria-label={`Список: ${label}`}><DesignSystemIcon name="list" role="utility" />Список</Button>
+      <div className={styles.tools} role="group" aria-label={`Форматирование: ${label}`}>
+        <Button type="button" variant="ghost" reserveLabelSpace={false} onMouseDown={event => event.preventDefault()} onClick={() => toggleFormat("list")} aria-label={`Список: ${label}`}><DesignSystemIcon name="list" role="utility" />Список</Button>
+        <Button type="button" variant="ghost" reserveLabelSpace={false} onMouseDown={event => event.preventDefault()} onClick={() => toggleFormat("heading")} aria-label={`Подзаголовок: ${label}`}>Подзаголовок</Button>
+      </div>
       <span id={`${id}-count`} className={styles.count}>{value.length} / {maxLength}</span>
     </div>
     <textarea ref={input} value={value} onChange={event => onChange(event.target.value)}

@@ -4,10 +4,11 @@ import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 
-import { Button } from "../../components/ui/Button";
 import { CabinetSkeleton } from "../../components/ui/CabinetSkeleton";
 import { Icon } from "../../components/ui/Icon";
 import { Price } from "../../components/ui/Price";
+import { RequestError } from "../../components/ui/RequestError";
+import { toApiError } from "../../lib/apiErrors";
 import { formatRussianPhone } from "../../lib/phone";
 import { productPath } from "../../lib/productUrls";
 import {
@@ -21,14 +22,20 @@ import styles from "./AdminSellerBrandProfile.module.css";
 type Props = {
   userId: number;
   brandName: string;
+  brandId?: number;
   status: SellerApplicationStatus;
 };
 
-export function AdminSellerBrandProfile({ userId, brandName, status }: Props) {
-  const [preview, setPreview] = useState<AdminSellerBrandPreview | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+export function AdminSellerBrandProfile({ userId, brandName, brandId, status }: Props) {
   const [retryKey, setRetryKey] = useState(0);
+  const identity = `${userId}:${brandId??""}:${brandName}:${status}`;
+  const requestKey = `${identity}:${retryKey}`;
+  const [result, setResult] = useState<{ identity: string; requestKey: string; preview: AdminSellerBrandPreview | null; error?: string }>();
+  const current = result?.identity === identity ? result : undefined;
+  const preview = current?.preview ?? null;
+  const loading = current?.requestKey !== requestKey;
+  const error = loading ? undefined : current?.error;
+  const retry = () => setRetryKey(value => value + 1);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -37,29 +44,26 @@ export function AdminSellerBrandProfile({ userId, brandName, status }: Props) {
     void getAdminSellerBrandPreview({
       userId,
       brandName,
+      brandId,
       allowNameFallback: status === "APPROVED",
       signal: controller.signal,
     })
-      .then((result) => {
-        if (active) setPreview(result);
+      .then((preview) => {
+        if (active) setResult({ identity, requestKey, preview });
       })
       .catch((reason: unknown) => {
         if (!active || controller.signal.aborted) return;
-        setError(
-          reason instanceof Error
-            ? reason.message
-            : "Не удалось загрузить данные бренда"
-        );
-      })
-      .finally(() => {
-        if (active) setLoading(false);
+        setResult(previous => ({ identity, requestKey,
+          preview: previous?.identity === identity ? previous.preview : null,
+          error: toApiError(reason, "Не удалось загрузить данные бренда — попробуйте ещё раз").message,
+        }));
       });
 
     return () => {
       active = false;
       controller.abort();
     };
-  }, [brandName, retryKey, status, userId]);
+  }, [brandId, brandName, identity, requestKey, status, userId]);
 
   const categories = useMemo(
     () =>
@@ -73,7 +77,7 @@ export function AdminSellerBrandProfile({ userId, brandName, status }: Props) {
     [preview?.products]
   );
 
-  if (loading) {
+  if (loading && !preview) {
     return (
       <section className={styles.loadingSection} aria-label="Данные бренда">
         <CabinetSkeleton variant="grid" rows={4} />
@@ -81,27 +85,10 @@ export function AdminSellerBrandProfile({ userId, brandName, status }: Props) {
     );
   }
 
-  if (error) {
+  if (error && !preview) {
     return (
       <section className={styles.emptySection}>
-        <div className={styles.emptyIcon} aria-hidden="true">
-          <Icon name="info" size={22} strokeWidth={1.4} />
-        </div>
-        <div>
-          <h2>Данные бренда не загрузились</h2>
-          <p>{error}</p>
-        </div>
-        <Button
-          type="button"
-          variant="secondary"
-          onClick={() => {
-            setLoading(true);
-            setError(null);
-            setRetryKey((value) => value + 1);
-          }}
-        >
-          Повторить
-        </Button>
+        <RequestError message={error} onRetry={retry} loading={loading} />
       </section>
     );
   }
@@ -116,8 +103,8 @@ export function AdminSellerBrandProfile({ userId, brandName, status }: Props) {
           <h2>Публичный профиль бренда ещё не создан</h2>
           <p>
             {status === "NEW"
-              ? "Галерея и товары появятся здесь после одобрения заявки и создания бренда."
-              : "У заявки пока нет надёжно связанного бренда."}
+              ? "Галерея и товары появятся здесь после одобрения заявки и создания бренда"
+              : "У заявки пока нет надёжно связанного бренда"}
           </p>
         </div>
       </section>
@@ -130,6 +117,7 @@ export function AdminSellerBrandProfile({ userId, brandName, status }: Props) {
 
   return (
     <div className={styles.panel}>
+      {error && <RequestError variant="inline" message={error} text="Показаны ранее загруженные данные бренда" onRetry={retry} loading={loading} />}
       <section className={styles.profileSection}>
         <div className={styles.profileHeader}>
           <div className={styles.brandIdentity}>
@@ -271,7 +259,7 @@ export function AdminSellerBrandProfile({ userId, brandName, status }: Props) {
           </div>
         ) : (
           <p className={styles.productsEmpty}>
-            На публичной странице пока нет активных товаров.
+            На публичной странице пока нет активных товаров
           </p>
         )}
 

@@ -8,10 +8,10 @@
   display: grid;
   align-items: end;
   gap: 14px;
-  margin-bottom: 16px;
+  margin-bottom: var(--space-4);
   padding: 18px;
-  border: 0.5px solid #e7e7e4;
-  background: #fafaf8;
+  border: var(--line-width-hairline) solid var(--line);
+  background: var(--soft);
 }
 
 .categoryForm {
@@ -30,34 +30,34 @@
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--space-2);
 }
 
 .field > span {
   color: var(--black);
-  font-size: 12px;
+  font-size: var(--font-helper);
   line-height: 1.25;
-  font-weight: 300;
+  font-weight: var(--font-weight-regular);
   letter-spacing: -0.01em;
 }
 
 .required::after {
   content: " *";
   color: var(--required-mark);
-  font-weight: 500;
+  font-weight: var(--font-weight-medium);
 }
 
 .field input {
   width: 100%;
   height: 44px;
-  border: 0.5px solid var(--black);
+  border: var(--line-width-hairline) solid var(--black);
   background: var(--white);
-  color: #333333;
+  color: var(--black);
   padding: 0 15px;
   font: inherit;
-  font-size: 14px;
+  font-size: var(--font-sm);
   line-height: 1.4;
-  font-weight: 400;
+  font-weight: var(--font-weight-regular);
   outline: none;
 }
 
@@ -66,10 +66,9 @@
 }
 
 .fieldError {
-  color: var(--danger);
-  font-size: 11px;
+  color: var(--error);
+  font-size: var(--font-label-compact);
   line-height: 1.35;
-  font-weight: 400;
 }
 
 .createButton {
@@ -80,12 +79,12 @@
 .flatList {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: var(--space-3);
 }
 
 .categoryGroup,
 .standaloneRow {
-  border: 0.5px solid #e7e7e4;
+  border: var(--line-width-hairline) solid var(--line);
   background: var(--white);
 }
 
@@ -95,12 +94,12 @@
 }
 
 .children {
-  border-top: 0.5px solid #e7e7e4;
-  background: #fbfbfa;
+  border-top: var(--line-width-hairline) solid var(--line);
+  background: var(--soft);
 }
 
 .children .row + .row {
-  border-top: 0.5px solid #ececea;
+  border-top: var(--line-width-hairline) solid var(--line);
 }
 
 .row {
@@ -110,7 +109,7 @@
   grid-template-columns: minmax(0, 1fr) auto auto;
   align-items: center;
   gap: 18px;
-  padding: 13px 16px;
+  padding: 13px var(--space-4);
   color: var(--black);
 }
 
@@ -127,25 +126,25 @@
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 4px;
+  gap: var(--space-1);
 }
 
 .identity > span,
 .virtualRoot > span {
   color: var(--black);
-  font-size: 11px;
+  font-size: var(--font-label-compact);
   line-height: 1.3;
-  font-weight: 300;
+  font-weight: var(--font-weight-regular);
 }
 
 .identity strong,
 .virtualRoot strong {
   max-width: 100%;
   overflow: hidden;
-  color: #2f2f2f;
-  font-size: 15px;
+  color: var(--black);
+  font-size: var(--font-ui);
   line-height: 1.35;
-  font-weight: 400;
+  font-weight: var(--font-weight-regular);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -154,9 +153,9 @@
   max-width: 100%;
   overflow: hidden;
   color: var(--muted);
-  font-size: 11px;
+  font-size: var(--font-label-compact);
   line-height: 1.3;
-  font-weight: 300;
+  font-weight: var(--font-weight-regular);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -167,8 +166,8 @@
   flex-direction: column;
   justify-content: center;
   align-items: flex-start;
-  gap: 4px;
-  padding: 13px 16px;
+  gap: var(--space-1);
+  padding: 13px var(--space-4);
 }
 
 .status {
@@ -181,7 +180,7 @@
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  gap: 8px;
+  gap: var(--space-2);
 }
 
 .rowButton {
@@ -189,7 +188,7 @@
   height: 36px;
   padding-right: 13px;
   padding-left: 13px;
-  font-size: 12px;
+  font-size: var(--font-helper);
 }
 
 .editingRow {
@@ -204,22 +203,22 @@
   display: grid;
   grid-template-columns: minmax(180px, 1fr) auto;
   align-items: end;
-  gap: 16px;
+  gap: var(--space-4);
 }
 
 .categoryTools {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: 8px 20px;
-  margin: 16px 0;
+  gap: var(--space-2) var(--space-5);
+  margin: var(--space-4) 0;
   color: var(--muted);
-  font-size: 12px;
+  font-size: var(--font-helper);
 }
 
 .categoryTools button {
   min-height: 36px;
-  padding: 4px 0;
+  padding: var(--space-1) 0;
   border: 0;
   background: none;
   color: var(--black);
@@ -238,7 +237,7 @@
   align-items: center;
   gap: 10px;
   min-height: 88px;
-  padding: 12px;
+  padding: var(--space-3);
 }
 
 .categoryChildren[hidden] {
@@ -246,8 +245,8 @@
 }
 
 .categoryBranch {
-  margin-left: 24px;
-  border-top: 1px solid var(--border, #e7e7e4);
+  margin-left: var(--space-6);
+  border-top: var(--line-width-default) solid var(--line);
 }
 
 .categoryIdentity {
@@ -259,18 +258,18 @@
 .categoryIdentity strong {
   overflow-wrap: anywhere;
   color: var(--black);
-  font-size: 14px;
-  line-height: 20px;
-  font-weight: 400;
+  font-size: var(--font-sm);
+  line-height: var(--line-height-small);
+  font-weight: var(--font-weight-regular);
 }
 
 .categoryIdentity span,
 .categoryIdentity small,
 .categoryHint {
   color: var(--muted);
-  font-size: 12px;
-  line-height: 18px;
-  font-weight: 400;
+  font-size: var(--font-helper);
+  line-height: var(--caption-line-height);
+  font-weight: var(--font-weight-regular);
 }
 
 .categoryRow[data-disabled="true"] .categoryIdentity strong {
@@ -279,7 +278,7 @@
 
 .categoryActions {
   display: flex;
-  gap: 8px;
+  gap: var(--space-2);
 }
 
 .categoryActions .rowButton {
@@ -315,7 +314,7 @@
 
 .categoryEditor {
   display: grid;
-  gap: 20px;
+  gap: var(--space-5);
 }
 
 .categoryHint {
@@ -336,12 +335,12 @@
 @media (max-width: 560px) {
   .categoryToolbar {
     grid-template-columns: minmax(0, 1fr);
-    gap: 12px;
+    gap: var(--space-3);
   }
 
   .categoryRow {
     grid-template-columns: 28px minmax(0, 1fr);
-    gap: 8px;
+    gap: var(--space-2);
     padding: 10px;
   }
 
@@ -356,7 +355,7 @@
   }
 
   .categoryBranch {
-    margin-left: 12px;
+    margin-left: var(--space-3);
   }
 
   .categoryActions {
@@ -368,9 +367,9 @@
 
   .categoryActions .rowButton {
     width: 100%;
-    padding-right: 8px;
-    padding-left: 8px;
-    font-size: 11px;
+    padding-right: var(--space-2);
+    padding-left: var(--space-2);
+    font-size: var(--font-label-compact);
   }
 }
 
@@ -399,7 +398,7 @@
 
   .row {
     grid-template-columns: minmax(0, 1fr) auto;
-    gap: 12px;
+    gap: var(--space-3);
     padding: 13px;
   }
 

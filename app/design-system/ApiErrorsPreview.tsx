@@ -1,4 +1,5 @@
 "use client";
+import { Checkbox } from "../components/ui/Checkbox";
 
 import { useState } from "react";
 import { Button } from "../components/ui/Button";
@@ -21,7 +22,7 @@ export function ApiErrorsPreview() {
     <div className={styles.toolbar}>
       <span className={styles.draft}>Общие компоненты · выбранный стиль Lime</span>
       <label className={styles.loadingToggle}>
-        <input type="checkbox" checked={loading} onChange={event => setLoading(event.target.checked)} />
+        <Checkbox size={16}  checked={loading} onChange={event => setLoading(event.target.checked)} />
         Показать ожидание
       </label>
     </div>
@@ -73,7 +74,7 @@ export function ApiErrorsPreview() {
         <h3 className={styles.exampleHeader}>05 · Пустая корзина</h3>
         <div className={styles.emptyState}>
           <EmptyState title="Ваша корзина пуста" illustration={<HeaderIcon name="bag" />}
-            actions={<Button variant="primary">В магазин</Button>} />
+            actions={<Button variant="primary">В каталог</Button>} />
         </div>
         <p className={styles.caption}>Иконка сумки, короткий заголовок и основное действие</p>
       </article>
@@ -94,7 +95,7 @@ export function ApiErrorsPreview() {
         {confirmationChecked ? <p className={styles.caption} role="status">Пример подтверждён — рабочая корзина не менялась</p> : null}
       </article>
     </div>
-    <p className={styles.note}>Inter · заголовки обычного веса и заглавными · серые пояснения · белый фон · прямые углы · основные кнопки чёрные, 44 px, подпись 14 px · свободные отступы как в присланных референсах</p>
+    <p className={styles.note}>Manrope используется во всём проекте, заголовки Medium и заглавный регистр сохранены · весь текст чёрный · белый фон · прямые углы. Основные действия используют общий Button с графитовой заливкой; у подтверждения отдельная компактная роль, у полей ошибки остаются под вводом</p>
     {confirmationOpen ? <Dialog variant="confirmation" title="Вы уверены, что хотите очистить корзину?"
       onClose={() => setConfirmationOpen(false)}
       actions={<Button variant="primary" onClick={() => { setConfirmationOpen(false); setConfirmationChecked(true); }}>Очистить корзину</Button>}>

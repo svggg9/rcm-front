@@ -5,6 +5,7 @@ import { toast } from "@/app/components/ui/toast";
 import { requestEditorNavigation } from "../../components/ui/EditorSurface";
 import { InlineEditorGuard } from "../../components/ui/InlineEditorGuard";
 import { Button } from "../../components/ui/Button";
+import { Banner } from "../../components/ui/Banner";
 import { TextInput } from "../../components/ui/TextInput";
 import { Icon } from "../../components/ui/Icon";
 import { PhoneInput } from "../../components/ui/PhoneInput";
@@ -128,10 +129,8 @@ export function AccountProfileTab({ email, emailVerified = false, firstName, las
         <div className={styles.detailsList}>
           <TextInput label="Имя" fieldVariant="inline" ref={firstNameRef} value={values.firstName} placeholder="" readOnly={!editing} disabled={saving} tabIndex={editing ? undefined : -1} error={profileErrors.firstName} onBlur={() => validation.touch("firstName")} autoComplete="given-name" enterKeyHint="next" onChange={event => changeField("firstName", event.target.value)} />
           <TextInput label="Фамилия" fieldVariant="inline" value={values.lastName} placeholder="" readOnly={!editing} disabled={saving} tabIndex={editing ? undefined : -1} error={profileErrors.lastName} onBlur={() => validation.touch("lastName")} autoComplete="family-name" enterKeyHint="next" onChange={event => changeField("lastName", event.target.value)} />
-          <div className={styles.emailField}>
-            <TextInput label="Электронная почта" fieldVariant="inline" type="email" value={email} placeholder="" readOnly tabIndex={-1} autoComplete="email" />
-            {email && emailVerified ? <span className={styles.emailVerified} role="img" aria-label="Почта подтверждена" title="Почта подтверждена"><Icon name="check" size={18} strokeWidth={1.6} /></span> : null}
-          </div>
+          <TextInput label="Электронная почта" fieldVariant="inline" type="email" value={email} placeholder="" readOnly tabIndex={-1} autoComplete="email"
+            trailing={email && emailVerified ? <span className={styles.emailVerified} role="img" aria-label="Почта подтверждена" title="Почта подтверждена"><Icon name="check" size={18} strokeWidth={1.6} /></span> : undefined} />
           {editing && !emailChanging ? <button className={styles.emailChangeLink} type="button" disabled={busy} onClick={() => setEmailChanging(true)}>Изменить почту</button> : null}
           {editing && emailChanging ? <AccountEmailChange email={email} onBusyChange={setEmailBusy} onCancel={() => setEmailChanging(false)} onChanged={newEmail => {
             onEmailChanged(newEmail); setEmailChanging(false); setPasswordResetSent(false); toast.success("Почта изменена");
@@ -149,10 +148,9 @@ export function AccountProfileTab({ email, emailVerified = false, firstName, las
             </div>
           </div>
         </div>
-        {editing && passwordResetSent ? <div className={styles.passwordInfo} role="status" aria-live="polite">
-          <Icon name="check-circle" size={20} strokeWidth={1.6} />
-          <p>Мы отправили письмо на указанный адрес. Если его нет во входящих, проверьте папку «Спам».</p>
-        </div> : null}
+        {editing && passwordResetSent ? <Banner tone="success" className={styles.passwordInfo} role="status" aria-live="polite">
+          <p>Если для этой почты доступно восстановление, мы отправим код. Проверьте входящие и папку «Спам».</p>
+        </Banner> : null}
         <div className={`${styles.detailsActions} ${editing ? styles.editingActions : ""}`}>
           {editing ? <>
             <Button type="button" variant="secondary" className={styles.cancelButton} disabled={busy} onClick={cancelEditing}>Отменить</Button>

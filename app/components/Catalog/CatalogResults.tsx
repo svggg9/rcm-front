@@ -10,6 +10,7 @@ import { EmptyState } from "../ui/EmptyState";
 import type { CatalogProduct, CatalogProductsQuery } from "./catalogTypes";
 import { buildCatalogProductsQuery, normalizeProducts } from "./catalogUtils";
 import styles from "./Catalog.module.css";
+import { catalogSearchLimitMessage } from "../../lib/catalogSearch";
 
 type LoadedPage = { products: CatalogProduct[]; page: number; totalPages: number; savedAt: number };
 const emptyLoadedPage: LoadedPage = { products: [], page: 0, totalPages: 0, savedAt: 0 };
@@ -39,6 +40,7 @@ export function CatalogResults({
   totalPages,
   totalProducts,
   hasError,
+  invalidSearch,
   firstPageHref,
 }: {
   products: CatalogProduct[];
@@ -46,6 +48,7 @@ export function CatalogResults({
   totalPages: number;
   totalProducts: number;
   hasError: boolean;
+  invalidSearch: boolean;
   firstPageHref: string;
 }) {
   const cacheKey = `${buildCatalogProductsQuery(query)}|${totalProducts}|${products.map((item) => item.id).join(",")}`;
@@ -105,10 +108,10 @@ export function CatalogResults({
         </ul>
       ) : (
         <EmptyState
-          icon={hasError ? "alert" : "search"}
-          tone={hasError ? "danger" : "default"}
-          title={hasError ? "Не удалось загрузить каталог" : "Ничего не найдено"}
-          text={hasError ? "Попробуйте обновить страницу немного позже" : "Попробуйте изменить категорию или фильтры"}
+          icon={hasError || invalidSearch ? "alert" : "search"}
+          tone={hasError || invalidSearch ? "danger" : "default"}
+          title={invalidSearch ? catalogSearchLimitMessage : hasError ? "Не удалось загрузить каталог" : "Ничего не найдено"}
+          text={invalidSearch ? "Сократите поисковый запрос" : hasError ? "Попробуйте обновить страницу немного позже" : "Попробуйте изменить категорию или фильтры"}
         />
       )}
       {addedProducts.length > 0 ? (

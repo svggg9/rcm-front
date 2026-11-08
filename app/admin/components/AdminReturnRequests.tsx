@@ -5,18 +5,23 @@ import { useFieldValidation } from "../../lib/useFieldValidation";
 import { scrollToFirstValidationError } from "../../lib/formValidation";
 import { MONEY_RULES, parseNumericInput } from "../../lib/numericInput";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
+import { Textarea } from "../../components/ui/Textarea";
 import { Button } from "../../components/ui/Button";
 import { StatusBadge } from "../../components/ui/StatusBadge";
+import { Loader } from "../../components/ui/Loader";
+import { RequestError } from "../../components/ui/RequestError";
 import { toast } from "../../components/ui/toast";
 import { OrderDetailSection } from "../../components/order-detail/OrderDetail";
+import { ReturnWorkflowSummary } from "../../components/order-detail/ReturnWorkflowSummary";
 import {
   getAdminOrderReturns,
   refundAdminReturn,
   returnReasonLabels,
   returnStatusLabels,
   reviewAdminReturn,
+  returnAction,
   type ReturnRequest,
 } from "../../lib/returns";
 import styles from "./AdminReturnRequests.module.css";
@@ -32,7 +37,7 @@ export function AdminReturnRequests({ orderId }: Props) {
   function validateAmounts(values: Record<number, string>) {
     const errors: Record<number, string> = {};
     for (const request of requests) {
-      if (request.status !== "INSPECTED" || request.refundId) continue;
+      if (!returnAction(request, "REFUND").allowed) continue;
       const amount = parseNumericInput(values[request.id] ?? "", MONEY_RULES);
       if (amount === null || !Number.isFinite(amount) || amount <= 0) errors[request.id] = "Укажите корректную сумму возврата";
       else if (request.requestedAmount && amount > request.requestedAmount) errors[request.id] = "Сумма возврата не может быть больше суммы позиции";
@@ -42,84 +47,109 @@ export function AdminReturnRequests({ orderId }: Props) {
   const amountValidation = useFieldValidation(refundAmounts, validateAmounts);
   const [busyId, setBusyId] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [requestOrderId, setRequestOrderId] = useState<number | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const generation = useRef<object>({});
+  const mutationPending = useRef(false);
+  const readState = useRef({ orderId, ready: false, loading: false });
 
-  useEffect(() => {
-    let cancelled = false;
-    void getAdminOrderReturns(orderId)
-      .then((items) => {
-        if (!cancelled) {
-          setRequests(items);
-          setRefundAmounts(
-            Object.fromEntries(
-              items.map((item) => [
-                item.id,
-                String(item.approvedRefundAmount ?? item.requestedAmount ?? ""),
-              ])
-            )
-          );
-        }
-      })
-      .catch(() => {
-        if (!cancelled) setRequests([]);
-      });
-    return () => {
-      cancelled = true;
-    };
+  const refresh = useCallback(async () => {
+    if (mutationPending.current || (readState.current.orderId === orderId && readState.current.loading)) return;
+    const current = {};
+    generation.current = current;
+    readState.current = { orderId, ready: false, loading: true };
+    setLoading(true);
+    try {
+      const items = await getAdminOrderReturns(orderId);
+      if (current !== generation.current) return;
+      setRequests(items);
+      setRequestOrderId(orderId);
+      // Polling and recovery must preserve amounts entered by the operator.
+      setRefundAmounts(values => Object.fromEntries(items.map(item => [item.id,
+        values[item.id] ?? String(item.approvedRefundAmount ?? item.requestedAmount ?? ""),
+      ])));
+      setLoadError(null);
+      readState.current.ready = true;
+    } catch {
+      if (current !== generation.current) return;
+      setLoadError("Не удалось проверить возвраты — обновите данные перед действием");
+    } finally {
+      if (current === generation.current) {
+        readState.current.loading = false;
+        setLoading(false);
+      }
+    }
   }, [orderId]);
 
   useEffect(() => {
-    let active = true;
-    let pending = false;
-    const refresh = async () => {
-      if (document.hidden || busyId !== null || pending) return;
-      pending = true;
-      try { const items = await getAdminOrderReturns(orderId); if (active) setRequests(items); }
-      catch { /* Keep loaded requests on a temporary polling failure. */ }
-      finally { pending = false; }
+    setBusyId(null);
+    setError(null);
+    void refresh();
+    const poll = () => { if (!document.hidden) void refresh(); };
+    const timer = setInterval(poll, 15000);
+    window.addEventListener("refund-operations-changed", poll);
+    return () => {
+      generation.current = {};
+      readState.current = { orderId, ready: false, loading: false };
+      mutationPending.current = false;
+      clearInterval(timer);
+      window.removeEventListener("refund-operations-changed", poll);
     };
-    const timer = setInterval(() => void refresh(), 15000);
-    window.addEventListener("refund-operations-changed", refresh);
-    return () => { active = false; clearInterval(timer); window.removeEventListener("refund-operations-changed", refresh); };
-  }, [orderId, busyId]);
+  }, [orderId, refresh]);
+
+  function canAct() {
+    return readState.current.orderId === orderId && readState.current.ready
+      && !readState.current.loading && !mutationPending.current;
+  }
+
+  async function mutate(request: ReturnRequest, operation: () => Promise<ReturnRequest>) {
+    if (!canAct()) return;
+    const current = generation.current;
+    mutationPending.current = true;
+    readState.current.ready = false;
+    setBusyId(request.id);
+    setError(null);
+    let confirmed = false;
+    try {
+      const updated = await operation();
+      if (current !== generation.current) return;
+      confirmed = true;
+      setRequests(items => items.map(item => item.id === updated.id ? updated : item));
+      toast.success(`Возврат №${updated.id}: ${returnStatusLabels[updated.status]}`, {
+        id: `admin-return-request-${request.id}`, description: undefined, action: undefined,
+      });
+      window.dispatchEvent(new Event("refund-operations-changed"));
+    } catch (failure) {
+      if (current !== generation.current) return;
+      setLoadError("Результат действия не подтверждён — обновите возвраты перед повтором");
+      toast.error(failure instanceof Error ? failure.message : "Не удалось подтвердить результат действия", {
+        id: `admin-return-request-${request.id}`,
+      });
+    } finally {
+      if (current === generation.current) {
+        mutationPending.current = false;
+        setBusyId(null);
+        if (confirmed) void refresh();
+      }
+    }
+  }
 
   async function review(
     request: ReturnRequest,
     decision: "approve" | "reject"
   ) {
-    if (busyId) return;
+    if (!canAct() || !returnAction(request, decision === "approve" ? "APPROVE" : "REJECT").allowed) return;
     if (decision === "reject" && !comments[request.id]?.trim()) {
       setError("Для отклонения укажите причину");
       return;
     }
 
-    setBusyId(request.id);
-    setError(null);
-    try {
-      const updated = await reviewAdminReturn(
-        request.id,
-        decision,
-        comments[request.id]
-      );
-      setRequests((current) =>
-        current.map((item) => (item.id === updated.id ? updated : item))
-      );
-      toast.success(`Возврат №${updated.id}: ${returnStatusLabels[updated.status]}`, {
-        id: `admin-return-request-${request.id}`, description: undefined, action: undefined,
-      });
-    } catch (reviewError) {
-      toast.error(
-        reviewError instanceof Error
-          ? reviewError.message
-          : "Не удалось рассмотреть заявку",
-        { id: `admin-return-request-${request.id}` }
-      );
-    } finally {
-      setBusyId(null);
-    }
+    await mutate(request, () => reviewAdminReturn(request.id, decision, comments[request.id]));
   }
 
   async function refund(request: ReturnRequest) {
-    if (busyId !== null) return;
+    if (!canAct() || !returnAction(request, "REFUND").allowed) return;
     amountValidation.touch(request.id);
     const amount = parseNumericInput(refundAmounts[request.id] ?? "", MONEY_RULES);
     if (validateAmounts(refundAmounts)[request.id] || amount === null) {
@@ -128,35 +158,25 @@ export function AdminReturnRequests({ orderId }: Props) {
       return;
     }
 
-    setBusyId(request.id);
-    setError(null);
-    try {
-      const updated = await refundAdminReturn(request.id, amount);
-      window.dispatchEvent(new Event("refund-operations-changed"));
-      setRequests((current) =>
-        current.map((item) => (item.id === updated.id ? updated : item))
-      );
-      toast.success(`Возврат №${updated.id}: ${returnStatusLabels[updated.status]}`, {
-        id: `admin-return-request-${request.id}`, description: undefined, action: undefined,
-      });
-    } catch (refundError) {
-      toast.error(
-        refundError instanceof Error
-          ? refundError.message
-          : "Не удалось провести возврат денег",
-        { id: `admin-return-request-${request.id}` }
-      );
-    } finally {
-      setBusyId(null);
-    }
+    await mutate(request, () => refundAdminReturn(request.id, amount));
   }
 
-  if (requests.length === 0) return null;
+  async function syncRefund(request: ReturnRequest) {
+    if (!canAct() || !returnAction(request, "SYNC_REFUND").allowed) return;
+    await mutate(request, () => refundAdminReturn(request.id));
+  }
+
+  const visibleRequests = requestOrderId === orderId ? requests : [];
+  const actionsDisabled = requestOrderId !== orderId || loading || !!loadError || busyId !== null;
+  if (visibleRequests.length === 0 && requestOrderId === orderId && !loading && !loadError) return null;
 
   return (
     <OrderDetailSection title="Возвраты">
       <div className={styles.list}>
-        {requests.map((request) => (
+        {loading ? <Loader inline label="Проверка возвратов" /> : null}
+        {loadError ? <RequestError variant="inline" message={loadError} loading={loading}
+          disabled={busyId !== null} onRetry={refresh} /> : null}
+        {visibleRequests.map((request) => (
         <article key={request.id} className={styles.card}>
           <div className={styles.header}>
             <div>
@@ -189,6 +209,7 @@ export function AdminReturnRequests({ orderId }: Props) {
           </dl>
 
           {request.comment ? <p>{request.comment}</p> : null}
+          <ReturnWorkflowSummary workflow={request.workflow} onRefresh={() => void refresh()} />
 
           {request.photoUrls.length > 0 ? (
             <div className={styles.photos}>
@@ -200,34 +221,21 @@ export function AdminReturnRequests({ orderId }: Props) {
             </div>
           ) : null}
 
-          {request.status === "SUBMITTED" ||
-          request.status === "REQUESTED" ? (
+          {returnAction(request, "APPROVE").allowed || returnAction(request, "REJECT").allowed ? (
             <div className={styles.review}>
-              <label data-ui="field">
-                <span>Комментарий администратора</span>
-                <textarea
-                  value={comments[request.id] ?? ""}
-                  onChange={(event) =>
-                    setComments((current) => ({
-                      ...current,
-                      [request.id]: event.target.value,
-                    }))
-                  }
-                  maxLength={1000}
-                />
-              </label>
+              <Textarea label="Комментарий администратора" value={comments[request.id]??""} onChange={event=>setComments(current=>({...current,[request.id]:event.target.value}))} maxLength={1000} />
               <div className={styles.actions}>
                 <Button
                   variant="primary"
                   onClick={() => void review(request, "approve")}
-                  disabled={busyId === request.id}
+                  disabled={actionsDisabled || !returnAction(request, "APPROVE").allowed}
                 >
                   Одобрить
                 </Button>
                 <Button
                   variant="danger"
                   onClick={() => void review(request, "reject")}
-                  disabled={busyId === request.id}
+                  disabled={actionsDisabled || !returnAction(request, "REJECT").allowed}
                 >
                   Отклонить
                 </Button>
@@ -235,7 +243,7 @@ export function AdminReturnRequests({ orderId }: Props) {
             </div>
           ) : null}
 
-          {request.status === "INSPECTED" && !request.refundId ? (
+          {returnAction(request, "REFUND").allowed ? (
             <div className={styles.review}>
               <NumericField label="Сумма возврата" {...MONEY_RULES}
                   id={"refund-amount-" + request.id} error={amountValidation.errors[request.id]}
@@ -258,7 +266,7 @@ export function AdminReturnRequests({ orderId }: Props) {
                         [request.id]: String(request.requestedAmount),
                       }))
                     }
-                    disabled={busyId === request.id}
+                    disabled={actionsDisabled}
                   >
                     Полная сумма
                   </Button>
@@ -266,13 +274,15 @@ export function AdminReturnRequests({ orderId }: Props) {
                 <Button
                   variant="primary"
                   onClick={() => void refund(request)}
-                  disabled={busyId === request.id}
+                  disabled={actionsDisabled}
                 >
                   Создать запрос возврата
                 </Button>
               </div>
             </div>
           ) : null}
+          {returnAction(request, "SYNC_REFUND").allowed ? <Button variant="secondary" disabled={actionsDisabled}
+            onClick={() => void syncRefund(request)}>Сверить возврат денег</Button> : null}
           {request.status === "REFUND_PENDING" ? <p role="status">Запрос возврата создан. Проверьте отправку и подтверждение в очереди возвратов{request.refundId ? `: №${request.refundId}` : ""}</p> : null}
         </article>
         ))}

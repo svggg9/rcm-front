@@ -1,12 +1,13 @@
 "use client";
 
+import { buildOrderStatusLabel as commonOrderStatusLabel } from "../lib/order-presentation";
+
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import dynamic from "next/dynamic";
 import { toast } from "@/app/components/ui/toast";
 
 import { apiFetch, API_URL } from "../lib/api";
-import { logout as logoutAuth } from "../lib/auth";
 import { useSessionResourceCache } from "../lib/useSessionResourceCache";
 import { RequestError } from "../components/ui/RequestError";
 
@@ -89,8 +90,6 @@ function formatPaymentStatus(status: PaymentStatus): string {
       return "Оплачен";
     case "FAILED":
       return "Ошибка оплаты";
-    case "CANCELED":
-      return "Оплата отменена";
     case "REFUNDED":
       return "Возвращён";
     default:
@@ -119,29 +118,8 @@ function formatDeliveryStatus(status: DeliveryStatus): string {
   }
 }
 
-function buildOrderStatusLabel(order: Order | OrderListItem): string {
-  if (order.status === "CANCELED") return "Отменён";
-  if (order.paymentStatus === "CANCELED") return "Оплата отменена";
-  if (order.deliveryStatus === "CANCELLED") return "Отменён";
-  if (order.paymentStatus === "FAILED") return "Ошибка оплаты";
-  if (
-    order.paymentStatus === "REFUNDED" ||
-    order.deliveryStatus === "RETURNED"
-  ) {
-    return "Возвращён";
-  }
-  if (order.paymentStatus === "PENDING") return "Ожидает оплаты";
-  if (order.deliveryStatus === "DELIVERED") return "Доставлен";
-  if (order.deliveryStatus === "READY_FOR_PICKUP") return "Ожидает получения";
-  if (order.deliveryStatus === "IN_TRANSIT") return "В пути";
-  if (order.deliveryStatus === "READY_FOR_SHIPMENT")
-    return "Готовится к отправке";
-  if (order.paymentStatus === "PAID" && order.deliveryStatus === "PENDING") {
-    return "Оформление доставки";
-  }
 
-  return formatOrderStatus(order.status);
-}
+const buildOrderStatusLabel = (order: Parameters<typeof commonOrderStatusLabel>[0]) => commonOrderStatusLabel(order, "Готовится к отправке");
 
 type Props = {
   initialMe: Me;
@@ -422,12 +400,6 @@ function AccountPageContent({
     }
   }
 
-  async function logout() {
-    await logoutAuth();
-    router.replace("/");
-    router.refresh();
-  }
-
   function openOrder(orderId: number, from: "orders" | "returns" = "orders") {
     ordersScroll.current = window.scrollY;
     prefetchOrderDetails(orderId);
@@ -482,7 +454,7 @@ function AccountPageContent({
   const orderId = selectedOrderId && Number.isInteger(Number(selectedOrderId)) && Number(selectedOrderId) > 0 ? Number(selectedOrderId) : null;
   const currentDetailsError = detailsError?.orderId === orderId ? detailsError.message : null;
 
-  return <AccountFrame currentTab={currentTab} orderId={orderId} showSellerCabinet={Boolean(me?.sellerApproved)} onNavigate={navigateAccount} onLogout={() => void logout()}>
+  return <AccountFrame currentTab={currentTab} orderId={orderId} showSellerCabinet={Boolean(me?.sellerApproved)} onNavigate={navigateAccount}>
       {currentTab === "orders" || visitedTabs.has("orders") ? <div hidden={currentTab !== "orders"} aria-busy={detailsLoading || ordersLoadingMore}>
         {selectedOrder && selectedOrder.id === Number(selectedOrderId) ? <AccountOrderDetails key={selectedOrder.id} order={selectedOrder} onOrderUpdated={updateOrder} formatOrderStatus={formatOrderStatus} formatPaymentStatus={formatPaymentStatus} formatDeliveryStatus={formatDeliveryStatus} buildOrderStatusLabel={buildOrderStatusLabel} />
           : orderId && currentDetailsError ? <div className={styles.ordersContent}><RequestError message={currentDetailsError} text="Попробуйте ещё раз немного позже" loading={detailsLoading} onRetry={() => {
