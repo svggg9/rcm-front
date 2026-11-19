@@ -53,7 +53,10 @@ const server = http.createServer(async (req, res) => {
   const values = body && req.headers["content-type"]?.includes("application/json") ? JSON.parse(body) : null;
   if (values) call.values = values;
   const writing = ["POST", "PUT", "DELETE"].includes(req.method) && url.pathname.includes("/products/");
-  if (writing && failWrites) { res.statusCode = 503; return res.end(JSON.stringify({ message: "Сервер временно недоступен" })); }
+  if (writing && failWrites) {
+    if (delayWrite) await new Promise(resolve => setTimeout(resolve, delayWrite));
+    res.statusCode = 503; return res.end(JSON.stringify({ message: "Сервер временно недоступен" }));
+  }
   let data = [];
   if (url.pathname === "/api/auth/session") data = { id: 70, username: "seller", role: "SELLER" };
   else if (url.pathname === "/api/profile") data = { displayName: "Продавец", email: "seller@example.test" };
@@ -96,13 +99,17 @@ const server = http.createServer(async (req, res) => {
   res.end(JSON.stringify(data));
 });
 const form = page => page.locator("section[data-editor-page]");
-const titleTrigger = page => form(page).getByRole("button", { name: /^Изменить название товара:/ });
-async function title(page, value) {
-  await titleTrigger(page).click();
-  await page.getByRole("textbox", { name: "Название товара", exact: true }).fill(value);
-  await page.getByRole("textbox", { name: "Название товара", exact: true }).press("Tab");
+async function openSection(page, id) {
+  const section = page.locator('#' + id);
+  if (await section.getAttribute('open') === null) await section.locator(':scope > summary').click();
 }
-async function saved(page) { await form(page).getByRole("status").filter({ hasText: "Все изменения сохранены" }).waitFor(); }
+async function title(page, value) {
+  await openSection(page, 'product-general');
+  const field = page.locator('#product-general').getByRole('textbox', { name: /^Название товара/ });
+  await field.fill(value);
+  await field.press('Tab');
+}
+async function saved(page) { await form(page).locator('[data-state="saved"]').waitFor(); }
 const createdCount = () => creationKeys.size;
 async function waitUntil(predicate) {
   const until = Date.now() + 20000;
@@ -137,6 +144,7 @@ async function main() {
     delayWrite = 800;
     await title(page, "Первая карточка");
     await waitUntil(() => createdCount() === 1);
+    await openSection(page, 'product-description');
     const description = page.getByRole("textbox", { name: "Описание товара", exact: true });
     assert.equal(await description.isEnabled(), true, "Typing remains available during background saving");
     await description.fill("Продолжаю ввод во время сохранения");
@@ -146,7 +154,15 @@ async function main() {
     assert.equal(products.get(501).description, "Продолжаю ввод во время сохранения");
     assert.equal(createdCount(), 1);
     await page.reload(); await form(page).waitFor(); await page.waitForLoadState("networkidle");
+    await openSection(page, 'product-description');
     assert.equal(await description.inputValue(), "Продолжаю ввод во время сохранения");
+    const titleField = page.locator('#product-general').getByRole('textbox', { name: /^Название товара/ });
+    await titleField.fill('Новое название перед выходом');
+    await form(page).getByRole('button', { name: 'Товары', exact: true }).click();
+    await page.waitForURL(url => url.pathname === '/seller/products');
+    assert.equal(products.get(501).title, 'Новое название перед выходом', 'Closing immediately flushes the edited title');
+    await page.goto(origin + '/seller/products/501/create'); await form(page).waitFor();
+    await openSection(page, 'product-description');
     delayWrite = 800;
     await description.fill("Сохранено при выходе"); await description.press("Tab");
     await waitUntil(() => calls.some(call => call.method === "PUT" && call.values?.description === "Сохранено при выходе"));
@@ -165,6 +181,7 @@ async function main() {
     await form(page).getByRole("button", { name: "Повторить сохранение" }).click(); await saved(page);
     assert.equal(createdCount(), 2, "Lost creation response retry uses the same key");
     await page.waitForURL(/\/products\/502\/create/);
+    await openSection(page, 'product-description');
     failWrites = true;
     await description.fill("Несохранённый текст"); await description.press("Tab");
     await form(page).getByRole("status").filter({ hasText: "Не удалось сохранить" }).waitFor();
@@ -172,8 +189,18 @@ async function main() {
     const warning = page.getByRole("dialog", { name: "Есть несохранённые изменения" }); await warning.waitFor();
     await warning.getByRole("button", { name: "Вернуться к редактированию" }).click();
     assert.equal(await description.inputValue(), "Несохранённый текст");
+    const retry = form(page).getByRole("button", { name: "Повторить сохранение" });
+    assert.equal(await retry.getAttribute("data-failure"), null, "A background autosave failure must not animate the retry button");
+    delayWrite = 350;
+    await retry.click();
+    await form(page).locator('button[data-loading="true"]').waitFor();
+    await form(page).locator('button[data-failure="true"]').waitFor();
+    assert.equal(await description.inputValue(), "Несохранённый текст", "Failed manual retry preserves unsaved edits");
+    await form(page).locator('button[data-failure="true"]').waitFor({ state: "hidden" });
+    assert.equal(await retry.isEnabled(), true, "The retry button becomes available after the error feedback");
+    delayWrite = 0;
     failWrites = false;
-    await form(page).getByRole("button", { name: "Повторить сохранение" }).click(); await saved(page);
+    await retry.click(); await saved(page);
     assert.equal(products.get(502).description, "Несохранённый текст");
     const beforePublish = calls.filter(call => call.path.endsWith("/publish")).length;
     await form(page).getByRole("button", { name: "Отправить на модерацию" }).click();
@@ -187,6 +214,7 @@ async function main() {
     await page.reload(); await form(page).waitFor(); await page.waitForLoadState("networkidle");
     assert.equal(products.get(502).imageItems.length, 1, "Photo survives refresh without re-upload");
     const beforeBack = page.url();
+    await openSection(page, 'product-description');
     await description.fill("Сохранено при Back");
     await page.evaluate(() => history.back());
     await page.waitForURL(url => url.href !== beforeBack);
@@ -194,9 +222,11 @@ async function main() {
     console.log("PASS: lost response idempotency, failed save/close guard, retry and moderation validation");
 
     await page.goto(origin + "/seller/products/401/create"); await form(page).waitFor(); await page.waitForLoadState("networkidle");
-    const price = page.getByRole("textbox", { name: /^Цена(?::| товара$)/ });
+    await openSection(page, 'product-step-variants');
+    await openSection(page, 'product-description');
+    const price = page.getByRole("textbox", { name: "Цена товара, ₽", exact: true });
     await price.fill("150"); await price.press("Tab");
-    await form(page).getByRole("status").filter({ hasText: "Цены и остатки ожидают сохранения" }).waitFor();
+    await form(page).getByRole("status").filter({ hasText: "Цены и остатки не сохранены" }).waitFor();
     assert.equal(products.get(401).variants[0].price, 100, "Revision autosave never applies live operational changes");
     await description.fill("Новое описание опубликованного товара"); await description.press("Tab");
     await waitUntil(() => products.get(401).description === "Новое описание опубликованного товара");
@@ -216,7 +246,8 @@ async function main() {
     }
     await page.goto(origin + "/seller/products/400/edit");
     const activeEditor = page.locator("dialog[open]").first(); await activeEditor.waitFor(); await page.waitForLoadState("networkidle");
-    const livePrice = activeEditor.getByRole("textbox", { name: /^Цена(?::| товара$)/ });
+    await openSection(page, 'product-step-variants');
+    const livePrice = activeEditor.getByRole("textbox", { name: "Цена товара, ₽", exact: true });
     await livePrice.fill("175"); await livePrice.press("Tab");
     await page.waitForTimeout(1200);
     assert.ok(products.get(400).variants.every(variant => variant.price === 100), "ACTIVE operational fields never autosave");
@@ -230,7 +261,8 @@ async function main() {
     assert.deepEqual(errors, []);
     console.log("PASS: revision content autosave and explicit prices/stock, 320/390/1280, no browser errors; fixture only");
     await page.goto(origin + '/seller/products/402/create'); await form(page).waitFor();
-    const legacyPrice = page.getByRole('textbox', { name: 'Цена товара', exact: true });
+    await openSection(page, 'product-step-variants');
+    const legacyPrice = page.getByRole('textbox', { name: 'Цена товара, ₽', exact: true });
     assert.equal(await legacyPrice.inputValue(), '');
     await legacyPrice.fill('180'); await legacyPrice.press('Tab');
     await form(page).locator('[data-state="error"]').waitFor();
@@ -257,7 +289,7 @@ async function main() {
     if (includes.length !== config.include.length) fs.writeFileSync(configPath, JSON.stringify({ ...config, include: includes }, null, 2) + "\n");
     const nextEnvPath = path.resolve("next-env.d.ts");
     const nextEnv = fs.readFileSync(nextEnvPath, "utf8");
-    if (nextEnv.includes("build/product-autosave-next/")) fs.writeFileSync(nextEnvPath, nextEnv.replace("./build/product-autosave-next/dev/types/routes.d.ts", "./.next/dev/types/routes.d.ts"));
+    if (nextEnv.includes("./build/product-autosave-next/dev/types/")) fs.writeFileSync(nextEnvPath, nextEnv.replaceAll("./build/product-autosave-next/dev/types/", "./.next/dev/types/"));
   }
 }
 main().catch(error => { console.error(error); process.exitCode = 1; });

@@ -16,13 +16,22 @@ new Function("module", "exports", "require", code)(testModule, testModule.export
 const { toast, TOAST_DURATION } = testModule.exports;
 for (const type of ["error", "success", "warning", "info", "message"]) {
   assert.equal(toast[type]("Сообщение"), 42);
+  assert.equal(calls.at(-1).type, type);
   assert.equal(calls.at(-1).args[1].duration, 4000, `${type} must expire, including validation errors`);
 }
+assert.equal(calls.at(-1).args[1].type, "normal", "message must reset a reused typed id to neutral");
+assert.equal(toast("Простое сообщение"), 42);
+assert.equal(calls.at(-1).type, "message");
+assert.equal(calls.at(-1).args[1].type, "normal");
 assert.equal(TOAST_DURATION, 4000);
-toast.error("Ошибка", { id: "cart-add-407", duration: 7000, onDismiss() {} });
+const action = { label: "Повторить", onClick() {} };
+toast.error("Ошибка", { id: "cart-add-407", duration: 7000, description: "Попробуйте ещё раз", action, toasterId: "editor", onDismiss() {} });
 assert.equal(calls.at(-1).args[1].id, "cart-add-407");
 assert.equal(calls.at(-1).args[1].duration, 7000);
+assert.equal(calls.at(-1).args[1].description, "Попробуйте ещё раз");
+assert.equal(calls.at(-1).args[1].action, action);
+assert.equal(calls.at(-1).args[1].toasterId, "editor");
 assert.equal(typeof calls.at(-1).args[1].onDismiss, "function");
 toast.dismiss("cart-add-407");
 assert.deepEqual(calls.at(-1), { type: "dismiss", args: ["cart-add-407"] });
-console.log("Toast: errors expire, explicit options and targeted dismissal preserved");
+console.log("Toast: neutral type, durations, editor/action options and targeted dismissal preserved");

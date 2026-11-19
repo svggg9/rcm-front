@@ -1,11 +1,12 @@
 import Image from "next/image";
 import Link from "next/link";
+import { PhotoPlaceholder } from "../../components/ui/PhotoPlaceholder";
 import { Price } from "../../components/ui/Price";
 import { productPath } from "../../lib/productUrls";
 import type { OrderItem } from "../types";
 import styles from "./AccountCommerce.module.css";
 export function AccountProductRow({item,children,linked=true}:{item:OrderItem;children?:React.ReactNode;linked?:boolean}){
-  const content=<><div className={styles.image}>{item.imageUrl?<Image src={item.imageUrl} alt={item.productTitle} width={144} height={192}/>:null}</div><div className={styles.productInfo}>
+  const content=<><div className={styles.image}>{item.imageUrl?<Image src={item.imageUrl} alt={item.productTitle} width={144} height={192}/>:<PhotoPlaceholder />}</div><div className={styles.productInfo}>
     {item.brandName?<span className={styles.brand}>{item.brandName}</span>:null}
     <span className={styles.productTitle}>{item.productTitle}</span><span className={styles.price}><Price amount={item.lineTotal}/></span>
     <span className={styles.variant}>{[item.size,item.color].filter(Boolean).join(" | ")}</span>

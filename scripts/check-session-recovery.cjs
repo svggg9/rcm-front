@@ -143,6 +143,7 @@ async function checkConsumers() {
   global.window = new EventTarget(); const f = hooks(); let sessionFailure = false, apiFailure = false, ids = [7], guestIds = [99, 100, 101], publicIds = [99, 101, 777], guestWrites = 0, writes = 0;
   identity = { user: user(1), loading: false, hasResolved: true, error: null, revision: 0 };
   const provider = load("app/lib/FavoritesContext.tsx", { react: f.react, "react/jsx-runtime": jsx, "next/navigation": { usePathname: () => "/catalog" },
+    "../components/BuyerNavigation/useFavoriteFlight": { useFavoriteFlight: ids => ({ displayCount: ids.length, pulseKey: 0, pulseTarget: null, startFlight() {}, cancelFlight() {}, flightLayer: null }) },
     "./useCurrentUser": { useCurrentUser: () => identity }, "./apiErrors": errors,
     "./client-session": { getClientSession: async () => { if (sessionFailure) throw new errors.ApiRequestError("unavailable", "http", 503); return identity.user; }, getClientSessionRevision: () => identity.revision },
     "./api": { API_URL: "", apiFetch: async (url, options) => { if (options?.method) writes++; return apiFailure ? Response.json({}, { status: 502 }) : Response.json(url.includes("/public-by-ids") ? publicIds.map(id => ({ id })) : ids); } },
@@ -167,6 +168,9 @@ async function checkConsumers() {
   assert.deepEqual(view.favoriteIds, [101], "Guest mutation must not temporarily restore hidden IDs to the badge");
   assert.equal(view.count, 1);
   publicIds = []; await view.refresh(); view = await f.flush(render); assert.equal(view.count, 0, "A successful empty list hides the badge");
+  publicIds = [407]; await view.toggle(407); view = await f.flush(render);
+  assert.deepEqual(view.favoriteIds, [407], "A newly added public guest favorite remains confirmed after refresh");
+  assert.equal(view.count, 1);
   console.log("PASS: cart/favorite counts survive same-user failures, unknown session cannot write guest favorites, account switch clears displayed private state and recovers");
 
   const storage = new Map([["guest_favorite_ids", JSON.stringify([7, 7, 0, -1, 1.5, "8", null, Number.MAX_SAFE_INTEGER + 1])]]);
@@ -179,4 +183,46 @@ async function checkConsumers() {
   console.log("PASS: favorites badge follows public products, preserves unpublished saves and last confirmed count, and ignores duplicate/invalid guest IDs");
 }
 
-(async () => { await checkSession(); await checkCart(); await checkConsumers(); })().catch(error => { console.error(error); process.exitCode = 1; });
+async function checkFavoriteFlight() {
+  const oldWindow = global.window, oldDocument = global.document;
+  const fakeWindow = new EventTarget(), fakeDocument = new EventTarget(), motion = new EventTarget();
+  motion.matches = false;
+  Object.assign(fakeWindow, { innerWidth: 1000, innerHeight: 800, matchMedia: () => motion,
+    getComputedStyle: () => ({ display: "block", visibility: "visible" }), setTimeout, clearTimeout });
+  const rect = { left: 20, top: 20, right: 44, bottom: 44, width: 24, height: 24 };
+  const target = { isConnected: true, getBoundingClientRect: () => rect, getAttribute: () => "desktop" };
+  Object.assign(fakeDocument, { visibilityState: "visible", body: {}, querySelectorAll: () => [target] });
+  global.window = fakeWindow; global.document = fakeDocument;
+  try {
+    const h = hooks(); let ids = [], revision = 0;
+    const { useFavoriteFlight } = load("app/components/BuyerNavigation/useFavoriteFlight.tsx", {
+      react: h.react, "react/jsx-runtime": jsx, "react-dom": { createPortal: children => children },
+      "./FavoriteFlight.module.css": { default: { heart: "heart" } },
+    });
+    const render = () => useFavoriteFlight(ids, revision);
+    let view = await h.flush(render);
+    view.startFlight(7, target); ids = [7]; view = h.render(render);
+    assert.equal(view.displayCount, 0, "A confirmed addition remains visually pending until the flight ends");
+    assert.equal(view.flightLayer.length, 1);
+    view.flightLayer[0].props.onAnimationEnd(); view = h.render(render);
+    assert.equal(view.displayCount, 1); assert.notEqual(view.pulseKey, 0);
+
+    view.startFlight(8, target); ids = [7, 8]; view = h.render(render);
+    assert.equal(view.displayCount, 1);
+    const obsolete = view.flightLayer[0]; view.cancelFlight(8); ids = [7]; obsolete.props.onAnimationEnd(); view = h.render(render);
+    assert.equal(view.displayCount, 1, "Removing during flight cancels its pending count");
+    motion.matches = true; view.startFlight(9, target); ids = [7, 9]; view = h.render(render);
+    assert.equal(view.displayCount, 2, "Reduced motion does not delay confirmed counts");
+    motion.matches = false; view.startFlight(10, target); ids = [7, 9, 10]; view = h.render(render);
+    assert.equal(view.displayCount, 2);
+    fakeDocument.visibilityState = "hidden"; fakeDocument.dispatchEvent(new Event("visibilitychange")); view = h.render(render);
+    assert.equal(view.displayCount, 3, "A hidden tab flushes pending counts");
+    revision++; await h.flush(render);
+    console.log("PASS: favorite count waits for flight, cancellation and reduced motion preserve confirmed values");
+  } finally {
+    fakeDocument.visibilityState = "hidden"; fakeDocument.dispatchEvent(new Event("visibilitychange"));
+    global.window = oldWindow; global.document = oldDocument;
+  }
+}
+
+(async () => { await checkSession(); await checkCart(); await checkConsumers(); await checkFavoriteFlight(); })().catch(error => { console.error(error); process.exitCode = 1; });

@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { InputControl, type InputControlProps } from "./InputControl";
 import { stripInputWhitespace } from "../../lib/inputWhitespace";
 import { formatNumericInput, isNumericDraft, numericInputError, parseNumericInput, type NumericRules } from "../../lib/numericInput";
+import styles from "./NumericInput.module.css";
 
 export type NumericInputProps = Omit<InputControlProps, "type" | "inputMode" | "value" | "defaultValue" | "min" | "max" | "step" | "ref"> & NumericRules & {
   value?: string | number | null;
@@ -13,10 +14,12 @@ export type NumericInputProps = Omit<InputControlProps, "type" | "inputMode" | "
   onValueChange?: (value: number | null) => void;
   /** Visible internal validation, after blur or an explicit validation attempt. */
   onValidationChange?: (message: string) => void;
+  /** Visual unit shown immediately after the entered value. Include the unit in the accessible label. */
+  suffix?: string;
 };
 
 /** Shared raw/numeric input. The named form value is canonical, with a dot separator. */
-export function NumericInput({ value, defaultValue, emptyZero = false, fractionDigits = 2, min = 0, max, onValueChange,
+export function NumericInput({ value, defaultValue, emptyZero = false, fractionDigits = 2, min = 0, max, onValueChange, suffix,
   onValidationChange, onChange, onBlur, onBeforeInput, onPaste, name, form, disabled, ...props }: NumericInputProps) {
   const initialValue = value === undefined ? defaultValue : value;
   const [state, setState] = useState({ value, text: emptyZero && initialValue === 0 ? "" : formatNumericInput(initialValue) });
@@ -45,8 +48,7 @@ export function NumericInput({ value, defaultValue, emptyZero = false, fractionD
     return isNumericDraft(text.slice(0, start) + stripInputWhitespace(raw) + text.slice(end), fractionDigits);
   }
 
-  return <>
-    <InputControl {...props} ref={inputRef} name={undefined} form={form} disabled={disabled} type="text"
+  const input = <InputControl {...props} ref={inputRef} name={undefined} form={form} disabled={disabled} type="text"
       inputMode={fractionDigits ? "decimal" : "numeric"} value={text} aria-invalid={externallyInvalid || !!visibleError || undefined}
       onBeforeInput={event => {
         onBeforeInput?.(event);
@@ -76,7 +78,14 @@ export function NumericInput({ value, defaultValue, emptyZero = false, fractionD
         setTouched(true);
         if (parsed !== null && Number.isFinite(parsed)) setState(current => ({ ...current, text: formatNumericInput(parsed) }));
         onBlur?.(event);
-      }} />
+      }} />;
+  return <>
+    {suffix ? <span className={styles.withSuffix}>
+      {input}
+      {text && <span className={styles.suffixPosition} aria-hidden="true">
+        <span className={styles.measure}>{text}</span><span className={styles.suffix}>{suffix}</span>
+      </span>}
+    </span> : input}
     {name ? <input type="hidden" name={name} form={form} disabled={disabled} value={parsed === null || !Number.isFinite(parsed) ? "" : String(parsed)} /> : null}
   </>;
 }

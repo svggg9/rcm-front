@@ -12,8 +12,6 @@ import { ProductShowcase } from "../../components/ProductShowcase/ProductShowcas
 
 import { ProductGallery } from "./components/ProductGallery";
 import { ProductInfoPanel } from "./components/ProductInfoPanel";
-import { ProductDetailsAccordion } from "./components/ProductDetailsAccordion";
-import { productColorPath } from "../../lib/productUrls";
 
 import type { Product } from "./lib/types";
 import { useCurrentUser } from "../../lib/useCurrentUser";
@@ -226,14 +224,15 @@ export default function ProductPageClient({
     }
   }
 
-  async function handleToggleFavorite() {
+  async function handleToggleFavorite(event: React.MouseEvent<HTMLButtonElement>) {
     if (favoriteInFlightRef.current) return;
+    const origin = event.currentTarget;
 
     favoriteInFlightRef.current = true;
 
     try {
       setFavoritePending(true);
-      await toggle(product.id);
+      await toggle(product.id, origin);
 
       toast.success(isFav ? "Удалено из избранного" : "Добавлено в избранное");
     } catch (error) {
@@ -303,10 +302,6 @@ export default function ProductPageClient({
               onChangeColorway={handleChangeColorway}
             />
           </div>
-
-          <ProductDetailsAccordion product={product} brandHref={product.brandSlug
-            ? `/brand/${product.brandSlug}?returnTo=${encodeURIComponent(productColorPath(product, selectedColorwayId))}`
-            : null} />
 
           <ProductShowcase
             className={styles.relatedSection}

@@ -11,6 +11,7 @@ import { toast } from "@/app/components/ui/toast";
 import { Button } from "../../components/ui/Button";
 import { EditorSurface } from "../../components/ui/EditorSurface";
 import { DesignSystemIcon } from "../../components/ui/DesignSystemIcon";
+import { PhotoPlaceholder } from "../../components/ui/PhotoPlaceholder";
 import { FormMultiSelect } from "../../components/ui/FormMultiSelect";
 import { ProductSelectionOrder } from "../../components/ui/ProductSelectionOrder";
 import { TextInput } from "../../components/ui/TextInput";
@@ -445,7 +446,7 @@ export function SellerStorefrontCollections({ brandId, renderPanel }: Props) {
                     {product.coverImage ? (
                       <Image src={product.coverImage} alt="" fill sizes="72px" />
                     ) : (
-                      <DesignSystemIcon name="package" role="utility" />
+                      <PhotoPlaceholder />
                     )}
                   </span>
                 ))}

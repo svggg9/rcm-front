@@ -5,9 +5,9 @@
   --field-control-height: 44px;
   --field-control-large-height: 48px;
   --field-readonly-background: var(--soft);
-  --field-disabled-background: var(--control-disabled-bg);
-  --field-disabled-color: var(--control-disabled-text);
-  --field-disabled-border: var(--control-disabled-border);
+  --field-disabled-background: #fff;
+  --field-disabled-color: #8b8b8b;
+  --field-disabled-border: #e5e5e5;
   --field-control-padding-inline: 15px;
   --field-control-padding-block: 12px;
   --field-control-weight: 400;
@@ -15,32 +15,34 @@
   --field-disabled-opacity: 0.55;
   --field-focus-width: 1px;
   --field-focus-offset: 2px;
+  --field-focus-background: #deddd8;
   --field-inline-height: 29px;
   --field-inline-select-height: 27px;
   --field-inline-gap: 7px;
   --control-disabled-opacity: 0.45;
-  --control-disabled-bg: #eeeeee;
-  --control-disabled-text: #737373;
-  --control-disabled-border: #d1d1d1;
+  --control-disabled-bg: var(--soft);
+  --control-disabled-text: color-mix(in srgb, var(--black) 58%, var(--white));
+  --control-disabled-border: var(--palette-soft-grey);
   --scrollbar-thumb: color-mix(in srgb, var(--black) 35%, var(--white));
   --popover-title-size: 17px;
-  --settings-title-size: var(--font-lg);
-  --settings-title-line: 27px;
-  --settings-title-weight: var(--type-section-weight);
+  --settings-title-size: var(--type-h6-size);
+  --settings-title-line: var(--type-h6-line);
+  --settings-title-weight: var(--type-heading-weight);
 
-  --black: #111111;
-  --white: #ffffff;
+  --black: #121213;
+  --white: #fafaf9;
+  --palette-soft-grey: #d3d3cf;
   --black-soft: var(--button-primary-bg);
-  --button-primary-bg: #2c2c2c;
-  --button-primary-hover: #3b3b3b;
+  --button-primary-bg: #2f2f2e;
+  --button-primary-hover: color-mix(in srgb, var(--button-primary-bg) 90%, var(--white));
   --button-radius: 0;
   --button-height: 44px;
-  --button-line-height: 21px;
+  --button-line-height: var(--type-button-1-line);
   --button-weight: 600;
   --button-padding-inline: 16px;
   --button-compact-height: 36px;
-  --button-compact-size: 13px;
-  --button-compact-line-height: 20px;
+  --button-compact-size: var(--type-button-2-size);
+  --button-compact-line-height: var(--type-button-2-line);
   --button-compact-padding-inline: 12px;
   --button-touch-height: 44px;
   --button-large-height: 48px;
@@ -54,15 +56,15 @@
   --button-danger-hover: color-mix(in srgb, var(--error) 20%, var(--white));
   --black-muted: var(--black);
   --black-line: var(--black);
-  --black-surface: #f4f4f4;
+  --black-surface: color-mix(in srgb, var(--palette-soft-grey) 20%, var(--white));
   --black-surface-hover: var(--black-surface);
   --state-text-color: var(--black);
 
-  --gold: #b08d57;
-  --gold-light: #f6eddc;
-  --gold-border: #d9c29a;
-  --gold-muted: #a89066;
-  --gold-deep: #7a613a;
+  --gold: #bfa26f;
+  --gold-light: color-mix(in srgb, var(--gold) 15%, var(--white));
+  --gold-border: color-mix(in srgb, var(--gold) 50%, var(--white));
+  --gold-muted: var(--black);
+  --gold-deep: var(--black);
   --brand-yandex: #fc3f1d;
   --required-mark: var(--gold-deep);
 
@@ -83,12 +85,14 @@
   --content-primary-hover-label: var(--black);
   --content-primary-hover-icon: var(--black);
   --surface-hover: var(--black-surface-hover);
+  --photo-placeholder-bg: var(--soft);
+  --photo-placeholder-icon: color-mix(in srgb, var(--black) 60%, var(--white));
 
   --skeleton-base: #eeeeec;
   --skeleton-highlight: rgb(255 255 255 / 72%);
   --skeleton-duration: 1.25s;
 
-  --input-border-color: #111111;
+  --input-border-color: var(--black);
   --field-label-weight: 500;
 
   --success: #216a43;
@@ -97,11 +101,12 @@
   --error: #9b2c2c;
 
   --feedback-info-color: var(--black);
+  --feedback-warning-icon: #a95800;
   --feedback-info-bg: var(--soft);
   --feedback-success-bg: #eef7f1;
   --feedback-warning-bg: var(--gold-light);
   --feedback-danger-bg: color-mix(in srgb, var(--error) 12%, var(--white));
-  --feedback-info-border: var(--line);
+  --feedback-info-border: var(--palette-soft-grey);
   --feedback-success-border: color-mix(in srgb, var(--success) 40%, var(--white));
   --feedback-warning-border: var(--gold-border);
   --feedback-danger-border: color-mix(in srgb, var(--error) 40%, var(--white));
@@ -112,9 +117,9 @@
   --badge-danger-bg: #ffd9d9;
   --badge-danger-color: var(--state-text-color);
 
-  --banner-title-size: 14px;
-  --banner-body-size: 13px;
-  --banner-line-height: 20px;
+  --banner-title-size: var(--type-subtitle-2-size);
+  --banner-body-size: var(--type-body-2-size);
+  --banner-line-height: var(--type-body-2-line);
 
   --feedback-title-size: 14px;
   --feedback-body-size: 13px;
@@ -156,6 +161,40 @@
 
   /* typography */
 
+  /* Роли типографики: размер, высота строки и насыщенность. */
+  --type-h1-size: 96px;
+  --type-h1-line: 116px;
+  --type-h2-size: 60px;
+  --type-h2-line: 60px;
+  --type-h3-size: 48px;
+  --type-h3-line: 48px;
+  --type-h4-size: 36px;
+  --type-h4-line: 40px;
+  --type-h5-size: 24px;
+  --type-h5-line: 28px;
+  --type-h6-size: 20px;
+  --type-h6-line: 28px;
+  --type-heading-weight: 600;
+  --type-subtitle-1-size: 16px;
+  --type-subtitle-1-line: 24px;
+  --type-subtitle-2-size: 14px;
+  --type-subtitle-2-line: 20px;
+  --type-subtitle-weight: 600;
+  --type-body-1-size: 16px;
+  --type-body-1-line: 24px;
+  --type-body-2-size: 14px;
+  --type-body-2-line: 20px;
+  --type-body-weight: 400;
+  --type-button-1-size: 16px;
+  --type-button-1-line: 24px;
+  --type-button-2-size: 14px;
+  --type-button-2-line: 20px;
+  --type-button-weight: 600;
+  --type-caption-size: 12px;
+  --type-caption-line: 16px;
+  --type-caption-1-weight: 600;
+  --type-caption-2-weight: 400;
+
   --font-xs: 13px;
   --font-sm: 14px;
   --font-md: 16px;
@@ -193,8 +232,8 @@
   --line-height-title-xl: 36px;
   --line-height-title-display: 40px;
   --type-page-weight: var(--font-weight-semibold);
-  --type-section-weight: var(--font-weight-medium);
-  --type-card-weight: var(--font-weight-medium);
+  --type-section-weight: var(--font-weight-semibold);
+  --type-card-weight: var(--font-weight-semibold);
   --type-heading-tracking: -0.02em;
   --type-card-tracking: -0.01em;
   --type-page-line-height: 1.12;
@@ -202,12 +241,12 @@
   --type-card-line-height: 1.28;
   --line-height-body: 24px;
   --line-height-small: 20px;
-  --caption-size: 13px;
-  --caption-line-height: 18px;
-  --caption-weight: 400;
+  --caption-size: var(--type-caption-size);
+  --caption-line-height: var(--type-caption-line);
+  --caption-weight: var(--type-caption-2-weight);
   --field-label-size: 13px;
   --field-label-line-height: 18px;
-  --font-button: 15px;
+  --font-button: var(--type-button-1-size);
   --font-input: var(--field-control-size);
   --font-input-label: var(--field-label-size);
   --table-font-size: var(--font-xs);
@@ -215,7 +254,7 @@
   --table-note-size: var(--font-label-compact);
   --font-placeholder: 14px;
   --font-helper: 12px;
-  --line-height-helper: 18px;
+  --line-height-helper: var(--type-caption-line);
 
   /* radius */
 
@@ -265,5 +304,13 @@
 @media (max-width: 640px) {
   :root {
     --site-header-height: 64px;
+    --type-h1-size: 48px;
+    --type-h1-line: 58px;
+    --type-h2-size: 40px;
+    --type-h2-line: 44px;
+    --type-h3-size: 36px;
+    --type-h3-line: 40px;
+    --type-h4-size: 28px;
+    --type-h4-line: 32px;
   }
 }

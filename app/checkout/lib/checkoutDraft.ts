@@ -69,7 +69,8 @@ export function loadCheckoutDraft(): CheckoutDraft | null {
           ? parsed.deliveryAddress
           : "",
 
-      countryCode: "RU",
+      countryCode: typeof parsed.countryCode === "string" && /^[A-Z]{2}$/.test(parsed.countryCode)
+        ? parsed.countryCode : "RU",
 
       selectedCityCode:
         typeof parsed.selectedCityCode === "number"

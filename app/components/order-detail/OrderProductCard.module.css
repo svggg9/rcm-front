@@ -1,0 +1,8 @@
+.product { display: grid; grid-template-columns: 80px minmax(0, 1fr); gap: var(--space-4); align-items: start; }
+.image { display: block; width: 80px; height: 106px; object-fit: cover; }
+.placeholder { width: 80px; height: 106px; display: grid; place-items: center; }
+.copy { display: grid; gap: 2px; min-width: 0; }
+.brand { font-size: var(--font-xs); font-weight: var(--font-weight-regular); line-height: 1.4; }
+.product h4 { font-size: var(--font-md); font-weight: var(--font-weight-medium); line-height: 1.4; overflow-wrap: anywhere; }
+.attributes { display: flex; flex-wrap: wrap; gap: var(--space-1) var(--space-4); font-size: var(--font-sm); line-height: 1.5; font-weight: var(--font-weight-regular); }
+.price { font-size: var(--font-md); font-weight: var(--font-weight-medium); }

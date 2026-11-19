@@ -24,6 +24,7 @@ import { PopoverPanel } from "../../components/ui/PopoverPanel";
 import { SegmentedControl, type SegmentedControlItem } from "../../components/ui/SegmentedControl";
 import { Button } from "../../components/ui/Button";
 import { DesignSystemIcon } from "../../components/ui/DesignSystemIcon";
+import { PhotoPlaceholder } from "../../components/ui/PhotoPlaceholder";
 import { Dialog } from "../../components/ui/Dialog";
 import { productFeedback, productFailureDestination } from "../lib/sellerProductFeedback";
 import {
@@ -466,7 +467,7 @@ function ProductRow({
     <Link href={editHref} scroll={false} className={styles.productLink} onClick={() => {
       try { sessionStorage.setItem(`seller-product-scroll:${returnTo}`, String(window.scrollY)); } catch { /* Storage may be unavailable */ }
     }}>
-      <span className={styles.productImage}>{product.coverImage ? <Image src={product.coverImage} alt="" fill sizes="56px" /> : <span>Нет фото</span>}</span>
+      <span className={styles.productImage}>{product.coverImage ? <Image src={product.coverImage} alt="" fill sizes="56px" /> : <PhotoPlaceholder />}</span>
       <span className={styles.productIdentity}>
         <span className={styles.productTitleLine}>
           <strong>{product.title.trim() || "Без названия"}</strong>

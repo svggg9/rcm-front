@@ -38,7 +38,7 @@ export function TelegramConnection({ controller, disabled = false, title, descri
     {description && <p className={styles.description}>{description}</p>}
     {controller.loading && !status ? <Loader inline label="Проверка подключения Telegram" /> : status ? <>
       <p className={styles.status} role="status">{copy}</p>
-      {status?.botUsername && <p className={styles.hint}>Бот @{status.botUsername.replace(/^@/, "")}{status.linkEnvironment === "test" ? " · тестовая среда" : ""}</p>}
+      {status?.botUsername && <p className={styles.hint}>Бот @{status.botUsername.replace(/^@/, "")}{status.linkEnvironment === "test" ? " (тестовая среда)" : ""}</p>}
       {pending && <p className={styles.hint}>После запуска вернитесь сюда — подключение проверится автоматически</p>}
       <div className={styles.actions}>
         {pending && telegramUrl(status?.url) ? <a className={`buttonSecondary ${styles.botLink}`} href={telegramUrl(status?.url)!}

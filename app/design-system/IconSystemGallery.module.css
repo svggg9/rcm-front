@@ -1,0 +1,16 @@
+.gallery { color: var(--black); }
+.intro { margin: 0 0 var(--space-6); font-size: var(--font-sm); line-height: var(--line-height-small); }
+.group { margin-bottom: var(--space-7); }
+.group h3 { margin-bottom: var(--space-4); }
+.grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: var(--space-3); margin: 0; padding: 0; list-style: none; }
+.card { min-width: 0; display: flex; flex-direction: column; align-items: center; padding: var(--space-4) var(--space-2); background: var(--soft); text-align: center; }
+.title { display: grid; place-items: center; min-height: 40px; font-size: var(--font-sm); line-height: var(--line-height-small); font-weight: var(--font-weight-medium); }
+.large { display: grid; place-items: center; height: 72px; margin-top: var(--space-2); }
+.caption { font-size: var(--font-xs); line-height: var(--caption-line-height); }
+.sizes { display: flex; justify-content: center; gap: var(--space-5); margin-top: var(--space-4); }
+.size { display: flex; min-width: 34px; flex-direction: column; align-items: center; justify-content: end; gap: var(--space-2); }
+.counter { display: flex; flex-direction: column; align-items: center; gap: var(--space-2); margin-top: var(--space-4); }
+.feedback, .buyer { display: inline-flex; align-items: center; justify-content: center; }
+.feedback svg, .buyer svg { width: 100%; height: 100%; }
+@media (max-width: 900px) { .grid { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+@media (max-width: 700px) { .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-2); } }

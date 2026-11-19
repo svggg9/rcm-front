@@ -2,7 +2,7 @@
 import { Checkbox } from "../../components/ui/Checkbox";
 
 import Link from "next/link";
-import { useId, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { Button } from "../../components/ui/Button";
 import { EditorSurface, requestEditorNavigation } from "../../components/ui/EditorSurface";
 import { FormSelect } from "../../components/ui/FormSelect";
@@ -28,7 +28,7 @@ export function PanelsPreview() {
   return <div className={`pageContainer ${styles.page}`}>
     <Link href="/design-system#overlays" className={styles.back}>Дизайн-система</Link>
     <h1 className="textPageTitle">Окна и редакторы</h1>
-    <p className={styles.intro}>Общий EditorSurface: товар открывается в панели справа, подборка — в компактном окне. На телефоне редактор занимает весь экран</p>
+    <p className={styles.intro}>Общий EditorSurface: в примере редактирования товара показан вариант «02 — Мягкое появление». На телефоне редактор занимает весь экран</p>
     <div className={styles.launchers}>
       <Button onClick={() => { setProductName(products[0]); setMode("edit"); }}>Редактировать товар</Button>
       <Button onClick={() => setMode("create")}>Создать товар</Button>
@@ -51,6 +51,15 @@ export function PanelsPreview() {
 
 function Editor({ mode, productName, close }: { mode: Mode; productName: string; close: () => void }) {
   const collection = mode === "collection";
+  const [closing, setClosing] = useState(false);
+  const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => () => { if (closeTimer.current) clearTimeout(closeTimer.current); }, []);
+  const closePreview = () => {
+    if (mode !== "edit" || window.matchMedia("(prefers-reduced-motion: reduce)").matches) { close(); return; }
+    if (closeTimer.current) return;
+    setClosing(true);
+    closeTimer.current = setTimeout(close, 260);
+  };
   const [initial] = useState(() => ({
     name: mode === "edit" ? productName : "",
     description: mode === "edit" ? "Рубашка свободного кроя с длинным рукавом" : "",
@@ -76,7 +85,8 @@ function Editor({ mode, productName, close }: { mode: Mode; productName: string;
   }
   return <EditorSurface title={collection ? "Новая подборка" : mode === "edit" ? "Редактирование товара" : "Новый товар"}
     headerMeta={!collection ? <StatusBadge>Черновик</StatusBadge> : undefined}
-    compact={collection} dirty={dirty} guardNavigation onClose={close}
+    compact={collection} dirty={dirty} guardNavigation onClose={closePreview}
+    className={mode === "edit" ? `${styles.fadePreview} ${closing ? styles.fadePreviewClosing : ""}` : undefined}
     actions={<Button type="submit" form={formId} variant="primary">Сохранить пример</Button>}>
     <form id={formId} ref={formRef} className={styles.stack} noValidate onSubmit={event => {
       event.preventDefault();
@@ -85,7 +95,7 @@ function Editor({ mode, productName, close }: { mode: Mode; productName: string;
         return;
       }
       toast.success("Пример сохранён — рабочие данные не менялись");
-      requestEditorNavigation(close, { completed: true });
+      requestEditorNavigation(closePreview, { completed: true });
     }}>
       <p className="textHint">Демонстрационные данные, без запросов к серверу</p>
       <TextInput label={collection ? "Название подборки" : "Название товара"} required value={values.name}

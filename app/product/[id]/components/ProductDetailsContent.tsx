@@ -1,10 +1,15 @@
 import { productFeatureItems, type ProductDetails } from "../../../lib/productDetails";
 import { ProductDescriptionText } from "./ProductDescriptionText";
 import styles from "../ProductPage.module.css";
+import { productBriefFacts } from "../lib/productBriefFacts";
 
-export function ProductDetailsContent({ description, composition, details, category, audience }: {
+export type BriefFactsStyle = "current" | "subtle" | "readable" | "emphasis";
+
+export function ProductDetailsContent({ description, composition, details, category, audience, view = "all", briefFactsStyle = "current" }: {
   description: string; composition?: string | null; details?: ProductDetails | null;
   category?: string | null; audience?: "MEN" | "WOMEN" | "UNISEX";
+  view?: "all" | "brief" | "facts";
+  briefFactsStyle?: BriefFactsStyle;
 }) {
   const features = productFeatureItems(details?.features);
   const measurements = details?.measurements?.trim();
@@ -16,9 +21,21 @@ export function ProductDetailsContent({ description, composition, details, categ
   }[audience] : null;
   const hasDescription = Boolean(description.trim() || features.length);
   const hasFacts = Boolean(composition?.trim() || measurements || care || city || categoryName || audienceLabel);
+  const briefFacts = productBriefFacts(composition, details);
 
-  return <div className={`${styles.aboutGrid} ${!hasDescription || !hasFacts ? styles.aboutSingle : ""}`}>
-    {hasDescription && <div className={styles.detailFacts}>
+  if (view === "brief") {
+    return <div className={styles.productBrief}>
+      {description.trim() && <ProductDescriptionText text={description} fallback="" />}
+      {(briefFacts.measurements || briefFacts.material) && <dl className={[styles.briefFacts, briefFactsStyle !== "current" && styles[`briefFacts-${briefFactsStyle}`]].filter(Boolean).join(" ")}>
+        {briefFacts.measurements && <div><dt>Размеры</dt><dd>{briefFacts.measurements}</dd></div>}
+        {briefFacts.material && <div><dt>Материал</dt><dd>{briefFacts.material}</dd></div>}
+      </dl>}
+      {features.length > 0 && <ul className={styles.list}>{features.map((feature, index) => <li key={index}>{feature}</li>)}</ul>}
+    </div>;
+  }
+
+  return <div className={`${styles.aboutGrid} ${view === "facts" || !hasDescription || !hasFacts ? styles.aboutSingle : ""}`}>
+    {view === "all" && hasDescription && <div className={styles.detailFacts}>
       {description.trim() && <section className={styles.detailGroup}>
         <h3 className={styles.detailHeading}>Подробнее о товаре</h3>
         <ProductDescriptionText text={description} fallback="" />

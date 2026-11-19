@@ -29,6 +29,7 @@ type Props = {
   statusLabel: string;
   autoExpand?: boolean;
   onOpenOrder?: (orderId: number) => void;
+  onWorkflowRefresh?: () => void;
   onLoadDetails?: (orderId: number) => Promise<OrderCardDetails>;
   onPrefetch?: (orderId: number) => void;
   showStageElapsed?: boolean;
@@ -52,6 +53,7 @@ export function SellerOrderCard({
   statusLabel,
   autoExpand = false,
   onOpenOrder,
+  onWorkflowRefresh,
   onLoadDetails,
   onPrefetch,
   showStageElapsed = true,
@@ -261,7 +263,7 @@ export function SellerOrderCard({
         >
           <OrderDetailsPanel order={order} details={details} loading={detailsLoading} error={detailsError}
             onRetry={() => void loadDetails()} audience={audience} showDeliveryLabel={showDeliveryLabel}
-            onOpenOrder={onOpenOrder} openButtonLabel={openButtonLabel} />
+            onOpenOrder={onOpenOrder} onWorkflowRefresh={onWorkflowRefresh} openButtonLabel={openButtonLabel} />
         </div>
       ) : null}
     </article>

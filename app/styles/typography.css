@@ -10,38 +10,50 @@ h6 {
   overflow-wrap: anywhere;
 }
 
+.typeHeading1 {
+  font-size: var(--type-h1-size);
+  line-height: var(--type-h1-line);
+  font-weight: var(--type-heading-weight);
+  letter-spacing: var(--type-heading-tracking);
+}
+
+.typeHeading2 {
+  font-size: var(--type-h2-size);
+  line-height: var(--type-h2-line);
+  font-weight: var(--type-heading-weight);
+  letter-spacing: var(--type-heading-tracking);
+}
+
 h1,
-.textPageTitle {
-  font-size: var(--font-3xl);
-  line-height: var(--type-page-line-height);
-  font-weight: var(--type-page-weight);
-  letter-spacing: var(--type-heading-tracking);
-}
-
-h2,
-.textSectionTitle {
-  font-size: var(--font-2xl);
-  line-height: var(--type-section-line-height);
-  font-weight: var(--type-section-weight);
-  letter-spacing: var(--type-heading-tracking);
-}
-
-h3,
-.textTitle {
-  font-size: var(--font-xl);
-  line-height: var(--type-card-line-height);
-  font-weight: var(--type-card-weight);
+.textPageTitle,
+.typeHeading3 {
+  font-size: var(--type-h3-size);
+  line-height: var(--type-h3-line);
+  font-weight: var(--type-heading-weight);
   letter-spacing: var(--type-card-tracking);
 }
+
+h2, .textSectionTitle, .typeHeading4 { font-size: var(--type-h4-size); line-height: var(--type-h4-line); font-weight: var(--type-heading-weight); }
+h3, .textTitle, .typeHeading5 { font-size: var(--type-h5-size); line-height: var(--type-h5-line); font-weight: var(--type-heading-weight); }
+h4, .typeHeading6 { font-size: var(--type-h6-size); line-height: var(--type-h6-line); font-weight: var(--type-heading-weight); }
+
+h5, .typeSubtitle1 { font-size: var(--type-subtitle-1-size); line-height: var(--type-subtitle-1-line); font-weight: var(--type-subtitle-weight); }
+h6, .typeSubtitle2 { font-size: var(--type-subtitle-2-size); line-height: var(--type-subtitle-2-line); font-weight: var(--type-subtitle-weight); }
+.typeBody1 { font-size: var(--type-body-1-size); line-height: var(--type-body-1-line); font-weight: var(--type-body-weight); }
+.typeBody2 { font-size: var(--type-body-2-size); line-height: var(--type-body-2-line); font-weight: var(--type-body-weight); }
+.typeButton1 { font-size: var(--type-button-1-size); line-height: var(--type-button-1-line); font-weight: var(--type-button-weight); }
+.typeButton2 { font-size: var(--type-button-2-size); line-height: var(--type-button-2-line); font-weight: var(--type-button-weight); }
+.typeCaption1 { font-size: var(--type-caption-size); line-height: var(--type-caption-line); font-weight: var(--type-caption-1-weight); }
+.typeCaption2 { font-size: var(--type-caption-size); line-height: var(--type-caption-line); font-weight: var(--type-caption-2-weight); }
 
 p {
   color: var(--text);
 }
 
 .textDisplay {
-  font-size: var(--font-4xl);
-  line-height: var(--type-page-line-height);
-  font-weight: var(--type-page-weight);
+  font-size: var(--type-h1-size);
+  line-height: var(--type-h1-line);
+  font-weight: var(--type-heading-weight);
   letter-spacing: var(--type-heading-tracking);
 }
 

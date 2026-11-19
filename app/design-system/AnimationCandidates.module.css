@@ -1,0 +1,12 @@
+.intro, .note { font-size: var(--font-sm); line-height: var(--line-height-small); }
+.intro { margin: 0 0 var(--space-5); }
+.note { margin: var(--space-5) 0 0; }
+.card { max-width: 360px; min-width: 0; background: var(--soft); padding: var(--space-4); }
+.card h3 { font-size: var(--font-sm); line-height: var(--line-height-small); font-weight: var(--font-weight-medium); margin: var(--space-4) 0 var(--space-1); }
+.card p, .state { font-size: var(--font-xs); line-height: var(--line-height-small); }
+.card p { margin: 0 0 var(--space-3); }
+.state { display: block; }
+.stage { position: relative; height: 150px; background: var(--white); }
+.interaction { position: absolute; inset: 0; display: grid; place-items: center; }
+.header { position: absolute; top: 8px; left: 12px; right: 12px; display: flex; justify-content: space-between; align-items: center; font-size: var(--font-xs); }
+.destination { display: inline-flex; padding: 4px; }

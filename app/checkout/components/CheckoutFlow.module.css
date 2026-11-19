@@ -1,8 +1,8 @@
 .flow { container-type: inline-size; display: grid; gap: var(--space-6); min-width: 0; color: var(--black); font-size: var(--font-sm); line-height: var(--line-height-small); }
-.title { margin: 0; font-size: var(--font-xl); line-height: var(--type-card-line-height); font-weight: var(--type-card-weight); letter-spacing: var(--type-card-tracking); }
+.title { margin: 0; font-size: var(--type-h5-size); line-height: var(--type-h5-line); font-weight: var(--type-heading-weight); letter-spacing: var(--type-card-tracking); }
 .title:focus { outline: none; }
 .steps { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-3); }
-.steps button { min-height: 44px; padding: var(--space-2) var(--space-1); border: 0; border-bottom: var(--line-width-default) solid var(--line); color: var(--black); text-align: left; white-space: nowrap; font-size: var(--font-helper); line-height: var(--caption-line-height); font-weight: var(--font-weight-regular); }
+.steps button { min-height: 44px; padding: var(--space-2) var(--space-1); border: 0; border-bottom: var(--line-width-default) solid var(--line); color: var(--black); text-align: left; white-space: normal; font-size: var(--type-button-2-size); line-height: var(--type-button-2-line); font-weight: var(--type-button-weight); }
 .steps button[aria-current] { border-bottom-width: var(--line-width-strong); font-weight: var(--font-weight-semibold); }
 .steps button:disabled { cursor: default; opacity: var(--control-disabled-opacity); }
 .steps button[aria-current]:disabled { opacity: 1; }
@@ -17,8 +17,8 @@
 .footer .primary:only-child { width: 100%; }
 .orderLink { display: inline-flex; align-items: center; min-height: 44px; text-decoration: underline; text-underline-offset: 3px; }
 .payment, .review { display: grid; gap: var(--space-2); min-width: 0; overflow-wrap: anywhere; }
-.payment + .review, .review + .review { padding-top: var(--space-4); border-top: var(--line-width-default) solid var(--line); }
-.payment h3, .review h3 { margin: 0; font-size: var(--font-md); line-height: var(--line-height-small); font-weight: var(--type-card-weight); }
+.payment + .review, .review + .review { padding-top: var(--space-4); }
+.payment h3, .review h3 { margin: 0; font-size: var(--type-subtitle-1-size); line-height: var(--type-subtitle-1-line); font-weight: var(--type-subtitle-weight); }
 .payment p, .review p { margin: 0; }
 .reviewTitle { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); }
 .muted { font-size: var(--font-helper); line-height: var(--caption-line-height); }
@@ -31,7 +31,6 @@
 .legal a { text-decoration: underline; text-underline-offset: 2px; }
 @container (max-width: 360px) {
   .steps { gap: var(--space-1); }
-  .steps button { font-size: var(--font-label-compact); }
   .footer { align-items: stretch; flex-direction: column; }
   .footer .primary { width: 100%; }
 }

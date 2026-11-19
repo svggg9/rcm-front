@@ -1,8 +1,32 @@
 # Продолжение рцмаркет на Windows
 
+## Выпуск test и production — 13 ноября 2026
+
+В обе среды выложены снимки frontend и backend с локальными незакоммиченными
+изменениями; оба frontend healthy, обе БД V137/failed0. Production остаётся на
+техническом обслуживании. HEAD отдельно не воспроизводит снимок выпуска;
+image ID, проверки и ограничения — [PROJECT_PLAN.md](PROJECT_PLAN.md). Локальные
+процессы этим выпуском не перезапускались.
+
+## Редактор товара — 8 ноября 2026, локально
+
+Frontend работает на 3000, backend запущен на 9696: PID 25408, профиль dev,
+`/ping` 200, Flyway V136 без новых миграций. Логи backend —
+`../../rcm/build/product-blocks-local/`; env не менялся. Перед новым запуском
+проверить порты, затем из frontend выполнить `npm run dev`, из backend —
+`.\run-local.ps1`, не оставляя второй экземпляр. Раскрывающиеся разделы и
+границы проверок — [PROJECT_PLAN.md](PROJECT_PLAN.md); визуальная оценка впереди.
+
+## Ошибка корзины — 8 ноября 2026, локально
+
+Frontend dev запущен на 3000 (PID 29924), backend этой задачей не запускался,
+env не менялся. Логи — `build/cart-error-dev.log` и `build/cart-error-dev.err.log`;
+перед следующим `npm run dev` проверять порт. Проверки и ограничения —
+[PROJECT_PLAN.md](PROJECT_PLAN.md); серверной выкладки нет.
+
 ## Поля ввода — 7 ноября 2026, локально
 
-Frontend dev восстановлен, один listener3000/PID57152, env/backend сохранены.
+На момент проверки frontend dev работал на3000, env/backend сохранены.
 Логи — `build/field-components-dev-2026-11-07.*`; для следующего запуска из
 frontend проверить3000, затем `npm run dev`, не оставлять второй экземпляр.
 Устаревшие production-типы сохранены в `build/typecheck-recovery-20261107-1825`,

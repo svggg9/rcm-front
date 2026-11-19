@@ -1,6 +1,7 @@
 "use client";
 import Link from "next/link";
 import Image from "next/image";
+import { PhotoPlaceholder } from "../../components/ui/PhotoPlaceholder";
 import { ListLoadMore } from "../../components/ui/ListLoadMore";
 import { Price } from "../../components/ui/Price";
 import { EmptyState } from "../../components/ui/EmptyState";
@@ -16,7 +17,7 @@ export function AccountOrdersTab({orders,totalElements=orders.length,loadingMore
       {orders.map(order=><Link href={`/account?tab=orders&orderId=${order.id}`} key={order.id} className={styles.order} onMouseEnter={()=>onPrefetchOrder?.(order.id)} onFocus={()=>onPrefetchOrder?.(order.id)} onClick={event=>{if(!event.metaKey&&!event.ctrlKey&&!event.shiftKey&&!event.altKey){event.preventDefault();onOpenOrder(order.id);}}}>
         <div className={styles.top}><span className={styles.status} data-tone={orderTone(order)}>{buildOrderStatusLabel(order)}</span><span>№ {orderNumber(order)}</span><time dateTime={order.createdAt}>{orderDate(order.createdAt)}</time></div>
         {order.deliveryAddress ? <p className={styles.address}>{shortDeliveryAddress(order.deliveryAddress)}</p> : null}
-        <div className={styles.images}>{(order.imageUrls?.length ? order.imageUrls : [order.firstImageUrl]).slice(0,4).map((url,index)=>url?<Image key={index} src={url} alt={order.productTitles?.[index] || order.firstProductTitle || "Товар в заказе"} width={64} height={92} />:<span className={styles.placeholder} key={index}/>)}{(order.imageUrls?.length ?? 0)>4 ? <span className={styles.more}>+{order.imageUrls!.length-4}</span> : null}</div>
+        <div className={styles.images}>{(order.imageUrls?.length ? order.imageUrls : [order.firstImageUrl]).slice(0,4).map((url,index)=>url?<Image key={index} src={url} alt={order.productTitles?.[index] || order.firstProductTitle || "Товар в заказе"} width={64} height={92} />:<span className={styles.placeholder} key={index}><PhotoPlaceholder /></span>)}{(order.imageUrls?.length ?? 0)>4 ? <span className={styles.more}>+{order.imageUrls!.length-4}</span> : null}</div>
         <div className={styles.summary}>{itemCount(order.itemsCount)} <span aria-hidden="true">|</span> <Price amount={order.totalAmount}/></div>
       </Link>)}
     </div>}

@@ -27,7 +27,7 @@ function findNode(file, predicate) {
 const errors = load("app/lib/apiErrors.ts");
 const publicErrors = load("app/lib/publicRequestErrors.ts", { "./apiErrors": errors });
 const checkout = load("app/checkout/lib/checkoutErrors.ts", { "../../lib/publicRequestErrors": publicErrors });
-const authRequests = load("app/lib/authRequests.ts", { "./api": {} });
+const authRequests = load("app/lib/authRequests.ts", { "./api": {}, "./publicRequestErrors": publicErrors });
 const returns = load("app/lib/safeReturnPath.ts");
 const apiCalls = [];
 let reply;

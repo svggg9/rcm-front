@@ -16,12 +16,17 @@ import { Button } from "../components/ui/Button";
 import { SizeOptions } from "../components/ui/SizeOptions";
 import { FormSelect } from "../components/ui/FormSelect";
 import { Loader } from "../components/ui/Loader";
+import { PhotoPlaceholder } from "../components/ui/PhotoPlaceholder";
 import { toast } from "../components/ui/toast";
 import styles from "./Favorites.module.css";
 
 type Product = { id: number; publicId?: string | null; title: string; brand: string | null; images: string[]; minPrice: number };
 
-export function FavoriteCard({ product, onRemove }: { product: Product; onRemove: (id: number, liked: boolean) => void }) {
+export function FavoriteCard({ product, onRemove, demo }: {
+  product: Product;
+  onRemove: (id: number, liked: boolean) => void;
+  demo?: { liked: boolean; onLikeChange: (liked: boolean) => void; variants: Variant[]; onAdd: (variant: Variant) => void; href: string };
+}) {
   const { isFavorite, toggle } = useFavorites();
   const [open, setOpen] = useState(false);
   const [imageFailed, setImageFailed] = useState(false);
@@ -35,7 +40,8 @@ export function FavoriteCard({ product, onRemove }: { product: Product; onRemove
   const inFlight = useRef(false);
   const request = useRef(0);
   const addErrorToastId = `favorite-cart-add-${product.id}`;
-  const href = productPath(product);
+  const href = demo?.href ?? productPath(product);
+  const liked = demo?.liked ?? isFavorite(product.id);
   const available = variants.filter(v => v.availableQuantity === null || v.availableQuantity > 0);
   const colors = [...new Set(variants.map(v => v.color?.trim() || ""))];
   const visible = variants.filter(v => (v.color?.trim() || "") === color);
@@ -51,6 +57,12 @@ export function FavoriteCard({ product, onRemove }: { product: Product; onRemove
   }, [open]);
 
   async function choose() {
+    if (demo) {
+      setVariants(demo.variants);
+      setColor(demo.variants[0]?.color?.trim() || "");
+      setOpen(true);
+      return;
+    }
     const current = ++request.current;
     setLoading(true); setError(null); setVariants([]); setColor("");
     try {
@@ -78,6 +90,11 @@ export function FavoriteCard({ product, onRemove }: { product: Product; onRemove
   }
 
   async function add(choice: Variant, inlineError = true) {
+    if (demo) {
+      demo.onAdd(choice);
+      setOpen(false);
+      return;
+    }
     if (inFlight.current) return;
     inFlight.current = true; setAdding(true); setError(null);
     try {
@@ -99,7 +116,7 @@ export function FavoriteCard({ product, onRemove }: { product: Product; onRemove
     <article>
       <div className={styles.mediaContainer}>
       <Link href={href} className={styles.media} prefetch={false} aria-label={`Открыть ${product.title}`}>
-        {product.images[0] && !imageFailed ? <Image src={product.images[0]} alt={product.title} fill sizes="(max-width: 899px) 50vw, 340px" className={styles.image} onError={() => setImageFailed(true)} /> : <span className={styles.noImage}>Нет изображения</span>}
+        {product.images[0] && !imageFailed ? <Image src={product.images[0]} alt={product.title} fill sizes="(max-width: 899px) 50vw, 340px" className={styles.image} onError={() => setImageFailed(true)} /> : <PhotoPlaceholder className={styles.noImage} />}
       </Link>
       {open && <div id={panelId} className={styles.sizePanel} aria-label="Выбор варианта">
         {loading ? <Loader label="Загрузка вариантов" /> : <>
@@ -112,9 +129,9 @@ export function FavoriteCard({ product, onRemove }: { product: Product; onRemove
       </div>}
       </div>
       <div className={styles.info}>
+        <LikeButton className={styles.like} liked={liked} aria-label={`${liked ? "Убрать из избранного" : "Добавить в избранное"}: ${product.title}`}
+          onClick={async () => { if (demo) { demo.onLikeChange(!liked); return; } try { const next = !isFavorite(product.id); await toggle(product.id); onRemove(product.id, next); } catch { toast.error("Не удалось обновить избранное"); } }} />
         <Link href={href} className={styles.productTitle}>{product.title}</Link>
-        <LikeButton className={styles.like} liked={isFavorite(product.id)} aria-label={`Убрать из избранного: ${product.title}`}
-          onClick={async () => { try { const next = !isFavorite(product.id); await toggle(product.id); onRemove(product.id, next); } catch { toast.error("Не удалось обновить избранное"); } }} />
         <div className={styles.price}>{product.minPrice > 0 ? `${product.minPrice.toLocaleString("ru-RU")} ₽` : "Цена по запросу"}</div>
       </div>
       <Button data-size-trigger variant={open ? "secondary" : "primary"} className={styles.add} loading={loading || adding} disabled={loading || adding}

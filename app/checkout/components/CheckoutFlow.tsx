@@ -6,12 +6,13 @@ import { Button } from "../../components/ui/Button";
 import { CdekLogo } from "../../components/Delivery/CdekLogo";
 import { Loader } from "../../components/ui/Loader";
 import { Banner } from "../../components/ui/Banner";
-import { formatRussianPhoneInput } from "../../lib/phone";
+import { formatRussianPhone } from "../../lib/phone";
 import { registerBuyerPanelActions } from "../../lib/buyerPanelActions";
+import stepMotion from "../../components/ui/StepMotion.module.css";
 import styles from "./CheckoutFlow.module.css";
 
 type Props = {
-  delivery: ReactNode; contact: ReactNode; pickupLabel: string; cityName: string; recipient: string; phone: string;
+  delivery: ReactNode; contact: ReactNode; pickupLabel: string; cityName: string; recipient: string; phone: string; countryCode?: string;
   subtotal: number; deliveryPrice: number; deliveryCalculated: boolean; deliveryCalculating: boolean;
   submitting: boolean; error: string | null;
   committedOrderId?: number | null;
@@ -25,6 +26,7 @@ const money = (amount: number) => amount.toLocaleString("ru-RU") + " ₽";
 
 export function CheckoutFlow(props: Props) {
   const [step, setStep] = useState(props.committedOrderId ? 2 : 0);
+  const [motion, setMotion] = useState<"forward" | "back" | null>(null);
   const [reached, setReached] = useState(props.committedOrderId ? 2 : 0);
   const [advancing, setAdvancing] = useState(false);
   const lock = useRef(false);
@@ -33,9 +35,10 @@ export function CheckoutFlow(props: Props) {
   useEffect(() => { if (props.autoFocusHeading === false) return; const frame = requestAnimationFrame(() => heading.current?.focus()); return () => cancelAnimationFrame(frame); }, [props.autoFocusHeading]);
   const blocked = advancing || props.submitting || props.deliveryCalculating || props.disabled;
   const show = useCallback((index: number) => {
+    if (index !== step) setMotion(index > step ? "forward" : "back");
     setStep(index); setReached(current => Math.max(current, index));
     if (props.autoFocusHeading !== false) requestAnimationFrame(() => heading.current?.focus({ preventScroll: true }));
-  }, [props.autoFocusHeading]);
+  }, [props.autoFocusHeading, step]);
   useEffect(() => registerBuyerPanelActions(action => {
     if (advancing || props.submitting) return true;
     if (action === "back" && step > 0 && !props.committedOrderId && !props.checkoutUnknown) {
@@ -65,7 +68,7 @@ export function CheckoutFlow(props: Props) {
           aria-current={step === index ? "step" : undefined} data-complete={index <= step || undefined}
           onClick={() => void go(index)}><span className={styles.stepNumber}>0{index + 1}</span> {name}</button>)}
       </nav>
-      <div className={styles.content}>
+      <div key={step} className={`${styles.content} ${motion ? stepMotion[motion] : ""}`}>
         {step === 0 ? <>{props.delivery}{props.contact}</> : step === 1 ? <>
           <div className={styles.payment}><h3>Оплата онлайн</h3><p>На защищённой странице Т-Банка</p><p className={styles.muted}>Доступные способы оплаты можно выбрать на странице банка</p></div>
           <div className={styles.review}><h3>Ваш заказ</h3><dl className={styles.totals}><div><dt>Товары</dt><dd>{money(props.subtotal)}</dd></div><div><dt>Доставка</dt><dd>{props.deliveryCalculating ? <Loader inline label="Расчёт доставки" /> : props.deliveryCalculated ? props.deliveryPrice === 0 ? "Бесплатно" : money(props.deliveryPrice) : "Не рассчитана"}</dd></div><div className={styles.total}><dt>К оплате</dt><dd>{props.deliveryCalculated && !props.deliveryCalculating ? money(props.subtotal + props.deliveryPrice) : "—"}</dd></div></dl></div>
@@ -77,7 +80,7 @@ export function CheckoutFlow(props: Props) {
           </div>
           <div className={styles.review}>
             <div className={styles.reviewTitle}><h3>Получатель</h3><Button type="button" variant="utility" disabled={blocked || Boolean(props.committedOrderId)} aria-label="Изменить данные получателя" onClick={() => show(0)}>Изменить</Button></div>
-            <p>{props.recipient}</p><p className={styles.muted}>+7 {formatRussianPhoneInput(props.phone)}</p>
+            <p>{props.recipient}</p><p className={styles.muted}>{(props.countryCode ?? "RU") === "RU" ? formatRussianPhone(props.phone) : props.phone}</p>
           </div>
           <div className={styles.review}>
             <div className={styles.reviewTitle}><h3>Оплата онлайн</h3><Button type="button" variant="utility" disabled={blocked || Boolean(props.committedOrderId)} aria-label="Изменить оплату" onClick={() => show(1)}>Изменить</Button></div>

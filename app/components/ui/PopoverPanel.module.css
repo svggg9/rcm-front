@@ -22,6 +22,9 @@
 .panel::backdrop {
   background: transparent;
 }
+.confirmation { width: 320px; padding: var(--space-5); border: 0; }
+.confirmation .header { min-height: 0; margin: 0 0 6px; }
+.confirmation .header h2 { font-size: var(--type-subtitle-1-size); line-height: var(--type-subtitle-1-line); font-weight: var(--type-subtitle-weight); }
 
 .hint { width: 260px; padding: 10px var(--space-3); overflow: visible; font-size: var(--caption-size); line-height: var(--line-height-small); box-shadow: 0 3px 12px rgb(0 0 0 / 8%); transform-origin: var(--hint-arrow-left) bottom; }
 .hint .body > p { margin: 0; }
@@ -30,7 +33,15 @@
 .hint[data-placement="below"]::before { bottom: auto; top: -5px; transform: translateX(-50%) rotate(225deg); }
 @media (prefers-reduced-motion: no-preference) {
   .hint:popover-open { animation: hintAppear 120ms ease-out; }
+  .panel[data-motion="settle"]:popover-open { transform-origin: top right; animation: confirmSettle 220ms ease-out; }
+  .panel[data-motion="drop"]:popover-open { animation: confirmDrop 240ms ease-out; }
+  .panel[data-motion="lift"]:popover-open { animation: confirmLift 260ms cubic-bezier(.2,.8,.2,1); }
+  .panel[data-motion][data-closing]:popover-open { pointer-events: none; animation: confirmClose 180ms ease-in forwards; }
   @keyframes hintAppear { from { opacity: 0; scale: .96; } to { opacity: 1; scale: 1; } }
+  @keyframes confirmSettle { from { opacity: 0; transform: translateY(-4px) scale(.98); } to { opacity: 1; transform: none; } }
+  @keyframes confirmDrop { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: none; } }
+  @keyframes confirmLift { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+  @keyframes confirmClose { from { opacity: 1; transform: none; } to { opacity: 0; transform: translateY(-4px) scale(.99); } }
 }
 
 .header {

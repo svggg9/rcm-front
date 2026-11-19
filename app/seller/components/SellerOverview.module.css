@@ -37,12 +37,8 @@
 .overview .quickAction:hover { background: var(--white); box-shadow: 0 8px 28px rgb(0 0 0 / 14%); }
 .overview .quickAction:active { transform: translateY(1px); box-shadow: 0 2px 10px rgb(0 0 0 / 10%); }
 .overview .quickAction:disabled { cursor: default; transform: none; }
-.storeIdentity { display: flex; align-items: center; color: var(--black); text-decoration: none; transition: background-color var(--transition-fast), color var(--transition-fast); }
 .summaryIcon { display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; width: 24px; height: 24px; color: var(--black); }
-.storeIdentity > span, .balance > div { display: flex; flex-direction: column; gap: var(--space-1); min-width: 0; }
-.storeIdentity strong { font-size: var(--font-md); line-height: var(--line-height-body); font-weight: var(--font-weight-medium); overflow-wrap: anywhere; }
-.storeIdentity > span > span { color: var(--muted); font-size: var(--font-xs); line-height: var(--line-height-small); }
-.storeIdentity:hover { background-color: var(--surface-hover); }
+.balance > div { display: flex; flex-direction: column; gap: var(--space-1); min-width: 0; }
 .balances { display: flex; flex-direction: column; gap: 22px; }
 .balance { display: flex; align-items: flex-start; gap: var(--space-3); min-width: 0; }
 .balance > div { flex: 1; }
@@ -51,8 +47,7 @@
 .primaryBalance strong { font-size: clamp(19px, 1.7vw, var(--font-title-md)); line-height: var(--line-height-title-lg); }
 .primaryBalance[data-positive] strong { color: var(--success); }
 .rows, .details { display: flex; flex-direction: column; min-width: 0; }
-.row { display: flex; align-items: baseline; justify-content: space-between; gap: var(--space-4); min-height: 40px; padding-block: 10px; border-bottom: var(--line-width-default) solid var(--line-subtle); color: var(--black); font-size: var(--font-sm); line-height: var(--line-height-small); text-decoration: none; transition: background-color var(--transition-fast), color var(--transition-fast); }
-.row:last-child { border-bottom: 0; }
+.row { display: flex; align-items: baseline; justify-content: space-between; gap: var(--space-4); min-height: 40px; padding-block: 10px; color: var(--black); font-size: var(--font-sm); line-height: var(--line-height-small); text-decoration: none; transition: background-color var(--transition-fast), color var(--transition-fast); }
 .row span { min-width: 0; overflow-wrap: anywhere; }
 .row strong { font-weight: var(--font-weight-medium); font-variant-numeric: tabular-nums; }
 .row:hover { background-color: var(--surface-hover); }

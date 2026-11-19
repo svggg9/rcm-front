@@ -1,0 +1,14 @@
+.section { display: grid; gap: var(--space-3); margin-top: var(--space-7); min-width: 0; }
+.section h3, .section h4, .section p { margin: 0; }
+.examples { display: grid; gap: var(--space-6); }
+.example { display: grid; gap: var(--space-2); min-width: 0; }
+.example h4 { font-size: var(--type-subtitle-1-size); line-height: var(--type-subtitle-1-line); font-weight: var(--type-subtitle-weight); }
+.cart { width: min(100%, 520px); min-width: 0; padding: var(--space-4); background: var(--soft); }
+.cartHeader { display: flex; justify-content: space-between; align-items: center; gap: var(--space-3); }
+.cartHeader > span { font-weight: var(--font-weight-semibold); }
+.cart > p { margin-top: var(--space-3); font-size: var(--type-body-2-size); line-height: var(--type-body-2-line); }
+.message { color: var(--muted); font-size: var(--type-body-2-size); line-height: var(--type-body-2-line); }
+.actions { display: flex; justify-content: flex-end; gap: var(--space-2); margin-top: var(--space-5); }
+.actions > * { min-width: 0; }
+.stacked { display: grid; grid-template-columns: 1fr; }
+@media (max-width: 480px) { .actions > * { flex: 1; } }

@@ -39,7 +39,8 @@ import type {
   DeliveryCityOption,
 } from "./types";
 
-import { isValidPhone } from "../lib/validation";
+import { checkoutPhoneError, isValidCheckoutPhone, normalizeCheckoutPhone } from "./lib/checkoutPhone";
+import { DEFAULT_DELIVERY_COUNTRIES, parseDeliveryCountries } from "./lib/deliveryCountries";
 
 import {
   clearCheckoutDraft,
@@ -146,6 +147,7 @@ function CheckoutPageContent({ initialMe, initialCart, embedded = false, cartSna
   }, []);
 
   const [draftHydrated, setDraftHydrated] = useState(false);
+  const hasDeliveryDraftRef = useRef(false);
   const profileContactsRef = useRef<Pick<CheckoutPrefill, "email" | "fullName" | "phone"> | null>(null);
   const hadCommittedRecipientRef = useRef(false);
 
@@ -166,6 +168,8 @@ function CheckoutPageContent({ initialMe, initialCart, embedded = false, cartSna
   });
 
   const [countryCode, setCountryCode] = useState<CountryCode>("RU");
+  const [deliveryCountries, setDeliveryCountries] = useState(DEFAULT_DELIVERY_COUNTRIES);
+  const [countriesLoaded, setCountriesLoaded] = useState(false);
   const [apartment, setApartment] = useState("");
   const [floor, setFloor] = useState("");
   const [intercom, setIntercom] = useState("");
@@ -177,7 +181,7 @@ function CheckoutPageContent({ initialMe, initialCart, embedded = false, cartSna
   const [phone, setPhone] = useState("");
   const contactValidation = useFieldValidation({ fullName, phone }, values => ({
     ...(!values.fullName.trim() ? { fullName: "Введите имя и фамилию" } : {}),
-    ...(!isValidPhone(values.phone) ? { phone: "Укажите корректный российский номер телефона" } : {}),
+    ...(!isValidCheckoutPhone(values.phone, countryCode) ? { phone: checkoutPhoneError(countryCode) } : {}),
   }));
   const contactErrors = contactValidation.errors;
 
@@ -195,7 +199,7 @@ function CheckoutPageContent({ initialMe, initialCart, embedded = false, cartSna
   const [cityLoading, setCityLoading] = useState(false);
   const [cityTouched, setCityTouched] = useState(false);
   const [pickupError, setPickupError] = useState<string | null>(null);
-  const pickerSnapshot = useRef<{ city: DeliveryCityOption | null; query: string; options: DeliveryOption[]; addressId: string } | null>(null);
+  const pickerSnapshot = useRef<{ countryCode: CountryCode; city: DeliveryCityOption | null; query: string; options: DeliveryOption[]; addressId: string } | null>(null);
   const [pickupLoading, setPickupLoading] = useState(false);
   const [quoteLoading, setQuoteLoading] = useState(false);
   const [quotePending, setQuotePending] = useState(false);
@@ -261,6 +265,7 @@ function CheckoutPageContent({ initialMe, initialCart, embedded = false, cartSna
 
   useEffect(() => {
     const draft = loadCheckoutDraft();
+    hasDeliveryDraftRef.current = Boolean(draft);
 
     if (draft) {
       setDeliveryMethod(draft.deliveryMethod);
@@ -297,7 +302,7 @@ function CheckoutPageContent({ initialMe, initialCart, embedded = false, cartSna
       selectedAddressId: committed ? committed.addressId : selectedAddressId,
       selectedPickupPointLabel: committed ? committed.options.find(point => point.id === committed.addressId)?.label ?? "" : selectedPickupPoint?.label ?? "",
       deliveryAddress,
-      countryCode,
+      countryCode: committed ? committed.countryCode : countryCode,
       selectedCityCode: committed ? committed.city?.code ?? null : selectedCity?.code ?? null,
       selectedCityName: committed ? committed.city?.fullName ?? "" : selectedCity?.fullName ?? "",
       apartment,
@@ -320,6 +325,32 @@ function CheckoutPageContent({ initialMe, initialCart, embedded = false, cartSna
     fittingMode,
     paymentMethod,
   ]);
+
+  useEffect(() => {
+    let active = true;
+    async function loadCountries() {
+      try {
+        const response = await apiFetch(`${API_URL}/api/delivery/countries`, { signal: AbortSignal.timeout(20_000) });
+        if (!response.ok) throw new Error("Countries unavailable");
+        const countries = parseDeliveryCountries(await response.json());
+        if (active) setDeliveryCountries(countries);
+      } catch {
+        if (active) setDeliveryCountries(DEFAULT_DELIVERY_COUNTRIES);
+      } finally {
+        if (active) setCountriesLoaded(true);
+      }
+    }
+    void loadCountries();
+    return () => { active = false; };
+  }, []);
+
+  useEffect(() => {
+    if (!countriesLoaded || deliveryCountries.some(country => country.code === countryCode)) return;
+    citySearchRequestRef.current += 1; pickupSearchRequestRef.current += 1;
+    quoteControllerRef.current?.abort();
+    setCountryCode("RU"); setSelectedCity(null); setCityQuery(""); setCityOptions([]);
+    setDeliveryOptions([]); setSelectedAddressId(""); setDeliveryAddress("");
+  }, [countriesLoaded, countryCode, deliveryCountries]);
 
   useEffect(() => {
     let active = true;
@@ -362,7 +393,7 @@ function CheckoutPageContent({ initialMe, initialCart, embedded = false, cartSna
             phone: existing.phone,
             deliveryMethod: existing.deliveryMethod,
             deliveryAddress: existing.deliveryAddress,
-            countryCode: existing.countryCode,
+            countryCode: hasDeliveryDraftRef.current ? existing.countryCode : undefined,
             selectedCity: existing.selectedCity,
             selectedAddressId: existing.selectedAddressId,
             pickupPointLabel: existing.selectedPickupPointLabel,
@@ -629,7 +660,7 @@ function CheckoutPageContent({ initialMe, initialCart, embedded = false, cartSna
   }
 
   async function searchPickupPoints() {
-  if (!selectedCity) {
+  if (!countriesLoaded || !deliveryCountries.some(country => country.code === countryCode) || !selectedCity || selectedCity.countryCode !== countryCode) {
     showError("Выберите город из списка");
     return;
   }
@@ -645,6 +676,7 @@ function CheckoutPageContent({ initialMe, initialCart, embedded = false, cartSna
       body: JSON.stringify({
         location: selectedCity.fullName,
         cityCode: selectedCity.code,
+         countryCode,
       }),
     });
 
@@ -712,7 +744,7 @@ function CheckoutPageContent({ initialMe, initialCart, embedded = false, cartSna
     const data = (await response.json()) as DeliveryCityOption[];
     if (requestId !== citySearchRequestRef.current) return;
 
-    setCityOptions(Array.isArray(data) ? data : []);
+    setCityOptions(Array.isArray(data) ? data.filter(city => city.countryCode === countryCode) : []);
     setDeliveryErrors(current => ({ ...current, city: undefined }));
   } catch (e) {
     if (requestId !== citySearchRequestRef.current) return;
@@ -729,7 +761,7 @@ function CheckoutPageContent({ initialMe, initialCart, embedded = false, cartSna
     let active = true;
 
     async function selectDefaultCity() {
-      if (!draftHydrated) return;
+      if (!draftHydrated || !countriesLoaded || countryCode !== "RU") return;
       if (loading) return;
       if (defaultCitySelectedRef.current) return;
       if (selectedCity || cityQuery.trim()) return;
@@ -775,7 +807,7 @@ function CheckoutPageContent({ initialMe, initialCart, embedded = false, cartSna
     return () => {
       active = false;
     };
-  }, [draftHydrated, loading, selectedCity, cityQuery]);
+  }, [draftHydrated, countriesLoaded, countryCode, loading, selectedCity, cityQuery]);
 
   async function createDeliveryQuote(): Promise<SellerGroupDeliveryQuoteResponse | null> {
     if (cartUpdating || cartBlocked || cartMutationRef?.current || !items.length) return null;
@@ -783,7 +815,8 @@ function CheckoutPageContent({ initialMe, initialCart, embedded = false, cartSna
       return null;
     }
 
-    if (!selectedCity || !selectedPickupPoint) {
+    if (!countriesLoaded || !deliveryCountries.some(country => country.code === countryCode) ||
+        !selectedCity || selectedCity.countryCode !== countryCode || !selectedPickupPoint) {
       return null;
     }
 
@@ -798,10 +831,11 @@ function CheckoutPageContent({ initialMe, initialCart, embedded = false, cartSna
       const quotePayload = {
         method: "PICKUP_POINT",
         recipientName: fullName.trim(),
-        recipientPhone: phone.trim(),
+        recipientPhone: normalizeCheckoutPhone(phone, countryCode),
         fittingMode: "WITHOUT_FITTING",
         pickupPointId: selectedAddressId,
         address: {
+          countryCode,
           fullText:
             selectedPickupPoint?.label ?? selectedCity?.fullName ?? "",
           cityCode:
@@ -811,7 +845,7 @@ function CheckoutPageContent({ initialMe, initialCart, embedded = false, cartSna
 
       const response = await apiFetch(`${API_URL}/api/delivery/seller-group-quotes`, {
         method: "POST",
-        signal: AbortSignal.any([controller.signal, AbortSignal.timeout(20_000)]),
+        signal: AbortSignal.any([controller.signal, AbortSignal.timeout(30_000)]),
         body: JSON.stringify({
           cartId,
           quote: quotePayload,
@@ -826,7 +860,7 @@ function CheckoutPageContent({ initialMe, initialCart, embedded = false, cartSna
 
       const quote = (await response.json()) as SellerGroupDeliveryQuoteResponse;
       if (controller.signal.aborted || cartMutationRef?.current || quoteControllerRef.current !== controller || currentCartFingerprint.current !== cartFingerprint) return null;
-      if (!quote.checkoutToken || !quote.quoteToken || !Number.isFinite(Number(quote.priceAmount)) || Number(quote.priceAmount) < 0) {
+      if (!quote.checkoutToken || !quote.quoteToken || quote.currency !== "RUB" || !Number.isFinite(Number(quote.priceAmount)) || Number(quote.priceAmount) < 0) {
         throw new CheckoutActionError("Не удалось подтвердить стоимость доставки — попробуйте ещё раз");
       }
 
@@ -876,7 +910,8 @@ function CheckoutPageContent({ initialMe, initialCart, embedded = false, cartSna
       return;
     }
 
-    if (!selectedCity || !selectedPickupPoint || !cartFingerprint) {
+    if (!countriesLoaded || !deliveryCountries.some(country => country.code === countryCode) ||
+        !selectedCity || selectedCity.countryCode !== countryCode || !selectedPickupPoint || !cartFingerprint) {
       resetDeliveryQuote();
       return;
     }
@@ -885,6 +920,7 @@ function CheckoutPageContent({ initialMe, initialCart, embedded = false, cartSna
       cartId,
       cart: cartFingerprint,
       method: deliveryMethod,
+      countryCode,
       cityCode: selectedCity.code,
       pickupPointId: selectedAddressId,
       fittingMode: "WITHOUT_FITTING",
@@ -911,6 +947,9 @@ function CheckoutPageContent({ initialMe, initialCart, embedded = false, cartSna
     cartUpdating,
     cartBlocked,
     cartId,
+    countryCode,
+    countriesLoaded,
+    deliveryCountries,
     createdOrderId,
     selectedCity,
     cartFingerprint,
@@ -1028,8 +1067,8 @@ function CheckoutPageContent({ initialMe, initialCart, embedded = false, cartSna
 
     const nextContactErrors = {
       ...(!fullName.trim() ? { fullName: "Введите имя и фамилию" } : {}),
-      ...(!isValidPhone(phone)
-        ? { phone: "Укажите корректный российский номер телефона" }
+      ...(!isValidCheckoutPhone(phone, countryCode)
+        ? { phone: checkoutPhoneError(countryCode) }
         : {}),
     };
     const contactValidationError =
@@ -1054,21 +1093,17 @@ function CheckoutPageContent({ initialMe, initialCart, embedded = false, cartSna
     }
 
     const actualRecipientName = fullName.trim();
-    const actualRecipientPhone = phone.trim();
+    const actualRecipientPhone = normalizeCheckoutPhone(phone, countryCode);
 
     setError(null);
 
-    let activeDeliveryOfferId = deliveryOfferId || deliveryQuoteToken;
-    let activeCheckoutToken = checkoutToken;
-    let activeCheckoutTokenExpiresAt = checkoutTokenExpiresAt;
-    let activeDeliveryPrice = deliveryPrice;
-    let activeDeliveryCurrency = deliveryCurrency;
-    let activeSellerDeliveryCosts = sellerDeliveryCosts;
+    const activeDeliveryOfferId = deliveryOfferId || deliveryQuoteToken;
+    const activeCheckoutToken = checkoutToken;
 
     if (
       !activeDeliveryOfferId ||
       !activeCheckoutToken ||
-      shouldRefreshDeliveryQuote(activeCheckoutTokenExpiresAt)
+      shouldRefreshDeliveryQuote(checkoutTokenExpiresAt)
     ) {
       const quote = await createDeliveryQuote();
 
@@ -1077,14 +1112,9 @@ function CheckoutPageContent({ initialMe, initialCart, embedded = false, cartSna
         return;
       }
 
-      activeDeliveryOfferId = quote.externalOfferId || quote.quoteToken;
-      activeCheckoutToken = quote.checkoutToken;
-      activeCheckoutTokenExpiresAt = quote.expiresAt;
-      activeDeliveryPrice = Number(quote.priceAmount || 0);
-      activeDeliveryCurrency = quote.currency || "RUB";
-      activeSellerDeliveryCosts = Array.isArray(quote.sellerDeliveryCosts)
-        ? quote.sellerDeliveryCosts
-        : [];
+      // A newly calculated amount must be visible before the buyer submits it.
+      setError("Доставка пересчитана — проверьте стоимость и нажмите «Заказать» ещё раз");
+      return;
     }
 
     const pickupPointLabel = selectedPickupPoint?.label ?? "";
@@ -1109,14 +1139,14 @@ function CheckoutPageContent({ initialMe, initialCart, embedded = false, cartSna
         fittingMode: "WITHOUT_FITTING",
         deliveryOfferId: activeDeliveryOfferId || undefined,
         deliveryQuoteToken: activeCheckoutToken || undefined,
-        deliveryPriceAmount: activeDeliveryPrice,
-        deliveryCurrency: activeDeliveryCurrency,
-        sellerDeliveryCosts: activeSellerDeliveryCosts
+        deliveryPriceAmount: deliveryPrice,
+        deliveryCurrency,
+        sellerDeliveryCosts: sellerDeliveryCosts
           .filter((item) => item.sellerId && item.deliveryCostAmount != null)
           .map((item) => ({
             sellerId: item.sellerId,
             deliveryCostAmount: Number(item.deliveryCostAmount),
-            currency: item.currency || activeDeliveryCurrency,
+            currency: item.currency || deliveryCurrency,
           })),
         paymentMethod,
       };
@@ -1130,7 +1160,7 @@ function CheckoutPageContent({ initialMe, initialCart, embedded = false, cartSna
         }
       );
       checkoutAttemptRef.current = payload;
-      let checkoutResponse = await submitCheckout();
+      const checkoutResponse = await submitCheckout();
 
       if (!checkoutResponse.ok) {
         const firstFailure = await readCheckoutFailure(
@@ -1145,36 +1175,12 @@ function CheckoutPageContent({ initialMe, initialCart, embedded = false, cartSna
           const refreshedQuote = await createDeliveryQuote();
           if (!refreshedQuote) throw new CheckoutActionError(firstError);
 
-          payload.deliveryOfferId =
-            refreshedQuote.externalOfferId || refreshedQuote.quoteToken;
-          payload.deliveryQuoteToken = refreshedQuote.checkoutToken;
-          payload.deliveryPriceAmount = Number(refreshedQuote.priceAmount || 0);
-          payload.deliveryCurrency = refreshedQuote.currency || "RUB";
-          payload.sellerDeliveryCosts = Array.isArray(refreshedQuote.sellerDeliveryCosts)
-            ? refreshedQuote.sellerDeliveryCosts
-                .filter((item) => item.sellerId && item.deliveryCostAmount != null)
-                .map((item) => ({
-                  sellerId: item.sellerId,
-                  deliveryCostAmount: Number(item.deliveryCostAmount),
-                  currency: item.currency || refreshedQuote.currency || "RUB",
-                }))
-            : [];
-          checkoutAttemptRef.current = payload;
-          checkoutResponse = await submitCheckout();
+          setError("Доставка пересчитана — проверьте стоимость и нажмите «Заказать» ещё раз");
+          return;
         } else {
           if (checkoutResponse.status < 500) checkoutAttemptRef.current = null;
           throw new CheckoutActionError(firstError);
         }
-      }
-
-      if (!checkoutResponse.ok) {
-        if (checkoutResponse.status < 500) checkoutAttemptRef.current = null;
-        throw new CheckoutActionError(
-          await readCheckoutError(
-            checkoutResponse,
-            "Не удалось оформить заказ — попробуйте ещё раз"
-          )
-        );
       }
 
       await acceptCreatedOrders(checkoutResponse);
@@ -1196,7 +1202,7 @@ function CheckoutPageContent({ initialMe, initialCart, embedded = false, cartSna
     if (cartUpdating || cartBlocked || cartMutationRef?.current || !items.length) return false;
     const fields = {
       ...(!fullName.trim() ? { fullName: "Введите имя и фамилию" } : {}),
-      ...(!isValidPhone(phone) ? { phone: "Укажите корректный российский номер телефона" } : {}),
+      ...(!isValidCheckoutPhone(phone, countryCode) ? { phone: checkoutPhoneError(countryCode) } : {}),
     };
     const deliveryFields = !selectedCity ? { city: "Выберите город из списка" }
       : !selectedPickupPoint ? { pickupPoint: "Выберите пункт выдачи" } : {};
@@ -1212,11 +1218,12 @@ function CheckoutPageContent({ initialMe, initialCart, embedded = false, cartSna
                 deliveryCalculated={deliveryCalculated}
                 cityLoading={cityLoading}
                 pickupError={pickupError}
-                onPickerOpen={() => { pickerSnapshot.current = { city: selectedCity, query: cityQuery, options: deliveryOptions, addressId: selectedAddressId }; }}
+                 onPickerOpen={() => { pickerSnapshot.current = { countryCode, city: selectedCity, query: cityQuery, options: deliveryOptions, addressId: selectedAddressId }; }}
                 onPickerCancel={() => {
                   const snapshot = pickerSnapshot.current; if (!snapshot) return;
                   citySearchRequestRef.current += 1; pickupSearchRequestRef.current += 1;
-                  setSelectedCity(snapshot.city); setCityQuery(snapshot.query); setCityOptions([]); setCityTouched(false);
+                   setCityLoading(false); setPickupLoading(false);
+                   setCountryCode(snapshot.countryCode); setSelectedCity(snapshot.city); setCityQuery(snapshot.query); setCityOptions([]); setCityTouched(false);
                   setDeliveryOptions(snapshot.options); setSelectedAddressId(snapshot.addressId); setPickupError(null);
                   setDeliveryErrors({}); pickerSnapshot.current = null; resetDeliveryQuote();
                 }}
@@ -1226,6 +1233,7 @@ function CheckoutPageContent({ initialMe, initialCart, embedded = false, cartSna
                 quoteLoading={deliveryCalculating}
                 onPickupSearch={searchPickupPoints}
                 countryCode={countryCode}
+                 countries={deliveryCountries}
                 selectedAddressId={selectedAddressId}
                 cityQuery={cityQuery}
                 cityOptions={cityOptions}
@@ -1235,6 +1243,7 @@ function CheckoutPageContent({ initialMe, initialCart, embedded = false, cartSna
                 pickupPointError={deliveryErrors.pickupPoint}
                 onCountryChange={(value) => {
                   pickupSearchRequestRef.current += 1; citySearchRequestRef.current += 1; setPickupLoading(false);
+                   defaultCitySelectedRef.current = false; setCityLoading(false); setCityTouched(false); setPickupError(null);
                   const currentValidationError =
                     deliveryErrors.city || deliveryErrors.pickupPoint;
                   setCountryCode(value);
@@ -1308,7 +1317,7 @@ function CheckoutPageContent({ initialMe, initialCart, embedded = false, cartSna
                   }
                   resetDeliveryQuote();
                 }}
-                enabled={!submitting && !deliveryCalculating}
+                 enabled={countriesLoaded && !submitting && !deliveryCalculating}
                 onAddressChange={(value) => {
                   const currentValidationError = deliveryErrors.pickupPoint;
                   resetDeliveryQuote();
@@ -1327,6 +1336,7 @@ function CheckoutPageContent({ initialMe, initialCart, embedded = false, cartSna
   const contactContent = <CheckoutContactSection disabled={submitting || deliveryCalculating}
                 fullName={fullName}
                 phone={phone}
+                 countryCode={countryCode}
                 fullNameError={contactErrors.fullName}
                 phoneError={contactErrors.phone}
                 onFullNameBlur={() => contactValidation.touch("fullName")}
@@ -1338,7 +1348,7 @@ function CheckoutPageContent({ initialMe, initialCart, embedded = false, cartSna
   if (embedded) return <div ref={checkoutMainRef}>
     {loading ? <Loader label="Загрузка оформления" /> : !cartId ? <p role="alert">Не удалось загрузить оформление — вернитесь в корзину и попробуйте ещё раз</p> :
       <CheckoutFlow delivery={deliveryContent} contact={contactContent} pickupLabel={selectedPickupPoint?.label ?? ""}
-        cityName={selectedCity?.fullName ?? ""} recipient={fullName} phone={phone} subtotal={subtotal}
+        cityName={selectedCity?.fullName ?? ""} recipient={fullName} phone={phone} countryCode={countryCode} subtotal={subtotal}
         deliveryPrice={deliveryPrice} deliveryCalculated={deliveryCalculated} deliveryCalculating={deliveryCalculating}
         submitting={submitting} error={error} checkoutUnknown={checkoutUnknown} committedOrderId={submitting ? null : createdOrderId}
         disabled={cartUpdating || cartBlocked || !items.length || !resumePaymentAllowed}

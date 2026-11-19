@@ -109,7 +109,7 @@
 .menuBtn:focus-visible,
 .iconBtn:focus-visible,
 .logo:focus-visible {
-  outline: 2px solid var(--gold);
+  outline: 2px solid var(--black);
   outline-offset: 3px;
 }
 
@@ -188,36 +188,7 @@
   fill: transparent;
 }
 
-.iconBtnActive::after {
-  content: "";
-  position: absolute;
-  top: 8px;
-  right: 7px;
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
-  background: var(--gold);
-  box-shadow: 0 0 0 2px var(--white);
-  pointer-events: none;
-  animation: commerceMarkerIn 180ms ease-out both;
-}
-
-@keyframes commerceMarkerIn {
-  from {
-    opacity: 0;
-    transform: scale(0.35);
-  }
-
-  to {
-    opacity: 1;
-    transform: scale(1);
-  }
-}
-
 @media (prefers-reduced-motion: reduce) {
-  .iconBtnActive::after {
-    animation: none;
-  }
   .iconBtn,
   .menuBtn { transition: none; }
   .iconBtn:active,
@@ -592,4 +563,4 @@
   .mobileProfileLink svg { width: 24px; height: 24px; flex: none; }
 }
 
-.iconBtn > span > svg { width: 24px; height: 24px; }
+.iconBtn > span > svg, .iconBtn > span > span > svg { width: 24px; height: 24px; }

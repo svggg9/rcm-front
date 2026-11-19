@@ -79,8 +79,8 @@
 :is(.input, .select, .textarea):focus-visible,
 [data-ui="field"] > :is(input:not([type="checkbox"], [type="radio"], [type="file"], [type="range"], [type="hidden"]), textarea, select):focus-visible,
 :is(.inputShell, .phoneInputShell):has(> input:focus-visible) {
-  outline: var(--field-focus-width, 1px) solid var(--black);
-  outline-offset: var(--field-focus-offset, 2px);
+  outline: none;
+  background: var(--field-focus-background);
 }
 
 :is(.input, .select, .textarea).inputError,
@@ -96,6 +96,9 @@
   background: var(--field-readonly-background);
   cursor: text;
 }
+:is(.input, .textarea):read-only:not(:disabled):focus-visible,
+[data-ui="field"] > :is(input, textarea)[readonly]:not(:disabled):focus-visible,
+:is(.inputShell, .phoneInputShell):has(> input[readonly]:not(:disabled):focus-visible) { background: var(--field-focus-background); }
 
 .fieldHint,
 .textHint,
@@ -109,7 +112,7 @@
 .fieldError {
   display: block;
   margin: 0;
-  color: var(--state-text-color, var(--error));
+  color: var(--error);
   font-size: var(--field-error-size);
   line-height: var(--field-error-line-height);
   font-weight: var(--field-error-weight);
@@ -164,6 +167,7 @@
   opacity: 1;
 }
 [data-ui="field"][data-field-variant="inline"] > :is(input, .inputShell, .phoneInputShell):hover { background: var(--white); }
+[data-ui="field"][data-field-variant="inline"] > :is(input:focus-visible, .inputShell:has(> input:focus-visible), .phoneInputShell:has(> input:focus-visible)) { background: var(--field-focus-background); }
 [data-ui="field"][data-field-variant="inline"] > input:read-only { cursor: text; }
 [data-ui="field"][data-field-variant="inline"] :is(input, .phoneInput):read-only::placeholder { color: var(--black); font-size: var(--field-control-size); }
 [data-ui="field"][data-field-variant="inline"] > :is(input, .inputShell, .phoneInputShell):is(.inputError, [aria-invalid="true"], :has([aria-invalid="true"])) { border-bottom-color: var(--error); }
@@ -180,6 +184,16 @@
 }
 .inputShell > input.input:disabled,
 .phoneInputShell > input.phoneInput:disabled { background: transparent; color: inherit; opacity: 1; }
+:is(.input, .textarea, .phoneInput):disabled,
+[data-ui="field"] > :is(input, textarea, select):disabled { -webkit-text-fill-color: var(--field-disabled-color); }
+:is(.input, .textarea, .phoneInput):disabled::placeholder,
+[data-ui="field"] :is(input, textarea):disabled::placeholder { color: var(--field-disabled-color); opacity: 1; }
+[data-ui="field"][data-field-variant="inline"] :is(input, .phoneInput):disabled::placeholder { color: var(--field-disabled-color); }
+[data-ui="field"][data-field-variant="inline"] > :is(input:disabled, .inputShell:has(> input:disabled), .phoneInputShell:has(> input:disabled)) {
+  background: var(--field-disabled-background);
+  border-color: var(--field-disabled-border);
+  color: var(--field-disabled-color);
+}
 
 @media (max-width: 768px) {
   [data-ui="field"][data-field-variant="inline"]:not([data-readonly="true"]) > :is(input, .inputShell, .phoneInputShell) {
@@ -203,4 +217,9 @@
 @media (prefers-reduced-motion: reduce) {
   :is(.input, .select, .textarea, .inputShell, .phoneInputShell),
   [data-ui="field"] > :is(input:not([type="checkbox"], [type="radio"], [type="file"], [type="range"], [type="hidden"]), textarea, select) { transition: none; }
+}
+@media (forced-colors: active) {
+  :is(.input, .select, .textarea):focus-visible,
+  [data-ui="field"] > :is(input:not([type="checkbox"], [type="radio"], [type="file"], [type="range"], [type="hidden"]), textarea, select):focus-visible,
+  :is(.inputShell, .phoneInputShell):has(> input:focus-visible) { outline: 2px solid Highlight; outline-offset: 2px; }
 }

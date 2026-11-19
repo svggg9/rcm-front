@@ -1,0 +1,14 @@
+.coverage { display: grid; gap: var(--space-6); }
+.areas { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-6); }
+.area { min-width: 0; padding: var(--space-5); background: var(--white); }
+.area h3, .exampleHeading h3 { margin: 0; }
+.area p, .exampleHeading p { margin: var(--space-2) 0 0; font-size: var(--type-body-2-size); line-height: var(--type-body-2-line); }
+.area ul { display: grid; gap: var(--space-1); margin: var(--space-4) 0 0; padding: 0; list-style: none; }
+.area a { display: inline-flex; align-items: center; min-height: 36px; padding: 0 var(--space-2); margin-left: calc(-1 * var(--space-2)); color: var(--black); font-size: var(--type-body-2-size); line-height: var(--type-body-2-line); text-decoration: none; }
+.area a:hover { background: var(--surface-hover); }
+.area a:focus-visible { outline: 2px solid var(--black); outline-offset: 2px; }
+.note { margin: 0; color: var(--muted); font-size: var(--type-caption-size); line-height: var(--type-caption-line); }
+.example { display: grid; gap: var(--space-4); }
+.exampleHeading { max-width: 680px; }
+.actionDemo { display: flex; align-items: center; justify-content: space-between; gap: var(--space-4); max-width: 480px; }
+@media (max-width: 800px) { .areas { grid-template-columns: minmax(0, 1fr); } .area a { min-height: 44px; } }

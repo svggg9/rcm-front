@@ -1,0 +1,77 @@
+.shell {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-content: center;
+  min-width: 0;
+  min-height: 60px;
+  padding: 7px var(--field-control-padding-inline, 15px);
+  border: var(--line-width-default) solid var(--field-control-border-color, #c8c8c2);
+  border-radius: var(--field-control-radius);
+  background: var(--field-control-background, #fff);
+  color: var(--black);
+  transition: border-color var(--transition-fast), background-color var(--transition-fast);
+}
+
+/* Shared inside-label appearance; the name is retained for existing consumers. */
+.shell.warm {
+  --field-control-background: #fff;
+  --field-control-border-color: #c8c8c2;
+  --surface-hover: #ecebe7;
+  --field-label-size: 12px;
+  --field-label-weight: 400;
+  --field-control-weight: 400;
+}
+.warm .label { color: #62625c; }
+.warm .control::placeholder { color: #44423f; }
+.shell:has(.control:disabled) .label { color: #92928d; }
+
+.shell:has(.control:not(:disabled):not([readonly])):hover { background: var(--surface-hover); }
+.shell:not([data-pointer-focus]):has(.control:focus-visible) { outline: none; background: var(--field-focus-background); }
+.shell:not([data-pointer-focus]):has(.control:focus-visible) .control::placeholder { color: #625f59; }
+.shell.invalid, .shell:has(.control[aria-invalid="true"]) { border-color: var(--error); }
+.shell.invalid:has(.control:focus-visible), .shell:has(.control[aria-invalid="true"]:focus-visible) { outline-color: var(--error); }
+.shell:has(.control:read-only:not(:disabled)) { background: var(--field-readonly-background); }
+.shell:has(.control:disabled) { background: var(--field-disabled-background); border-color: var(--field-disabled-border); color: var(--field-disabled-color); }
+
+.label {
+  z-index: 1;
+  min-width: 0;
+  color: #62625c;
+  font-size: var(--field-label-size, 13px);
+  font-weight: var(--field-label-weight, 500);
+  line-height: var(--field-label-line-height, 18px);
+  overflow-wrap: anywhere;
+  transform-origin: left center;
+  transition: transform var(--transition-fast), font-size var(--transition-fast), font-weight var(--transition-fast);
+  cursor: text;
+}
+
+.control {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  min-height: var(--line-height-body, 24px);
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  outline: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: var(--font-md, 16px);
+  font-weight: var(--field-control-weight, 400);
+  line-height: var(--line-height-body, 24px);
+}
+.control::placeholder { color: var(--black-soft); opacity: 1; }
+.control:disabled { color: inherit; -webkit-text-fill-color: currentColor; opacity: 1; }
+.shell .control:disabled::placeholder { color: var(--field-disabled-color); opacity: 1; -webkit-text-fill-color: var(--field-disabled-color); }
+.floating:has(.control:placeholder-shown:not(:focus):not(:autofill)) .label {
+  font-size: var(--font-md, 16px);
+  font-weight: var(--field-control-weight, 400);
+  transform: translateY(10px);
+}
+.floating .control:not(:focus)::placeholder { color: transparent; }
+@media (prefers-reduced-motion: reduce) { .shell, .label { transition: none; } }
+@media (forced-colors: active) {
+  .shell:not([data-pointer-focus]):has(.control:focus-visible) { outline: 2px solid Highlight; outline-offset: 2px; }
+}

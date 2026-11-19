@@ -1,0 +1,10 @@
+.section { margin-top: var(--space-8); }
+.section > h3 { margin: 0 0 var(--space-2); font-size: var(--type-h5-size); line-height: var(--type-h5-line); font-weight: var(--type-heading-weight); }
+.intro { margin: 0 0 var(--space-5); font-size: var(--font-sm); line-height: var(--line-height-small); }
+.card { max-width: 360px; min-width: 0; padding: var(--space-4); background: var(--soft); }
+.card h4 { margin: var(--space-4) 0 var(--space-1); font-size: var(--font-sm); font-weight: var(--font-weight-medium); line-height: var(--line-height-small); }
+.card p, .status { font-size: var(--font-xs); line-height: var(--line-height-small); }
+.card p { margin: 0 0 var(--space-3); }
+.stage { display: grid; place-items: center; height: 150px; background: var(--white); }
+.option { display: flex; align-items: center; gap: var(--space-2); min-height: 44px; font-size: var(--font-xs); }
+.status { display: block; min-height: 20px; }

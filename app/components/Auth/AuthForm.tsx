@@ -97,8 +97,8 @@ export function AuthForm({ next = "/", onAuthenticated, onBack, onBusyChange, di
   function showFailure(failure: unknown) {
     if (!mounted.current) return;
     setError(failure instanceof AuthRequestError ? failure.message : "Не удалось войти — попробуйте ещё раз");
-    if (failure instanceof AuthRequestError && failure.status === 429) {
-      retryDeadlines.set(identity, Date.now() + 60_000);
+    if (failure instanceof AuthRequestError && failure.status === 429 && failure.retryAfterSeconds !== null) {
+      retryDeadlines.set(identity, Date.now() + failure.retryAfterSeconds * 1000);
       setNow(Date.now());
     }
   }
@@ -167,7 +167,7 @@ export function AuthForm({ next = "/", onAuthenticated, onBack, onBusyChange, di
     </button>}
     {(step !== "email" || showEntryTitle) && <div className={styles.intro}>
       <h2 id={`${id}-title`} className={step === "email" ? `${styles.entryHeading} textTitle` : undefined}>{title}</h2>
-      {step !== "email" && <p>{step === "code" ? <>Чтобы подтвердить <span>{identity}</span></> : "Используйте пароль своего аккаунта"}</p>}
+      {step !== "email" && <p>{step === "code" ? <>Введите код для <span>{identity}</span>. Действует код из последнего запроса.</> : "Используйте пароль своего аккаунта"}</p>}
     </div>}
     {step === "code" ? <>
       <OneTimeCodeInput value={code} disabled={blocked} error={error} enterKeyHint="done" onChange={value => {

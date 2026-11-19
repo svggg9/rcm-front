@@ -1,0 +1,5 @@
+.example { display: grid; gap: var(--space-4); min-width: 0; }
+.example > p { margin: 0; }
+.editor { display: grid; gap: var(--space-3); min-width: 0; max-width: 820px; }
+.fieldset { min-width: 0; margin: 0; padding: 0; border: 0; }
+.actions { display: flex; flex-wrap: wrap; gap: var(--space-3); margin-top: var(--space-4); }

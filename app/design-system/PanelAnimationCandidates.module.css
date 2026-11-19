@@ -1,0 +1,30 @@
+.group { margin-top: var(--space-8); }
+.group > h3 { margin: 0 0 var(--space-2); font-size: var(--type-h5-size); line-height: var(--type-h5-line); font-weight: var(--type-heading-weight); }
+.intro { margin: 0 0 var(--space-5); font-size: var(--font-sm); line-height: var(--line-height-small); }
+.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)); gap: var(--space-4); }
+.card { min-width: 0; padding: var(--space-4); background: var(--soft); }
+.card h4 { margin: var(--space-4) 0 var(--space-1); font-size: var(--font-sm); font-weight: var(--font-weight-medium); line-height: var(--line-height-small); }
+.card p, .hint { font-size: var(--font-xs); line-height: var(--line-height-small); }
+.card p { margin: 0 0 var(--space-3); }
+.hint { display: block; }
+.stage { position: relative; height: 180px; overflow: hidden; background: var(--white); }
+.background { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; }
+.caption { position: absolute; top: 12px; left: 12px; font-size: var(--font-xs); }
+.shade { position: absolute; z-index: 2; inset: 0; background: rgb(0 0 0 / 15%); opacity: 0; pointer-events: none; transition: opacity 260ms ease; }
+.shade[data-open] { opacity: 1; }
+.panel { position: absolute; z-index: 3; inset: 0 0 0 auto; width: 62%; padding: 12px; box-sizing: border-box; background: var(--white); opacity: 0; visibility: hidden; transition: transform 260ms ease, opacity 260ms ease, visibility 0s 260ms; }
+.panel[data-open] { opacity: 1; visibility: visible; transform: translate(0, 0); transition: transform 260ms ease, opacity 260ms ease, visibility 0s; }
+.panel.slide { transform: translateX(100%); opacity: 1; }
+.panel.fade { transform: none; }
+.panel.rise { transform: translateY(20px); }
+.panel.slide[data-open], .panel.rise[data-open] { transform: translate(0, 0); }
+.panelHeader { display: flex; align-items: center; justify-content: space-between; gap: 4px; font-size: var(--font-xs); }
+.panelHeader button { flex-shrink: 0; }
+.panelText { display: block; margin-top: 16px; font-size: var(--font-xs); }
+.lines { display: grid; gap: 7px; margin-top: 14px; }
+.lines span { height: 5px; background: var(--soft); }
+.lines span:nth-child(2) { width: 80%; }
+.lines span:nth-child(3) { width: 62%; }
+@media (prefers-reduced-motion: reduce) {
+  .shade, .panel, .panel[data-open] { transition: none; }
+}

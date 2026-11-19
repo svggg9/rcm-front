@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { Button } from "../../../components/ui/Button";
 import { LikeButton } from "../../../components/ui/LikeButton";
 import { ProductPhoto } from "../../../components/ProductPhoto";
@@ -8,6 +7,8 @@ import { productColorPath } from "../../../lib/productUrls";
 import { ProductArticleButton } from "./ProductArticleButton";
 import { ProductShareButton } from "./ProductShareButton";
 import { ProductVariantSelect } from "./ProductVariantSelect";
+import { ProductDetailsAccordion } from "./ProductDetailsAccordion";
+import { ProductInfoHeading } from "./ProductInfoHeading";
 import styles from "../ProductPage.module.css";
 import type { Product, Variant } from "../lib/types";
 
@@ -16,7 +17,7 @@ type Props = {
   onChangeVariant: (variantId: number) => void; selectedVariant: Variant | null;
   currentPrice: number; adding: boolean; addSuccess: boolean; isFav: boolean;
   favoritePending: boolean; onAddToCart: (variantId?: number) => void;
-  onToggleFavorite: () => void | Promise<void>; isSellerView: boolean;
+  onToggleFavorite: (event: React.MouseEvent<HTMLButtonElement>) => void | Promise<void>; isSellerView: boolean;
   onEditProduct: () => void; selectedColorwayId: number | null;
   onChangeColorway: (colorwayId: number) => void;
 };
@@ -37,20 +38,13 @@ export function ProductInfoPanel({ product, variants, selectedVariantId, onChang
   const brandHref = product.brandSlug ? `/brand/${product.brandSlug}?returnTo=${encodeURIComponent(returnPath)}` : null;
 
   return <aside className={styles.info} aria-label="Информация о товаре">
-    <div className={styles.heading}>
-      {product.brand.trim() ? brandHref
-        ? <Link href={brandHref} className={styles.brand}>{product.brand}</Link>
-        : <div className={styles.brand}>{product.brand}</div> : null}
-      <div className={styles.titleRow}>
-        <h1 className={styles.title}>{product.title}</h1>
-        {!isSellerView && <div className={styles.headingActions}>
-          <LikeButton liked={isFav} onClick={onToggleFavorite} pending={favoritePending}
-            aria-label={isFav ? "Убрать из избранного" : "Добавить в избранное"} />
-          <ProductShareButton product={product} colorwayId={selectedColorway?.id} />
-        </div>}
-      </div>
-      {variants.length > 0 && <div className={styles.priceBlock}><div className={styles.price}>{priceLabel} ₽</div></div>}
-    </div>
+    <ProductInfoHeading brand={product.brand} brandHref={brandHref} title={product.title}
+      priceLabel={variants.length > 0 ? priceLabel : null}
+      actions={!isSellerView && <>
+        <LikeButton liked={isFav} onClick={onToggleFavorite} pending={favoritePending}
+          aria-label={isFav ? "Убрать из избранного" : "Добавить в избранное"} />
+        <ProductShareButton product={product} colorwayId={selectedColorway?.id} />
+      </>} />
 
     <div className={styles.variantBlock}>
       <div className={styles.productMeta}>
@@ -80,5 +74,6 @@ export function ProductInfoPanel({ product, variants, selectedVariantId, onChang
       {isSellerView && selectedVariant?.sellerArticle && <div className={styles.sellerArticle}>Артикул продавца: {selectedVariant.sellerArticle}</div>}
     </div>
 
+    <ProductDetailsAccordion product={product} brandHref={brandHref} disclosureVariant="flat" titleStyle="uppercase-14" briefFactsStyle="subtle" animated />
   </aside>;
 }

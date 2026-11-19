@@ -8,6 +8,7 @@ import type {
 import styles from "../ProductEditPage.module.css";
 import Image from "next/image";
 import { StatusBadge } from "../../../../../components/ui/StatusBadge";
+import { PhotoPlaceholder } from "../../../../../components/ui/PhotoPlaceholder";
 import { productPath } from "../../../../../lib/productUrls";
 import { formatProductStatus, getProductStatusTone } from "../utils";
 
@@ -81,7 +82,7 @@ export function ProductStickyHeader({
                 className={styles.lockedImage}
               />
             ) : (
-              <div className={styles.lockedImagePlaceholder}>Фото</div>
+              <PhotoPlaceholder />
             )}
           </div>
 

@@ -1,12 +1,13 @@
-.banner { display: flex; align-items: flex-start; gap: 10px; width: 100%; min-width: 0; }
+.banner { display: flex; align-items: flex-start; align-self: start; gap: 10px; width: 100%; min-width: 0; }
 .icon { flex-shrink: 0; margin-top: 1px; }
 .content { flex: 1; min-width: 0; overflow-wrap: anywhere; }
-.title { display: block; margin: 0 0 var(--space-2); color: inherit; font-size: var(--banner-title-size); line-height: var(--banner-line-height); font-weight: var(--font-weight-medium); }
-.body { color: inherit; font-size: var(--banner-body-size); line-height: var(--banner-line-height); font-weight: var(--font-weight-regular); }
+.title { display: block; margin: 0 0 var(--banner-title-gap, 2px); color: inherit; font-size: var(--banner-title-size); line-height: var(--banner-title-line, var(--type-subtitle-2-line)); font-weight: var(--banner-title-weight, var(--type-subtitle-weight)); }
+.body { color: inherit; font-size: var(--banner-body-size); line-height: var(--banner-body-line, var(--type-body-2-line)); font-weight: var(--banner-body-weight, var(--type-body-weight)); }
 .body :where(p, ul, ol, li, strong, b, em, h2, h3, h4) { color: inherit; }
 .body > p { margin: 0; }
 .body > p + p { margin-top: var(--space-2); }
-.body > :where(ul:not([class])) { margin: var(--space-2) 0 0; padding-left: var(--space-5); list-style: square; }
+.body > :where(ul:not([class])) { margin: var(--space-2) 0 0; padding-left: var(--space-4); list-style: disc; }
+.body > :where(ul:not([class])) > li::marker { font-size: 0.75em; }
 .body > :where(ul:not([class]):first-child) { margin-top: 0; }
 .body a, .actions a { color: inherit; text-decoration: underline; text-underline-offset: 3px; }
 .body a:focus-visible, .actions a:focus-visible { outline: 1px solid var(--black); outline-offset: 3px; }

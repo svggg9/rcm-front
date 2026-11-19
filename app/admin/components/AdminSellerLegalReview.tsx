@@ -76,7 +76,7 @@ export function AdminSellerLegalRequests() {
     <div><Button type="button" variant="secondary" loading={loading} onClick={() => void load()}>Обновить запросы</Button></div>
     {error ? <Banner tone="danger">{error}</Banner> : !loading && !data?.content.length ? <p className={styles.hint}>Новых запросов нет</p> : null}
     {data?.content.map(item => <div className={styles.queueItem} key={item.changeRequest.id}>
-      <Button type="button" variant="utility" onClick={() => setSelectedSeller(item.sellerId)}>{item.sellerName} · Запрос №{item.changeRequest.id}</Button>
+      <Button type="button" variant="utility" onClick={() => setSelectedSeller(item.sellerId)}>{item.sellerName}, Запрос №{item.changeRequest.id}</Button>
       <p>{item.changeRequest.changes}</p>
     </div>)}
     {data && data.totalPages > 1 ? <div className={styles.actions}>

@@ -44,14 +44,6 @@
   object-fit: contain;
 }
 
-.placeholder {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--muted);
-  font-size: var(--font-sm);
-}
-
 .indicator {
   display: flex;
   width: 100%;

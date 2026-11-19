@@ -24,7 +24,7 @@ import { CartItemRow } from "./components/CartItemRow";
 import { CartSummary } from "./components/CartSummary";
 import { EmptyCart } from "./components/EmptyCart";
 import { CartContentSkeleton } from "../components/ui/CommerceSkeleton";
-import { ConfirmActionButton } from "../components/ui/ConfirmActionButton";
+import { CartClearAction } from "./components/CartClearAction";
 import { RequestError } from "../components/ui/RequestError";
 import { Button } from "../components/ui/Button";
 import { registerBuyerPanelActions } from "../lib/buyerPanelActions";
@@ -60,16 +60,26 @@ function CartPageContent() {
     setCheckoutState({ busy: value });
   }, []);
   const [rowErrors, setRowErrors] = useState<Record<number, string>>({});
+  const [quantityAnimationRevisions, setQuantityAnimationRevisions] = useState<Record<number, number>>({});
   const [stockLimits, setStockLimits] = useState<Record<number, number>>({});
   const [clearing, setClearing] = useState(false);
+  const [clearPanelRevision, setClearPanelRevision] = useState<number | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [exiting, setExiting] = useState<{ item: CartItem; index: number; revision: number; started: boolean } | null>(null);
+  const queuedExit = useRef<{ variantId: number; revision: number } | null>(null);
+  const exitTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const exitRow = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const reload = () => { if (!checkoutInFlight.current && !mutationInFlight.current) setReloadToken((current) => current + 1); };
     const identityChanged = () => {
+      if (exitTimer.current || queuedExit.current) mutationInFlight.current = false;
+      if (exitTimer.current) { clearTimeout(exitTimer.current); exitTimer.current = null; }
+      queuedExit.current = null;
+      setExiting(null); setPendingVariantIds(new Set());
       setItems([]); setCartId(""); setCheckoutOrderId(null); setCartError(null); setLoading(true);
       setCartRevision(null);
-      setInlineAuth(false); setRowErrors({}); setStockLimits({}); setActionError(null);
+      setInlineAuth(false); setRowErrors({}); setStockLimits({}); setActionError(null); setQuantityAnimationRevisions({});
       setReloadToken(current => current + 1);
     };
     const restore = (event: PageTransitionEvent) => {
@@ -88,6 +98,8 @@ function CartPageContent() {
       window.removeEventListener("pageshow", restore);
     };
   }, []);
+
+  useEffect(() => () => { if (exitTimer.current) clearTimeout(exitTimer.current); }, []);
 
   useEffect(() => {
     let active = true;
@@ -115,6 +127,7 @@ function CartPageContent() {
         setCartId(resolvedCart.cartId);
         setCartRevision(sessionRevision);
         setItems(resolvedCart.items);
+        setQuantityAnimationRevisions({});
         setRowErrors({});
         setStockLimits({});
         setActionError(null);
@@ -160,6 +173,11 @@ function CartPageContent() {
       const data = await updateQuantity(cartId, variantId, qty);
       if (revision !== getClientSessionRevision()) return;
 
+      const previousQuantity = items.find(item => item.variantId === variantId)?.quantity;
+      const confirmedQuantity = Array.isArray(data) ? data.find(item => item.variantId === variantId)?.quantity : undefined;
+      if (previousQuantity !== undefined && confirmedQuantity !== undefined && previousQuantity !== confirmedQuantity) {
+        setQuantityAnimationRevisions(current => ({ ...current, [variantId]: (current[variantId] ?? 0) + 1 }));
+      }
       setItems(Array.isArray(data) ? data : []);
       setCheckoutOrderId(null);
       setRowErrors({});
@@ -186,28 +204,62 @@ function CartPageContent() {
     setVariantPending(variantId, true);
     setRowErrors(current => ({ ...current, [variantId]: "" }));
 
+    let animating = false;
     try {
       const data = await removeItem(cartId, variantId);
       if (revision !== getClientSessionRevision()) return;
 
+      const index = items.findIndex(item => item.variantId === variantId);
+      const item = items[index];
       setItems(Array.isArray(data) ? data : []);
+      setQuantityAnimationRevisions(current => {
+        if (!(variantId in current)) return current;
+        const next = { ...current };
+        delete next[variantId];
+        return next;
+      });
       setCheckoutOrderId(null);
       setRowErrors({});
       setStockLimits({});
       setActionError(null);
       emitCartChanged();
       toast.success("Товар удалён из корзины");
+      if (item && Array.isArray(data) && !data.some(remaining => remaining.variantId === variantId) && !window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+        animating = true;
+        queuedExit.current = { variantId, revision };
+        setExiting({ item, index, revision, started: false });
+      } else {
+        requestAnimationFrame(() => {
+          if (document.activeElement === document.body) document.querySelector<HTMLElement>("[data-cart-item] button[aria-label^='Удалить'], [data-checkout-trigger], a[href='/catalog']")?.focus();
+        });
+      }
     } catch (error) {
       if (revision !== getClientSessionRevision()) return;
       setRowErrors(current => ({ ...current, [variantId]: error instanceof CartActionError ? error.message : "Не удалось удалить товар — попробуйте ещё раз" }));
     } finally {
-      mutationInFlight.current = false;
-      setVariantPending(variantId, false);
+      if (!animating) { mutationInFlight.current = false; setVariantPending(variantId, false); }
     }
   }
 
-  async function handleClear() {
-    if (!cartId || cartError || sessionError || loading || authLoading || mutationInFlight.current || checkoutInFlight.current) return;
+  function startRemovalAnimation(variantId: number) {
+    const queued = queuedExit.current;
+    if (!queued || queued.variantId !== variantId || queued.revision !== getClientSessionRevision()) return;
+    queuedExit.current = null;
+    setExiting(current => current?.item.variantId === variantId ? { ...current, started: true } : current);
+    exitTimer.current = setTimeout(() => {
+      const restoreFocus = document.activeElement === document.body || Boolean(exitRow.current?.contains(document.activeElement));
+      exitTimer.current = null;
+      setExiting(null);
+      mutationInFlight.current = false;
+      setVariantPending(variantId, false);
+      if (restoreFocus) requestAnimationFrame(() => {
+        document.querySelector<HTMLElement>("[data-cart-item]:not([data-exiting]) button[aria-label^='Удалить'], [data-checkout-trigger], a[href='/catalog']")?.focus();
+      });
+    }, 650);
+  }
+
+  async function handleClear(): Promise<boolean> {
+    if (!cartId || cartError || sessionError || loading || authLoading || mutationInFlight.current || checkoutInFlight.current) return false;
     mutationInFlight.current = true;
     const revision = getClientSessionRevision();
     setClearing(true);
@@ -215,17 +267,19 @@ function CartPageContent() {
     try {
       for (const item of items) {
         const remaining = await removeItem(cartId, item.variantId);
-        if (revision !== getClientSessionRevision()) return;
+        if (revision !== getClientSessionRevision()) return false;
         setItems(remaining);
         setRowErrors({});
         setStockLimits({});
         setCheckoutOrderId(null);
         emitCartChanged();
       }
+      return true;
     } catch {
-      if (revision !== getClientSessionRevision()) return;
+      if (revision !== getClientSessionRevision()) return false;
       setActionError("Не удалось очистить всю корзину — попробуйте ещё раз");
       try { const remaining = await getCart(cartId); if (revision === getClientSessionRevision()) setItems(remaining); } catch { /* Preserve the last confirmed contents. */ }
+      return false;
     } finally {
       mutationInFlight.current = false;
       setClearing(false);
@@ -233,6 +287,12 @@ function CartPageContent() {
   }
 
   const visibleItems = useMemo(() => cartRevision === sessionRevision ? items : [], [cartRevision, sessionRevision, items]);
+  const renderedItems = useMemo(() => {
+    if (!exiting || exiting.revision !== sessionRevision || cartRevision !== sessionRevision) return visibleItems;
+    const next = [...visibleItems];
+    next.splice(Math.min(exiting.index, next.length), 0, exiting.item);
+    return next;
+  }, [visibleItems, exiting, sessionRevision, cartRevision]);
   const loadError = sessionError?.message ?? cartError;
   const cartLoading = !visibleItems.length && (authLoading || loading);
   const cartChanging = clearing || pendingVariantIds.size > 0;
@@ -243,10 +303,10 @@ function CartPageContent() {
   const unavailable = !checkoutOrderId && visibleItems.some(item => (stockLimits[item.variantId] ?? item.availableQuantity ?? Infinity) < item.quantity);
 
   useEffect(() => {
-    if (checkoutRequested && cartId && !loadError && !loading && !authLoading && !items.length && !checkoutBusy) {
+    if (checkoutRequested && cartId && !loadError && !loading && !authLoading && !items.length && !checkoutBusy && !cartChanging) {
       router.replace("/cart", { scroll: false });
     }
-  }, [checkoutRequested, cartId, loadError, loading, authLoading, items.length, checkoutBusy, router]);
+  }, [checkoutRequested, cartId, loadError, loading, authLoading, items.length, checkoutBusy, cartChanging, router]);
 
   const subtotal = useMemo(() => {
     return visibleItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
@@ -283,38 +343,43 @@ function CartPageContent() {
     <div className="pageContainer">
       <div className={styles.page}>
         <h1 className="visuallyHidden">Корзина</h1>
-        {!cartLoading && visibleItems.length > 0 && <div className={styles.top}>
-          <ConfirmActionButton className={styles.clearBtn}
-            confirmTitle="Вы уверены, что хотите очистить корзину?"
-            confirmText={`При очистке корзины все добавленные ранее товары (${totalQuantity}) будут удалены`}
-            confirmLabel="Очистить корзину" showCancel={false} disabled={busy} onConfirm={handleClear}>Очистить</ConfirmActionButton>
+        {!cartLoading && (visibleItems.length > 0 || clearing || clearPanelRevision === sessionRevision) && <div className={styles.top}>
+          <CartClearAction key={sessionRevision} className={styles.clearBtn} count={totalQuantity}
+            disabled={busy || !visibleItems.length} busy={clearing} error={actionError} onConfirm={handleClear}
+            onOpenChange={open => setClearPanelRevision(open ? sessionRevision : null)} />
         </div>}
-        {actionError && <p className={styles.cartNotice} role="alert">{actionError}</p>}
+        {actionError && clearPanelRevision !== sessionRevision && <p className={styles.cartNotice} role="alert">{actionError}</p>}
         {overLimit && <p className={styles.cartNotice} role="alert">{PRODUCT_QUANTITY_LIMIT_MESSAGE}</p>}
 
-        {loadError && visibleItems.length > 0 ? <RequestError variant="inline" message={sessionError ? "Не удалось проверить вход" : "Не удалось обновить корзину"}
-          text="Показаны последние загруженные данные" loading={loading || authLoading} onRetry={retryCart} /> : null}
+        {loadError && visibleItems.length > 0 ? <div className={styles.loadError}>
+          <RequestError variant="inline" message={sessionError ? "Не удалось проверить вход" : "Не удалось обновить корзину"}
+            text="Показаны последние загруженные данные" loading={loading || authLoading} onRetry={retryCart} />
+        </div> : null}
 
         {cartLoading && !loadError ? (
           <CartContentSkeleton />
         ) : loadError && visibleItems.length === 0 ? (
           <RequestError message={sessionError ? "Не удалось проверить вход" : "Не удалось загрузить корзину"} text="Попробуйте ещё раз" loading={loading || authLoading}
             onRetry={retryCart} secondaryAction={<Link href="/catalog" className="buttonSecondary">В каталог</Link>} />
-        ) : visibleItems.length === 0 ? (
+        ) : renderedItems.length === 0 ? (
           <EmptyCart />
         ) : (
           <div className={styles.grid}>
             <div className={styles.items}>
-              {visibleItems.map((item) => (
-                <CartItemRow
-                  key={item.variantId}
+              {renderedItems.map((item) => (
+                <div key={item.variantId} ref={exiting?.item.variantId === item.variantId ? exitRow : undefined}
+                  className={styles.itemFrame} data-cart-item data-exiting={exiting?.item.variantId === item.variantId && exiting.started || undefined}
+                  aria-hidden={exiting?.item.variantId === item.variantId || undefined} inert={exiting?.item.variantId === item.variantId || undefined}>
+                <div className={styles.itemFrameInner}><CartItemRow
                   item={item}
                   pending={busy}
                   maxQuantity={checkoutOrderId ? Math.max(item.quantity, maxLineQuantity(item, productQuantities.get(item.productId) ?? 0, stockLimits[item.variantId])) : maxLineQuantity(item, productQuantities.get(item.productId) ?? 0, stockLimits[item.variantId])}
                   error={rowErrors[item.variantId]}
+                  quantityAnimationRevision={quantityAnimationRevisions[item.variantId] ?? 0}
                   onChangeQty={handleQty}
                   onRemove={handleRemove}
-                />
+                  onAfterRemove={startRemovalAnimation}
+                /></div></div>
               ))}
             </div>
 
@@ -327,7 +392,7 @@ function CartPageContent() {
                 !visibleItems.length || authLoading || busy || overLimit || unavailable
               }
             />}
-            <div className={styles.checkoutFlow}>
+            {visibleItems.length > 0 && <div className={styles.checkoutFlow}>
               {checkoutOpen ? <CheckoutPageClient key={`${cartId}:${returnVersion}`} embedded initialCart={null} initialMe={null}
                 cartSnapshot={checkoutCart} cartUpdating={cartChanging} cartBlocked={loading || authLoading || Boolean(loadError) || overLimit || unavailable}
                 cartMutationRef={mutationInFlight} onSubmitBusyChange={handleSubmitBusyChange} /> : checkoutRequested ? <div className={styles.inlineAuth}>
@@ -340,7 +405,7 @@ function CartPageContent() {
               </div> : <Button type="button" variant="primary" className={styles.checkoutBtn}
                 disabled={authLoading || busy || !visibleItems.length || overLimit || unavailable}
                 onClick={goCheckout} data-checkout-trigger>Перейти к оформлению</Button>}
-            </div>
+            </div>}
           </div>
         )}
 

@@ -13,6 +13,7 @@ import { hasLowResolutionPhoto } from "../../../../../lib/productPhotos";
 import { PHOTO_FILE_ACCEPT } from "../../../../../lib/imageUploadPolicy";
 
 export type ProductPhotoEditorProps = {
+  showTitle?: boolean;
   images: ProductImageItem[];
   colorways?: { id:number; color:string }[];
   shadeGroups?: { key: string; color: string }[];
@@ -35,7 +36,7 @@ export type ProductPhotoEditorProps = {
   onMoveImageByIndex: (fromIndex: number, toIndex: number) => void;
 };
 
-export function ProductPhotoEditor({ images, colorways = [], shadeGroups, selectedGroupKey, onGroupChange, imageLabels, invalidImages = false, uploading, reordering, mediaDisabled,
+export function ProductPhotoEditor({ showTitle = true, images, colorways = [], shadeGroups, selectedGroupKey, onGroupChange, imageLabels, invalidImages = false, uploading, reordering, mediaDisabled,
   mediaDisabledHint, dragImageId, uploadProgress, onFilesChange, onUploadImages,
   onDragImageStart, onDragImageEnd, onMoveImage, onDeleteImage, onMoveImageByIndex }: ProductPhotoEditorProps) {
   const fieldId = useId();
@@ -75,7 +76,7 @@ export function ProductPhotoEditor({ images, colorways = [], shadeGroups, select
   }
 
   return <section id="product-photos" className={styles.editor} aria-label="Фото товара" aria-busy={uploading || undefined}>
-    <h2 className={styles.title}>Фото товара</h2>
+    {showTitle && <h2 className={styles.title}>Фото товара</h2>}
     {shadeGroups && shadeGroups.length > 1 && <FormSelect label="Добавить фото к оттенку" value={selectedGroupKey ?? shadeGroups[0].key} disabled={locked}
       options={shadeGroups.map(group => ({ value: group.key, label: group.color }))} onChange={value => { if (value) onGroupChange?.(value); }} />}
     <div className={`${styles.media} ${dragActive ? styles.dragActive : ""} ${invalid ? styles.invalid : ""}`}
@@ -149,7 +150,7 @@ export function ProductPhotoEditor({ images, colorways = [], shadeGroups, select
       onChange={event => { uploadFiles(Array.from(event.target.files ?? [])); event.target.value = ""; }} />
     <Button type="button" variant="secondary" className={styles.uploadButton} loading={uploading} disabled={locked}
       aria-describedby={invalid ? `${fieldId}-images-error` : undefined} onClick={() => fileInputRef.current?.click()}>Выбрать фото</Button>
-    <p className={styles.hint}>JPEG, PNG или WebP · до 10 МБ на файл · до 10 фото</p>
+    <p className={styles.hint}>JPEG, PNG или WebP, до 10 МБ на файл, до 10 фото</p>
     <p className={styles.hint}>Для модерации — 3–10 фото, включая крупные исходники 4К и выше</p>
     {mediaDisabled && mediaDisabledHint && <Banner tone="warning" role="status">{mediaDisabledHint}</Banner>}
     {invalid && <span className="fieldError" id={`${fieldId}-images-error`}>Для модерации нужно от 3 до 10 фото товара</span>}

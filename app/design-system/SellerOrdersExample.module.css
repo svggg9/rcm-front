@@ -1,0 +1,3 @@
+.example { display: grid; gap: var(--space-4); min-width: 0; }
+.example > p { margin: 0; }
+.note { font-size: var(--type-caption-size); line-height: var(--type-caption-line); }

@@ -2,6 +2,7 @@ import { useId } from "react";
 
 import { CategoryPicker } from "../../../../../components/ui/CategoryPicker";
 import { SegmentedControl } from "../../../../../components/ui/SegmentedControl";
+import { InsideLabelInput } from "../../../../../components/ui/InsideLabelInput";
 import { ProductDescriptionEditor } from "./ProductDescriptionEditor";
 import { ProductOptionalDetails } from "./ProductOptionalDetails";
 import type { ProductDetailsDraft } from "../../../../../lib/productDetails";
@@ -19,6 +20,7 @@ type ValidationErrors = {
 };
 
 type Props = {
+  section?: "general" | "description";
   activeSection?: "general" | "description";
   showTitle?: boolean;
   validationErrors: ValidationErrors;
@@ -49,6 +51,7 @@ type Props = {
 };
 
 export function ProductGeneralCard({
+  section,
   activeSection,
   showTitle = true,
   validationErrors,
@@ -75,34 +78,22 @@ export function ProductGeneralCard({
   const fieldId = useId();
   return (
     <>
-      <section id="product-general" className={`${styles.card} ${styles.stepPanel}`} aria-label="Основные данные товара"
+      {section !== "description" && <section className={`${styles.card} ${styles.stepPanel}`} aria-label="Основные данные товара"
         hidden={activeSection !== undefined && activeSection !== "general"} role={activeSection ? "tabpanel" : undefined}
         aria-labelledby={activeSection ? "editor-tab-general" : undefined} data-editor-step="general" tabIndex={-1}>
-        {!activeSection && <h2 className={styles.sectionTitle}>Основные данные</h2>}
+        {!activeSection && !section && <h2 className={styles.sectionTitle}>Основные данные</h2>}
         <div className={styles.formGrid}>
-          {showTitle && <label className={styles.fieldFull} data-ui="field">
-            <span className={styles.required}>Название</span>
-
-            <input
-              value={title}
-              aria-invalid={validationErrors.title ? "true" : undefined}
-              aria-describedby={validationErrors.title ? `${fieldId}-title-error` : undefined}
-              onChange={(event) => onTitleChange(event.target.value)}
-              className={`${styles.input} ${
-                validationErrors.title ? "inputError" : ""
-              } ${title.trim() ? "" : styles.requiredEmpty}`}
-            />
-
-            {validationErrors.title ? (
-              <span className="fieldError" id={`${fieldId}-title-error`}>
-                Введите название товара
-              </span>
-            ) : null}
-          </label>}
+          {showTitle && <div className={styles.fieldFull}>
+            <InsideLabelInput mode="fixed" appearance="warm" id={`${fieldId}-title`} label="Название товара" required value={title} data-product-title
+              placeholder="Например, футболка из хлопка"
+              error={validationErrors.title ? "Введите название товара" : undefined}
+              onChange={event => onTitleChange(event.target.value)} />
+          </div>}
 
           <div className={styles.field}>
           <CategoryPicker
             label="Категория"
+            appearance="warm"
             value={categoryId}
             customValue={suggestedCategoryName}
             required
@@ -137,12 +128,12 @@ export function ProductGeneralCard({
           /></div>
 
         </div>
-      </section>
+      </section>}
 
-      <section id="product-description" className={`${styles.card} ${styles.stepPanel}`} aria-label="Описание товара"
+      {section !== "general" && <section className={`${styles.card} ${styles.stepPanel}`} aria-label="Описание товара"
         hidden={activeSection !== undefined && activeSection !== "description"} role={activeSection ? "tabpanel" : undefined}
         aria-labelledby={activeSection ? "editor-tab-description" : undefined} data-editor-step="description" tabIndex={-1}>
-        {!activeSection && <h2 className={styles.sectionTitle}>Описание</h2>}
+        {!activeSection && !section && <h2 className={styles.sectionTitle}>Описание</h2>}
         <div className={styles.formGrid}>
           <div className={styles.fieldFull} data-ui="field">
             <span className={styles.required}>Описание товара</span>
@@ -160,7 +151,7 @@ export function ProductGeneralCard({
             compositionError={validationErrors.composition} errors={validationErrors.details ?? {}}
             onCompositionChange={onCompositionChange} onChange={onDetailsChange} />
         </div>
-      </section>
+      </section>}
     </>
   );
 }

@@ -119,7 +119,7 @@ async function main() {
     await page.reload(); await page.getByText("Запрос №8 на рассмотрении", { exact: true }).waitFor();
     assert.equal(await page.getByRole("button", { name: "Запросить изменение", exact: true }).count(), 0);
     role = "ADMIN"; await page.goto(origin + "/admin?tab=sellers");
-    await page.getByRole("button", { name: "fixture@example.com · Запрос №8", exact: true }).click();
+    await page.getByRole("button", { name: "fixture@example.com, Запрос №8", exact: true }).click();
     await page.getByLabel("Ответ продавцу").fill("Внесите новые реквизиты и сохраните данные");
     await page.getByRole("button", { name: "Разрешить редактирование", exact: true }).click();
     await page.getByRole("button", { name: "Подтвердить реквизиты", exact: true }).waitFor(); assert.equal(review.verified, false);

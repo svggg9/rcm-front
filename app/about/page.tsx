@@ -158,7 +158,7 @@ export default function AboutPage() {
             <h2>Частые вопросы</h2>
           </div>
 
-          <div className={styles.faqList}>
+          <div>
             {faq.map((item) => (
               <div key={item.question} className={styles.faqItem}>
                 <h3>{item.question}</h3>

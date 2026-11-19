@@ -77,7 +77,7 @@ function HeaderContent({ initialCategories }: HeaderProps) {
   const { user, isAuthenticated: isAuth, loading: authLoading, error: authError, reload: reloadUser } = useCurrentUser();
   const cartCount = useCartCount();
   const role = user?.role ?? null;
-  const { count: favoritesCount } = useFavorites();
+  const { count: favoritesCount, displayCount: favoritesDisplayCount, pulseKey: favoritesPulseKey, pulseTarget: favoritesPulseTarget } = useFavorites();
   const { openAuth } = useAuthModal();
 
 
@@ -250,7 +250,7 @@ function HeaderContent({ initialCategories }: HeaderProps) {
 
           <div className={styles.actions}>
           <Link href="/favorites" className={styles.iconBtn} aria-label={favoritesCount > 0 ? `Избранное: ${favoritesCount}` : "Избранное"}>
-            <FavoritesNavigationIcon count={favoritesCount} />
+            <FavoritesNavigationIcon count={favoritesDisplayCount} pulseKey={favoritesPulseTarget === "desktop" ? favoritesPulseKey : 0} flightTarget="desktop" />
           </Link>
             {isAuth ? (
               <Link href="/account" className={styles.iconBtn} aria-label="Личный кабинет">
@@ -265,14 +265,12 @@ function HeaderContent({ initialCategories }: HeaderProps) {
 
             <Link
               href="/cart"
-              className={`${styles.iconBtn} ${
-                cartCount > 0 ? styles.iconBtnActive : ""
-              }`.trim()}
+              className={styles.iconBtn}
               aria-label={
                 cartCount > 0 ? `Корзина: ${cartCount}` : "Корзина"
               }
             >
-              <HeaderIcon name="bag" />
+              <HeaderIcon name="bag" cartCount={cartCount} />
             </Link>
           </div>
         </div>
@@ -374,6 +372,8 @@ function HeaderContent({ initialCategories }: HeaderProps) {
         activeTab={buyerMobilePage.tab}
         cartCount={cartCount}
         favoritesCount={favoritesCount}
+        favoritesDisplayCount={favoritesDisplayCount}
+        favoritesPulseKey={favoritesPulseTarget === "mobile" ? favoritesPulseKey : 0}
         menuOpen={menuOpen}
         onMenu={openMobileMenu}
         onSearch={() => setSearchOpen(true)}

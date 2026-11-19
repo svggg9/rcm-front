@@ -1,10 +1,9 @@
 import { useOrderActions } from "../../lib/useOrderActions";
 import { OrderWorkflowSummary } from "../../components/order-detail/OrderWorkflowSummary";
-import Image from "next/image";
+import { OrderProductCard } from "../../components/order-detail/OrderProductCard";
 import { Button } from "../../components/ui/Button";
 import { Banner } from "../../components/ui/Banner";
 import { CabinetSkeleton } from "../../components/ui/CabinetSkeleton";
-import { DesignSystemIcon as Icon } from "../../components/ui/DesignSystemIcon";
 import { StatusBadge } from "../../components/ui/StatusBadge";
 import { API_URL } from "../../lib/api";
 import { formatRussianPhone } from "../../lib/phone";
@@ -21,10 +20,11 @@ type Props = {
   audience: OrderCardAudience;
   showDeliveryLabel: boolean;
   onOpenOrder?: (id: number) => void;
+  onWorkflowRefresh?: () => void;
   openButtonLabel: string;
 };
 
-export function OrderDetailsPanel({ order, details, loading, error, onRetry, audience, showDeliveryLabel, onOpenOrder, openButtonLabel }: Props) {
+export function OrderDetailsPanel({ order, details, loading, error, onRetry, audience, showDeliveryLabel, onOpenOrder, onWorkflowRefresh, openButtonLabel }: Props) {
   const action = useOrderActions(details || {});
   const paymentLabels = { PAID: "Оплачено", PENDING: "Ожидает оплаты", FAILED: "Ошибка оплаты", CANCELED: "Оплата отменена", REFUNDED: "Деньги возвращены" };
   const deliveryLabels = { PENDING: "Оформление доставки", READY_FOR_SHIPMENT: "К отправке", IN_TRANSIT: "В пути", READY_FOR_PICKUP: "Ожидает получения", DELIVERED: "Доставлен", RETURNED: "Возвращён", CANCELLED: "Отменён" };
@@ -34,26 +34,16 @@ export function OrderDetailsPanel({ order, details, loading, error, onRetry, aud
     && ["PENDING", "READY_FOR_SHIPMENT"].includes(order.deliveryStatus) ? shippingDeadline(details?.paidAt) : undefined;
   const headingPrefix = `order-details-${audience}-${order.id}`;
   return <div className={styles.details}>
-    {details && <OrderWorkflowSummary workflow={details.workflow}/>}
+    {details && <OrderWorkflowSummary workflow={details.workflow} onRefresh={onWorkflowRefresh} />}
     <section aria-label="Товары в заказе" className={styles.products}>
       {loading ? <CabinetSkeleton variant="list" rows={1} compact /> : error ? <Banner tone="danger" role="alert"
         actions={<Button onClick={onRetry}>Повторить</Button>}>
         <p>Не удалось загрузить детали заказа</p>
       </Banner> : details?.items.length ? <ul className={styles.productList}>
         {details.items.map(item => <li key={`${item.productId}-${item.variantId}`}>
-          <article className={styles.product}>
-            {item.imageUrl ? <Image src={item.imageUrl} alt={item.productTitle} width={80} height={106} className={styles.productImage} />
-              : <div className={styles.productImagePlaceholder}><Icon name="package" role="empty" /></div>}
-            <div className={styles.productCopy}>
-              {item.brandName && item.brandName.toLocaleLowerCase("ru") !== item.productTitle.toLocaleLowerCase("ru") && <p className={styles.brand}>{item.brandName}</p>}
-              <h4>{item.productTitle}</h4>
-              <p className={styles.variant}>
-                {item.size && <span>Размер {item.size}</span>}{item.color && <span>{item.color}</span>}
-                {item.quantity > 1 && <span>{item.quantity} шт</span>}
-              </p>
-              <span className={styles.productPrice}><OrderAmount value={item.lineTotal} currency={details.currency} /></span>
-            </div>
-          </article>
+          <OrderProductCard title={item.productTitle} brand={item.brandName} imageUrl={item.imageUrl}
+            attributes={[item.size ? `Размер ${item.size}` : "", item.color || "", item.quantity > 1 ? `${item.quantity} шт` : ""].filter(Boolean)}
+            price={<OrderAmount value={item.lineTotal} currency={details.currency} />} />
         </li>)}
       </ul> : <p>{(order.productTitles?.length ? order.productTitles : [order.firstProductTitle]).filter(Boolean).join(", ") || "Состав заказа недоступен"}</p>}
     </section>

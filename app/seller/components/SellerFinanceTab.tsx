@@ -1,6 +1,8 @@
 "use client";
 
-import { NumericInput } from "../../components/ui/NumericInput";
+import { NumericField } from "../../components/ui/NumericField";
+import { TextInput } from "../../components/ui/TextInput";
+import { FormSelect } from "../../components/ui/FormSelect";
 
 import { DataTable } from "../../components/ui/DataTable";
 import { Button } from "../../components/ui/Button";
@@ -67,7 +69,7 @@ export function SellerFinanceTab({ finance, loading, error, onRefresh, onPrefetc
     {view === "operations" ? <Operations onPrefetchOrder={onPrefetchOrder} />
       : view === "payouts" ? <Payouts />
       : loading && !finance ? <CabinetSkeleton variant="dashboard" rows={3} compact />
-      : finance ? <>{error}<div className={styles.heading}><h2>Обзор финансов</h2><Button variant="utility" loading={loading} onClick={onRefresh}>Обновить</Button></div><Overview finance={finance} onPrefetchOrder={onPrefetchOrder} /></>
+      : finance ? <>{error}<div className={styles.heading}><h2>Обзор финансов</h2><Button variant="utility" loading={loading} onClick={onRefresh}>Обновить</Button></div><SellerFinanceOverview finance={finance} onPrefetchOrder={onPrefetchOrder} /></>
       : error ? error
       : <p className={styles.empty}>Финансовая сводка временно недоступна</p>}
     </CabinetPanel>
@@ -75,7 +77,7 @@ export function SellerFinanceTab({ finance, loading, error, onRefresh, onPrefetc
   </section>;
 }
 
-function Overview({ finance, onPrefetchOrder }: { finance: SellerFinanceSummary; onPrefetchOrder?: Props["onPrefetchOrder"] }) {
+export function SellerFinanceOverview({ finance, onPrefetchOrder }: { finance: SellerFinanceSummary; onPrefetchOrder?: Props["onPrefetchOrder"] }) {
   const next = finance.nextPayout;
   const nextDate = date(next ? next.scheduledDate : finance.nextPayoutDate, "");
   return <>
@@ -116,7 +118,7 @@ function Overview({ finance, onPrefetchOrder }: { finance: SellerFinanceSummary;
         <Figure label="Возвраты и удержания" value={-finance.adjustmentsAmount} /><Figure label="Уже выплачено" value={-finance.paidOutAmount} /></dl>
     </details>
     <div className={styles.heading}><h2>Последние операции</h2><Link href="/seller/finance?view=operations">Все операции</Link></div>
-    <OperationTable operations={finance.operations} onPrefetchOrder={onPrefetchOrder} />
+    <SellerFinanceOperationTable operations={finance.operations} onPrefetchOrder={onPrefetchOrder} />
   </>;
 }
 
@@ -143,26 +145,33 @@ function Operations({ onPrefetchOrder }: { onPrefetchOrder?: Props["onPrefetchOr
     router.push(`/seller/finance?${next}`, { scroll: false });
   }
   return <>
-    <form className={styles.filters} onSubmit={apply} key={params.toString()}>
-      <label>Тип операции<select name="type" defaultValue={params.get("type") || ""}><option value="">Все операции</option>
-        {Object.entries(operationLabels).map(([value, label]) => <option value={value} key={value}>{label}</option>)}</select></label>
-      <label>Номер заказа<NumericInput name="orderId" fractionDigits={0} min={1} defaultValue={params.get("orderId") || ""} placeholder="ID заказа" /></label>
-      <label>С даты<input name="from" type="date" defaultValue={params.get("from") || ""} /></label>
-      <label>По дату<input name="to" type="date" defaultValue={params.get("to") || ""} /></label>
-      <button className={styles.button} type="submit">Показать</button>
-      <Link href="/seller/finance?view=operations" className={styles.textButton}>Сбросить</Link>
-    </form>
+    <SellerFinanceOperationFilters key={params.toString()} params={params} onSubmit={apply} />
     {validation && <p role="alert" className={styles.error}>{validation}</p>}
     <div className={styles.heading}><h2>Операции</h2><Button variant="utility" onClick={state.retry} disabled={state.loading}
       loading={state.loading && Boolean(state.data) && !state.error}>Обновить</Button></div>
-    <RemoteState {...state} hasData={Boolean(state.data)} />
+    <SellerFinanceRemoteState {...state} hasData={Boolean(state.data)} />
     {state.data && <><div className={styles.heading}><span className={styles.caption}>Найдено: {state.data.totalElements}. Даты — московское время.</span>
       <ExportButton key={query.toString()} query={query.toString()} disabled={!state.data.totalElements} /></div>
-      <OperationTable operations={state.data.content} onPrefetchOrder={onPrefetchOrder} /><Pagination data={state.data} /></>}
+      <SellerFinanceOperationTable operations={state.data.content} onPrefetchOrder={onPrefetchOrder} /><Pagination data={state.data} /></>}
   </>;
 }
 
-function OperationTable({ operations, onPrefetchOrder }: { operations: SellerFinanceOperation[]; onPrefetchOrder?: Props["onPrefetchOrder"] }) {
+export function SellerFinanceOperationFilters({ params, onSubmit }: { params: Pick<URLSearchParams, "get" | "toString">; onSubmit: (event: FormEvent<HTMLFormElement>) => void }) {
+  const [type, setType] = useState(params.get("type") || "");
+  const [resetVersion, setResetVersion] = useState(0);
+  return <form key={resetVersion} className={styles.filters} onSubmit={onSubmit}>
+      <div className={styles.filterField}><FormSelect label="Тип операции" value={type} onChange={setType} emptyOptionLabel="Все операции"
+        options={Object.entries(operationLabels).map(([value, label]) => ({ value, label }))} fieldVariant="boxed" full />
+        <input type="hidden" name="type" value={type} /></div>
+      <div className={styles.filterField}><NumericField label="Номер заказа" name="orderId" fractionDigits={0} min={1} defaultValue={params.get("orderId") || ""} placeholder="ID заказа" fieldVariant="boxed" /></div>
+      <div className={styles.filterField}><TextInput label="С даты" name="from" type="date" defaultValue={params.get("from") || ""} fieldVariant="boxed" /></div>
+      <div className={styles.filterField}><TextInput label="По дату" name="to" type="date" defaultValue={params.get("to") || ""} fieldVariant="boxed" /></div>
+      <Button type="submit" variant="secondary">Показать</Button>
+      <Link href="/seller/finance?view=operations" className="buttonGhost" onClick={() => { setType(""); setResetVersion(value => value + 1); }}>Сбросить</Link>
+    </form>;
+}
+
+export function SellerFinanceOperationTable({ operations, onPrefetchOrder }: { operations: SellerFinanceOperation[]; onPrefetchOrder?: Props["onPrefetchOrder"] }) {
   if (!operations.length) return <p className={styles.empty}>Операций по выбранным условиям пока нет</p>;
   return <div className={styles.tableScroll}><DataTable className={styles.table}><thead><tr><th>Дата</th><th>Операция</th><th>Заказ / выплата</th><th className={styles.numeric}>Сумма</th></tr></thead>
     <tbody>{operations.map(op => <tr key={op.id}>
@@ -179,26 +188,35 @@ function Payouts() {
   const state = useFinanceData<PageResponse<SellerPayout>>(`payouts?page=${pageNumber(params.get("page"))}&size=20`);
   return <><div className={styles.heading}><h2>Выплаты</h2><Button variant="utility" onClick={state.retry} disabled={state.loading}
     loading={state.loading && Boolean(state.data) && !state.error}>Обновить</Button></div>
-    <RemoteState {...state} hasData={Boolean(state.data)} />
-    {state.data && <>{state.data.content.length ? <div className={styles.tableScroll}><DataTable className={styles.table}>
-      <thead><tr><th>Реестр</th><th>Плановая дата</th><th>Статус</th><th>Счёт</th><th>Заказов</th><th className={styles.numeric}>Сумма</th></tr></thead>
-      <tbody>{state.data.content.map(p => <tr key={p.id}><td><Link href={`/seller/finance?${new URLSearchParams({ ...Object.fromEntries(params), payout: String(p.id) })}`}>Выплата №{p.id}</Link></td>
-        <td>{date(p.scheduledDate)}</td><td>{labels[p.status]}</td><td>{p.checkingAccount || "—"}</td><td>{p.orderCount}</td><td className={styles.numeric}>{money(p.payoutAmount)}</td></tr>)}</tbody>
-    </DataTable></div> : <p className={styles.empty}>Сформированных выплат пока нет</p>}<Pagination data={state.data} /></>}
+    <SellerFinanceRemoteState {...state} hasData={Boolean(state.data)} />
+    {state.data && <><SellerPayoutTable payouts={state.data.content} params={params} /><Pagination data={state.data} /></>}
   </>;
+}
+
+export function SellerPayoutTable({ payouts, params }: { payouts: SellerPayout[]; params: URLSearchParams }) {
+  return payouts.length ? <div className={styles.tableScroll}><DataTable className={styles.table}>
+      <thead><tr><th>Реестр</th><th>Плановая дата</th><th>Статус</th><th>Счёт</th><th>Заказов</th><th className={styles.numeric}>Сумма</th></tr></thead>
+      <tbody>{payouts.map(p => <tr key={p.id}><td><Link href={`/seller/finance?${new URLSearchParams({ ...Object.fromEntries(params), payout: String(p.id) })}`}>Выплата №{p.id}</Link></td>
+        <td>{date(p.scheduledDate)}</td><td>{labels[p.status]}</td><td>{p.checkingAccount || "—"}</td><td>{p.orderCount}</td><td className={styles.numeric}>{money(p.payoutAmount)}</td></tr>)}</tbody>
+    </DataTable></div> : <p className={styles.empty}>Сформированных выплат пока нет</p>;
 }
 
 function PayoutDetails({ id }: { id: string }) {
   const params = useSearchParams();
   const router = useRouter();
   const state = useFinanceData<SellerPayoutDetail>(`payouts/${id}`);
+  function close() { const next = new URLSearchParams(params); next.delete("payout"); router.replace(`/seller/finance?${next}`, { scroll: false }); }
+  return <SellerPayoutDetailsDialog id={id} payout={state.data} loading={state.loading} error={state.error} onRetry={state.retry} onClose={close} />;
+}
+
+export function SellerPayoutDetailsDialog({ id, payout, loading, error, onRetry, onClose }: {
+  id: string; payout?: SellerPayoutDetail; loading: boolean; error?: string; onRetry: () => void; onClose: () => void;
+}) {
   const ref = useRef<HTMLDialogElement>(null);
   useModalDialog(ref);
-  function close() { const next = new URLSearchParams(params); next.delete("payout"); router.replace(`/seller/finance?${next}`, { scroll: false }); }
-  const payout = state.data;
-  return <dialog ref={ref} className={styles.drawer} aria-labelledby="finance-payout-title" onCancel={e => { e.preventDefault(); close(); }}>
-    <div className={styles.heading}><h2 id="finance-payout-title">Выплата №{id}</h2><button className={styles.textButton} onClick={close} aria-label="Закрыть детализацию выплаты"><Icon name="x" size={22} /></button></div>
-    <RemoteState {...state} hasData={Boolean(state.data)} />
+  return <dialog ref={ref} className={styles.drawer} aria-labelledby="finance-payout-title" onCancel={e => { e.preventDefault(); onClose(); }}>
+    <div className={styles.heading}><h2 id="finance-payout-title">Выплата №{id}</h2><button className={styles.textButton} onClick={onClose} aria-label="Закрыть детализацию выплаты"><Icon name="x" size={22} /></button></div>
+    <SellerFinanceRemoteState loading={loading} error={error} retry={onRetry} hasData={Boolean(payout)} />
     {payout && <><p>{labels[payout.status]}</p><strong className={styles.payoutTotal}>{money(payout.payoutAmount, payout.currency)}</strong>
       {payout.status === "FAILED" && <Banner tone="warning">Банк подтвердил отказ. Средства остаются в реестре до новой попытки или отмены оператором.</Banner>}
       {payout.status === "REVIEW" && <Banner tone="warning">Результат банковского перевода уточняется. Повторный перевод заблокирован до сверки.</Banner>}
@@ -216,7 +234,7 @@ function PayoutDetails({ id }: { id: string }) {
 }
 
 function Figure({ label, value, currency = "RUB" }: { label: string; value: number; currency?: string }) { return <div><dt>{label}</dt><dd>{money(value, currency)}</dd></div>; }
-function RemoteState({ loading, error, retry, hasData }: { loading: boolean; error?: string; retry: () => void; hasData: boolean }) {
+export function SellerFinanceRemoteState({ loading, error, retry, hasData }: { loading: boolean; error?: string; retry: () => void; hasData: boolean }) {
   return error ? <RequestError message={error} onRetry={retry} loading={loading} variant={hasData ? "inline" : "section"} />
     : loading && !hasData ? <CabinetSkeleton variant="list" rows={3} compact /> : null;
 }

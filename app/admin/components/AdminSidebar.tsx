@@ -43,7 +43,7 @@ export function AdminSidebar({
           icon: "shopping-bag",
           active: currentTab === "orders",
         },
-        {href:"/admin?tab=returns",label:"Возвраты",icon:"shopping-bag",active:currentTab==="returns"},
+        {href:"/admin?tab=returns",label:"Возвраты",icon:"return-circle",active:currentTab==="returns"},
         {
           href: "/admin?tab=sellers",
           label: "Продавцы",

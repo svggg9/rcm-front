@@ -170,7 +170,7 @@ export function SupportChatView({ transport, storageNamespace, admin = false }: 
         {olderError && <RequestError variant="inline" message={olderError} onRetry={loadOlder} loading={olderBusy} />}
         {!history.messages.length && <p className={styles.hint}>Сообщений пока нет</p>}
         <ol className={styles.messages}>{history.messages.map(row => <li key={row.id} className={`${styles.message} ${(admin ? row.direction === "SUPPORT" : row.direction === "CUSTOMER") ? styles.mine : ""}`}>
-          <div className={styles.metadata}><strong>{row.direction === "CUSTOMER" ? admin ? "Клиент" : "Вы" : "Поддержка"}{admin && row.direction === "SUPPORT" && row.authorName ? ` · ${row.authorName}` : ""}</strong><time dateTime={row.createdAt}>{time(row.createdAt)}</time></div>
+          <div className={styles.metadata}><strong>{row.direction === "CUSTOMER" ? admin ? "Клиент" : "Вы" : "Поддержка"}{admin && row.direction === "SUPPORT" && row.authorName ? `, ${row.authorName}` : ""}</strong><time dateTime={row.createdAt}>{time(row.createdAt)}</time></div>
           <p>{row.body}</p>
           {admin && row.legacyDeliveryStatus && <p className={styles.hint}>{legacyLabels[row.legacyDeliveryStatus] ?? "Статус доставки прежнего ответа неизвестен"}</p>}
         </li>)}</ol>

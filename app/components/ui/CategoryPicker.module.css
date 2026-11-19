@@ -1,0 +1,4 @@
+.warm {
+  --field-placeholder-color: var(--category-placeholder-color, #696660);
+  --field-placeholder-size: var(--category-placeholder-size, 15px);
+}

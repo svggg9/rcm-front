@@ -14,6 +14,16 @@ loaderModule.paths = Module._nodeModulePaths(path.dirname(loaderFilename));
 loaderModule._compile(ts.transpileModule(fs.readFileSync(loaderFilename, 'utf8'), {
   compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX, esModuleInterop: true },
 }).outputText, loaderFilename);
+const photoFilename = path.resolve(__dirname, '../app/components/ui/PhotoPlaceholder.tsx');
+const photoModule = new Module(photoFilename, module);
+photoModule.filename = photoFilename;
+photoModule.paths = Module._nodeModulePaths(path.dirname(photoFilename));
+photoModule.require = name => name.endsWith('.css')
+  ? { __esModule: true, default: new Proxy({}, { get: (_, key) => key }) }
+  : require(name);
+photoModule._compile(ts.transpileModule(fs.readFileSync(photoFilename, 'utf8'), {
+  compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX, esModuleInterop: true },
+}).outputText, photoFilename);
 let expanded = false;
 const mod = new Module(filename, module);
 mod.filename = filename;
@@ -24,6 +34,7 @@ mod.require = name => {
   } };
   if (name === 'next/image') return { __esModule: true, default: props => React.createElement('img', props) };
   if (name === '../../components/ui/Loader') return loaderModule.exports;
+  if (name === '../../components/ui/PhotoPlaceholder') return photoModule.exports;
   if (name.endsWith('/Icon')) return { Icon: () => React.createElement('svg') };
   if (name.endsWith('.css')) return { __esModule: true, default: new Proxy({}, { get: (_, key) => key }) };
   return require(name);

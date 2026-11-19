@@ -113,7 +113,7 @@ export function SellerEntityPage({ id, kind, intercepted = false, onClose }: {
         {returnStatusLabels[request.status]}
       </StatusBadge>
       <h2>{request.productTitle}</h2>
-      <p>Заказ №{request.orderId} · {request.quantity} шт.{request.sku ? ` · Артикул ${request.sku}` : ""}</p>
+      <p>Заказ №{request.orderId}, {request.quantity} шт{request.sku ? `, артикул ${request.sku}` : ""}</p>
       <dl className={styles.facts}>
         <div><dt>Причина</dt><dd>{returnReasonLabels[request.reason]}</dd></div>
         <div><dt>Запрошено</dt><dd>{money(request.requestedAmount)}</dd></div>

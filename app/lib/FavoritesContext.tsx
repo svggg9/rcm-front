@@ -10,6 +10,7 @@ import {
   useState,
 } from "react";
 import { usePathname } from "next/navigation";
+import { useFavoriteFlight } from "../components/BuyerNavigation/useFavoriteFlight";
 
 import { apiFetch, API_URL } from "./api";
 import { getClientSession, getClientSessionRevision } from "./client-session";
@@ -27,7 +28,10 @@ type FavoritesContextType = {
   favoriteIds: number[];
   isFavorite: (id: number) => boolean;
   count: number;
-  toggle: (id: number) => Promise<void>;
+  displayCount: number;
+  pulseKey: number;
+  pulseTarget: string | null;
+  toggle: (id: number, origin?: HTMLElement | null) => Promise<void>;
   refresh: () => Promise<void>;
 };
 
@@ -53,6 +57,7 @@ export function FavoritesProvider({
   const pendingRead = useRef<Promise<void> | null>(null);
   const mutations = useRef(new Map<number, Promise<void>>());
   const favoriteIdSet = useMemo(() => new Set(favoriteIds), [favoriteIds]);
+  const { displayCount, pulseKey, pulseTarget, startFlight, cancelFlight, flightLayer } = useFavoriteFlight(favoriteIds, session.revision);
   const isFavorite = useCallback(
     (id: number) => favoriteIdSet.has(id),
     [favoriteIdSet]
@@ -114,7 +119,7 @@ export function FavoritesProvider({
   }, [refresh, skipCommerceLoad]);
 
   const toggle = useCallback(
-    async (id: number) => {
+    async (id: number, origin?: HTMLElement | null) => {
       if (mutations.current.has(id)) return mutations.current.get(id);
       const isFav = favoriteIdSet.has(id);
       const revision = getClientSessionRevision();
@@ -128,12 +133,14 @@ export function FavoritesProvider({
           pendingRead.current = null;
           if (!user) {
             if (isFav) removeGuestFavorite(id); else addGuestFavorite(id);
+            if (isFav) cancelFlight(id); else startFlight(id, origin ?? null);
             setConfirmed(prev => prev.revision !== revision ? prev : { ...prev, ids: isFav ? prev.ids.filter(value => value !== id) : [...new Set([...prev.ids, id])] });
             return;
           }
           const response = await apiFetch(`${API_URL}/api/favorites/${id}`, { method: isFav ? "DELETE" : "POST", signal: AbortSignal.timeout(15_000) });
           if (!response.ok) throw await readApiError(response, "Не удалось обновить избранное");
           if (revision !== getClientSessionRevision()) return;
+          if (isFav) cancelFlight(id); else startFlight(id, origin ?? null);
           setConfirmed(prev => prev.revision !== revision ? prev : { ...prev, ids: isFav ? prev.ids.filter(value => value !== id) : [...new Set([...prev.ids, id])] });
           emitFavoritesChanged();
         } catch (failure) { throw toApiError(failure, "Не удалось обновить избранное"); }
@@ -146,7 +153,7 @@ export function FavoritesProvider({
       mutations.current.set(id, request);
       return request;
     },
-    [favoriteIdSet, confirmed, refresh]
+    [favoriteIdSet, confirmed, refresh, startFlight, cancelFlight]
   );
 
   const contextValue = useMemo<FavoritesContextType>(
@@ -154,10 +161,13 @@ export function FavoritesProvider({
       favoriteIds: skipCommerceLoad ? EMPTY_FAVORITES : favoriteIds,
       isFavorite: skipCommerceLoad ? NEVER_FAVORITE : isFavorite,
       count: skipCommerceLoad ? 0 : favoriteIds.length,
+      displayCount: skipCommerceLoad ? 0 : displayCount,
+      pulseKey,
+      pulseTarget,
       toggle,
       refresh,
     }),
-    [favoriteIds, isFavorite, refresh, skipCommerceLoad, toggle]
+    [favoriteIds, isFavorite, refresh, skipCommerceLoad, toggle, displayCount, pulseKey, pulseTarget]
   );
 
   return (
@@ -165,6 +175,7 @@ export function FavoritesProvider({
       value={contextValue}
     >
       {children}
+      {flightLayer}
     </FavoritesContext.Provider>
   );
 }

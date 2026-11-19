@@ -1,9 +1,9 @@
 export const PRODUCT_EDITOR_STEPS = [
   { id: "general", label: "Основное", panelId: "product-general" },
+  { id: "photos", label: "Фото", panelId: "product-step-photos" },
   { id: "description", label: "Описание", panelId: "product-description" },
   { id: "variants", label: "Варианты", panelId: "product-step-variants" },
   { id: "shipping", label: "Упаковка", panelId: "product-step-shipping" },
-  { id: "photos", label: "Фото", panelId: "product-step-photos" },
 ] as const;
 
 export type ProductEditorStep = (typeof PRODUCT_EDITOR_STEPS)[number]["id"];
@@ -37,6 +37,7 @@ export function getProductEditorErrorStep(
   errors: ProductEditorStepErrors
 ): ProductEditorStep | null {
   if (errors.title || errors.categoryId || errors.brandId) return "general";
+  if (errors.images) return "photos";
   if (errors.description || errors.composition || (errors.details && Object.keys(errors.details).length > 0)) return "description";
 
   const variantErrors = errors.variants;
@@ -60,5 +61,5 @@ export function getProductEditorErrorStep(
     return "shipping";
   }
 
-  return errors.images ? "photos" : null;
+  return null;
 }

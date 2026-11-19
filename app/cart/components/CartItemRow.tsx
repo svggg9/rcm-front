@@ -6,6 +6,7 @@ import Link from "next/link";
 import { ConfirmActionButton } from "../../components/ui/ConfirmActionButton";
 import { FormSelect } from "../../components/ui/FormSelect";
 import { Icon } from "../../components/ui/Icon";
+import { PhotoPlaceholder } from "../../components/ui/PhotoPlaceholder";
 import { useFavorites } from "../../lib/FavoritesContext";
 import { toast } from "../../components/ui/toast";
 import { productArticle } from "../../lib/productArticle";
@@ -21,15 +22,18 @@ type Props = {
   locked?: boolean;
   maxQuantity?: number;
   error?: string;
+  quantityAnimationRevision?: number;
   onChangeQty: (variantId: number, qty: number) => void;
   onRemove: (variantId: number) => void | Promise<void>;
+  onAfterRemove?: (variantId: number) => void;
+  demoFavorite?: { liked: boolean; onChange: (liked: boolean) => void };
 };
 
 export function CartItemRow({ item, showQuantityControls = true, pending = false, locked = false,
-  maxQuantity = MAX_PRODUCT_QUANTITY, error, onChangeQty, onRemove }: Props) {
+  maxQuantity = MAX_PRODUCT_QUANTITY, error, quantityAnimationRevision, onChangeQty, onRemove, onAfterRemove, demoFavorite }: Props) {
   const { isFavorite, toggle } = useFavorites();
   const [favoritePending, setFavoritePending] = useState(false);
-  const liked = isFavorite(item.productId);
+  const liked = demoFavorite?.liked ?? isFavorite(item.productId);
   const size = item.size?.trim();
   const article = productArticle(item.article);
   const href = productPath({ id: item.productId, publicId: item.publicId, title: item.title, brand: item.brand });
@@ -39,18 +43,21 @@ export function CartItemRow({ item, showQuantityControls = true, pending = false
     value: index + 1, label: String(index + 1), disabled: index + 1 > quantityLimit,
   }));
 
-  async function toggleFavorite() {
+  async function toggleFavorite(event: React.MouseEvent<HTMLButtonElement>) {
     if (favoritePending) return;
+    if (demoFavorite) { demoFavorite.onChange(!liked); return; }
+    const origin = event.currentTarget;
     setFavoritePending(true);
-    try { await toggle(item.productId); }
+    try { await toggle(item.productId, origin); }
     catch { toast.error("Не удалось обновить избранное", { duration: 4000 }); }
     finally { setFavoritePending(false); }
   }
 
   return <article className={styles.item} aria-label={item.title} aria-busy={pending || undefined}>
     <Link href={href} className={styles.media} aria-label={`Открыть ${item.title}`}>
-      <Image src={item.imageUrl ?? "/placeholder.png"} alt={item.title} fill
+      {item.imageUrl ? <Image src={item.imageUrl} alt={item.title} fill
         sizes="(max-width: 640px) 36vw, 180px" className={styles.image} />
+        : <span className={styles.mediaPlaceholder}><PhotoPlaceholder /></span>}
     </Link>
     <div className={styles.content}>
       <Link href={href} className={styles.main}>
@@ -64,6 +71,7 @@ export function CartItemRow({ item, showQuantityControls = true, pending = false
         {showQuantityControls && <div className={styles.quantityControl}>
           <span className={styles.fieldLabel}>Количество</span>
           <FormSelect<number> size="compact" ariaLabel={`Количество: ${item.title}`} value={item.quantity} options={options}
+            valueAnimationRevision={quantityAnimationRevision}
             required disabled={pending || locked || quantityLimit === 0} invalid={Boolean(error)} errorId={quantityErrorId}
             onChange={value => { if (value !== "") onChangeQty(item.variantId, value); }} />
         </div>}
@@ -75,14 +83,14 @@ export function CartItemRow({ item, showQuantityControls = true, pending = false
         <span>{(item.price * item.quantity).toLocaleString("ru-RU")} ₽</span>
       </div>
       <button type="button" className={styles.favorite} aria-pressed={liked}
-        disabled={favoritePending} onClick={() => void toggleFavorite()}>
+        disabled={favoritePending} onClick={event => void toggleFavorite(event)}>
         <span className={styles.favoriteIcon} data-liked={liked || undefined} aria-hidden="true" />
         {liked ? "Удалить из избранного" : "В избранное"}
       </button>
     </div>
-    <ConfirmActionButton className={styles.removeBtn} disabled={pending || locked}
+    <ConfirmActionButton className={styles.removeBtn} disabled={pending || locked} requireConfirmation={false}
       confirmTitle="Удалить товар из корзины?" confirmText={`«${item.title}» будет удалён из корзины`}
-      onConfirm={() => onRemove(item.variantId)} aria-label={`Удалить ${item.title} из корзины`}>
+      onConfirm={() => onRemove(item.variantId)} onAfterConfirm={() => onAfterRemove?.(item.variantId)} aria-label={`Удалить ${item.title} из корзины`}>
       <Icon name="x" size={22} strokeWidth={1} />
     </ConfirmActionButton>
   </article>;

@@ -14,8 +14,10 @@ import { normalizeCategories, type CategoryOption } from "../../../../lib/catego
 import { isRequestCancelled, toApiError } from "../../../../lib/apiErrors";
 import { subscribeCategoriesChanged } from "../../../../lib/categoryEvents";
 import { Button } from "../../../../components/ui/Button";
+import { useTransientFailure } from "../../../../components/ui/useTransientFailure";
 import { Banner } from "../../../../components/ui/Banner";
 import { Dialog } from "../../../../components/ui/Dialog";
+import { DisclosureSection } from "../../../../components/ui/DisclosureSection";
 import {
   scrollToFirstValidationError as scrollToFirstValidationErrorShared,
 } from "../../../../lib/formValidation";
@@ -23,7 +25,6 @@ import {
 import { ProductDraftPreview } from "./components/ProductDraftPreview";
 import { ProductRevisionReview } from "./components/ProductRevisionReview";
 import { ProductGeneralCard } from "./components/ProductGeneralCard";
-import { ProductEditableTitle } from "./components/ProductEditableTitle";
 import { ProductVariantsCard } from "./components/ProductVariantsCard";
 import { ProductShippingCard } from "./components/ProductShippingCard";
 import { ProductPhotoEditor } from "./components/ProductPhotoEditor";
@@ -183,8 +184,10 @@ export function ProductEditPageClient({
       router.replace(`/seller/products/${initialProduct.revisionSourceId}/edit?returnTo=${encodeURIComponent(productListHref())}`);
     }
   }, [initialProduct.status, initialProduct.revisionSourceId, router]);
-  // All widths use the same continuous form and anchor navigation.
   const [activeStep, setActiveStep] = useState<ProductEditorStep>("general");
+  const [openSections, setOpenSections] = useState<Record<ProductEditorStep, boolean>>({
+    general: true, photos: false, description: false, variants: false, shipping: false,
+  });
   const [revisionReviewSource, setRevisionReviewSource] = useState<SellerProduct | null>(null);
   const [reviewLoading, setReviewLoading] = useState(false);
   const reviewRequestRef = useRef(false);
@@ -200,7 +203,6 @@ export function ProductEditPageClient({
   const [brands] = useState<Option[]>(initialBrands);
 
   const [title, setTitle] = useState(() => getInitialTitle(initialProduct));
-  const [titleDraftDirty, setTitleDraftDirty] = useState(false);
   const [description, setDescription] = useState(initialProduct.description ?? "");
   const [composition, setComposition] = useState(initialProduct.composition ?? "");
   const [details, setDetails] = useState(() => normalizeProductDetails(initialProduct.details));
@@ -251,7 +253,11 @@ export function ProductEditPageClient({
 
   const [saving, setSaving] = useState(false);
   const [automaticSaving, setAutomaticSaving] = useState(false);
+  const [manualSavePending, setManualSavePending] = useState(false);
+  const manualSaveRequest = useRef(false);
+  const manualSaveFailed = useRef(false);
   const [saveSucceeded, setSaveSucceeded] = useState(false);
+  const saveFailure = useTransientFailure();
   const [uploading, setUploading] = useState(false);
   const reordering = false;
   const [publishing, setPublishing] = useState(false);
@@ -360,6 +366,7 @@ export function ProductEditPageClient({
   }, [categoryLoadAttempt]);
 
   function markDirty() {
+    saveFailure.clear();
     editRevisionRef.current += 1;
     dirtyRef.current = true;
     setEditGeneration(value => value + 1);
@@ -406,6 +413,7 @@ export function ProductEditPageClient({
 
   function selectEditorStep(step: ProductEditorStep, focusPanel = false) {
     setActiveStep(step);
+    setOpenSections(current => ({ ...current, [step]: true }));
     window.requestAnimationFrame(() => {
       const panelId = PRODUCT_EDITOR_STEPS.find(item => item.id === step)?.panelId;
       const panel = panelId ? document.getElementById(panelId) : null;
@@ -413,26 +421,19 @@ export function ProductEditPageClient({
         behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth",
         block: "start",
       });
-      if (focusPanel) panel?.focus({ preventScroll: true });
+      if (focusPanel) panel?.querySelector<HTMLElement>(":scope > summary")?.focus({ preventScroll: true });
     });
   }
 
   function scrollToFirstValidationError(errors: ValidationErrors) {
-    if (errors.title && presentation === "page") {
-      setActiveStep("general");
-      window.requestAnimationFrame(() => {
-        const heading = document.querySelector<HTMLElement>("[data-editor-page] [data-product-title]");
-        heading?.scrollIntoView({ behavior: "auto", block: "center" });
-        heading?.focus({ preventScroll: true });
-      });
-      return;
-    }
     const errorStep = getProductEditorErrorStep(errors);
-    if (errorStep) setActiveStep(errorStep);
+    if (errorStep) {
+      setActiveStep(errorStep);
+      setOpenSections(current => ({ ...current, [errorStep]: true }));
+    }
     window.requestAnimationFrame(() => {
       const panelId = PRODUCT_EDITOR_STEPS.find(item => item.id === errorStep)?.panelId;
       const panel = panelId ? document.getElementById(panelId) : pageContentRef.current;
-      panel?.focus({ preventScroll: true });
       scrollToFirstValidationErrorShared({
         root: panel,
       });
@@ -745,6 +746,7 @@ export function ProductEditPageClient({
       }
       return true;
     } catch (e) {
+      if (manualSaveRequest.current) manualSaveFailed.current = true;
       if (metadataSaved) {
         try {
           const current = await readSavedProduct(persistedProduct.current.id);
@@ -781,8 +783,34 @@ export function ProductEditPageClient({
   }
 
   async function saveNow() {
-    if (autosaveAllowed && !(await autosaveQueue.flush()) && !product?.revisionSourceId) return;
-    if (dirtyRef.current) await manualSaveCallback.current();
+    if (manualSaveRequest.current) return;
+    saveFailure.clear();
+    manualSaveFailed.current = false;
+    manualSaveRequest.current = true;
+    setManualSavePending(true);
+    setSaveSucceeded(false);
+    const hadChanges = dirtyRef.current;
+    try {
+      if (autosaveAllowed) {
+        const flushed = await autosaveQueue.flush();
+        if (!flushed && !product?.revisionSourceId) return;
+        if (flushed && hadChanges && !dirtyRef.current) {
+          setSaveSucceeded(true);
+          window.setTimeout(() => setSaveSucceeded(false), 1200);
+          return;
+        }
+      }
+      if (dirtyRef.current) {
+        // A revision may fall back to a manual request after a failed flush.
+        // Only the final attempt determines the feedback shown to the user.
+        manualSaveFailed.current = false;
+        await manualSaveCallback.current();
+      }
+    } finally {
+      manualSaveRequest.current = false;
+      setManualSavePending(false);
+      if (manualSaveFailed.current) saveFailure.show();
+    }
   }
 
   const manualSaveCallback = useRef<() => Promise<boolean>>(async () => false);
@@ -1212,13 +1240,99 @@ export function ProductEditPageClient({
   const deleteAvailable = product !== null && canDeleteProduct(product.status);
   const brandName = brands.find(brand => brand.id === brandId)?.name?.trim() || product?.brand?.trim() || null;
   const FieldsContainer = presentation === "page" ? "div" : "main";
-  const displayedSaveState = titleDraftDirty ? "pending" : saveState;
+  const displayedSaveState = saveState;
+
+  const renderGeneralCard = (section: "general" | "description") => (
+    <ProductGeneralCard
+                section={section}
+                showTitle
+                validationErrors={validationErrors}
+                title={title}
+                description={description}
+                composition={composition}
+                details={details}
+                categoryId={categoryId}
+                suggestedCategoryName={suggestedCategoryName}
+                audience={audience}
+                categories={categories}
+                categoryError={categoryError}
+                categoryLoading={categoryLoading}
+                currentCategoryLabel={product?.category}
+                onRetryCategories={() => setCategoryLoadAttempt(attempt => attempt + 1)}
+                onTitleChange={updateTitle}
+                onDescriptionChange={(value) => {
+                  setDescription(value);
+                  clearValidationError("description", !hasDescriptionContent(value) || value.length > 2000);
+                  markDirty();
+                }}
+                onCompositionChange={(value) => {
+                  clearValidationError("composition", value.length > 1000);
+                  setComposition(value);
+                  markDirty();
+                }}
+                onDetailsChange={(key, value) => {
+                  const next = { ...details, [key]: value };
+                  setDetails(next);
+                  const errors = productDetailsErrors(next);
+                  setValidationErrors(current => ({ ...current, details: current.details && Object.keys(errors).length
+                    ? errors : undefined }));
+                  markDirty();
+                }}
+                onCategoryIdChange={(value) => {
+                  setCategoryId(value);
+                  if (value) {
+                    setSuggestedCategoryName("");
+                  }
+                  clearValidationError("categoryId", value === "" && !suggestedCategoryName.trim());
+                  markDirty();
+                }}
+                onSuggestedCategoryNameChange={(value) => {
+                  setSuggestedCategoryName(value);
+                  if (value.trim()) {
+                    setCategoryId("");
+                  }
+                  clearValidationError("categoryId", categoryId === "" && !value.trim());
+                  markDirty();
+                }}
+                onAudienceChange={(value) => {
+                  setAudience(value);
+                  markDirty();
+                }}
+              />
+  );
+  const sectionErrors: Record<ProductEditorStep, boolean> = {
+    general: Boolean(validationErrors.title || validationErrors.categoryId || validationErrors.brandId),
+    photos: Boolean(validationErrors.images),
+    description: Boolean(validationErrors.description || validationErrors.composition || Object.keys(validationErrors.details ?? {}).length),
+    variants: Boolean(validationErrors.variantCount || Object.values(validationErrors.variants ?? {}).some(fields => Object.values(fields).some(Boolean))),
+    shipping: Boolean(validationErrors.packageLengthCm || validationErrors.packageWidthCm || validationErrors.packageHeightCm || validationErrors.packageWeightKg),
+  };
+  const categoryLabel = categoryId === "" ? suggestedCategoryName : categories.find(category => category.id === categoryId)?.name || product?.category || "";
+  const audienceLabel = { MEN: "Мужское", WOMEN: "Женское", UNISEX: "Для всех" }[audience];
+  const detailCount = Number(Boolean(composition.trim())) + Object.values(details).filter(value => value.trim()).length;
+  const descriptionSummary = hasDescriptionContent(description)
+    ? `Описание добавлено${detailCount ? `, дополнительных сведений: ${detailCount}` : ""}`
+    : "Описание, состав, уход и другие сведения";
+  const shadeCount = new Set(variants.map(variantColorGroupKey)).size;
+  const packageReady = [packageLengthCm, packageWidthCm, packageHeightCm, packageWeightKg].every(value => value !== "" && Number.isFinite(value) && value > 0);
+  const variantsReady = variants.length > 0 && variants.every(variant => Number.isFinite(variant.price) && variant.price > 0 && (!variant.stockTrackingEnabled || (variant.availableQuantity !== null && Number.isSafeInteger(variant.availableQuantity) && variant.availableQuantity >= 0))) && inconsistentProductPriceIndexes(variants).size === 0;
+  const sectionMissing: Record<ProductEditorStep, boolean> = {
+    general: !title.trim() || (categoryId === "" && !suggestedCategoryName.trim()) || brandId === "",
+    photos: !validProductPhotoCount(images.length),
+    description: !hasDescriptionContent(description) || description.length > 2000,
+    variants: !variantsReady,
+    shipping: !packageReady,
+  };
+  const statusFor = (step: ProductEditorStep) => sectionErrors[step] ? "Проверьте раздел" : sectionMissing[step] ? (step === "photos" ? "Нужно 3–10 фото" : "Нужно заполнить") : undefined;
+  const setSectionOpen = (step: ProductEditorStep, open: boolean) => {
+    setOpenSections(current => ({ ...current, [step]: open }));
+    if (open) setActiveStep(step);
+  };
 
   return (
     <EditorSurface presentation={presentation} stickyHeader backLabel="Товары" className={styles.productSurface}
       title={<span className={styles.titleRow}>
-        <ProductEditableTitle value={title} disabled={contentControlsDisabled || creatingNextProduct} onChange={updateTitle} onDraftDirtyChange={setTitleDraftDirty}
-          placeholder={presentation === "page" ? "Наименование товара" : undefined} invalid={Boolean(validationErrors.title)} errorId="product-title-error" />
+        <span className={styles.editorTitle}>{initialProductId === 0 ? "Новый товар" : "Редактирование товара"}</span>
         {product && <StatusBadge tone={getProductStatusTone(product.status)} size="regular">{formatProductStatus(product.status)}</StatusBadge>}
       </span>}
       headerMeta={product && autosaveAllowed && displayedSaveState !== "idle" ? <span className={styles.editorIdentity}>
@@ -1226,7 +1340,7 @@ export function ProductEditPageClient({
           {displayedSaveState === "saving" ? "Сохраняем…" : displayedSaveState === "error" ? "Не удалось сохранить" : displayedSaveState === "manual" ? "Цены и остатки не сохранены" : displayedSaveState === "saved" ? "Сохранено" : "Есть изменения"}
         </span>
       </span> : null}
-      subtitle={validationErrors.title ? <span id="product-title-error" className="fieldError">Введите название товара</span> : presentation === "page" ? undefined : brandName}
+      subtitle={presentation === "page" ? undefined : brandName}
       guardNavigation
       beforeLeave={autosaveAllowed ? flushBeforeLeave : undefined}
       onFieldBlur={event => {
@@ -1236,7 +1350,7 @@ export function ProductEditPageClient({
       }}
       discardHint={autosaveAllowed ? "Не удалось сохранить все изменения автоматически — вернитесь в форму и повторите сохранение" : undefined}
       toastId="product-editor"
-      dirty={dirty || titleDraftDirty} busy={productMutationBusy || creatingNextProduct}
+      dirty={dirty} busy={productMutationBusy || creatingNextProduct}
       onClose={() => { if (intercepted) router.back(); else router.replace(productListHref()); }}
       navigation={<nav className={styles.editorSectionNav} aria-label="Разделы товара">
         {PRODUCT_EDITOR_STEPS.map((step,index)=><button type="button" key={step.id} id={`editor-tab-${step.id}`} aria-current={activeStep === step.id ? "location" : undefined}
@@ -1259,7 +1373,7 @@ export function ProductEditPageClient({
       actions={<div className={styles.wizardActions}>
         <div className={styles.wizardSecondaryActions}>
           <Button variant="ghost" disabled={productMutationBusy} onClick={()=>setDraftPreviewOpen(true)}>Предпросмотр</Button>
-          {(!autosaveAllowed || Boolean(product?.revisionSourceId) || saveState === "error") && <Button onClick={() => void saveNow()} disabled={(!dirty && !titleDraftDirty) || productMutationBusy || saving || !operationalEditingAllowed} loading={saving} success={saveSucceeded && !titleDraftDirty} variant="secondary">{saveState === "error" ? "Повторить сохранение" : "Сохранить цены и остатки"}</Button>}
+          {(!autosaveAllowed || Boolean(product?.revisionSourceId) || saveState === "error" || manualSavePending || saveSucceeded || saveFailure.failure) && <Button onClick={() => void saveNow()} disabled={!dirty || productMutationBusy || saving || manualSavePending || !operationalEditingAllowed} loading={saving || manualSavePending} success={saveSucceeded} successMotion="bounce" failure={saveFailure.failure} variant="secondary">{saveState === "error" ? "Повторить сохранение" : "Сохранить цены и остатки"}</Button>}
         </div>
         <div className={styles.wizardPager}>
           <Button onClick={() => void flushAndPublish()} disabled={productMutationBusy || !isProductStatusPublishable(product?.status)} loading={publishing || reviewLoading} variant="primary">{product?.revisionSourceId ? "Отправить изменения" : "Отправить на модерацию"}</Button>
@@ -1352,72 +1466,41 @@ export function ProductEditPageClient({
         ) : null}
 
         <div className={styles.wizardLayout}>
-          <FieldsContainer className={`${styles.main} ${styles.stepPanel}`}>
-            <fieldset
-              className={`${styles.lockedFieldset} ${styles.stepPanel}`}
-              disabled={contentControlsDisabled}
-            >
-              <ProductGeneralCard
-                showTitle={presentation !== "page"}
-                validationErrors={validationErrors}
-                title={title}
-                description={description}
-                composition={composition}
-                details={details}
-                categoryId={categoryId}
-                suggestedCategoryName={suggestedCategoryName}
-                audience={audience}
-                categories={categories}
-                categoryError={categoryError}
-                categoryLoading={categoryLoading}
-                currentCategoryLabel={product?.category}
-                onRetryCategories={() => setCategoryLoadAttempt(attempt => attempt + 1)}
-                onTitleChange={updateTitle}
-                onDescriptionChange={(value) => {
-                  setDescription(value);
-                  clearValidationError("description", !hasDescriptionContent(value) || value.length > 2000);
-                  markDirty();
-                }}
-                onCompositionChange={(value) => {
-                  clearValidationError("composition", value.length > 1000);
-                  setComposition(value);
-                  markDirty();
-                }}
-                onDetailsChange={(key, value) => {
-                  const next = { ...details, [key]: value };
-                  setDetails(next);
-                  const errors = productDetailsErrors(next);
-                  setValidationErrors(current => ({ ...current, details: current.details && Object.keys(errors).length
-                    ? errors : undefined }));
-                  markDirty();
-                }}
-                onCategoryIdChange={(value) => {
-                  setCategoryId(value);
-                  if (value) {
-                    setSuggestedCategoryName("");
-                  }
-                  clearValidationError("categoryId", value === "" && !suggestedCategoryName.trim());
-                  markDirty();
-                }}
-                onSuggestedCategoryNameChange={(value) => {
-                  setSuggestedCategoryName(value);
-                  if (value.trim()) {
-                    setCategoryId("");
-                  }
-                  clearValidationError("categoryId", categoryId === "" && !value.trim());
-                  markDirty();
-                }}
-                onAudienceChange={(value) => {
-                  setAudience(value);
-                  markDirty();
-                }}
+          <FieldsContainer className={styles.sectionStack}>
+            <DisclosureSection id="product-general" title="Основные данные" summary={categoryLabel ? `${categoryLabel}, ${audienceLabel}` : "Категория и кому подходит"} status={statusFor("general")} statusTone={sectionErrors.general ? "error" : "default"} open={openSections.general} onOpenChange={open => setSectionOpen("general", open)}>
+              <fieldset className={styles.lockedFieldset} disabled={contentControlsDisabled || creatingNextProduct}>{renderGeneralCard("general")}</fieldset>
+            </DisclosureSection>
+            <DisclosureSection id="product-step-photos" title="Фото" summary={images.length ? `Фотографий: ${images.length}` : "Фотографии товара и оттенков"} status={statusFor("photos")} statusTone={sectionErrors.photos ? "error" : "default"} open={openSections.photos} onOpenChange={open => setSectionOpen("photos", open)}>
+              <div className={styles.photoContent}>
+              <ProductPhotoEditor
+                showTitle={false}
+                shadeGroups={Array.from(new Map(variants.map(variant => [variantColorGroupKey(variant), { key: variantColorGroupKey(variant), color: variant.color || "Без оттенка" }])).values())}
+                selectedGroupKey={photoGroupKey || (variants[0] ? variantColorGroupKey(variants[0]) : "")}
+                onGroupChange={setPhotoGroupKey}
+                imageLabels={Object.fromEntries(images.map(image => [image.id, variants.find(variant => image.draftGroupKey ? variantColorGroupKey(variant) === image.draftGroupKey : variant.colorwayId === image.colorwayId)?.color || "Без оттенка"]))}
+                images={images}
+                invalidImages={validationErrors.images}
+                uploadProgress={uploadProgress}
+                uploading={uploading}
+                reordering={reordering}
+                mediaDisabled={productMutationBusy || saving || !contentEditingAllowed}
+                mediaDisabledHint={mediaDisabledHint}
+                dragImageId={dragImageId}
+                onFilesChange={() => {}}
+                onUploadImages={(files) => void uploadImages(files, photoGroupKey || (variants[0] ? variantColorGroupKey(variants[0]) : ""))}
+                onDragImageStart={setDragImageId}
+                onDragImageEnd={() => setDragImageId(null)}
+                onMoveImage={moveImage}
+                onDeleteImage={deleteImage}
+                onMoveImageByIndex={moveImageByIndex}
               />
-            </fieldset>
-
-            <div id="product-step-variants" className={styles.stepPanel} role="region" aria-labelledby="editor-tab-variants"
-              data-editor-step="variants" tabIndex={-1}>
-            <h2 className={`${styles.sectionTitle} ${styles.desktopOnly}`}>Варианты</h2>
-            <ProductVariantsCard
+              </div>
+            </DisclosureSection>
+            <DisclosureSection id="product-description" title="Описание" summary={descriptionSummary} status={statusFor("description")} statusTone={sectionErrors.description ? "error" : "default"} open={openSections.description} onOpenChange={open => setSectionOpen("description", open)}>
+              <fieldset className={styles.lockedFieldset} disabled={contentControlsDisabled}>{renderGeneralCard("description")}</fieldset>
+            </DisclosureSection>
+            <DisclosureSection id="product-step-variants" title="Цена и варианты" summary={variantsReady ? `Цена ${new Intl.NumberFormat("ru-RU").format(variants[0].price)} ₽, оттенков: ${shadeCount}, вариантов: ${variants.length}` : "Общая цена, оттенки и размеры"} status={statusFor("variants")} statusTone={sectionErrors.variants ? "error" : "default"} open={openSections.variants} onOpenChange={open => setSectionOpen("variants", open)}>
+              <ProductVariantsCard
               countInvalid={validationErrors.variantCount}
               variants={variants}
               variantStructureDisabled={contentControlsDisabled}
@@ -1428,15 +1511,10 @@ export function ProductEditPageClient({
               onRemoveVariant={removeVariant}
               onOpenPhotos={key => { setPhotoGroupKey(key); selectEditorStep("photos", true); }}
             />
-            </div>
-
-            <fieldset
-              id="product-step-shipping" className={`${styles.lockedFieldset} ${styles.stepPanel}`} role="region" aria-labelledby="editor-tab-shipping"
-              data-editor-step="shipping" tabIndex={-1}
-              disabled={contentControlsDisabled}
-            >
-              <h2 className={`${styles.sectionTitle} ${styles.desktopOnly}`}>Упаковка</h2>
-              <ProductShippingCard
+            </DisclosureSection>
+            <DisclosureSection id="product-step-shipping" title="Упаковка" summary={packageReady ? `${packageLengthCm} × ${packageWidthCm} × ${packageHeightCm} см, ${packageWeightKg} кг` : "Размеры и вес в упаковке"} status={statusFor("shipping")} statusTone={sectionErrors.shipping ? "error" : "default"} open={openSections.shipping} onOpenChange={open => setSectionOpen("shipping", open)}>
+              <fieldset className={styles.lockedFieldset} disabled={contentControlsDisabled}>
+                <ProductShippingCard
                 validationErrors={validationErrors}
                 packageWidthCm={packageWidthCm}
                 packageHeightCm={packageHeightCm}
@@ -1463,39 +1541,11 @@ export function ProductEditPageClient({
                   markDirty();
                 }}
               />
-            </fieldset>
-
-            {onboardingStatusPending && !onboardingError ? (
-              <div className={styles.publishRequirementHint}><Loader inline label="Проверка готовности магазина" /></div>
-            ) : null}
-
+              </fieldset>
+            </DisclosureSection>
+            {onboardingStatusPending && !onboardingError ? <div className={styles.publishRequirementHint}><Loader inline label="Проверка готовности магазина" /></div> : null}
           </FieldsContainer>
-
-            <div id="product-step-photos" className={`${styles.stepPanel} ${styles.photoStep}`} role="region" aria-labelledby="editor-tab-photos"
-              data-editor-step="photos" tabIndex={-1}>
-              <ProductPhotoEditor
-                shadeGroups={Array.from(new Map(variants.map(variant => [variantColorGroupKey(variant), { key: variantColorGroupKey(variant), color: variant.color || "Без оттенка" }])).values())}
-                selectedGroupKey={photoGroupKey || (variants[0] ? variantColorGroupKey(variants[0]) : "")}
-                onGroupChange={setPhotoGroupKey}
-                imageLabels={Object.fromEntries(images.map(image => [image.id, variants.find(variant => image.draftGroupKey ? variantColorGroupKey(variant) === image.draftGroupKey : variant.colorwayId === image.colorwayId)?.color || "Без оттенка"]))}
-                images={images}
-                invalidImages={validationErrors.images}
-                uploadProgress={uploadProgress}
-                uploading={uploading}
-                reordering={reordering}
-                mediaDisabled={productMutationBusy || saving || !contentEditingAllowed}
-                mediaDisabledHint={mediaDisabledHint}
-                dragImageId={dragImageId}
-                onFilesChange={() => {}}
-                onUploadImages={(files) => void uploadImages(files, photoGroupKey || (variants[0] ? variantColorGroupKey(variants[0]) : ""))}
-                onDragImageStart={setDragImageId}
-                onDragImageEnd={() => setDragImageId(null)}
-                onMoveImage={moveImage}
-                onDeleteImage={deleteImage}
-                onMoveImageByIndex={moveImageByIndex}
-              />
-            </div>
-            </div>
+        </div>
         </div>
       </div>
         </div>
@@ -1508,7 +1558,7 @@ export function ProductEditPageClient({
           category: suggestedCategoryName.trim() || categories.find(c => c.id === categoryId)?.name || product?.category || null,
           audience, packageWidthCm: numberOrNull(packageWidthCm), packageHeightCm: numberOrNull(packageHeightCm),
           packageLengthCm: numberOrNull(packageLengthCm), packageWeightKg: numberOrNull(packageWeightKg),
-          variantSummary: variants.map(v => `${v.color || "Без цвета"} · ${v.size || "Без размера"}`).sort().join("\n"),
+          variantSummary: variants.map(v => `${v.color || "Без цвета"}, ${v.size || "Без размера"}`).sort().join("\n"),
           photos: images.map(i => i.url),
         }} />
       </Dialog>}

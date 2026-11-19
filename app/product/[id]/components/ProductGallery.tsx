@@ -5,6 +5,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { ProductImageCarousel } from "../../../components/ProductImageCarousel/ProductImageCarousel";
 import { Icon } from "../../../components/ui/Icon";
 import { ProductPhoto } from "../../../components/ProductPhoto";
+import { PhotoPlaceholder } from "../../../components/ui/PhotoPlaceholder";
 import styles from "../ProductPage.module.css";
 
 type Props = {
@@ -53,7 +54,7 @@ export function ProductGallery({ title, images, onOpenImage, compact = false }: 
     return (
       <div className={styles.gallery} data-shape={compact ? "square" : "portrait"}>
         <div className={styles.galleryEmpty}>
-          <div className={styles.galleryPlaceholder}>Фото отсутствует</div>
+          <PhotoPlaceholder />
         </div>
       </div>
     );

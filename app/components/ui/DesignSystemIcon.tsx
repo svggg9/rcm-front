@@ -1,10 +1,10 @@
-import { Box, ReceiptText, Truck } from "lucide-react";
+import { Box } from "lucide-react";
 import { Icon, type IconName } from "./Icon";
 
 export const iconSizes = { interface: 24, utility: 20, empty: 32 } as const;
 export type IconRole = keyof typeof iconSizes;
 
-const selectedIcons = { package: Box, "shopping-bag": ReceiptText, "shipment-handoff": Truck };
+const selectedIcons = { package: Box };
 
 // Opt-in migration: existing Icon consumers keep their current appearance.
 export function DesignSystemIcon({ name, role = "interface", className }: {

@@ -173,7 +173,7 @@ function BrandImages({ brandId, embedded = false, onBusyChange }: Props) {
         {loading && hasLoaded ? <Loader inline label="Обновление фотографий" /> : null}
       </div>
       <div className={styles.metaRow}>
-        <p className={styles.meta}>До 8 фото · JPEG, PNG или WebP · до 10 МБ</p>
+        <p className={styles.meta}>До 8 фото, JPEG, PNG или WebP, до 10 МБ</p>
         <p className={styles.savedHint}>Изменения сохраняются сразу</p>
       </div>
       <p className={styles.meta}>Исходник сохраняется, версия для показа оптимизируется автоматически</p>

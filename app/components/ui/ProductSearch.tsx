@@ -6,6 +6,7 @@ import { API_URL } from "../../lib/api";
 import { catalogSearchLimitMessage, hasTooManyCatalogSearchTerms, normalizeCatalogSearch } from "../../lib/catalogSearch";
 import { productPath } from "../../lib/productUrls";
 import { ProductPhoto } from "../ProductPhoto";
+import { PhotoPlaceholder } from "./PhotoPlaceholder";
 import { Icon } from "./Icon";
 import { Button } from "./Button";
 import { Loader } from "./Loader";
@@ -144,7 +145,7 @@ export function ProductSearch({ initialQuery = "", onSearch, onProduct, onEscape
           {state.items.map((item, index) => <Link key={item.id} id={`${listId}-${index}`} role="option" aria-selected={index === active}
             tabIndex={-1} className={styles.option} href={productPath(item)} onMouseDown={event => event.preventDefault()}
             onClick={event => { if (!event.ctrlKey && !event.metaKey && !event.shiftKey && event.button === 0) { event.preventDefault(); invalidate(); setOpen(false); onProduct(productPath(item)); } }}>
-            {item.coverImage ? <span className={styles.image}><ProductPhoto src={item.coverImage} alt="" sizes="48px" /></span> : <span className={styles.imagePlaceholder} aria-hidden="true" />}
+            <span className={styles.image}>{item.coverImage ? <ProductPhoto src={item.coverImage} alt="" sizes="48px" /> : <PhotoPlaceholder decorative />}</span>
             <span className={styles.info}><span>{item.title}</span>{item.brand ? <span className={styles.brand}>{item.brand}</span> : null}</span>
             {item.minPrice != null && item.minPrice > 0 ? <Price amount={item.minPrice} className={styles.price} /> : null}
           </Link>)}

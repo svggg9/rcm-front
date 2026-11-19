@@ -1,0 +1,34 @@
+.section { margin-top: var(--space-8); }
+.section > h3 { margin: 0 0 var(--space-2); font-size: var(--type-h5-size); line-height: var(--type-h5-line); font-weight: var(--type-heading-weight); }
+.intro { margin: 0 0 var(--space-5); font-size: var(--font-sm); line-height: var(--line-height-small); }
+.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 245px), 1fr)); gap: var(--space-4); }
+.card { min-width: 0; padding: var(--space-4); background: var(--soft); }
+.card h4 { margin: var(--space-4) 0 var(--space-1); font-size: var(--font-sm); font-weight: var(--font-weight-medium); line-height: var(--line-height-small); }
+.card p, .status { font-size: var(--font-xs); line-height: var(--line-height-small); }
+.card p { min-height: 40px; margin: 0 0 var(--space-3); }
+.status { display: block; min-height: 36px; }
+.stage { display: grid; align-content: center; gap: var(--space-4); min-height: 185px; padding: var(--space-3); background: var(--white); }
+.sizes { display: flex; align-items: end; justify-content: center; gap: var(--space-8); }
+.sizes > div { display: grid; justify-items: center; gap: var(--space-2); font-size: var(--font-xs); }
+.visual { display: inline-flex; position: relative; flex: none; color: var(--black); }
+.bag { position: absolute; inset: 0; display: flex; }
+.bag > svg { position: relative; z-index: 1; }
+.inside { position: absolute; left: 19%; right: 19%; top: 40%; bottom: 10%; overflow: hidden; clip-path: polygon(8% 0, 92% 0, 100% 93%, 92% 100%, 8% 100%, 0 93%); }
+.fill { display: block; width: 100%; height: 100%; transform-origin: bottom; }
+.bottom .fill { background: #999; transform: scaleY(.6); }
+.soft .fill { background: #dedede; }
+.parcel { left: 32%; right: 32%; top: 55%; bottom: 20%; clip-path: none; overflow: visible; }
+.parcel .fill { position: relative; box-sizing: border-box; background: var(--gold); border: 1px solid var(--gold-deep); }
+.parcel .fill::after { content: ""; position: absolute; left: 45%; top: 0; width: 13%; height: 50%; background: var(--gold-light); }
+.dot { position: absolute; z-index: 2; top: 0; right: 0; width: 20%; height: 20%; border-radius: 50%; background: var(--gold); }
+.actions { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: var(--space-1); }
+@media (prefers-reduced-motion: no-preference) {
+  .response { animation: response 360ms ease-out both; }
+  .bottom.first .fill { animation: riseBottom 520ms ease-out both; }
+  .soft.first .fill { animation: appear 500ms ease-out both; }
+  .parcel.first .fill { animation: parcelIn 500ms ease-out both; }
+}
+@keyframes response { 0%, 100% { transform: scale(1); } 45% { transform: scale(1.1); } }
+@keyframes riseBottom { from { transform: scaleY(0); } to { transform: scaleY(.6); } }
+@keyframes appear { from { opacity: 0; } to { opacity: 1; } }
+@keyframes parcelIn { from { opacity: 0; transform: translateY(-70%) scale(.7); } to { opacity: 1; transform: translateY(0) scale(1); } }

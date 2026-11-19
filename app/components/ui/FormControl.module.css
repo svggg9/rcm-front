@@ -18,20 +18,38 @@
 }
 .requiredEmpty { background: var(--field-control-background, var(--white)); }
 .select:has(> :is(button, input):not(:disabled):not([aria-invalid="true"])):hover { background: var(--surface-hover); }
-.select:has(> :focus-visible) { outline: var(--field-focus-width, 1px) solid var(--black); outline-offset: var(--field-focus-offset, 2px); }
+.select:has(> :focus-visible) { outline: none; background: var(--field-focus-background); }
 
 .selectOpen { border-bottom-color: transparent; z-index: 40; }
+/* Keep the shared edge open while the list folds away; opening has no delay. */
+.select:has(> .menu) {
+  transition: border-color var(--transition-fast), border-bottom-color 0s var(--transition-fast),
+    background-color var(--transition-fast), z-index 0s var(--transition-fast);
+}
+.select[data-side=top]:has(> .menu) {
+  transition: border-color var(--transition-fast), border-top-color 0s var(--transition-fast),
+    background-color var(--transition-fast), z-index 0s var(--transition-fast);
+}
+.select.selectOpen:has(> .menu) { transition: border-color 0s, background-color var(--transition-fast), z-index 0s; }
 .select.invalid { border-color: var(--error); outline-color: var(--error); }
 .selectOpen.invalid { border-bottom-color: transparent; }
+.select.selectOpen.invalid:not([data-side=top]) { border-bottom-color: transparent; }
+.select.selectOpen.invalid[data-side=top] { border-top-color: transparent; }
 .select.invalid .menu { border-color: var(--error); border-top-color: transparent; }
+/* Warm fields track pointer input separately, so a click keeps its normal surface. */
+.select.insideSelect[data-pointer-focus]:has(> :focus-visible) { outline: none; background: var(--field-control-background, var(--white)); }
+.select.insideSelect[data-pointer-focus]:has(> :focus-visible):hover { background: var(--surface-hover); }
 .selectDisabled { color: var(--muted); }
 .field:not([data-readonly=true]) .selectDisabled,
 .fieldFull:not([data-readonly=true]) .selectDisabled { opacity: 1; background: var(--field-disabled-background); border-color: var(--field-disabled-border); color: var(--field-disabled-color); }
 .selectDisabled .selectButton,
-.selectDisabled .chevron,
 .selectDisabled .comboboxInput { color: inherit; }
+.field:not([data-readonly=true]) .selectDisabled .chevron,
+.fieldFull:not([data-readonly=true]) .selectDisabled .chevron { color: var(--field-disabled-color); }
 .field[data-readonly=true] .select,
 .fieldFull[data-readonly=true] .select { background: var(--field-readonly-background); }
+.field[data-readonly=true] .select:has(> :focus-visible),
+.fieldFull[data-readonly=true] .select:has(> :focus-visible) { background: var(--field-focus-background); }
 
 .selectButton,
 .comboboxInput,
@@ -59,6 +77,10 @@
   cursor: pointer;
 }
 .selectButton:disabled { color: var(--muted); cursor: not-allowed; }
+.selectDisabled .selectButton:disabled,
+.selectDisabled .selectButton:disabled .selectPlaceholderValue,
+.selectDisabled .comboboxInput:disabled,
+.selectDisabled .comboboxInput:disabled::placeholder { color: var(--field-disabled-color); opacity: 1; -webkit-text-fill-color: var(--field-disabled-color); }
 .selectButton[aria-readonly=true] { cursor: text; }
 .selectButton > :is(.selectValue, .selectPlaceholderValue) { flex: 1; min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
 .placeholder { color: var(--muted); }
@@ -90,13 +112,28 @@
 .field[data-field-variant=inline] .selectOpen .selectButton::before,
 .fieldFull[data-field-variant=inline] .selectOpen .selectButton::before { bottom: 0; }
 .field[data-field-variant=inline] .selectButton:disabled,
-.fieldFull[data-field-variant=inline] .selectButton:disabled { color: var(--black); cursor: default; }
+.fieldFull[data-field-variant=inline] .selectButton:disabled { color: var(--field-disabled-color); cursor: default; }
 .field[data-field-variant=inline] .chevron,
 .fieldFull[data-field-variant=inline] .chevron { right: 0; top: 12px; }
 .field[data-readonly=true] .chevron,
 .fieldFull[data-readonly=true] .chevron { visibility: hidden; }
 
+/* Native fieldset disabling also reaches the control without changing props. */
+.select:has(> .selectButton:disabled),
+.select:has(> .comboboxInput:disabled) { background: var(--field-disabled-background); border-color: var(--field-disabled-border); color: var(--field-disabled-color); }
+.select:has(> .selectButton:disabled) .selectButton,
+.select:has(> .selectButton:disabled) .selectPlaceholderValue,
+.select:has(> .comboboxInput:disabled) .comboboxInput,
+.select:has(> .comboboxInput:disabled) .comboboxInput::placeholder { color: var(--field-disabled-color); -webkit-text-fill-color: var(--field-disabled-color); opacity: 1; }
+.select:has(> .selectButton:disabled) .chevron,
+.select:has(> .comboboxInput:disabled) .chevron { color: var(--field-disabled-color); }
+.field[data-field-variant=inline] .select:has(> .selectButton:disabled),
+.fieldFull[data-field-variant=inline] .select:has(> .selectButton:disabled) { border-color: transparent transparent var(--field-disabled-border); }
+
 .comboboxInput { width: 100%; height: 100%; padding: 0 43px 0 var(--field-control-padding-inline, 15px); border: 0; background: transparent; outline: none; }
+.insideSelect { height: auto; }
+.insideSelect .comboboxInput { height: var(--line-height-body, 24px); min-height: var(--line-height-body, 24px); padding: 0 28px 0 0; font-size: var(--font-md, 16px); line-height: var(--line-height-body, 24px); }
+.insideSelect .comboboxInputWithBadge { padding-right: 100px; }
 .comboboxInputWithBadge { padding-right: 112px; }
 .comboboxBadge { position: absolute; right: 36px; top: 50%; transform: translateY(-50%); border: var(--line-width-default) solid var(--gold-border); background: var(--gold-light); padding: 3px 7px; color: var(--state-text-color, var(--black)); font-size: var(--font-xs); white-space: nowrap; pointer-events: none; }
 
@@ -104,6 +141,8 @@
 .chevron svg { display: block; width: 100%; height: 100%; }
 .chevron path { fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
 .selectOpen .chevron { transform: translateY(-50%) rotate(180deg); }
+.insideSelect button.chevron { right: 4px; width: 44px; height: 44px; }
+.insideSelect button.chevron svg { width: 20px; height: 20px; }
 
 .menu {
   position: absolute;
@@ -120,9 +159,9 @@
   background: var(--white);
   overflow: hidden;
   pointer-events: none;
-  transition: grid-template-rows var(--transition-fast);
+  transition: grid-template-rows var(--transition-fast), visibility 0s var(--transition-fast);
 }
-.selectOpen .menu { grid-template-rows: 1fr; visibility: visible; pointer-events: auto; }
+.selectOpen .menu { grid-template-rows: 1fr; visibility: visible; pointer-events: auto; transition: grid-template-rows var(--transition-fast), visibility 0s; }
 .selectOpen[data-side=top],
 :is(.field, .fieldFull)[data-field-variant=inline] .selectOpen[data-side=top] {
   border-top-color: transparent;
@@ -147,7 +186,8 @@
 .option { width: 100%; min-height: 44px; padding: 0 var(--field-control-padding-inline, 15px); border: 0; background: var(--white); display: flex; align-items: center; justify-content: space-between; gap: 16px; text-align: left; cursor: pointer; }
 .option:hover:not(:disabled),
 .option[aria-selected="true"] { background: var(--surface-hover); }
-.option:focus-visible { outline: var(--field-focus-width, 1px) solid var(--black); outline-offset: calc(-1 * var(--field-focus-width, 1px)); }
+.option[data-active="true"] { background: var(--surface-hover); box-shadow: inset 1px 0 var(--black); }
+.option:focus-visible { outline: none; background: var(--surface-hover); box-shadow: inset 1px 0 var(--black); }
 .option:disabled { opacity: var(--field-disabled-opacity, 0.55); color: var(--muted); cursor: not-allowed; }
 .optionMuted { color: var(--muted); }
 .optionLabel { min-width: 0; padding-block: 10px; overflow-wrap: anywhere; white-space: normal; }
@@ -160,7 +200,21 @@
 .optionPlaceholder,
 .comboboxInput.placeholder,
 .comboboxInput::placeholder { color: var(--muted); font-size: var(--font-placeholder); line-height: var(--field-control-line-height, 21px); font-weight: var(--field-control-weight, 400); letter-spacing: normal; }
+.selectButton:not(:disabled):not([aria-readonly=true]):not([aria-invalid=true]) .selectPlaceholderValue,
+.select:not(.insideSelect) > .comboboxInput:not(:disabled):not([readonly]):not([aria-invalid=true])::placeholder { color: var(--field-disabled-color); opacity: 1; }
+.insideSelect .comboboxInput.placeholder,
+.insideSelect .comboboxInput::placeholder { font-size: var(--font-md, 16px); line-height: var(--line-height-body, 24px); }
+.select.insideSelect .comboboxInput::placeholder { color: var(--field-placeholder-color, #44423f); font-size: var(--field-placeholder-size, var(--font-md, 16px)); }
+.select.insideSelect:not([data-pointer-focus]):has(> input:focus-visible) .comboboxInput::placeholder { color: #625f59; }
+.insideSelect .option,
+.insideSelect .optionPlaceholder,
+.insideSelect .empty { font-size: var(--font-md, 16px); line-height: var(--line-height-body, 24px); }
+.insideSelect .option { min-height: 48px; }
 
 @media (prefers-reduced-motion: reduce) {
-  .select, .chevron, .menu { transition: none; }
+  .select, .select:has(> .menu), .select.selectOpen:has(> .menu), .chevron, .menu, .selectOpen .menu { transition: none; }
+}
+@media (forced-colors: active) {
+  .select:has(> :focus-visible), .select.insideSelect:not([data-pointer-focus]):has(> input:focus-visible) { outline: 2px solid Highlight; outline-offset: 2px; }
+  .option:focus-visible { outline: 2px solid Highlight; outline-offset: -2px; }
 }

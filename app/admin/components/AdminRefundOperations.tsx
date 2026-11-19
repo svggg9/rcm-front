@@ -87,45 +87,61 @@ export function AdminRefundOperations({ onOpenOrder }: { onOpenOrder: (id: numbe
     } finally { inFlight.current = false; setBusy(false); }
   }
   return <>{confirmation}<section className={styles.panel} aria-label="Очередь возвратов" aria-busy={busy || loading}>
-    <div className={styles.heading}><h2>{refundId ? `Возврат №${refundId}` : `Возвраты, ожидающие завершения${data ? ` · ${data.totalElements}` : ""}`}</h2>
+    <div className={styles.heading}><h2>{refundId ? `Возврат №${refundId}` : `Возвраты, ожидающие завершения${data ? ` (${data.totalElements})` : ""}`}</h2>
       <Button variant="ghost" disabled={busy || loading} onClick={reload}>Обновить</Button></div>
     {refundId && <Button variant="ghost" onClick={() => { generation.current++; const next = new URLSearchParams(params); next.delete("refundId"); window.history.pushState(null, "", `/admin?${next}`); }}>Все возвраты</Button>}
     <p>Создание запроса не означает возврат денег. Завершение фиксируется после подтверждения операции.</p>
     {error && <p className={styles.error} role="alert">{error}</p>}
     {loading && <Loader label="Загрузка данных" />}
-    {data?.content.map(row => <article className={styles.operation} key={row.id} aria-label={`Возврат №${row.id}`}>
-      <div className={styles.heading}><strong>Возврат №{row.id} · {operationMoney(row.amount, row.currency)}</strong>
-        {row.orderId != null && <button className={styles.order} onClick={() => onOpenOrder(row.orderId!)}>Заказ №{row.orderId}</button>}</div>
-      <p>{refundLabel(row)}</p>
-      <dl className={styles.facts}>
-        <div><dt>Платёж</dt><dd>{row.paymentId}</dd></div><div><dt>Попытки отправки</dt><dd>{row.dispatchAttempts}</dd></div>
-        <div><dt>Ключ операции</dt><dd>{row.requestReference || "Старая операция без ключа"}</dd></div>
-        <div><dt>Номер в банке</dt><dd>{row.externalId || "Ещё не получен"}</dd></div>
-        {row.nextDispatchAt && <div><dt>Следующая попытка при включённом обработчике</dt><dd>{new Date(row.nextDispatchAt).toLocaleString("ru-RU")}</dd></div>}
-      </dl>
-      {row.failureReason && <p className={styles.error}>Причина проверки: {row.failureReason}</p>}
-      <div className={styles.actions}>
-        {row.status === "PENDING" && row.requestReference && row.dispatchState === "READY" && <Button disabled={busy || !canAct} onClick={() => void act(row, "execute")}>Отправить возврат</Button>}
-        {row.status === "PENDING" && row.requestReference && ["RETRY", "REVIEW"].includes(row.dispatchState) && <Button disabled={busy || !canAct} onClick={() => void act(row, "retry")}>Повторить ту же операцию</Button>}
-        {row.status === "PENDING" && row.dispatchState === "SENDING" && row.dispatchedAt && Date.now() - new Date(row.dispatchedAt).getTime() >= 120000 && <Button disabled={busy || !canAct} onClick={() => void act(row, "execute")}>Восстановить отправку</Button>}
-        {row.externalId && <Button variant="ghost" disabled={busy || !canAct} onClick={() => void act(row, "sync")}>Сверить статус</Button>}
-        {row.status === "PENDING" && row.dispatchState !== "SENDING" && (!row.requestReference || row.dispatchAttempts > 0) && <Button variant="ghost" disabled={busy || !canAct} onClick={() => { setProof(row); setEvidence(""); setProofError(""); }}>Подтвердить по банковской сверке</Button>}
-      </div>
-    </article>)}
+    {data?.content.map(row => <AdminRefundOperationCard key={row.id} row={row} disabled={busy || !canAct}
+      canRecover={Boolean(row.dispatchedAt && Date.now() - new Date(row.dispatchedAt).getTime() >= 120000)} onOpenOrder={onOpenOrder}
+      onAction={action => void act(row, action)} onProof={() => { setProof(row); setEvidence(""); setProofError(""); }} />)}
     {data && !data.content.length && !loading && !error && <p>Нет возвратов, ожидающих завершения</p>}
     {data && data.totalPages > 1 && <div className={styles.actions}>
       <Button variant="ghost" disabled={busy || loading || page === 0} onClick={() => changePage(page - 1)}>Назад</Button>
       <span>Страница {page + 1} из {data.totalPages}</span>
       <Button variant="ghost" disabled={busy || loading || page + 1 >= data.totalPages} onClick={() => changePage(page + 1)}>Далее</Button></div>}
-    {proof && <Dialog title={`Подтверждение возврата №${proof.id}`} busy={busy} onClose={() => setProof(null)} actions={<>
-      <Button variant="ghost" disabled={busy} onClick={() => setProof(null)}>Отмена</Button>
-      <Button loading={busy} disabled={!canAct || !proofIsCurrent} onClick={() => void act(proof, "confirm-resolution")}>Подтвердить возврат</Button></>}>
-      <p>Подтверждайте только после проверки фактического возврата {operationMoney(proof.amount, proof.currency)} в банке. Это запишет результат и финансовые проводки; деньги повторно не отправляются.</p>
-      <p className={styles.reference}>Ключ: {proof.requestReference || "Старая операция без ключа"}</p>
-      <Textarea label="Основание банковской сверки" value={evidence} maxLength={1000} disabled={busy} onChange={event=>setEvidence(event.target.value)} error={proofError} />
-      <p>Укажите номер реестра, банковского обращения или ссылку на подтверждение суммы и операции.</p>
-      {!loading && !proofIsCurrent && <p>Данные обновились. Закройте окно и откройте подтверждение заново</p>}
-
-    </Dialog>}
+    {proof && <AdminRefundProofDialog proof={proof} busy={busy} canAct={canAct} proofIsCurrent={proofIsCurrent} loading={loading}
+      evidence={evidence} error={proofError} onEvidenceChange={setEvidence} onClose={() => setProof(null)} onConfirm={() => void act(proof, "confirm-resolution")} />}
   </section></>;
+}
+
+export function AdminRefundProofDialog({ proof, busy, canAct, proofIsCurrent, loading, evidence, error, onEvidenceChange, onClose, onConfirm }: {
+  proof: RefundOperation; busy: boolean; canAct: boolean; proofIsCurrent: boolean; loading: boolean; evidence: string; error: string;
+  onEvidenceChange: (value: string) => void; onClose: () => void; onConfirm: () => void;
+}) {
+  return <Dialog title={`Подтверждение возврата №${proof.id}`} busy={busy} onClose={onClose} actions={<>
+    <Button variant="ghost" disabled={busy} onClick={onClose}>Отмена</Button>
+    <Button loading={busy} disabled={!canAct || !proofIsCurrent} onClick={onConfirm}>Подтвердить возврат</Button></>}>
+    <p>Подтверждайте только после проверки фактического возврата {operationMoney(proof.amount, proof.currency)} в банке. Это запишет результат и финансовые проводки; деньги повторно не отправляются.</p>
+    <p className={styles.reference}>Ключ: {proof.requestReference || "Старая операция без ключа"}</p>
+    <Textarea label="Основание банковской сверки" value={evidence} maxLength={1000} disabled={busy} onChange={event => onEvidenceChange(event.target.value)} error={error} />
+    <p>Укажите номер реестра, банковского обращения или ссылку на подтверждение суммы и операции.</p>
+    {!loading && !proofIsCurrent && <p>Данные обновились. Закройте окно и откройте подтверждение заново</p>}
+  </Dialog>;
+}
+
+export function AdminRefundOperationCard({ row, disabled, canRecover = false, onOpenOrder, onAction, onProof }: {
+  row: RefundOperation; disabled: boolean; canRecover?: boolean; onOpenOrder: (id: number) => void;
+  onAction: (action: "execute" | "retry" | "sync") => void; onProof: () => void;
+}) {
+  return <article className={styles.operation} aria-label={`Возврат №${row.id}`}>
+    <div className={styles.heading}><strong>Возврат №{row.id}, {operationMoney(row.amount, row.currency)}</strong>
+      {row.orderId != null && <button className={styles.order} onClick={() => onOpenOrder(row.orderId!)}>Заказ №{row.orderId}</button>}</div>
+    <p>{refundLabel(row)}</p>
+    <dl className={styles.facts}>
+      <div><dt>Платёж</dt><dd>{row.paymentId}</dd></div><div><dt>Попытки отправки</dt><dd>{row.dispatchAttempts}</dd></div>
+      <div><dt>Ключ операции</dt><dd>{row.requestReference || "Старая операция без ключа"}</dd></div>
+      <div><dt>Номер в банке</dt><dd>{row.externalId || "Ещё не получен"}</dd></div>
+      {row.nextDispatchAt && <div><dt>Следующая попытка при включённом обработчике</dt><dd>{new Date(row.nextDispatchAt).toLocaleString("ru-RU")}</dd></div>}
+    </dl>
+    {row.failureReason && <p className={styles.error}>Причина проверки: {row.failureReason}</p>}
+    <div className={styles.actions}>
+      {row.status === "PENDING" && row.requestReference && row.dispatchState === "READY" && <Button disabled={disabled} onClick={() => onAction("execute")}>Отправить возврат</Button>}
+      {row.status === "PENDING" && row.requestReference && ["RETRY", "REVIEW"].includes(row.dispatchState) && <Button disabled={disabled} onClick={() => onAction("retry")}>Повторить ту же операцию</Button>}
+      {row.status === "PENDING" && row.dispatchState === "SENDING" && canRecover && <Button disabled={disabled} onClick={() => onAction("execute")}>Восстановить отправку</Button>}
+      {row.externalId && <Button variant="ghost" disabled={disabled} onClick={() => onAction("sync")}>Сверить статус</Button>}
+      {row.status === "PENDING" && row.dispatchState !== "SENDING" && (!row.requestReference || row.dispatchAttempts > 0) && <Button variant="ghost" disabled={disabled} onClick={onProof}>Подтвердить по банковской сверке</Button>}
+    </div>
+  </article>;
 }

@@ -3,6 +3,7 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 
 import { Price } from "../ui/Price";
+import { PhotoPlaceholder } from "../ui/PhotoPlaceholder";
 import { productPath } from "../../lib/productUrls";
 
 import styles from "./OrderDetail.module.css";
@@ -151,7 +152,7 @@ export function OrderDetailProductList({ items }: { items: OrderDetailProductIte
                 className={styles.image}
               />
             ) : (
-              <div className={styles.imagePlaceholder} />
+              <PhotoPlaceholder />
             )}
           </div>
 

@@ -25,16 +25,27 @@
   background: currentColor;
   transition: opacity var(--transition-medium);
 }
-.icon::before { mask: url("/icons/like.svg") center / contain no-repeat; opacity: 1; }
-.icon::after { mask: url("/icons/like-filled.svg") center / contain no-repeat; opacity: 0; }
-.button[aria-pressed="true"] .icon::before { opacity: 0; }
+.icon::before { z-index: 1; mask: url("/icons/like.svg") center / contain no-repeat; opacity: 1; }
+.icon::after { background: var(--like-filled-background, currentColor); mask: url("/icons/like-filled.svg") center / contain no-repeat; opacity: 0; }
+.button[aria-pressed="true"] .icon::before { opacity: var(--like-filled-outline-opacity, 0); }
 .button[aria-pressed="true"] .icon::after { opacity: 1; }
 .button[data-hover-fill-suppressed] .icon::before,
 .button[data-hover-fill-suppressed] .icon::after { transition: none; }
 
+@media (prefers-reduced-motion: no-preference) {
+  .pulse { animation: likePulse 500ms cubic-bezier(.2,.7,.2,1); }
+}
+
+@keyframes likePulse {
+  0% { transform: scale(1); }
+  35% { transform: scale(1.24); }
+  65% { transform: scale(.94); }
+  100% { transform: scale(1); }
+}
+
 @media (hover: hover) and (pointer: fine) {
   .button:hover { background: var(--surface-hover); }
-  .button:hover:not([data-hover-fill-suppressed]):not(:disabled) .icon::before { opacity: 0; }
+  .button:hover:not([data-hover-fill-suppressed]):not(:disabled) .icon::before { opacity: var(--like-filled-outline-opacity, 0); }
   .button:hover:not([data-hover-fill-suppressed]):not(:disabled) .icon::after { opacity: 1; }
 }
 

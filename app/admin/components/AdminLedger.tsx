@@ -16,7 +16,8 @@ import { AdminPageControls, AdminResourceState, useAdminNavigation, adminPageNum
 import { AdminSellerPicker } from "./AdminSellerPicker";
 import styles from "./AdminWorkspace.module.css";
 
-type Row = { id: number; entryType: string; direction: string; amount: number; currency: string; orderId: number | null; orderGroupId: string | null; sellerId: number | null; sellerPayoutId: number | null; description: string; createdAt: string };
+export type AdminLedgerRow = { id: number; entryType: string; direction: string; amount: number; currency: string; orderId: number | null; orderGroupId: string | null; sellerId: number | null; sellerPayoutId: number | null; description: string; createdAt: string };
+type Row = AdminLedgerRow;
 type Data = { page: WorkspacePage<Row>; totals: { currency: string; credit: number; debit: number }[] };
 const labels: Record<string,string> = { COMMISSION_ACCRUED: "Комиссия рцмаркет", COMMISSION_REVERSED: "Возврат комиссии", BUYER_DELIVERY_FEE: "Доставка покупателя", DELIVERY_COST_FORWARD: "Стоимость доставки", DELIVERY_SUBSIDY: "Субсидия доставки", DELIVERY_COST_RETURN: "Обратная доставка", BUYER_RETURN_DELIVERY_FEE: "Удержание обратной доставки", REFUND_ITEM: "Возврат товара", REFUND_DELIVERY: "Возврат доставки", SELLER_DEBIT: "Удержание продавца", SELLER_PAYOUT: "Выплата продавцу", ACQUIRING_FEE: "Эквайринг" };
 
@@ -53,13 +54,17 @@ export function AdminLedger() {
     <AdminResourceState loading={loading} error={error} hasData={data !== undefined} empty={data?.page.content.length === 0} onRetry={refresh} />
     {data && <>
       <div className={styles.grid}>{data.totals.map(total => <div key={total.currency} className={styles.tile}><span>За весь выбранный период | {total.currency}</span><strong>Приход {adminMoney(total.credit,total.currency)}</strong><strong>Расход {adminMoney(total.debit,total.currency)}</strong></div>)}</div>
-      {!!data.page.content.length && <div className={styles.tableScroll} tabIndex={0} role="region" aria-label="Финансовые операции"><DataTable className={styles.table}><thead><tr><th scope="col">Дата</th><th scope="col">Операция</th><th scope="col">Сумма</th><th scope="col">Заказ</th><th scope="col">Продавец</th><th scope="col">Выплата</th></tr></thead><tbody>{data.page.content.map(row => <tr key={row.id}>
-        <td>{adminDate(row.createdAt)}</td><td>{labels[row.entryType] ?? row.entryType}</td><td className={styles.number}>{row.direction === "CREDIT" ? "+" : "−"}{adminMoney(row.amount,row.currency)}</td>
-        <td>{row.orderId ? <Link href={`/admin?tab=orders&orderId=${row.orderId}`}>№{row.orderId}</Link> : "—"}</td>
-        <td>{row.sellerId ? <Link href={`/admin?tab=sellers&q=${row.sellerId}&sellerId=${row.sellerId}`}>№{row.sellerId}</Link> : "—"}</td>
-        <td>{row.sellerPayoutId ? <Link href={`/admin?tab=finance&payoutId=${row.sellerPayoutId}`}>№{row.sellerPayoutId}</Link> : "—"}</td>
-      </tr>)}</tbody></DataTable></div>}
+      {!!data.page.content.length && <AdminLedgerTable rows={data.page.content} />}
       <AdminPageControls page={data.page.number} totalPages={data.page.totalPages} total={data.page.totalElements} onChange={value => navigate({ page: String(value) })} />
     </>}
   </div>;
+}
+
+export function AdminLedgerTable({ rows, onDemoOpen }: { rows: AdminLedgerRow[]; onDemoOpen?: () => void }) {
+  return <div className={styles.tableScroll} tabIndex={0} role="region" aria-label="Финансовые операции"><DataTable className={styles.table}><thead><tr><th scope="col">Дата</th><th scope="col">Операция</th><th scope="col">Сумма</th><th scope="col">Заказ</th><th scope="col">Продавец</th><th scope="col">Выплата</th></tr></thead><tbody>{rows.map(row => <tr key={row.id}>
+    <td>{adminDate(row.createdAt)}</td><td>{labels[row.entryType] ?? row.entryType}</td><td className={styles.number}>{row.direction === "CREDIT" ? "+" : "−"}{adminMoney(row.amount,row.currency)}</td>
+    <td>{row.orderId ? <Link href={`/admin?tab=orders&orderId=${row.orderId}`} onClick={onDemoOpen ? event => { event.preventDefault(); onDemoOpen(); } : undefined}>№{row.orderId}</Link> : "—"}</td>
+    <td>{row.sellerId ? <Link href={`/admin?tab=sellers&q=${row.sellerId}&sellerId=${row.sellerId}`} onClick={onDemoOpen ? event => { event.preventDefault(); onDemoOpen(); } : undefined}>№{row.sellerId}</Link> : "—"}</td>
+    <td>{row.sellerPayoutId ? <Link href={`/admin?tab=finance&payoutId=${row.sellerPayoutId}`} onClick={onDemoOpen ? event => { event.preventDefault(); onDemoOpen(); } : undefined}>№{row.sellerPayoutId}</Link> : "—"}</td>
+  </tr>)}</tbody></DataTable></div>;
 }

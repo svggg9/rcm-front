@@ -19,9 +19,12 @@ type Props = {
   currentId: string;
   onClose: () => void;
   onConfirm: (point: CdekReceptionPoint) => void;
+  loadPoints?: (cityCode: number) => Promise<CdekReceptionPoint[]>;
 };
 
-export function SellerReceptionPointPicker({ cityCode, cityName, currentId, onClose, onConfirm }: Props) {
+const loadReceptionPoints = (cityCode: number) => getCdekReceptionPoints(cityCode, undefined, MAP_POINT_LIMIT);
+
+export function SellerReceptionPointPicker({ cityCode, cityName, currentId, onClose, onConfirm, loadPoints = loadReceptionPoints }: Props) {
   const [points, setPoints] = useState<CdekReceptionPoint[]>([]);
   const [selectedId, setSelectedId] = useState(currentId);
   const [query, setQuery] = useState("");
@@ -35,7 +38,7 @@ export function SellerReceptionPointPicker({ cityCode, cityName, currentId, onCl
       setLoading(true);
       setError(null);
       try {
-        const result = await getCdekReceptionPoints(cityCode, undefined, MAP_POINT_LIMIT);
+        const result = await loadPoints(cityCode);
         if (active) setPoints(result);
       } catch (reason) {
         if (active) setError(reason instanceof Error ? reason.message : "Не удалось загрузить пункты приёма");
@@ -45,7 +48,7 @@ export function SellerReceptionPointPicker({ cityCode, cityName, currentId, onCl
     }
     void load();
     return () => { active = false; };
-  }, [cityCode, retry]);
+  }, [cityCode, retry, loadPoints]);
 
   const visiblePoints = useMemo(() => {
     const search = query.trim().toLocaleLowerCase("ru");
@@ -81,7 +84,7 @@ export function SellerReceptionPointPicker({ cityCode, cityName, currentId, onCl
                 className={`${styles.point} ${selectedId === point.id ? styles.selected : ""}`}
                 aria-pressed={selectedId === point.id} onClick={() => setSelectedId(point.id)}>
                 <strong>{point.fullAddress || point.name || point.id}</strong>
-                <span>{point.name && point.fullAddress ? `${point.name} · ` : ""}{point.id}</span>
+                <span>{point.name && point.fullAddress ? `${point.name}, ` : ""}{point.id}</span>
               </button>) : <p className={styles.empty}>По этому запросу ничего не найдено.</p>}
             </div>
           </div>

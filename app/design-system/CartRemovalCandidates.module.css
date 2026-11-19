@@ -1,0 +1,29 @@
+.section { margin-top: var(--space-8); }
+.section > h3 { margin: 0 0 var(--space-2); font-size: var(--type-h5-size); line-height: var(--type-h5-line); font-weight: var(--type-heading-weight); }
+.intro { margin: 0 0 var(--space-5); font-size: var(--font-sm); line-height: var(--line-height-small); }
+.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 290px), 1fr)); gap: var(--space-4); }
+.card { min-width: 0; padding: var(--space-4); background: var(--soft); }
+.stage { min-height: 240px; padding: var(--space-3); background: var(--white); }
+.list { overflow: hidden; }
+.product { display: grid; grid-template-columns: 64px minmax(0, 1fr) 44px; align-items: start; gap: var(--space-3); min-width: 0; padding: var(--space-3) 0; border-bottom: var(--line-width-hairline) solid var(--line); }
+.photo { width: 64px; height: 80px; }
+.details { display: grid; gap: var(--space-1); min-width: 0; font-size: var(--font-sm); line-height: var(--line-height-small); }
+.brand { font-size: var(--font-xs); color: var(--muted); }
+.details > :last-child { margin-top: var(--space-2); }
+.animatedRow { display: grid; grid-template-rows: 1fr; }
+.rowInner { min-height: 0; overflow: hidden; }
+.fade[data-removing] .rowInner { animation: fadeOut 300ms ease forwards; }
+.fade[data-removing] { animation: collapse 350ms ease 300ms forwards; }
+.collapse[data-removing] { animation: collapse 650ms ease forwards; }
+.collapse[data-removing] .rowInner { animation: fadeOut 650ms ease forwards; }
+.slide[data-removing] .rowInner { animation: slideOut 300ms ease forwards; }
+.slide[data-removing] { animation: collapse 350ms ease 300ms forwards; }
+@keyframes fadeOut { to { opacity: 0; } }
+@keyframes slideOut { to { opacity: 0; transform: translateX(28px); } }
+@keyframes collapse { to { grid-template-rows: 0fr; } }
+.card h4 { margin: var(--space-4) 0 var(--space-1); font-size: var(--font-sm); font-weight: var(--font-weight-medium); line-height: var(--line-height-small); }
+.card p, .status { font-size: var(--font-xs); line-height: var(--line-height-small); }
+.card p { margin: 0 0 var(--space-3); }
+.controls { display: flex; align-items: center; gap: var(--space-3); flex-wrap: wrap; }
+.status { display: block; }
+@media (prefers-reduced-motion: reduce) { .animatedRow[data-removing], .animatedRow[data-removing] .rowInner { animation: none; } }

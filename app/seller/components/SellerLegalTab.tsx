@@ -662,7 +662,7 @@ export function SellerLegalTab() {
       <InlineEditorGuard dirty={dirty} busy={saving} onDiscard={discardChanges} />
       <h1 className="visuallyHidden">Данные и документы</h1>
       {!checklistComplete ? <Banner tone="info" title="Перед заполнением" titleAs="h2">
-        <ul className={styles.incompleteList}>
+        <ul>
           {navigationItems.filter(item => !item.complete).map(item =>
             <li key={item.id}>Заполните раздел «{item.label}»</li>
           )}
@@ -1042,7 +1042,7 @@ export function SellerLegalTab() {
   );
 }
 
-function SectionSaveAction({
+export function SectionSaveAction({
   section,
   savingSection,
   busy = false,
@@ -1084,7 +1084,7 @@ type LegalFieldProps = {
   valid?: boolean;
 };
 
-function LegalTextField({
+export function LegalTextField({
   label,
   required,
   suppressRequiredHighlight,
@@ -1169,7 +1169,7 @@ function LegalTextField({
   );
 }
 
-function LegalTextarea({
+export function LegalTextarea({
   label,
   required,
   error,

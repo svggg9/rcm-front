@@ -29,8 +29,6 @@
   scrollbar-width: none;
 }
 
-.incompleteList { margin: 0; padding-left: var(--space-5); }
-.incompleteList li + li { margin-top: var(--space-1); }
 .sectionNavigation::-webkit-scrollbar { display: none; }
 .sectionNavigation button {
   display: inline-flex;

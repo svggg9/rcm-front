@@ -1,0 +1,4 @@
+.message { margin: 0; color: var(--muted); font-size: var(--type-body-2-size); line-height: var(--type-body-2-line); }
+.error { margin: var(--space-3) 0 0; color: var(--error); font-size: var(--type-body-2-size); line-height: var(--type-body-2-line); }
+.actions { display: flex; justify-content: flex-end; gap: var(--space-2); margin-top: var(--space-4); }
+@media (max-width: 480px) { .actions > button { flex: 1; min-width: 0; } }

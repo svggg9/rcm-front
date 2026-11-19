@@ -1,19 +1,33 @@
 .icon { position: relative; display: inline-flex; width: 24px; height: 24px; }
+.content { position: relative; display: inline-flex; width: 24px; height: 24px; }
+@media (prefers-reduced-motion: no-preference) {
+  .content[data-pulse] { animation: favorite-pulse 450ms both; }
+}
+@keyframes favorite-pulse {
+  0% { transform: scale(1); }
+  35% { transform: scale(1.24); }
+  65% { transform: scale(.94); }
+  100% { transform: scale(1); }
+}
 .count {
   position: absolute;
-  top: 12px;
-  left: 14px;
+  top: -4px;
+  left: 16px;
   display: flex;
   align-items: center;
   justify-content: center;
   min-width: 16px;
   height: 16px;
   padding: 0 3px;
-  border-radius: 999px;
+  box-sizing: border-box;
+  border: 1px solid var(--white);
+  border-radius: 2px;
   background: var(--black);
   color: var(--white);
   font-family: inherit;
   font-size: var(--font-micro);
-  font-weight: var(--font-weight-regular);
-  line-height: 16px;
+  font-weight: var(--font-weight-medium);
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  text-align: center;
 }

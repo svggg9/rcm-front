@@ -12,6 +12,7 @@ import { LikeButton } from "../ui/LikeButton";
 import { useFavorites } from "../../lib/FavoritesContext";
 import { productPath } from "../../lib/productUrls";
 import { ProductPhoto } from "../ProductPhoto";
+import { PhotoPlaceholder } from "../ui/PhotoPlaceholder";
 
 type Product = {
   id: number;
@@ -95,6 +96,7 @@ export function ProductTile({
 
   async function onLike(e: React.MouseEvent<HTMLButtonElement>) {
     e.stopPropagation();
+    const origin = e.currentTarget;
     if (favoritePendingRef.current) return;
 
     if (favoriteControl) {
@@ -106,7 +108,7 @@ export function ProductTile({
       favoritePendingRef.current = true;
       setFavoritePending(true);
       const nextFavorite = !fav;
-      await toggle(product.id);
+      await toggle(product.id, origin);
       onFavoriteChange?.(product.id, nextFavorite);
     } catch (error) {
       toast.error(
@@ -145,7 +147,7 @@ export function ProductTile({
                 className={styles.imgMain}
               />
             ) : (
-              <div className={styles.noImage}>Нет изображения</div>
+              <PhotoPlaceholder className={styles.noImage} />
             )}
 
             {hasHoverImage && hoverImageRequested ? (

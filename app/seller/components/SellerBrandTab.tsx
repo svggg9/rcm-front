@@ -3,6 +3,7 @@
 import { BrandWordmark } from "../../components/ui/BrandWordmark";
 import { useEffect, useRef, useState } from "react";
 import { Button } from "../../components/ui/Button";
+import { useTransientFailure } from "../../components/ui/useTransientFailure";
 import { EditorSurface } from "../../components/ui/EditorSurface";
 import { EmptyState } from "../../components/ui/EmptyState";
 import { Icon } from "../../components/ui/Icon";
@@ -45,6 +46,7 @@ export function SellerBrandTab({ initialBrands, active = true }: Props) {
   const [form, setForm] = useState<FormState | null>(initialBrands[0] ? toFormState(initialBrands[0]) : null);
   const [saving, setSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
+  const saveFailure = useTransientFailure();
   const [profileError, setProfileError] = useState<string | null>(null);
   const [wordmarkError, setWordmarkError] = useState<string | null>(null);
   const [uploadingWordmark, setUploadingWordmark] = useState(false);
@@ -66,12 +68,14 @@ export function SellerBrandTab({ initialBrands, active = true }: Props) {
   }, [saveSuccess]);
 
   function updateField(key: keyof FormState, value: string) {
+    saveFailure.clear();
     setSaveSuccess(false);
     setForm(current => current ? { ...current, [key]: value } : current);
   }
 
   function resetText() {
     if (!brand || busy) return;
+    saveFailure.clear();
     setForm(toFormState(brand));
     setProfileError(null);
     setSaveSuccess(false);
@@ -79,6 +83,7 @@ export function SellerBrandTab({ initialBrands, active = true }: Props) {
 
   async function save() {
     if (!brand || !form || !dirty || busy || mutation.current) return;
+    saveFailure.clear();
     mutation.current = "profile";
     setSaving(true);
     try {
@@ -91,7 +96,10 @@ export function SellerBrandTab({ initialBrands, active = true }: Props) {
       toast.success("Изменения сохранены", { id: `seller-brand-${brand.id}-profile`, toasterId });
       emitSellerOnboardingChanged();
     } catch (error) {
-      if (mounted.current) setProfileError(toApiError(error, "Не удалось сохранить изменения — попробуйте ещё раз").message);
+      if (mounted.current) {
+        saveFailure.show();
+        setProfileError(toApiError(error, "Не удалось сохранить изменения — попробуйте ещё раз").message);
+      }
     } finally {
       mutation.current = null;
       if (mounted.current) setSaving(false);
@@ -144,7 +152,7 @@ export function SellerBrandTab({ initialBrands, active = true }: Props) {
         <p className={styles.saveState} role="status">{saveSuccess ? "Изменения сохранены" : "Есть несохранённые изменения"}</p>
         <div className={styles.saveActions}>
           <Button variant="ghost" disabled={!dirty || busy} onClick={resetText}>Отменить</Button>
-          <Button type="submit" form="seller-brand-profile" variant="primary" loading={saving} success={saveSuccess}
+          <Button type="submit" form="seller-brand-profile" variant="primary" loading={saving} success={saveSuccess} successMotion="bounce" failure={saveFailure.failure}
             disabled={!dirty || uploadingWordmark || mediaBusy}>Сохранить изменения</Button>
         </div>
       </div> : undefined}>
@@ -182,7 +190,7 @@ export function SellerBrandTab({ initialBrands, active = true }: Props) {
             <input ref={wordmarkInput} type="file" accept=".svg,.webp,image/svg+xml,image/webp"
               className="visuallyHidden" tabIndex={-1} aria-label="Файл текстового логотипа"
               onChange={event => void uploadWordmark(event.target.files?.[0] ?? null)} />
-            <p className={styles.caption}>Для страницы магазина и блока брендов на главной · Без логотипа отображается название бренда · Название меняет администратор площадки</p>
+            <p className={styles.caption}>Для страницы магазина и блока брендов на главной. Без логотипа отображается название бренда. Название меняет администратор площадки.</p>
           </SettingsSection>
           <div className={styles.gallerySection}>
             <SellerBrandImages key={brand.id} brandId={brand.id} embedded onBusyChange={setMediaBusy} />

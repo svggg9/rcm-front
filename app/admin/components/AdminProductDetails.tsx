@@ -38,6 +38,7 @@ type Props = {
   onReturnToRevision: (comment: string) => void;
   onBlock: (reason: string) => Promise<void>;
   onUnblock: () => Promise<void>;
+  loadDates?: boolean;
 };
 
 function formatStatus(status: string) {
@@ -97,9 +98,10 @@ export function AdminProductDetails({
   onReturnToRevision,
   onBlock,
   onUnblock,
+  loadDates = true,
 }: Props) {
   const loading = actionProductId === product.id;
-  const dates=useAdminResource<{createdAt:string;updatedAt:string}>(`products/${product.id}/dates`);
+  const dates=useAdminResource<{createdAt:string;updatedAt:string}>(loadDates ? `products/${product.id}/dates` : null);
 
   const [revisionComment, setRevisionComment] = useState("");
   const [categorySelection, setCategorySelection] = useState<{ savedId: number | null; value: number | "" }>({

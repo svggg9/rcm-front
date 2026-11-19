@@ -120,7 +120,7 @@ function comboboxHarness(initialProps) {
   const mod = new Module(filename, module);
   mod.filename = filename; mod.paths = Module._nodeModulePaths(path.dirname(filename));
   const originalRequire = mod.require.bind(mod);
-  const react = { useCallback: fn => fn, useId: () => "category-fixture", useMemo: fn => fn(),
+  const react = { useCallback: fn => fn, useEffect: () => {}, useId: () => "category-fixture", useMemo: fn => fn(),
     useRef: initial => ({ current: initial }), useState: initial => {
       const index = cursor++;
       if (!(index in state)) state[index] = typeof initial === "function" ? initial() : initial;
@@ -172,7 +172,17 @@ let preventedSuggestionSubmit = false;
 comboElements(suggestionTree).find(element => element.props.role === "combobox").props.onKeyDown({ key: "Enter", preventDefault() { preventedSuggestionSubmit = true; } });
 assert.equal(preventedSuggestionSubmit, true, "A partial-search Enter must not submit the enclosing form");
 assert.deepEqual(suggestionChanges, [], "A partial-search Enter must not create a custom category");
-assert.equal(suggestion.focused(), 1, "Enter lets the user explicitly choose a result");
+suggestionTree = suggestion.render();
+const suggestionInput = comboElements(suggestionTree).find(element => element.props.role === "combobox");
+const activeResult = comboElements(suggestionTree).find(element => element.props["data-existing-option"]);
+assert.equal(suggestionInput.props["aria-activedescendant"], activeResult.props.id, "Enter highlights a result without moving focus from search");
+assert.equal(suggestion.focused(), 0, "Highlighting a result does not move DOM focus");
+assert.equal(activeResult.props["data-active"], true);
+suggestionInput.props.onChange({ target: { value: "Руба" } });
+suggestionTree = suggestion.render();
+assert.equal(comboElements(suggestionTree).find(element => element.props.role === "combobox").props["aria-activedescendant"], undefined, "Typing clears the old active result and continues filtering");
+comboElements(suggestionTree).find(element => element.props.role === "combobox").props.onChange({ target: { value: "Руб" } });
+suggestionTree = suggestion.render();
 const createSuggestion = comboElements(suggestionTree).find(element => element.props["data-create-option"]);
 assert.ok(createSuggestion.props.children.props.children.includes("Предложить новый вариант"), "Creation is explicitly labelled");
 createSuggestion.props.onClick();
@@ -182,6 +192,24 @@ const lockedChoice = comboElements(suggestionTree).find(element => element.props
 assert.equal(lockedChoice.props.disabled, true);
 lockedChoice.props.onClick();
 assert.deepEqual(suggestionChanges, [["", "Руб"]], "A disabled combobox cannot assign an option through its handler");
+const navigationChanges = [];
+const navigation = comboboxHarness({ label: "Категория", value: "", customValue: "", showPlaceholderOption: false,
+  options: [{ value: 1, label: "Рубашки" }, { value: 2, label: "Рубашки архив", disabled: true }, { value: 3, label: "Рубашки льняные" }],
+  onChange: (...next) => navigationChanges.push(next) });
+let navigationTree = navigation.render();
+comboElements(navigationTree).find(element => element.props.role === "combobox").props.onChange({ target: { value: "Руб" } });
+const arrow = { key: "ArrowDown", preventDefault() {}, stopPropagation() {} };
+navigationTree = navigation.render();
+comboElements(navigationTree).find(element => element.props.role === "combobox").props.onKeyDown(arrow);
+navigationTree = navigation.render();
+assert.match(comboElements(navigationTree).find(element => element.props.role === "combobox").props["aria-activedescendant"], /option-1$/);
+comboElements(navigationTree).find(element => element.props.role === "combobox").props.onKeyDown(arrow);
+navigationTree = navigation.render();
+const navigationInput = comboElements(navigationTree).find(element => element.props.role === "combobox");
+assert.match(navigationInput.props["aria-activedescendant"], /option-3$/, "Arrows skip unavailable options");
+assert.equal(navigation.focused(), 0, "Arrow navigation retains input focus");
+navigationInput.props.onKeyDown({ key: "Enter", preventDefault() {} });
+assert.deepEqual(navigationChanges, [[3, ""]], "Enter selects the active option");
 const { ProductDescriptionEditor } = require("../app/seller/products/[id]/edit/components/ProductDescriptionEditor.tsx");
 const { ProductDetailsAccordion } = require("../app/product/[id]/components/ProductDetailsAccordion.tsx");
 const compositionProps = { value: "▪ Хлопок — 95%\n▪ Эластан — 5%", onChange() {}, fieldName: "Состав", maxLength: 1000, emptyText: "Состав пока пустой" };
@@ -201,10 +229,17 @@ const defaultDescription = render(ProductDescriptionEditor, { value: "я".repeat
 assert.doesNotMatch(defaultDescription, /aria-invalid="true"/);
 assert.match(defaultDescription.replace(/<[^>]*>/g, ""), /\/ 2000/);
 // Real selection/list toggling, focus, save and refresh are covered by check-product-form-redesign.cjs.
-const details = render(ProductDetailsAccordion, {product: {id: 7, description: "Описание", composition: compositionProps.value},
-  selectedVariant: null, openComposition: true, openBrand: false, onToggleComposition() {}, onToggleBrand() {}, isSellerView: false});
+const details = render(ProductDetailsAccordion, {product: {id: 7, description: "Описание", composition: compositionProps.value, category: ""}, brandHref: null});
 assert.match(details, /<li>Хлопок — 95%<\/li>/);
 assert.match(details, /<li>Эластан — 5%<\/li>/);
+assert.match(details, /Подробнее о товаре/);
+const { productBriefFacts } = require("../app/product/[id]/lib/productBriefFacts.ts");
+assert.deepEqual(productBriefFacts("Наружный материал: полиуретан 100%\nПодкладка: полиэстер 100%", {measurements: "Ширина: 32 см\nВысота: 24 см\nГлубина: 12 см\nВысота ручек: 16 см"}),
+  {measurements: "32 × 24 × 12 см", material: "полиуретан 100%"});
+assert.equal(productBriefFacts(null, {measurements: "Ширина: 32 см\nВысота: 240 мм\nГлубина: 12 см"}).measurements, "32 см × 240 мм × 12 см");
+assert.equal(productBriefFacts(null, {measurements: "Ширина: 32,5 ММ\nВысота: 24.2 мм\nГлубина: 12 мм"}).measurements, "32,5 × 24.2 × 12 мм");
+assert.equal(productBriefFacts(null, {measurements: "Ширина: 32 см\nШирина: около 40 см\nВысота: 24 см\nГлубина: 12 см"}).measurements, null);
+assert.equal(productBriefFacts("Хлопок 95%, эластан 5%", {measurements: "Размер M, длина 70 см"}).material, null);
 
 const variantProps = { variants: [{ id: 1, sizeId: "", size: "M", colorId: "", color: "", price: 0, availableQuantity: -1, sku: "", stockTrackingEnabled: true }],
   images: [], validationErrors: { 0: { price: true, sizeId: true, availableQuantity: true } }, invalidImages: true,
@@ -213,8 +248,20 @@ const variantProps = { variants: [{ id: 1, sizeId: "", size: "M", colorId: "", c
 const variants = render(ProductVariantsCard, variantProps);
 for (const message of ["Укажите одну цену больше нуля", "Размер повторяется", "Введите целое количество от 0"]) assert.ok(variants.includes(message));
 assert.match(variants, /Учитывать остатки/);
-assert.match(variants, /aria-describedby="[^"]+-price-error"/);
-assert.match(variants, /aria-label="На складе:/);
+const priceLabelId = variants.match(/<label\b[^>]*for="([^"]+)"[^>]*>Цена<\/label>/)?.[1];
+assert.ok(priceLabelId, "Цена товара должна иметь видимую подпись");
+const priceInput = variants.match(/<input\b[^>]*>/g)?.find(input => input.includes(`id="${priceLabelId}"`));
+assert.ok(priceInput, "Подпись цены должна быть связана с полем");
+assert.match(priceInput, /aria-label="Цена товара, ₽"/, "Валюта должна входить в доступное имя поля");
+const filledPrice = render(ProductVariantsCard, { ...variantProps, variants: [{ ...variantProps.variants[0], price: 1490 }] });
+assert.match(filledPrice, /aria-hidden="true"[^>]*><span[^>]*>1490<\/span><span[^>]*>₽<\/span>/, "Символ следует за введённой суммой");
+const priceDescriptions = priceInput.match(/aria-describedby="([^"]+)"/)?.[1]?.split(/\s+/) ?? [];
+assert.ok(priceDescriptions.some(id => variants.includes(`id="${id}">Укажите одну цену больше нуля`)), "Ошибка цены должна быть связана с полем");
+assert.ok(priceDescriptions.some(id => variants.includes(`id="${id}">Изменение цены применяется`)), "Подсказка цены должна быть связана с полем");
+const stockInput = variants.match(/<input\b[^>]*aria-label="Остаток, шт\.: вариант 1, M"[^>]*>/)?.[0];
+assert.ok(stockInput, "Остаток должен иметь доступное имя с размером и оттенком");
+const stockDescriptions = stockInput.match(/aria-describedby="([^"]+)"/)?.[1]?.split(/\s+/) ?? [];
+assert.ok(stockDescriptions.some(id => variants.includes(`id="${id}">Введите целое количество от 0`)), "Ошибка остатка должна быть связана с полем");
 assert.match(variants, /Добавить размер/);
 assert.doesNotMatch(variants, /Пусто — без учёта|Цена цвета/);
 assert.match(render(ProductPhotoEditor, variantProps), /Для модерации нужно от 3 до 10 фото товара/);

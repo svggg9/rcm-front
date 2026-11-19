@@ -1,13 +1,15 @@
 "use client";
 
 import { useEffect, useId, useMemo, useRef, useState } from "react";
-import type { DeliveryCityOption, DeliveryOption } from "../types";
+import type { CountryCode, DeliveryCityOption, DeliveryOption } from "../types";
+import { DEFAULT_DELIVERY_COUNTRIES, type DeliveryCountry } from "../lib/deliveryCountries";
 import { Icon } from "../../components/ui/Icon";
 import { CdekLogo } from "../../components/Delivery/CdekLogo";
 import { Button } from "../../components/ui/Button";
 import { Loader } from "../../components/ui/Loader";
 import { SegmentedControl } from "../../components/ui/SegmentedControl";
 import { FormCombobox } from "../../components/ui/FormCombobox";
+import { FormSelect } from "../../components/ui/FormSelect";
 import { PickupPointModal } from "./PickupPointModal";
 import { hasValidCoordinates, PickupPointMap } from "./PickupPointMap";
 import styles from "./CheckoutDeliverySection.module.css";
@@ -15,9 +17,9 @@ import styles from "./CheckoutDeliverySection.module.css";
 type Props = {
   options: DeliveryOption[]; selectedAddressId: string; enabled: boolean;
   pickupLoading: boolean; quoteLoading: boolean; cityLoading?: boolean; pickupError?: string | null;
-  countryCode: "RU"; cityQuery: string; cityOptions: DeliveryCityOption[]; selectedCity: DeliveryCityOption | null;
+  countryCode: CountryCode; countries?: DeliveryCountry[]; cityQuery: string; cityOptions: DeliveryCityOption[]; selectedCity: DeliveryCityOption | null;
   cityError?: string | null; pickupPointError?: string | null; deliveryPrice: number; deliveryDateText: string; deliveryCalculated?: boolean;
-  onCountryChange: (value: "RU") => void; onCityQueryChange: (value: string) => void;
+  onCountryChange: (value: CountryCode) => void; onCityQueryChange: (value: string) => void;
   onCitySuggestionsClose: () => void; onCitySelect: (city: DeliveryCityOption) => void;
   onPickupSearch: () => void; onAddressChange: (value: string) => void;
   onPickerOpen?: () => void; onPickerCancel?: () => void; onPickerConfirm?: () => void;
@@ -25,7 +27,7 @@ type Props = {
 
 const deliveryMethods = [
   { value: "pickup", label: "Пункт выдачи" },
-  { value: "courier", label: "Курьером · скоро", disabled: true },
+  { value: "courier", label: "Курьером (скоро)", disabled: true },
 ] as const;
 
 export function CheckoutDeliverySection(props: Props) {
@@ -50,7 +52,7 @@ export function CheckoutDeliverySection(props: Props) {
           <CdekLogo height={18} />
           <h4>Пункт выдачи</h4>
           {point && <><p>{point.label}</p><p className={styles.muted}>{selectedCity?.fullName}</p></>}
-          {(quoteLoading || price || deliveryDateText) && <p className={styles.deliveryDetails}>{quoteLoading ? <Loader inline label="Расчёт доставки" /> : price}{deliveryDateText && <span>{price && " · "}{deliveryDateText}</span>}</p>}
+          {(quoteLoading || price || deliveryDateText) && <p className={styles.deliveryDetails}>{quoteLoading ? <Loader inline label="Расчёт доставки" /> : price}{deliveryDateText && <span>{price && ", "}{deliveryDateText}</span>}</p>}
           <Button type="button" variant={point ? "utility" : "primary"} className={point ? styles.edit : styles.primary}
             aria-label={point ? "Изменить пункт выдачи" : undefined} disabled={!enabled}
             onClick={() => { props.onPickerOpen?.(); setOpen(true); }}>
@@ -64,6 +66,8 @@ export function CheckoutDeliverySection(props: Props) {
     <PickupPointModal open={open} loading={pickupLoading} points={options} selectedId={selectedAddressId} cityKey={selectedCity?.code}
       deliveryPrice={deliveryPrice} error={pickupError} onRetry={onPickupSearch}
       cityField={<div className={styles.city}>
+        <FormSelect label="Страна" required value={props.countryCode} options={(props.countries ?? DEFAULT_DELIVERY_COUNTRIES).map(country => ({ value: country.code, label: country.name }))}
+          onChange={value => { if (value && value !== props.countryCode) props.onCountryChange(value); }} />
         <FormCombobox label="Город" value={selectedCity?.code ?? ""} customValue={cityQuery}
           options={cityOptions.map(city => ({ value: city.code, label: city.fullName }))}
           suggestionsOnInput showModerationBadge={false} allowCustomValue={false} loading={cityLoading}

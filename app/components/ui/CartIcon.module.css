@@ -1,0 +1,6 @@
+.fill { transform-box: fill-box; transform-origin: center bottom; transform: scaleY(0); opacity: .72; }
+.fill[data-level="half"] { transform: scaleY(.5); }
+.fill[data-level="full"] { transform: scaleY(1); }
+@media (prefers-reduced-motion: no-preference) {
+  .fill { transition: transform 520ms ease-out; }
+}

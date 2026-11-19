@@ -5,6 +5,7 @@ import Image from "next/image";
 import { Button } from "../../components/ui/Button";
 import { Price } from "../../components/ui/Price";
 import { Loader } from "../../components/ui/Loader";
+import { PhotoPlaceholder } from "../../components/ui/PhotoPlaceholder";
 import styles from "../Checkout.module.css";
 import type { CartItem } from "../types";
 
@@ -43,13 +44,13 @@ export function CheckoutSummary({
       <div className={styles.summaryItems}>
         {items.map((item) => (
           <div key={item.variantId} className={styles.summaryItem}>
-            <Image
-              src={item.imageUrl || "/placeholder-product.png"}
+            {item.imageUrl ? <Image
+              src={item.imageUrl}
               alt={item.title}
               width={64}
               height={84}
               className={styles.summaryImage}
-            />
+            /> : <span className={styles.summaryImage}><PhotoPlaceholder /></span>}
 
             <div className={styles.summaryItemInfo}>
               <div className={styles.summaryItemTitle}>{item.title}</div>

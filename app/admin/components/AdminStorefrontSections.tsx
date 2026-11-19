@@ -205,7 +205,7 @@ function SectionEditor({ section, sections, collections, busy, onClose, onSave }
           coverPositionX={x} coverPositionY={y} sizes="240px" /></div>
         <div className={styles.coverControls}>
           <p className="label">Обложка</p>
-          <p className="textHint">JPEG, PNG или WebP до 10 МБ · Лучше вертикальное фото</p>
+          <p className="textHint">JPEG, PNG или WebP до 10 МБ, лучше вертикальное фото</p>
           <div className={styles.fileActions}>
             <Button type="button" disabled={busy} onClick={() => inputRef.current?.click()}>{imageUrl ? "Заменить обложку" : "Загрузить обложку"}</Button>
             {imageUrl || file ? <Button type="button" variant="ghost" disabled={busy} onClick={() => { setFile(undefined); setRemoveCover(true); setFileError(null); }}>Убрать обложку</Button> : null}

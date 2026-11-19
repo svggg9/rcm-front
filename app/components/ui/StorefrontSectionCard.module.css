@@ -21,12 +21,6 @@
   object-fit: cover;
 }
 
-.placeholder {
-  display: grid;
-  place-items: center;
-  color: var(--muted);
-}
-
 .title {
   min-width: 0;
   font-size: var(--font-sm);

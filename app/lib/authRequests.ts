@@ -1,9 +1,11 @@
 import { API_URL, apiFetch } from "./api";
+import { retryAfterSeconds } from "./publicRequestErrors";
 
 type AuthResult = { cartId: string };
 
 export class AuthRequestError extends Error {
-  constructor(message: string, public readonly status: number, public readonly code = "") {
+  constructor(message: string, public readonly status: number, public readonly code = "",
+    public readonly retryAfterSeconds: number | null = null) {
     super(message);
     this.name = "AuthRequestError";
   }
@@ -42,7 +44,8 @@ async function responseError(response: Response, fallback: string) {
   } catch {
     // Plain text error response.
   }
-  return new AuthRequestError(errorMessages[message] ?? fallback, response.status, message);
+  return new AuthRequestError(errorMessages[message] ?? fallback, response.status, message,
+    response.status === 429 ? retryAfterSeconds(response) : null);
 }
 
 async function resultOrError(response: Response, fallback: string): Promise<AuthResult> {
@@ -76,7 +79,7 @@ export async function startEmailLogin(email: string): Promise<{ ttlSeconds: numb
   try {
     const data = await response.json();
     if (Number.isInteger(data?.ttlSeconds) && data.ttlSeconds > 0 && data.ttlSeconds <= 3600
-      && Number.isInteger(data.resendAfterSeconds) && data.resendAfterSeconds > 0 && data.resendAfterSeconds <= 3600) {
+      && Number.isInteger(data.resendAfterSeconds) && data.resendAfterSeconds >= 0 && data.resendAfterSeconds <= 3600) {
       return { ttlSeconds: data.ttlSeconds, resendAfterSeconds: data.resendAfterSeconds };
     }
   } catch { /* Keep malformed transport errors out of the interface. */ }

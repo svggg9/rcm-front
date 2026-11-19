@@ -1,6 +1,7 @@
 "use client";
 import { useOrderActions } from "../../lib/useOrderActions";
 import { OrderWorkflowSummary } from "../../components/order-detail/OrderWorkflowSummary";
+import { DeliveryProgress } from "../../components/order-detail/DeliveryProgress";
 import { paymentConfirmationUrl } from "../../lib/paymentRedirect";
 
 import { useEffect, useRef, useState } from "react";
@@ -37,7 +38,6 @@ export function AccountOrderDetails({
   order,
   onOrderUpdated,
   formatPaymentStatus,
-  formatDeliveryStatus,
   buildOrderStatusLabel,
 }: Props) {
   const action = useOrderActions(order);
@@ -190,9 +190,7 @@ export function AccountOrderDetails({
 
   const paymentTotal = group?.reduce((sum, item) => sum + item.totalAmount, 0);
   const remaining = order.paymentDueAt ? Math.max(0, Math.ceil((new Date(order.paymentDueAt).getTime() - clock) / 1000)) : null;
-  const stageIndex = ["PENDING", "READY_FOR_SHIPMENT", "IN_TRANSIT", "READY_FOR_PICKUP", "DELIVERED"].indexOf(order.deliveryStatus);
   const progressVisible = order.status !== "CANCELED" && !["RETURNED", "CANCELLED"].includes(order.deliveryStatus);
-  const stages = ["Создан", "Готовится к отправке", "В пути", "Можно получить", "Получен"];
   return <section className={styles.page}>
     <OrderWorkflowSummary workflow={order.workflow}/>
     <div className={styles.meta}><span className={styles.status} data-tone={orderTone(order)}>{buildOrderStatusLabel(order)}</span><time dateTime={order.createdAt}>{orderDate(order.createdAt)}</time></div>
@@ -202,11 +200,15 @@ export function AccountOrderDetails({
       {paymentSyncError ? <div className={styles.error} role="status">Не удалось проверить оплату — повторим автоматически</div> : null}
       {groupError && awaitingPayment ? <div className={styles.error}>Не удалось загрузить сумму покупки <button className="buttonGhost" onClick={() => setGroupRetry(value => value + 1)}>Повторить</button></div> : null}
       {!group && !groupError && awaitingPayment ? <Loader inline label="Проверка суммы покупки"/> : null}
-      {canPay ? <Button variant="primary" loading={paying} onClick={() => void handlePay()}>{paymentPending ? "Продолжить оплату" : "Оплатить"}{paymentTotal !== undefined ? <> · <Price amount={paymentTotal}/></> : null}</Button> : null}
+      {canPay ? <Button variant="primary" loading={paying} onClick={() => void handlePay()}>{paymentPending ? "Продолжить оплату" : "Оплатить"}{paymentTotal !== undefined ? <> <Price amount={paymentTotal}/></> : null}</Button> : null}
       {cancellationPending ? <div className={styles.notice} role="status"><strong>Отмена оформляется</strong>{order.unpaidCancellationPending ? "Проверяем результат оплаты. Товары остаются зарезервированы до завершения проверки" : "Деньги вернутся тем же способом оплаты"}</div> : null}
       {order.paymentReviewRequired && !cancellationPending ? <div className={styles.notice} role="status"><strong>Проверяем оплату</strong>Если деньги списаны, мы проверим платёж и сообщим результат</div> : null}
       {awaitingPayment && !paymentDeadlineOpen && !order.paymentReviewRequired && !cancellationPending ? <div className={styles.notice}>Срок оплаты истёк — проверяем завершение заказа</div> : null}
-      {canCancel && !confirmCancellation ? <Button variant="ghost" onClick={() => setConfirmCancellation(true)}>Отменить заказ</Button> : null}
+      {canCancel && !confirmCancellation ? <>
+        {cancellingGroup ? <p className={styles.cancellationHint}>Отменятся все отправления покупки; если платёж начат, сначала проверим его результат</p>
+          : order.paymentStatus === "PAID" ? <p className={styles.cancellationHint}>После отмены деньги вернутся тем же способом оплаты</p> : null}
+        <Button variant="ghost" onClick={() => setConfirmCancellation(true)}>Отменить заказ</Button>
+      </> : null}
       {canCancel && confirmCancellation ? <div className={styles.confirm}><strong>{cancellingGroup ? "Отменить неоплаченную покупку?" : "Отменить заказ?"}</strong><p>{cancellingGroup ? "Отменим все отправления этой покупки. Если платёж уже начат, сначала проверим его результат" : "Деньги вернутся тем же способом оплаты"}</p><Button variant="secondary" loading={cancelling} onClick={() => void handleCancel()}>Да, отменить</Button><Button variant="ghost" disabled={cancelling} onClick={() => setConfirmCancellation(false)}>Не отменять</Button></div> : null}
       {payError || cancellationError ? <div className={styles.error} role="alert">{payError || cancellationError}</div> : null}
     </div> : null}
@@ -229,7 +231,7 @@ export function AccountOrderDetails({
           </div> : null}
       </div>
     </section>
-    {progressVisible ? <div className={styles.progress} aria-label={`Доставка: ${formatDeliveryStatus(order.deliveryStatus)}`}>{stages.map((stage,index) => <span key={stage} className={styles.stage} data-done={index <= Math.max(stageIndex,0)}>{stage}</span>)}</div> : null}
+    {progressVisible ? <DeliveryProgress status={order.deliveryStatus} /> : null}
     <section className={styles.section} aria-label="Товары в заказе"><div className={styles.products}>{order.items.map(item => <AccountProductRow key={item.variantId} item={item}/>)}</div></section>
     <section className={styles.section}><h2>Оплата</h2><div className={styles.address}>{paymentMethodLabel(order.paymentMethod)}<br/><span className={styles.muted}>{formatPaymentStatus(order.paymentStatus)}</span></div></section>
     <section className={styles.summary} aria-label="Стоимость заказа"><dl>

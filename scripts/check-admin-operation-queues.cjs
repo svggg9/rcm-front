@@ -36,7 +36,8 @@ function load(file, allExports = false) {
   return allExports ? mod.exports : Object.values(mod.exports)[0];
 }
 const tick = () => new Promise(resolve => setImmediate(resolve));
-function nodes(node, result = []) { if (!node || typeof node !== 'object') return result; if (Array.isArray(node)) { node.forEach(x => nodes(x, result)); return result; } result.push(node); nodes(node.props?.children, result); nodes(node.props?.main, result); nodes(node.props?.aside, result); return result; }
+const presentationalComponents = new Set();
+function nodes(node, result = []) { if (!node || typeof node !== 'object') return result; if (Array.isArray(node)) { node.forEach(x => nodes(x, result)); return result; } result.push(node); if (presentationalComponents.has(node.type)) nodes(node.type(node.props), result); nodes(node.props?.children, result); nodes(node.props?.main, result); nodes(node.props?.aside, result); return result; }
 function findButton(text) { const item = nodes(tree).find(node => node.type === button && node.props.children === text); assert(item, `Missing button ${text}`); return item.props; }
 function setup(component) {
   state = []; effects = []; pendingEffects = []; pending.length = 0;
@@ -49,8 +50,13 @@ const validationCode = ts.transpileModule(fs.readFileSync('app/admin/lib/adminOp
 const validationModule = { exports: {} };
 new Function('module', 'exports', validationCode)(validationModule, validationModule.exports);
 deps['../lib/adminOperationQueueValidation'] = validationModule.exports;
-const payment = load('app/admin/components/AdminPaymentReview.tsx');
-const refund = load('app/admin/components/AdminRefundOperations.tsx');
+const paymentExports = load('app/admin/components/AdminPaymentReview.tsx', true);
+const refundExports = load('app/admin/components/AdminRefundOperations.tsx', true);
+const payment = paymentExports.AdminPaymentReview;
+const refund = refundExports.AdminRefundOperations;
+presentationalComponents.add(paymentExports.AdminPaymentReviewRow);
+presentationalComponents.add(refundExports.AdminRefundOperationCard);
+presentationalComponents.add(refundExports.AdminRefundProofDialog);
 (async () => {
   let render = setup(payment); render();
   assert.equal(pending[0].path, '/api/admin/payment-review?page=0&size=20');
@@ -95,6 +101,7 @@ const refund = load('app/admin/components/AdminRefundOperations.tsx');
   deps['../../components/ui/RequestError'] = { RequestError: requestError };
   deps['../../components/ui/StatusBadge'] = { StatusBadge: 'badge' };
   deps['../../components/order-detail/OrderDetail'] = { OrderDetailSection: 'section' };
+  deps['../../components/order-detail/ReturnWorkflowSummary'] = { ReturnWorkflowSummary: 'return-workflow-summary' };
   deps['../../lib/useFieldValidation'] = load('app/lib/useFieldValidation.ts', true);
   deps['../../lib/formValidation'] = { scrollToFirstValidationError() {} };
   deps['./inputWhitespace'] = load('app/lib/inputWhitespace.ts', true);
@@ -103,6 +110,7 @@ const refund = load('app/admin/components/AdminRefundOperations.tsx');
   const returnCalls = [];
   deps['../../lib/returns'] = {
     returnReasonLabels: { DEFECT: 'Брак' }, returnStatusLabels: {},
+    returnAction: (item, code) => ({ allowed: !!item.workflow?.actions?.some(action => action.code === code && action.allowed) }),
     getAdminOrderReturns: orderId => { returnCalls.push('GET'); return request(`/returns/${orderId}`, { method: 'GET' }); },
     reviewAdminReturn: (id, decision, comment) => { returnCalls.push('POST'); return request(`/returns/${id}/${decision}`, { method: 'POST', comment }); },
     refundAdminReturn: (id, amount) => { returnCalls.push('POST'); return request(`/returns/${id}/refund`, { method: 'POST', amount }); },
@@ -121,8 +129,10 @@ const refund = load('app/admin/components/AdminRefundOperations.tsx');
   const recovery = () => nodes(tree).find(node => node.type === requestError)?.props;
   assert(recovery()?.message.includes('Не удалось проверить'), 'Initial failure must not look like no returns');
   recovery().onRetry(); render();
-  const requested = { id: 60, orderId: 2, status: 'SUBMITTED', reason: 'DEFECT', photoUrls: [], productTitle: 'Товар', quantity: 1 };
-  const inspected = { ...requested, id: 61, status: 'INSPECTED', requestedAmount: 100, approvedRefundAmount: 90, refundId: null };
+  const requested = { id: 60, orderId: 2, status: 'SUBMITTED', reason: 'DEFECT', photoUrls: [], productTitle: 'Товар', quantity: 1,
+    workflow: { version: 1, actions: [{ code: 'APPROVE', allowed: true }, { code: 'REJECT', allowed: true }] } };
+  const inspected = { ...requested, id: 61, status: 'INSPECTED', requestedAmount: 100, approvedRefundAmount: 90, refundId: null,
+    workflow: { version: 1, actions: [{ code: 'REFUND', allowed: true }] } };
   pending.shift().resolve([requested, inspected]); await tick(); render();
   assert.equal(findButton('Одобрить').disabled, false);
   const amountField = () => nodes(tree).find(node => node.type === numericField)?.props;
@@ -151,7 +161,7 @@ const refund = load('app/admin/components/AdminRefundOperations.tsx');
   refundClick(); staleApproval();
   assert.equal(pending.length, 0, 'A lost mutation reply requires a fresh read before another command');
   poll(); render();
-  const refundPending = { ...inspected, status: 'REFUND_PENDING', refundId: 90 };
+  const refundPending = { ...inspected, status: 'REFUND_PENDING', refundId: 90, workflow: { version: 1, actions: [] } };
   pending.shift().resolve([requested, refundPending]); await tick(); render();
   assert(!nodes(tree).some(node => node.type === button && node.props.children === 'Создать запрос возврата'), 'Accepted refund is discovered by GET rather than resubmitted');
   assert.equal(returnCalls.filter(method => method === 'POST').length, 1, 'No automatic financial POST');

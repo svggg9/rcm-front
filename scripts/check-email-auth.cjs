@@ -15,15 +15,24 @@ function load(file, imports) {
 }
 let reply = () => new Response("{}");
 const calls = [];
+const apiErrors = load("app/lib/apiErrors.ts", {});
+const publicErrors = load("app/lib/publicRequestErrors.ts", { "./apiErrors": apiErrors });
 const requests = load("app/lib/authRequests.ts", { "./api": { API_URL: "http://fixture", apiFetch: async (url, options) => {
   calls.push({ url, ...options, body: JSON.parse(options.body) }); return reply();
-} } });
+} }, "./publicRequestErrors": publicErrors });
 async function transport() {
   reply = () => Response.json({ ttlSeconds: 600, resendAfterSeconds: 60 }, { status: 202 });
   assert.deepEqual(await requests.startEmailLogin(" Buyer@EXAMPLE.TEST "), { ttlSeconds: 600, resendAfterSeconds: 60 });
   assert.equal(calls.at(-1).url, "http://fixture/api/auth/email/login/start");
   assert.deepEqual(calls.at(-1).body, { email: "buyer@example.test" });
   assert(calls.at(-1).signal instanceof AbortSignal);
+  reply = () => Response.json({ ttlSeconds: 600, resendAfterSeconds: 0 }, { status: 202 });
+  assert.deepEqual(await requests.startEmailLogin(" Buyer@EXAMPLE.TEST "), { ttlSeconds: 600, resendAfterSeconds: 0 },
+    "An immediate resend from the server is a valid response");
+  reply = () => Response.json({ message: "email_login_rate_limited" }, { status: 429, headers: { "Retry-After": "1800" } });
+  await assert.rejects(requests.startEmailLogin("a@example.test"), error => error.status === 429 && error.retryAfterSeconds === 1800);
+  reply = () => Response.json({ message: "email_login_rate_limited" }, { status: 429 });
+  await assert.rejects(requests.startEmailLogin("a@example.test"), error => error.status === 429 && error.retryAfterSeconds === null);
   reply = () => Response.json({ cartId: "user_buyer" });
   assert.deepEqual(await requests.completeEmailLogin(" Buyer@EXAMPLE.TEST ", "123456", "guest_uuid"), { cartId: "user_buyer" });
   assert.deepEqual(calls.at(-1).body, { email: "buyer@example.test", code: "123456", cartId: "guest_uuid" });
@@ -60,7 +69,7 @@ function harness() {
   let cursor = 0;
   const hooks = [];
   let starts = 0, completions = 0, finished = 0, synchronized = 0;
-  let startResolve, completeResolve;
+  let startResolve, startReject, completeResolve;
   const jsx = require("react/jsx-runtime");
   const { validateAuthFields } = load("app/lib/authValidation.ts", {});
   const react = {
@@ -74,7 +83,7 @@ function harness() {
   const { AuthForm } = load("app/components/Auth/AuthForm.tsx", {
     react, "react/jsx-runtime": jsx, "next/link": { default: "a" }, "next/image": { default: "img" },
     "../../lib/authRequests": { AuthRequestError: requests.AuthRequestError,
-      startEmailLogin: () => { starts++; return new Promise(resolve => { startResolve = resolve; }); },
+      startEmailLogin: () => { starts++; return new Promise((resolve, reject) => { startResolve = resolve; startReject = reject; }); },
       completeEmailLogin: () => { completions++; return new Promise(resolve => { completeResolve = resolve; }); },
       loginWithPassword: async () => ({ cartId: "user_fixture" }),
     },
@@ -96,7 +105,8 @@ function harness() {
     for (const child of [node.props?.children].flat(Infinity)) { const match = find(child, predicate); if (match) return match; }
     return null;
   }
-  return { render, find, resolveStart: () => startResolve({ ttlSeconds: 600, resendAfterSeconds: 60 }),
+  return { render, find, resolveStart: (seconds = 60) => startResolve({ ttlSeconds: 600, resendAfterSeconds: seconds }),
+    rejectStart: error => startReject(error),
     resolveComplete: () => completeResolve({ cartId: "user_fixture" }), counts: () => ({ starts, completions, finished, synchronized }) };
 }
 async function handlers() {
@@ -137,6 +147,38 @@ async function handlers() {
   assert.equal(h.counts().completions, 1, "Auto-complete and Enter cannot confirm twice");
   h.resolveComplete(); await new Promise(resolve => setImmediate(resolve));
   assert.deepEqual(h.counts(), { starts: 1, completions: 1, finished: 1, synchronized: 1 });
+  const resend = harness(); let resendView = resend.render();
+  resend.find(resendView, node => node.type === "TextInput").props.onChange({ target: { value: "resend@example.test" } });
+  resendView = resend.render(); resendView.props.onSubmit(submit);
+  resend.resolveStart(0); await new Promise(resolve => setImmediate(resolve));
+  const hint = resend.find(resend.render(), node => node.type === "p"
+    && Array.isArray(node.props.children?.props?.children)
+    && node.props.children.props.children.some(child => typeof child === "string" && child.includes("код из последнего запроса")));
+  assert(hint, "The code screen explains that only the latest requested code is valid");
+  for (const expected of [2, 3]) {
+    resendView = resend.render();
+    const button = resend.find(resendView, node => node.type === "button" && node.props.children === "Отправить код ещё раз");
+    assert(button && !button.props.disabled, "Immediate resend is available after server returns zero");
+    button.props.onClick(); button.props.onClick();
+    assert.equal(resend.counts().starts, expected, "One request is sent for each user action despite duplicate clicks");
+    resend.resolveStart(expected === 3 ? 60 : 0);
+    await new Promise(resolve => setImmediate(resolve));
+  }
+  resendView = resend.render();
+  const waiting = resend.find(resendView, node => node.type === "button" && typeof node.props.children === "string"
+    && node.props.children.startsWith("Отправить код ещё раз через"));
+  assert(waiting?.props.disabled, "Server cooldown is enforced after the third request");
+  for (const [retry, expectedDisabled] of [[1800, true], [null, false]]) {
+    const limited = harness(); let limitedView = limited.render();
+    limited.find(limitedView, node => node.type === "TextInput").props.onChange({ target: { value: `limited-${retry}@example.test` } });
+    limitedView = limited.render(); limitedView.props.onSubmit(submit);
+    limited.rejectStart(new requests.AuthRequestError("Слишком много попыток — попробуйте позже", 429, "email_login_rate_limited", retry));
+    await new Promise(resolve => setImmediate(resolve));
+    limitedView = limited.render();
+    const button = limited.find(limitedView, node => node.type === "Button" && node.props.type === "submit");
+    assert.equal(Boolean(button.props.disabled), expectedDisabled, "A 429 gates retries only for a server-provided duration");
+    if (retry !== null) assert.equal(button.props.children, `Повторить через ${retry} с`);
+  }
   const { OneTimeCodeInput } = load("app/components/ui/OneTimeCodeInput.tsx", {
     react: { useId: () => "otp", useState: () => [0, () => {}] }, "react/jsx-runtime": require("react/jsx-runtime"),
     "./OneTimeCodeInput.module.css": { default: {} },

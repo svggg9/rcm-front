@@ -11,12 +11,12 @@ import { toast } from "../../components/ui/toast";
 import { isPaymentReviewPage } from "../lib/adminOperationQueueValidation";
 import styles from "./AdminPaymentReview.module.css";
 
-type Review = {
+export type PaymentReviewRow = {
   orderId: number; orderGroupId: string; status: string; paymentStatus: string;
   paymentDueAt: string | null; reservationReleasedAt: string | null;
   initializationPending: boolean; latePaymentId: number | null; initializationRecoverable?: boolean;
 };
-type Page = { content: Review[]; number: number; totalPages: number; totalElements: number };
+type Page = { content: PaymentReviewRow[]; number: number; totalPages: number; totalElements: number };
 
 export function AdminPaymentReview({ onOpenOrder }: { onOpenOrder: (id: number) => void }) {
   const {confirm,confirmation}=useConfirmation();
@@ -55,7 +55,7 @@ export function AdminPaymentReview({ onOpenOrder }: { onOpenOrder: (id: number) 
     return () => { clearInterval(timer); window.removeEventListener("refund-operations-changed", refresh); };
   }, [reload]);
 
-  async function act(row: Review, recover = false) {
+  async function act(row: PaymentReviewRow, recover = false) {
     if (!canAct || inFlight.current) return;
     const actionGeneration = generation.current;
     if (recover && !await confirm({title:"Восстановить платёж",text:"Найденная неоплаченная попытка будет отменена. Если оплата прошла, она будет учтена в заказах",label:"Проверить банк"})) return;
@@ -73,20 +73,12 @@ export function AdminPaymentReview({ onOpenOrder }: { onOpenOrder: (id: number) 
   }
 
   return <>{confirmation}<section className={styles.panel} aria-label="Проверка оплат">
-    <div className={styles.heading}><h2>Оплаты, требующие проверки{data ? ` · ${data.totalElements}` : ""}</h2>
+    <div className={styles.heading}><h2>Оплаты, требующие проверки{data ? ` (${data.totalElements})` : ""}</h2>
       <Button variant="ghost" onClick={reload} disabled={loading || busy}>Обновить</Button></div>
     {error && <p className={styles.error} role="alert">{error}</p>}
     {loading && <Loader label="Загрузка данных" />}
-    {data?.content.map(row => <div className={styles.row} key={row.orderId}>
-      <button className={styles.order} onClick={() => onOpenOrder(row.orderId)}>Заказ №{row.orderId}</button>
-      <span>{row.latePaymentId ? "Поздняя оплата" : row.initializationPending ? "Не подтверждено создание платежа" : !row.paymentDueAt ? "Проверка старого резерва" : "Сверка оплаты или отмены"}</span>
-      <span>{row.reservationReleasedAt ? "Резерв освобождён" : "Резерв требует проверки"}</span>
-      <div className={styles.actions}>
-        <Button variant="ghost" onClick={() => void act(row, false)} disabled={busy || !canAct}>Проверить</Button>
-        {row.initializationRecoverable && <Button variant="secondary" onClick={() => void act(row, true)} disabled={busy || !canAct}>Восстановить платёж</Button>}
-        {row.latePaymentId && <span>Выберите платёж в блоке «Поздние платежи»</span>}
-      </div>
-    </div>)}
+    {data?.content.map(row => <AdminPaymentReviewRow key={row.orderId} row={row} disabled={busy || !canAct}
+      onOpenOrder={onOpenOrder} onCheck={() => void act(row, false)} onRecover={() => void act(row, true)} />)}
     {data && !data.content.length && !loading && !error && <p>Нет оплат, требующих проверки</p>}
     {data && data.totalPages > 1 && <div className={styles.actions}>
       <Button variant="ghost" disabled={page === 0 || loading || busy} onClick={() => changePage(page - 1)}>Назад</Button>
@@ -94,4 +86,19 @@ export function AdminPaymentReview({ onOpenOrder }: { onOpenOrder: (id: number) 
       <Button variant="ghost" disabled={page + 1 >= data.totalPages || loading || busy} onClick={() => changePage(page + 1)}>Далее</Button>
     </div>}
   </section></>;
+}
+
+export function AdminPaymentReviewRow({ row, disabled, onOpenOrder, onCheck, onRecover }: {
+  row: PaymentReviewRow; disabled: boolean; onOpenOrder: (id: number) => void; onCheck: () => void; onRecover: () => void;
+}) {
+  return <div className={styles.row}>
+    <button className={styles.order} onClick={() => onOpenOrder(row.orderId)}>Заказ №{row.orderId}</button>
+    <span>{row.latePaymentId ? "Поздняя оплата" : row.initializationPending ? "Не подтверждено создание платежа" : !row.paymentDueAt ? "Проверка старого резерва" : "Сверка оплаты или отмены"}</span>
+    <span>{row.reservationReleasedAt ? "Резерв освобождён" : "Резерв требует проверки"}</span>
+    <div className={styles.actions}>
+      <Button variant="ghost" onClick={onCheck} disabled={disabled}>Проверить</Button>
+      {row.initializationRecoverable && <Button variant="secondary" onClick={onRecover} disabled={disabled}>Восстановить платёж</Button>}
+      {row.latePaymentId && <span>Выберите платёж в блоке «Поздние платежи»</span>}
+    </div>
+  </div>;
 }

@@ -187,20 +187,6 @@
   background: var(--soft);
 }
 
-.noImage {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: var(--space-3);
-  color: var(--muted);
-  font-size: var(--font-label-compact);
-  line-height: 1.35;
-  font-weight: var(--font-weight-regular);
-  text-align: center;
-}
-
 .productCategory {
   margin-top: 10px;
   overflow: hidden;

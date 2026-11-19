@@ -1,0 +1,18 @@
+.examples { display: grid; gap: var(--space-5); margin-block: var(--space-7); scroll-margin-top: calc(var(--site-header-height) + 24px); }
+.heading { display: grid; gap: var(--space-2); }
+.heading h3 { margin: 0; font-size: var(--type-h5-size); line-height: var(--type-h5-line); font-weight: var(--type-heading-weight); }
+.heading p, .variantHeading p { margin: 0; color: var(--muted); font-size: var(--font-sm); line-height: var(--line-height-ui-large); }
+.variants { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-7); align-items: start; }
+.chosen { width: min(100%, 560px); }
+.variant { display: grid; gap: var(--space-4); min-width: 0; }
+.variantHeading { display: grid; gap: var(--space-1); }
+.variantHeading h4 { margin: 0; font-size: var(--font-md); font-weight: var(--font-weight-medium); }
+.fields { display: grid; gap: var(--space-4); }
+.colorVariant { --field-control-weight: 400; --field-label-size: 12px; }
+.colorVariant label { color: #262521; }
+.colorVariant input::placeholder { color: #44423f; opacity: 1; }
+.neutral { --field-control-background: #f5f5f5; --surface-hover: #ededed; --field-label-weight: 500; }
+.sand { --field-control-background: #f2f0ec; --surface-hover: #eae8e3; --field-label-weight: 500; }
+.previousExamples summary { min-height: 44px; cursor: pointer; padding-block: var(--space-3); }
+.previousExamples > .variants { margin-top: var(--space-4); }
+@media (max-width: 700px) { .variants { grid-template-columns: minmax(0, 1fr); gap: var(--space-7); } }

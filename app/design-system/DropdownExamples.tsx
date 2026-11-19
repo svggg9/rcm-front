@@ -6,6 +6,7 @@ import { Dialog } from "../components/ui/Dialog";
 import { FormCombobox } from "../components/ui/FormCombobox";
 import { FormMultiSelect } from "../components/ui/FormMultiSelect";
 import { FormSelect } from "../components/ui/FormSelect";
+import { DisabledFieldCandidates } from "./DisabledFieldCandidates";
 import styles from "./DesignSystem.module.css";
 
 const categories = [
@@ -57,6 +58,7 @@ export function DropdownExamples() {
   }
 
   return <div id="dropdowns" className={styles.dropdownExamples}>
+    <DisabledFieldCandidates />
     <div className={styles.fieldExampleGroup}>
       <h3>Один вариант</h3>
       <div className={styles.formGrid}>

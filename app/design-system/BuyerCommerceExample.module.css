@@ -1,0 +1,8 @@
+.example { display: grid; gap: var(--space-4); min-width: 0; }
+.example > h3 { margin: var(--space-4) 0 0; }
+.example > p { margin: 0; }
+.purchase { display: grid; gap: var(--space-4); min-width: 0; }
+.preview { width: min(100%, 520px); min-width: 0; padding-inline-end: 10px; box-sizing: border-box; }
+.note { margin: 0; font-size: var(--type-caption-size); line-height: var(--type-caption-line); color: var(--muted); }
+/* The fixed mobile purchase bar is shown inside the example, not over the whole design-system page. */
+.preview [data-product-purchase] { position: static; inset: auto; z-index: auto; min-height: 0; padding: 0; pointer-events: auto; }

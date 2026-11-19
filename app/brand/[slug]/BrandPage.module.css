@@ -219,10 +219,10 @@
 .filterBar > details { margin-left: auto; }
 .brandPagination { display: flex; }
 .collectionDescription { margin: 0 0 var(--space-5); font-size: var(--font-xs); line-height: 1.5; }
-.catalogEmpty { padding: var(--space-8) var(--space-4); text-align: center; border-block: var(--line-width-hairline) solid var(--line); font-size: var(--font-sm); }
+.catalogEmpty { padding: var(--space-8) var(--space-4); text-align: center; font-size: var(--font-sm); }
 .catalogEmpty a { color: var(--black); text-underline-offset: 3px; }
 
-.about { margin-top: var(--space-8); border-top: var(--line-width-hairline) solid var(--line); padding-top: var(--space-5); scroll-margin-top: calc(var(--site-header-height) + 20px); container: storefront-preview / inline-size; }
+.about { margin-top: var(--space-8); padding-top: var(--space-5); scroll-margin-top: calc(var(--site-header-height) + 20px); container: storefront-preview / inline-size; }
 .about summary { cursor: pointer; font-size: var(--font-title-xs); }
 .aboutDescription { max-width: 720px; white-space: pre-line; font-size: var(--font-sm); line-height: 1.6; margin: var(--space-5) 0; }
 .brandFacts { font-size: var(--font-xs); margin: var(--space-5) 0; }
@@ -237,5 +237,5 @@
 .catalogHeaderBrand { padding-top: var(--space-6); }
 .catalogHeaderBrand .headingWrap { margin-bottom: 0; }
 
-.catalogHeaderBrand .about { margin-top: 0; border-top: 0; padding-top: 0; }
+.catalogHeaderBrand .about { margin-top: 0; padding-top: 0; }
 .catalogHeaderBrand .about summary { font-size: var(--font-sm); line-height: 1.4; }

@@ -183,7 +183,7 @@ async function main() {
   const Link = ({ children, ...props }) => jsx.jsx("a", { ...props, children });
   const Icon = () => jsx.jsx("svg", {});
   const { EmptyState } = load("app/components/ui/EmptyState.tsx", { "react/jsx-runtime": jsx, "./Icon": { Icon } });
-  const { Button } = load("app/components/ui/Button.tsx", { "react/jsx-runtime": jsx, "./Button.module.css": { default: {} } });
+  const { Button } = load("app/components/ui/Button.tsx", { "react/jsx-runtime": jsx, "./Icon": { Icon }, "./Button.module.css": { default: {} } });
   const { RequestError } = load("app/components/ui/RequestError.tsx", {
     "react/jsx-runtime": jsx, "./Button": { Button }, "./EmptyState": { EmptyState }, "./Icon": { Icon }, "./RequestError.module.css": { default: {} },
   });
@@ -257,7 +257,7 @@ async function main() {
     "react/jsx-runtime": jsx, "next/link": { default: Link },
     react: { useState: () => [coverFailure, src => { coverFailure = src; }] },
     "next/image": { default: ({ src, alt, style }) => jsx.jsx("img", { src, alt, style }) },
-    "./DesignSystemIcon": { DesignSystemIcon: Icon }, "./StorefrontSectionCard.module.css": { default: {} },
+    "./PhotoPlaceholder": { PhotoPlaceholder: () => null }, "./StorefrontSectionCard.module.css": { default: {} },
   });
   const coverProps = { title: "Одежда", coverImageUrl: "/selected-cover.webp", coverPositionX: 25, coverPositionY: 70, href: "/catalog?category=13" };
   const coverTree = StorefrontSectionCard(coverProps);
@@ -312,6 +312,7 @@ async function main() {
   const { ProductSelectionOrder } = load("app/components/ui/ProductSelectionOrder.tsx", {
     "react/jsx-runtime": jsx,
     "next/image": () => null, "./Button": { Button: () => null }, "./DesignSystemIcon": { DesignSystemIcon: () => null },
+    "./PhotoPlaceholder": { PhotoPlaceholder: () => null },
     "./Price": { Price: () => null }, "./ProductSelectionOrder.module.css": { default: new Proxy({}, { get: (_, key) => key }) },
   });
   let reordered;

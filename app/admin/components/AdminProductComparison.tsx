@@ -22,6 +22,13 @@ export function AdminProductComparison({ product }: { product: AdminProduct }) {
   }, [sourceId, retry]);
   if (!sourceId) return null;
   const original = result?.id === sourceId ? result.data : undefined;
+  return <section className={styles.comparison}><h2>Что изменилось</h2>
+    <AdminResourceState loading={!result || result.id !== sourceId} error={result?.error} onRetry={() => { setResult(undefined); setRetry(value => value + 1); }} />
+    {original && <AdminProductComparisonTable original={original} product={product} />}
+  </section>;
+}
+
+export function AdminProductComparisonTable({ product, original }: { product: AdminProduct; original: AdminProduct }) {
   const fields: { label: string; value: (p: AdminProduct) => string }[] = [
     { label: "Название", value: p => p.title }, { label: "Описание", value: p => p.description },
     { label: "Состав", value: p => p.composition || "—" }, { label: "Категория", value: p => p.category || p.suggestedCategoryName || "—" },
@@ -30,15 +37,12 @@ export function AdminProductComparison({ product }: { product: AdminProduct }) {
     { label: "Фотографии", value: p => p.images.join("\n") || "—" },
     { label: "Варианты", value: p => p.variants.map(v => `${v.color || "Без цвета"} | ${v.size || "Без размера"}`).join("\n") },
   ];
-  return <section className={styles.comparison}><h2>Что изменилось</h2>
-    <AdminResourceState loading={!result || result.id !== sourceId} error={result?.error} onRetry={() => { setResult(undefined); setRetry(value => value + 1); }} />
-    {original && <div className={styles.tableScroll} tabIndex={0} role="region" aria-label="Сравнение версий товара"><DataTable className={styles.table}><thead><tr><th scope="col">Поле</th><th scope="col">Опубликовано</th><th scope="col">На проверке</th></tr></thead><tbody>{fields.map(({ label, value }) => {
+  return <div className={styles.tableScroll} tabIndex={0} role="region" aria-label="Сравнение версий товара"><DataTable className={styles.table}><thead><tr><th scope="col">Поле</th><th scope="col">Опубликовано</th><th scope="col">На проверке</th></tr></thead><tbody>{fields.map(({ label, value }) => {
       const before = value(original), after = value(product);
       return <tr key={label} className={before !== after ? styles.changed : undefined}><th scope="row">{label}</th>
         <td>{label === "Фотографии" ? <ComparisonPhotos product={original} /> : before}</td>
         <td>{label === "Фотографии" ? <ComparisonPhotos product={product} /> : after}</td></tr>;
-    })}</tbody></DataTable></div>}
-  </section>;
+    })}</tbody></DataTable></div>;
 }
 
 function ComparisonPhotos({ product }: { product: AdminProduct }) {

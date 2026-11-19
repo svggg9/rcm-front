@@ -118,12 +118,12 @@ async function main() {
     await dialog.getByRole("button", { name: "Обновить реестр", exact: true }).click();
     await choose("BEGIN"); await dialog.getByLabel("Причина действия").fill("Выплата за октябрь");
     await confirm("Начать обработку");
-    await dialog.getByText("Попытка №1 · В обработке", { exact: true }).waitFor();
+    await dialog.getByText("Попытка №1, В обработке", { exact: true }).waitFor();
     await choose("SENT");
     assert(await dialog.getByRole("button", { name: "Зафиксировать отправку", exact: true }).isDisabled());
     await dialog.getByLabel("Номер платёжного поручения").fill("P-2026-101");
     await confirm("Зафиксировать отправку");
-    await dialog.getByText("Попытка №1 · Отправлена в банк", { exact: true }).waitFor();
+    await dialog.getByText("Попытка №1, Отправлена в банк", { exact: true }).waitFor();
     await choose("REVIEW"); await dialog.getByLabel("Причина действия").fill("Банк не вернул результат исполнения");
     await confirm("Передать на сверку");
     await dialog.getByText("Результат перевода неизвестен. Повторная отправка заблокирована до подтверждённого результата банка", { exact: true }).waitFor();
@@ -166,7 +166,7 @@ async function main() {
     assert(await dialog.getByRole("button", { name: "Подготовить новую попытку", exact: true }).isDisabled());
     await dialog.getByLabel("Причина действия").fill("Отказ проверен, повтор согласован бухгалтером"); await confirm("Подготовить новую попытку");
     await choose("BEGIN"); await dialog.getByLabel("Причина действия").fill("Повтор после окончательного отказа"); await confirm("Начать обработку");
-    await dialog.getByText("Попытка №2 · В обработке", { exact: true }).waitFor();
+    await dialog.getByText("Попытка №2, В обработке", { exact: true }).waitFor();
     assert.equal(state.attempts.length, 2);
     assert.equal(state.attempts[0].paymentOrderNumber, "P-REFUSED");
     assert.match(state.attempts[0].evidence, /окончательный отказ/);

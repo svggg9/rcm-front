@@ -4,6 +4,7 @@ import Image from "next/image";
 import { useEffect, useRef, type KeyboardEvent, type ReactNode } from "react";
 
 import { Icon } from "./ui/Icon";
+import { PhotoPlaceholder } from "./ui/PhotoPlaceholder";
 import { Price } from "./ui/Price";
 import { SortIndicator } from "./ui/SortIndicator";
 import {
@@ -129,7 +130,7 @@ export function ProductListCard({
               className={styles.image}
             />
           ) : (
-            <span className={styles.imagePlaceholder}>Нет изображения</span>
+            <PhotoPlaceholder />
           )}
         </div>
 

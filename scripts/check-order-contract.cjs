@@ -36,6 +36,27 @@ assert.equal(contract.orderAction({ ...base, workflow: workflow([action("PAY", f
 
 const button = ({ children, onClick, disabled }) => jsx.jsx("button", { onClick, disabled, children });
 const wrapper = ({ children }) => jsx.jsx("div", { children });
+const disclosure = load("app/components/ui/DisclosureSection.tsx");
+const summary = load("app/components/order-detail/OrderWorkflowSummary.tsx", {
+  "../ui/Banner": { Banner: wrapper }, "../ui/Button": { Button: button },
+  "../ui/DisclosureSection": disclosure, "../../lib/useOrderActions": hooks,
+});
+const buyerSummary = renderToStaticMarkup(jsx.jsx(summary.OrderWorkflowSummary, { workflow: {
+  ...workflow([action("PAY", false, { scope: "ORDER_GROUP" }), action("CANCEL", true),
+    action("REQUEST_RETURN", false, { reason: "Возврат доступен после получения заказа" })]),
+  events: [{ code: "CREATED", occurredAt: "2026-11-08T11:00:00Z" }, { code: "PAID", occurredAt: "2026-11-08T11:01:00Z" }],
+} }));
+assert(buyerSummary.includes("История и действия"));
+assert(buyerSummary.includes("Оплата подтверждена"));
+assert(buyerSummary.includes("для всей покупки"));
+assert(buyerSummary.includes("Проверка оплаты"));
+assert(buyerSummary.includes("Возврат доступен после получения заказа"));
+assert(buyerSummary.includes("Доступно"));
+const sellerSummary = renderToStaticMarkup(jsx.jsx(summary.OrderWorkflowSummary, {
+  workflow: { ...workflow([action("SHIP", false)]), audience: "SELLER" },
+}));
+assert(sellerSummary.includes("Состояние и доступные действия"));
+assert(sellerSummary.includes("Проверка оплаты"));
 const shared = {
   "../../lib/useOrderActions": hooks,
   "../../components/ui/Button": { Button: button },
@@ -60,6 +81,7 @@ const allowedAdmin = renderAdmin([action("REFUND", true), action("CANCEL_DELIVER
 assert(allowedAdmin.includes("Вернуть оплату"));
 const panel = load("app/seller/components/OrderDetailsPanel.tsx", { ...shared,
   "next/image": { default: () => null }, "../../components/ui/Banner": { Banner: wrapper },
+  "../../components/order-detail/OrderProductCard": { OrderProductCard: () => null },
   "../../components/ui/CabinetSkeleton": { CabinetSkeleton: () => null },
   "../../components/ui/DesignSystemIcon": { DesignSystemIcon: () => null },
   "../../components/ui/StatusBadge": { StatusBadge: wrapper }, "../../lib/api": { API_URL: "" },

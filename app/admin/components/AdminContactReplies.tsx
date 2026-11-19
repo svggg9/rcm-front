@@ -228,10 +228,10 @@ export function AdminContactReplies({ contactId, email, channel = "EMAIL", teleg
                     </div>
                     <p className={styles.metadata}>
                       <time dateTime={reply.createdAt}>{formatDate(reply.createdAt)}</time>
-                      {reply.sentAt && <> · Отправлено <time dateTime={reply.sentAt}>{formatDate(reply.sentAt)}</time></>}
+                      {reply.sentAt && <>, Отправлено <time dateTime={reply.sentAt}>{formatDate(reply.sentAt)}</time></>}
                     </p>
                     <p className={styles.body}>{reply.body}</p>
-                    <p className={styles.metadata}>Получатель: {reply.channel === "TELEGRAM" ? "Личный чат в Telegram" : reply.recipientEmail || "Email не указан"} · Попыток: {reply.attempts}</p>
+                    <p className={styles.metadata}>Получатель: {reply.channel === "TELEGRAM" ? "Личный чат в Telegram" : reply.recipientEmail || "Email не указан"}, Попыток: {reply.attempts}</p>
                     {reply.status === "FAILED" && <Banner tone="danger">{reply.errorMessage || "Не удалось отправить ответ"}</Banner>}
                     {reply.status === "UNKNOWN" && <Banner tone="warning">Результат отправки неизвестен — сообщение могло уйти</Banner>}
                     {reply.canRetry && (
@@ -269,7 +269,7 @@ export function AdminContactReplies({ contactId, email, channel = "EMAIL", teleg
               }}
             />
             <div className={styles.actions}>
-              <span className={styles.hint}>{channel === "TELEGRAM" ? `В Telegram${telegramUsername ? ` · @${telegramUsername.replace(/^@/, "")}` : ""}` : `На ${email || "email не указан"}`}</span>
+              <span className={styles.hint}>{channel === "TELEGRAM" ? `В Telegram${telegramUsername ? `, @${telegramUsername.replace(/^@/, "")}` : ""}` : `На ${email || "email не указан"}`}</span>
               <Button type="submit" variant="primary" disabled={busy !== null} loading={busy === "send"}>
                 Отправить ответ
               </Button>

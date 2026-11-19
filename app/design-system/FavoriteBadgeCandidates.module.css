@@ -1,0 +1,20 @@
+.preview { margin: var(--space-8) 0; color: var(--black); }
+.preview h3 { margin: 0 0 var(--space-2); }
+.intro { margin: 0 0 var(--space-5); font-size: var(--font-sm); line-height: var(--line-height-small); }
+.grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: var(--space-3); }
+.card { min-width: 0; padding: var(--space-4) var(--space-2); background: var(--soft); text-align: center; }
+.feature { display: grid; height: 104px; place-items: center; background: var(--white); }
+.feature .icon { transform: scale(2); }
+.card h4 { margin: var(--space-4) 0 var(--space-1); font-size: var(--font-sm); font-weight: var(--font-weight-medium); line-height: var(--line-height-small); }
+.card p { min-height: 40px; margin: 0; font-size: var(--font-xs); line-height: var(--line-height-small); }
+.sizes { display: flex; justify-content: space-around; gap: var(--space-1); margin-top: var(--space-4); }
+.size { min-width: 0; display: flex; flex-direction: column; align-items: center; gap: var(--space-2); font-size: var(--font-xs); line-height: var(--line-height-small); }
+.icon { position: relative; display: inline-flex; width: 24px; height: 24px; flex: none; color: var(--black); }
+.badge { position: absolute; top: -4px; left: 16px; display: flex; align-items: center; justify-content: center; box-sizing: border-box; min-width: 16px; height: 16px; padding: 0 3px; border: 1px solid var(--white); border-radius: 999px; font-size: 9px; line-height: 1; font-weight: var(--font-weight-medium); white-space: nowrap; }
+.badge[data-variant="dark"] { color: var(--white); background: var(--black); }
+.badge[data-variant="gold"] { color: var(--black); background: var(--gold); }
+.badge[data-variant="outline"] { color: var(--black); background: var(--white); border-color: var(--black); }
+.badge[data-variant="light"] { color: var(--black); background: var(--gold-light); border-color: var(--gold-deep); }
+.caption { display: block; margin-top: var(--space-3); font-size: var(--font-xs); line-height: var(--line-height-small); }
+@media (max-width: 1100px) { .grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (max-width: 700px) { .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-2); } }

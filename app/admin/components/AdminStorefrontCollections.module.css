@@ -34,22 +34,6 @@
   font-weight: var(--font-weight-regular);
 }
 
-.header > button,
-.editorActions button:last-child {
-  min-height: 40px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 7px;
-  padding: 0 15px;
-  border: var(--line-width-default) solid var(--black);
-  background: var(--black);
-  color: var(--white);
-  font: inherit;
-  font-size: var(--font-helper);
-  cursor: pointer;
-}
-
 .error {
   margin: 14px 0 0;
   color: var(--error);
@@ -94,25 +78,6 @@
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: var(--space-3);
   margin-top: 18px;
-}
-
-.fields label {
-  display: flex;
-  flex-direction: column;
-  gap: 7px;
-  font-size: var(--font-helper);
-}
-
-.fields input {
-  height: 42px;
-  padding: 0 13px;
-  border: var(--line-width-default) solid var(--line);
-  background: var(--white);
-  outline: none;
-}
-
-.fields input:focus {
-  border-color: var(--black);
 }
 
 .activeField {
@@ -164,33 +129,9 @@
   margin-bottom: 10px;
 }
 
-.productSearch input {
-  min-width: 0;
-  height: 40px;
-  padding: 0 var(--space-3);
-  border: 0;
-  background: var(--soft);
-  color: var(--black);
-}
-
-.productSearch button,
-.loadMore {
-  min-height: 40px;
-  padding: 0 var(--space-4);
-  border: 0;
-  background: var(--black);
-  color: var(--white);
-  font-size: var(--font-label-compact);
-}
-
 .loadMore {
   display: block;
   margin: var(--space-3) auto 0;
-}
-
-.productSearch button:disabled,
-.loadMore:disabled {
-  opacity: .45;
 }
 
 .productGrid {
@@ -277,19 +218,6 @@
   margin-top: 18px;
 }
 
-.editorActions button:first-child {
-  min-height: 40px;
-  padding: 0 15px;
-  border: var(--line-width-default) solid var(--black);
-  background: transparent;
-  font-size: var(--font-helper);
-}
-
-.editorActions button:disabled {
-  opacity: .45;
-  cursor: default;
-}
-
 .list {
   display: grid;
   gap: var(--space-2);
@@ -352,7 +280,7 @@
   display: flex;
 }
 
-.thumbs span {
+.thumbs > span {
   width: 48px;
   aspect-ratio: 3 / 4;
   margin-left: -6px;
@@ -362,7 +290,7 @@
   background: var(--soft);
 }
 
-.thumbs span:first-child { margin-left: 0; }
+.thumbs > span:first-child { margin-left: 0; }
 
 .cardActions {
   display: flex;

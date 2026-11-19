@@ -1,5 +1,6 @@
 "use client";
 import Image from "next/image";
+import {PhotoPlaceholder} from "../../components/ui/PhotoPlaceholder";
 import {useEffect,useRef,useState} from "react";
 import {Button} from "../../components/ui/Button";
 import {EmptyState} from "../../components/ui/EmptyState";
@@ -53,25 +54,40 @@ export function AccountReturnsTab({onOpenOrders,onOpenOrder}:{onOpenOrders:()=>v
   }
   const eligible=(purchases??[]).filter(order=>order.returnAvailableUntil===undefined||Boolean(order.returnAvailableUntil&&new Date(order.returnAvailableUntil).getTime()>Date.now()));
   return <section className={styles.page}>
-    {error?<div className={styles.error} role="alert">{error}<Button variant="ghost" onClick={()=>setRetry(value=>value+1)}>Повторить</Button></div>:null}
-    {loading?<AccountSkeleton variant="returns"/>:!items.length&&!error?<EmptyState title="Возвратов пока нет" text="Выберите покупку, чтобы оформить возврат" actions={<Button variant="primary" onClick={()=>void choose()}>Выбрать покупку</Button>}/>:null}
-    {items.length?<><div className={styles.list}>{items.map(request=><article className={styles.card} key={request.id}>
-      <div className={styles.top}><span>Возврат № {request.id}</span><time dateTime={request.createdAt}>{orderDate(request.createdAt)}</time></div><span className={styles.status}>{returnStatusLabels[request.status]}</span>
-      <div className={styles.product}>{request.imageUrl?<Image src={request.imageUrl} alt={request.productTitle} width={80} height={120}/>:null}<div><h2>{request.productTitle}</h2><p>{request.quantity} ед.{request.requestedAmount!==null?<> | <Price amount={request.requestedAmount}/></>:null}</p><p>{returnReasonLabels[request.reason]}</p></div></div>
-      <button className={styles.orderLink} onClick={()=>onOpenOrder?onOpenOrder(request.orderId):onOpenOrders()}>Заказ № {request.orderId} ↗</button>
-      {request.adminComment?<p className={styles.comment}>{request.adminComment}</p>:null}
-      {request.approvedRefundAmount!==null?<p className={styles.comment}>Подтверждённая сумма: <Price amount={request.approvedRefundAmount}/></p>:null}
-      {request.trackingUrl?<a className={styles.orderLink} href={request.trackingUrl} target="_blank" rel="noreferrer">Отследить возврат ↗</a>:null}
-      {request.status==="WAITING_FOR_ITEM"&&request.manualDelivery===true?<p className={styles.comment}>Оператор согласует с вами способ возврата</p>:null}
-      {!details[request.id]?<Button variant="ghost" loading={detailLoading===request.id} disabled={detailLoading!==null} onClick={()=>void loadDetail(request)}>Действия по возврату</Button>:<>
-        <ReturnWorkflowSummary workflow={details[request.id].workflow} onRefresh={()=>void loadDetail(request)}/>
-        {returnAction(details[request.id],"DOWNLOAD_DOCUMENTS").allowed?<div className={styles.documents}><Button variant="ghost" loading={downloading===request.id} disabled={downloading!==null} onClick={()=>void download(details[request.id],"waybill")}>Накладная</Button><Button variant="ghost" disabled={downloading!==null} onClick={()=>void download(details[request.id],"barcode")}>Штрихкод</Button></div>:null}
-      </>}
-    </article>)}</div><ListLoadMore loaded={items.length} total={total} loading={loadingMore} onLoadMore={loadMore}/><Button variant="secondary" onClick={()=>void choose()}>Оформить ещё возврат</Button></>:null}
+    <AccountReturnHistory items={items} loading={loading} error={error} loadingMore={loadingMore} total={total}
+      details={details} detailLoading={detailLoading} downloading={downloading} onRetry={()=>setRetry(value=>value+1)}
+      onChoose={()=>void choose()} onOpenOrder={id=>onOpenOrder?onOpenOrder(id):onOpenOrders()} onLoadMore={()=>void loadMore()}
+      onLoadDetail={request=>void loadDetail(request)} onDownload={(request,type)=>void download(request,type)} />
     {choosing?<EditorSurface title="Выберите покупку" onClose={()=>setChoosing(false)}>
       {purchaseError?<div className={styles.error}>Не удалось загрузить покупки<Button variant="ghost" onClick={()=>void choose()}>Повторить</Button></div>:null}
       {purchaseLoading&&!purchases?<AccountSkeleton variant="orders"/>:eligible.length?<AccountOrdersTab orders={eligible} totalElements={eligible.length} buildOrderStatusLabel={()=>"Получен"} onOpenOrder={id=>{setChoosing(false);onOpenOrder?.(id);}}/>:!purchaseLoading&&!purchaseError?<EmptyState title="Нет доступных покупок" text="Здесь появятся полученные покупки, для которых доступна подача возврата" actions={<Button variant="primary" onClick={()=>{setChoosing(false);onOpenOrders();}}>Посмотреть заказы</Button>}/>:null}
       {purchases&&purchases.length<purchaseTotal?<Button variant="secondary" loading={purchaseLoading} onClick={()=>void choose(true)}>Показать ещё покупки</Button>:null}
     </EditorSurface>:null}
   </section>;
+}
+
+/** The return list view is shared by the account and the local design-system example. */
+export function AccountReturnHistory({items,loading,error,loadingMore,total,details,detailLoading,downloading,onRetry,onChoose,onOpenOrder,onLoadMore,onLoadDetail,onDownload}:{
+  items:AccountReturnListItem[];loading:boolean;error:string|null;loadingMore:boolean;total:number;
+  details:Record<number,ReturnRequest>;detailLoading:number|null;downloading:number|null;
+  onRetry:()=>void;onChoose:()=>void;onOpenOrder:(id:number)=>void;onLoadMore:()=>void;
+  onLoadDetail:(request:AccountReturnListItem)=>void;onDownload:(request:ReturnRequest,type:"waybill"|"barcode")=>void;
+}){
+  return <>
+    {error?<div className={styles.error} role="alert">{error}<Button variant="ghost" onClick={onRetry}>Повторить</Button></div>:null}
+    {loading?<AccountSkeleton variant="returns"/>:!items.length&&!error?<EmptyState title="Возвратов пока нет" text="Выберите покупку, чтобы оформить возврат" actions={<Button variant="primary" onClick={onChoose}>Выбрать покупку</Button>}/>:null}
+    {items.length?<><div className={styles.list}>{items.map(request=><article className={styles.card} key={request.id}>
+      <div className={styles.top}><span>Возврат № {request.id}</span><time dateTime={request.createdAt}>{orderDate(request.createdAt)}</time></div><span className={styles.status}>{returnStatusLabels[request.status]}</span>
+      <div className={styles.product}>{request.imageUrl?<Image src={request.imageUrl} alt={request.productTitle} width={80} height={120}/>:<span className={styles.productPlaceholder}><PhotoPlaceholder /></span>}<div><h2>{request.productTitle}</h2><p>{request.quantity} ед.{request.requestedAmount!==null?<> | <Price amount={request.requestedAmount}/></>:null}</p><p>{returnReasonLabels[request.reason]}</p></div></div>
+      <button className={styles.orderLink} onClick={()=>onOpenOrder(request.orderId)}>Заказ № {request.orderId} ↗</button>
+      {request.adminComment?<p className={styles.comment}>{request.adminComment}</p>:null}
+      {request.approvedRefundAmount!==null?<p className={styles.comment}>Подтверждённая сумма: <Price amount={request.approvedRefundAmount}/></p>:null}
+      {request.trackingUrl?<a className={styles.orderLink} href={request.trackingUrl} target="_blank" rel="noreferrer">Отследить возврат ↗</a>:null}
+      {request.status==="WAITING_FOR_ITEM"&&request.manualDelivery===true?<p className={styles.comment}>Оператор согласует с вами способ возврата</p>:null}
+      {!details[request.id]?<Button variant="ghost" loading={detailLoading===request.id} disabled={detailLoading!==null} onClick={()=>onLoadDetail(request)}>Действия по возврату</Button>:<>
+        <ReturnWorkflowSummary workflow={details[request.id].workflow} onRefresh={()=>onLoadDetail(request)}/>
+        {returnAction(details[request.id],"DOWNLOAD_DOCUMENTS").allowed?<div className={styles.documents}><Button variant="ghost" loading={downloading===request.id} disabled={downloading!==null} onClick={()=>onDownload(details[request.id],"waybill")}>Накладная</Button><Button variant="ghost" disabled={downloading!==null} onClick={()=>onDownload(details[request.id],"barcode")}>Штрихкод</Button></div>:null}
+      </>}
+    </article>)}</div><ListLoadMore loaded={items.length} total={total} loading={loadingMore} onLoadMore={onLoadMore}/><Button variant="secondary" onClick={onChoose}>Оформить ещё возврат</Button></>:null}
+  </>;
 }

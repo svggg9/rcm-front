@@ -7,7 +7,7 @@ type Content = Pick<SellerProduct, "title" | "description" | "composition" | "de
 
 export function ProductRevisionReview({ source, current }: { source: SellerProduct; current: Content }) {
   const audience = { MEN: "Для мужчин", WOMEN: "Для женщин", UNISEX: "Для всех" };
-  const variants = source.variants.map(v => `${v.color || "Без цвета"} · ${v.size || "Без размера"}`).sort().join("\n");
+  const variants = source.variants.map(v => `${v.color || "Без цвета"}, ${v.size || "Без размера"}`).sort().join("\n");
   const rows: [string, string | number | null, string | number | null][] = [
     ["Название", source.title, current.title],
     ["Категория", source.suggestedCategoryName || source.category, current.category],

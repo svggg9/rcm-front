@@ -2,6 +2,7 @@
 
 import { useId, type FocusEventHandler } from "react";
 import { Field, getFieldDescriptionIds } from "./Field";
+import { AnimatedValue } from "./AnimatedValue";
 import { Icon } from "./Icon";
 import { useDropdown } from "./useDropdown";
 import styles from "./FormControl.module.css";
@@ -28,6 +29,7 @@ type Props<TValue extends SelectValue> = {
   fieldVariant?: "boxed" | "inline";
   full?: boolean;
   size?: "default" | "compact";
+  valueAnimationRevision?: number;
   onChange: (value: TValue | "") => void;
   onBlur?: FocusEventHandler<HTMLDivElement>;
 };
@@ -36,7 +38,7 @@ export function FormSelect<TValue extends SelectValue>({
   id, label, ariaLabel, "aria-describedby": describedBy, hint, error, value, options,
   placeholder, emptyOptionLabel, emptyText = "Нет доступных вариантов", invalid = false, errorId,
   required = false, disabled = false, readOnly = false, fieldVariant = "boxed", full = false,
-  size = "default", onChange, onBlur,
+  size = "default", valueAnimationRevision, onChange, onBlur,
 }: Props<TValue>) {
   const generatedId = useId();
   const controlId = id ?? generatedId;
@@ -80,7 +82,7 @@ export function FormSelect<TValue extends SelectValue>({
         aria-label={label ? undefined : ariaLabel}
         aria-labelledby={label ? labelId + " " + valueId : ariaLabel ? undefined : valueId}
         title={displayValue} onClick={() => { if (!inactive) setOpen(current => !current); }}>
-        <span id={valueId} className={hasValue ? styles.selectValue : styles.selectPlaceholderValue}>{displayValue}</span>
+        <span id={valueId} className={hasValue ? styles.selectValue : styles.selectPlaceholderValue}>{valueAnimationRevision === undefined ? displayValue : <AnimatedValue revision={valueAnimationRevision}>{displayValue}</AnimatedValue>}</span>
         <span className={styles.chevron} aria-hidden="true"><Icon name="chevron-down" size={20} strokeWidth={1.5} /></span>
       </button>
       <div className={styles.menu} id={listboxId} role="listbox" aria-hidden={!open} inert={!open}

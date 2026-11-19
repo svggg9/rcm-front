@@ -1,3 +1,11 @@
+:root {
+  --toast-neutral-icon: #555653;
+  --toast-info-icon: #315fbe;
+  --toast-success-icon: #187a4d;
+  --toast-warning-icon: var(--feedback-warning-icon);
+  --toast-error-icon: #b93b32;
+}
+
 .rcmToaster {
   --width: 420px !important;
   width: min(420px, calc(100vw - 48px)) !important;
@@ -10,58 +18,57 @@ body:has([data-store-actions]) .rcmToaster:not(.rcmToaster--editor) {
 }
 
 .rcmToast {
+  --toast-icon-color: var(--toast-neutral-icon);
   width: 100% !important;
   max-width: 100% !important;
-  border-radius: var(--radius-none) !important;
+  border-radius: 12px !important;
   border: 0 !important;
-  background: var(--soft) !important;
+  background: #e9e9e6 !important;
   color: var(--black) !important;
   padding: var(--space-4) 56px var(--space-4) var(--space-4) !important;
   font-size: var(--font-sm) !important;
   text-align: left !important;
   font-family: inherit !important;
   display: grid !important;
-  grid-template-columns: 20px minmax(0, 1fr) !important;
-  align-items: start !important;
+  grid-template-columns: 40px minmax(0, 1fr) !important;
+  align-items: center !important;
   gap: var(--space-3) !important;
   box-shadow: none !important;
 }
 
 .rcmToast[data-type="success"] {
-  background: var(--feedback-success-bg) !important;
-  border: var(--line-width-default) solid var(--feedback-success-border) !important;
+  --toast-icon-color: var(--toast-success-icon);
+  background: #e3f3eb !important;
 }
 .rcmToast[data-type="error"] {
-  background: var(--feedback-danger-bg) !important;
-  border: var(--line-width-default) solid var(--feedback-danger-border) !important;
-  font-size: var(--feedback-body-size) !important;
-  line-height: var(--feedback-line-height) !important;
+  --toast-icon-color: var(--toast-error-icon);
+  background: #faeae8 !important;
 }
-.rcmToast[data-type="error"] .rcmToastTitle { font-size: var(--feedback-body-size) !important; line-height: var(--feedback-line-height) !important; font-weight: var(--font-weight-regular) !important; }
-.rcmToast[data-type="error"] .rcmToastDescription { color: var(--muted) !important; font-size: var(--feedback-body-size) !important; line-height: var(--feedback-line-height) !important; font-weight: var(--font-weight-regular) !important; }
 .rcmToast[data-type="warning"] {
-  background: var(--feedback-warning-bg) !important;
-  border: var(--line-width-default) solid var(--feedback-warning-border) !important;
+  --toast-icon-color: var(--toast-warning-icon);
+  background: #fff0df !important;
 }
 .rcmToast[data-type="info"] {
-  background: var(--feedback-info-bg) !important;
-  border: var(--line-width-default) solid var(--feedback-info-border) !important;
+  --toast-icon-color: var(--toast-info-icon);
+  background: #e9efff !important;
 }
 .rcmToast [data-icon] {
   grid-column: 1;
-  width: 20px !important;
-  height: 20px !important;
-  margin: 1px 0 0 !important;
+  display: flex !important;
+  justify-content: center !important;
+  align-items: center !important;
+  width: 40px !important;
+  height: 40px !important;
+  margin: 0 !important;
+  border-radius: 10px;
+  background: rgb(255 255 255 / 55%);
+  color: var(--toast-icon-color);
 }
 .rcmToast [data-icon] svg { margin: 0 !important; }
-.rcmToast[data-type="success"] [data-icon] { color: var(--success); }
-.rcmToast[data-type="error"] [data-icon] { color: var(--error); }
-.rcmToast[data-type="warning"] [data-icon] { color: var(--warning); }
-.rcmToast[data-type="info"] [data-icon] { color: var(--feedback-info-color, var(--gold-deep)); }
 .rcmToast [data-content] {
   grid-column: 2;
   min-width: 0;
-  gap: 6px !important;
+  gap: var(--toast-content-gap, 2px) !important;
   text-align: left !important;
 }
 .rcmToast:not(:has([data-icon])) [data-content] { grid-column: 1 / -1; }
@@ -93,7 +100,7 @@ body:has([data-store-actions]) .rcmToaster:not(.rcmToaster--editor) {
   height: 44px !important;
   padding: 0 !important;
   border: 0 !important;
-  border-radius: var(--radius-none) !important;
+  border-radius: 8px !important;
   background: transparent !important;
   color: var(--black) !important;
   transform: none !important;
@@ -115,18 +122,18 @@ body:has([data-store-actions]) .rcmToaster:not(.rcmToaster--editor) {
   overflow-wrap: anywhere;
   text-align: left !important;
   color: var(--black) !important;
-  font-size: var(--font-sm) !important;
-  font-weight: var(--font-weight-medium) !important;
-  line-height: var(--line-height-ui) !important;
+  font-size: var(--toast-title-size, var(--type-subtitle-2-size)) !important;
+  font-weight: var(--toast-title-weight, var(--type-subtitle-weight)) !important;
+  line-height: var(--toast-title-line, var(--type-subtitle-2-line)) !important;
 }
 .rcmToastDescription {
   width: 100%;
   overflow-wrap: anywhere;
   text-align: left !important;
-  color: var(--black) !important;
-  font-size: var(--font-sm) !important;
-  font-weight: var(--font-weight-regular) !important;
-  line-height: var(--line-height-ui) !important;
+  color: #555653 !important;
+  font-size: var(--toast-body-size, var(--type-body-2-size)) !important;
+  font-weight: var(--toast-body-weight, var(--type-body-weight)) !important;
+  line-height: var(--toast-body-line, var(--type-body-2-line)) !important;
 }
 
 /* Native modal notifications stay in the top layer, above the action footer. */

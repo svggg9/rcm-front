@@ -28,7 +28,7 @@ export function productFeedback(action: ProductAction, result: ProductActionResu
   const noun = form === "one" ? "товар" : form === "few" ? "товара" : "товаров";
   const success = count === 1 ? messages[action][0] : `${messages[action][1]} ${count} ${noun}`;
   return {
-    title: failed ? (count ? `${success} · Не удалось: ${failed}` : messages[action][2]) : success,
+    title: failed ? (count ? `${success}, не удалось: ${failed}` : messages[action][2]) : success,
     singleFailure: !count && failed === 1 ? result.failures[0] : null,
   };
 }

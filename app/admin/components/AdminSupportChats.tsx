@@ -60,7 +60,7 @@ function SupportChatList() {
     {!current ? <CabinetSkeleton variant="list" rows={3} compact /> : current.error ? <RequestError message={current.error} onRetry={() => setRevision(value => value + 1)} /> : null}
     {current?.data && <>{current.data.content.length ? <div className={styles.list}>{current.data.content.map(chat => <Link className={styles.chatLink} href={href(chat.id)} key={chat.id} scroll={false}>
       <div><strong>{chat.name || "Личный диалог"}</strong>{chat.telegramUsername && <p className={styles.hint}>@{chat.telegramUsername.replace(/^@+/, "")}</p>}<p>{chat.lastMessage || "Сообщений пока нет"}</p></div>
-      <span className={styles.hint}>{SUPPORT_STATUSES[chat.status]} · {new Date(chat.updatedAt).toLocaleString("ru-RU", { timeZone: "Europe/Moscow", day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}</span>
+      <span className={styles.hint}>{SUPPORT_STATUSES[chat.status]}, {new Date(chat.updatedAt).toLocaleString("ru-RU", { timeZone: "Europe/Moscow", day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}</span>
     </Link>)}</div> : <EmptyState title="Диалогов пока нет" text="Здесь появится история общения из Telegram и с сайта" />}
       {current.data.totalPages > 1 && <nav className={styles.tools} aria-label="Страницы диалогов"><Button disabled={!page} onClick={() => navigate({ chatPage: String(page - 1) })}>Назад</Button>
         <span>Страница {page + 1} из {current.data.totalPages}</span><Button disabled={page + 1 >= current.data.totalPages} onClick={() => navigate({ chatPage: String(page + 1) })}>Далее</Button></nav>}

@@ -57,14 +57,14 @@ export function AdminLatePayments() {
     finally { inFlight.current = false; setBusy(false); setRevision(value => value + 1); }
   }
   return <>{confirmation}<section className={styles.panel} aria-label="Поздние платежи" aria-busy={busy || loading}>
-    <div className={styles.heading}><h2>Поздние платежи{data ? ` · ${data.totalElements}` : ""}</h2>
+    <div className={styles.heading}><h2>Поздние платежи{data ? ` (${data.totalElements})` : ""}</h2>
       <Button variant="ghost" disabled={busy} onClick={() => setRevision(value => value + 1)}>Обновить</Button></div>
     <p>Каждая оплаченная попытка показана отдельно. Возврат не возобновляет отменённый заказ.</p>
     {loading && <Loader label="Загрузка данных" />}
     {error && <p className={styles.error} role="alert">{error}</p>}
     {actionError && !selection && <p className={styles.error} role="alert">{actionError}</p>}
     {data?.content.map(row => <article className={styles.operation} key={row.paymentId} aria-label={`Поздний платёж №${row.paymentId}`}>
-      <strong>Платёж №{row.paymentId} · {operationMoney(row.amount, row.currency)}</strong>
+      <strong>Платёж №{row.paymentId}, {operationMoney(row.amount, row.currency)}</strong>
       <dl className={styles.facts}>
         <div><dt>Группа заказов</dt><dd>{row.orderGroupId}</dd></div>
         <div><dt>Номер в банке</dt><dd>{row.externalPaymentId}</dd></div>

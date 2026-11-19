@@ -1,11 +1,14 @@
 .editor { border: var(--line-width-default) solid var(--line); border-radius: var(--field-control-radius); overflow: hidden; background: var(--soft); min-width: 0; }
-.editor:focus-within { border-color: var(--black); box-shadow: 0 0 0 1px var(--black); }
+.editor:has(textarea:focus-visible) { border-color: var(--black); background: var(--field-focus-background); }
 .editor.invalid { border-color: var(--error); }
 .toolbar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 4px 8px; padding: 4px 8px; }
 .tools { display: flex; flex-wrap: wrap; align-items: center; gap: 0; min-width: 0; }
 .toolbar button { min-height: 44px; padding: 4px 6px; font-size: var(--font-helper); line-height: var(--line-height-helper); }
 .count { margin-left: auto; font-size: var(--font-helper); color: var(--muted); white-space: nowrap; font-variant-numeric: tabular-nums; }
 .editor textarea { display: block; width: 100%; min-height: 160px; border: 0; outline: 0; box-shadow: none; border-radius: 0; background: transparent; color: var(--black); font: inherit; font-size: var(--editor-text-size, var(--font-md)); line-height: var(--editor-line-height, 1.6); padding: 8px 20px 20px; resize: vertical; }
-.editor textarea:disabled { opacity: var(--field-disabled-opacity, 0.55); }
+.editor:has(textarea:disabled) { background: var(--field-disabled-background); border-color: var(--field-disabled-border); }
+.editor textarea:disabled { color: var(--field-disabled-color); -webkit-text-fill-color: var(--field-disabled-color); opacity: 1; }
 .editor textarea::placeholder { color: var(--muted); }
+.editor textarea:disabled::placeholder { color: var(--field-disabled-color); opacity: 1; }
 .editor > p { padding: 0 20px 16px; }
+@media (forced-colors: active) { .editor:has(textarea:focus-visible) { outline: 2px solid Highlight; outline-offset: 2px; } }

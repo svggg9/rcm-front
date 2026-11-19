@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { Button } from "../../components/ui/Button";
 import { DesignSystemIcon as Icon } from "../../components/ui/DesignSystemIcon";
+import { PhotoPlaceholder } from "../../components/ui/PhotoPlaceholder";
 import { Price } from "../../components/ui/Price";
 import { SectionLoader } from "../../components/ui/SectionLoader";
 import { EmptyState } from "../../components/ui/EmptyState";
@@ -93,6 +94,6 @@ function ProductCover({ product }: { product: SellerProductListItem }) {
   return <div className={styles.cover}>
     {product.coverImage && !failed ? <Image src={product.coverImage} alt="" width={180} height={240}
       sizes="(max-width: 600px) 120px, 136px" onError={() => setFailed(true)} />
-      : <span className={styles.noPhoto}><Icon name="package" role="empty" /><span>Без фото</span></span>}
+      : <PhotoPlaceholder />}
   </div>;
 }

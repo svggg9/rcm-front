@@ -1,6 +1,7 @@
 "use client";
 
 import { ProductPhoto } from "../ProductPhoto";
+import { PhotoPlaceholder } from "../ui/PhotoPlaceholder";
 import { useEffect, useRef, useState } from "react";
 
 import styles from "./ProductImageCarousel.module.css";
@@ -58,7 +59,7 @@ export function ProductImageCarousel({
   if (!images.length) {
     return (
       <div className={`${styles.root} ${overlayIndicators ? styles.overlay : ""} ${className}`.trim()}>
-        <div className={`${styles.slide} ${styles.placeholder}`}>Фото отсутствует</div>
+        <div className={styles.slide}><PhotoPlaceholder /></div>
       </div>
     );
   }

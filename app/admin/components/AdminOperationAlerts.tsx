@@ -40,16 +40,16 @@ export function AdminOperationAlerts({ sample }: { sample?: AdminOperationAlertP
     </div>
     <AdminResourceState loading={loading} error={error} hasData={data !== undefined} onRetry={refresh} />
     {data && <>
-      <p className={styles.hint}>Оплаты: {data.summary.payments} · Возвраты: {data.summary.refunds} · Доставка: {data.summary.deliveries}</p>
+      <p className={styles.hint}>Оплаты: {data.summary.payments}, Возвраты: {data.summary.refunds}, Доставка: {data.summary.deliveries}</p>
       {data.content.length ? <div className={styles.list}>{data.content.map(row => {
         const queue = operationAlertQueue(row.kind);
         const queueHref = row.kind === "delivery" && row.operationId !== null ? `${queue.href}&q=${row.orderId}`
           : row.kind === "refund" && row.operationId !== null ? `${queue.href}&refundId=${row.operationId}` : queue.href;
         const level = levels[row.level];
         return <article className={styles.row} key={`${row.kind}:${row.orderId}:${row.operationId ?? "order"}:${row.reason}`}>
-          <div><strong>{names[row.kind]} · заказ №{row.orderId}</strong>
+          <div><strong>{names[row.kind]}, заказ №{row.orderId}</strong>
             <p>{operationAlertDescription(row.reason)}</p>
-            <p className={styles.hint}>{row.operationId !== null && row.kind !== "payment" ? `${names[row.kind]} №${row.operationId} · ` : ""}Отсчёт с {adminDate(row.referenceAt)}</p>
+            <p className={styles.hint}>{row.operationId !== null && row.kind !== "payment" ? `${names[row.kind]} №${row.operationId}, ` : ""}Отсчёт с {adminDate(row.referenceAt)}</p>
           </div>
           <StatusBadge tone={level.tone}>{level.label}</StatusBadge>
           <div className={styles.actions}>

@@ -95,7 +95,7 @@ function formatTelegramConnection(application: AdminSellerApplication) {
   if (!application.telegramLinked) return "Не подключён";
 
   const username = application.telegramUsername?.trim().replace(/^@+/, "");
-  return username ? `Подключён · @${username}` : "Подключён";
+  return username ? `Подключён, @${username}` : "Подключён";
 }
 
 export function AdminSellersTab({

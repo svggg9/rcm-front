@@ -7,3 +7,10 @@
 /* Opacity preserves the accessible name and the width while the spinner is visible. */
 .hidden { opacity: 0; }
 .visuallyHidden { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+
+@media (prefers-reduced-motion: no-preference) {
+  .successBounce { animation: successBounce 460ms cubic-bezier(.2,.7,.2,1) both; }
+  .failureIcon { animation: failureShake 420ms ease-out both; }
+}
+@keyframes successBounce { 0% { opacity: 0; transform: scale(.5); } 65% { opacity: 1; transform: scale(1.25); } 100% { transform: scale(1); } }
+@keyframes failureShake { 0% { opacity: 0; transform: translateX(-3px); } 35% { opacity: 1; transform: translateX(3px); } 70% { transform: translateX(-1px); } 100% { opacity: 1; transform: translateX(0); } }

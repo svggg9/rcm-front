@@ -24,7 +24,7 @@ export type DeliveryMethod = "PICKUP" | "COURIER";
 
 export type CheckoutStep = "CONTACT" | "DELIVERY" | "PAYMENT";
 
-export type CountryCode = "RU";
+export type CountryCode = string;
 
 export type FittingMode = "WITH_FITTING" | "WITHOUT_FITTING";
 

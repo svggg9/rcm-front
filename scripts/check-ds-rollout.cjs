@@ -15,7 +15,33 @@ const { SellerTaskRow } = require("../app/seller/components/SellerHomeTasks.tsx"
 const { OrderDetailsPanel } = require("../app/seller/components/OrderDetailsPanel.tsx");
 const { TextInput } = require("../app/components/ui/TextInput.tsx");
 const { Icon } = require("../app/components/ui/Icon.tsx");
+const { HeaderIcon } = require("../app/components/Header/HeaderIcon.tsx");
+const { BuyerNavigationIcon } = require("../app/components/BuyerNavigation/BuyerNavigationIcon.tsx");
 const render = (Component, props) => renderToStaticMarkup(React.createElement(Component, props));
+const { adminDemoCategories, adminDemoProduct, adminDemoPayout, payoutExamples } = require("../app/design-system/AdminCoverage.tsx");
+const { normalizeCategories } = require("../app/lib/categories.ts");
+const { AdminProductDetails } = require("../app/admin/components/AdminProductDetails.tsx");
+assert.equal(normalizeCategories(adminDemoCategories)[0].id, adminDemoProduct.categoryId);
+const adminDetail = render(AdminProductDetails, {
+  product: adminDemoProduct, categories: adminDemoCategories, actionProductId: null, loadDates: false,
+  onBack() {}, onAssignCategory: async () => {}, onApprove: async () => {}, onReturnToRevision() {},
+  onBlock: async () => {}, onUnblock: async () => {},
+});
+assert.match(adminDetail, /Основные данные/);
+assert.match(adminDetail, /Комментарий модератора/);
+const { AdminPayoutDetailContent } = require("../app/admin/components/AdminPayoutRegistry.tsx");
+const payoutReview = render(AdminPayoutDetailContent, { detail: {
+  payout: { ...adminDemoPayout, status: "REVIEW" }, version: 1, allowedActions: payoutExamples.REVIEW, attempts: [], history: [],
+}, loading: false, error: "", busy: false, onAction: async () => {} });
+assert.match(payoutReview, /Результат перевода неизвестен/);
+assert.match(payoutReview, /Заказы и удержания в выплате/);
+assert.match(payoutReview, /Банковские попытки ещё не начаты/);
+assert.doesNotMatch(payoutReview, /Подготовить новую попытку|Отменить реестр/);
+for (const IconComponent of [HeaderIcon, BuyerNavigationIcon]) {
+  for (const [cartCount, level] of [[0, "empty"], [1, "half"], [2, "full"], [20, "full"]]) {
+    assert.match(render(IconComponent, { name: "bag", cartCount }), new RegExp(`data-level="${level}"`));
+  }
+}
 const item = { productId: 1, variantId: 1, productTitle: "Рубашка", brandName: "Бренд", imageUrl: null, size: "M", color: "Чёрный", quantity: 1, price: 990.25, lineTotal: 990.25 };
 const order = { id: 10, status: "PROCESSING", paymentStatus: "PAID", deliveryStatus: "READY_FOR_SHIPMENT", paidAt: "2026-09-09T10:00:00+03:00", createdAt: "2026-08-01T00:00:00Z", items: [item], totalAmount: 1040.25, currency: "RUB", recipientName: "Получатель" };
 assert.equal(shippingDeadline(order.paidAt), "2026-09-12T07:00:00.000Z");
@@ -81,10 +107,16 @@ for (const [Component, selection] of [[FormSelect, { value: "a" }], [FormMultiSe
 }
 assert.match(render(FormSelect, { label: "Пустой", value: "", options: [], onChange() {} }), /Нет доступных вариантов/);
 assert.match(render(FormMultiSelect, { label: "Пустой", values: [], options: [], onChange() {} }), /Нет доступных вариантов/);
-for (const [name, shape] of [["package", "box"], ["shopping-bag", "receipt-text"], ["shipment-handoff", "truck"]]) {
-  assert.match(render(Icon, { name }), new RegExp(`lucide-${shape}`));
-  assert.match(render(Icon, { name }), /stroke-width="1.5"/);
+assert.match(render(Icon, { name: "package" }), /lucide-box/);
+assert.match(render(Icon, { name: "package" }), /stroke-width="1.5"/);
+const { DeliveryTruckIcon } = require("../app/components/ui/DeliveryTruckIcon.tsx");
+for (const name of ["shipment-handoff", "delivery-truck"]) {
+  assert.equal(render(Icon, { name }), render(DeliveryTruckIcon, { size: 20, strokeWidth: 1.5 }),
+    `${name} uses the shared delivery icon`);
 }
+const { OrderIcon } = require("../app/components/ui/OrderIcon.tsx");
+assert.equal(render(Icon, { name: "shopping-bag" }), render(OrderIcon, { size: 20, strokeWidth: 1.5 }),
+  "Order actions use the same parcel contour as the shared component");
 async function checkQueue() {
   const originalFetch = global.fetch;
   let forbidden = false;

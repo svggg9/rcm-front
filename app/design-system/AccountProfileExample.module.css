@@ -1,0 +1,4 @@
+.example { display: grid; gap: var(--space-4); min-width: 0; }
+.example > p { margin: 0; }
+.profile { display: grid; gap: var(--space-3); min-width: 0; max-width: 720px; }
+.note { margin: 0; font-size: var(--type-caption-size); line-height: var(--type-caption-line); color: var(--muted); }

@@ -12,7 +12,6 @@
   gap: var(--space-5);
   margin-bottom: var(--space-6);
   padding-bottom: 18px;
-  border-bottom: var(--line-width-hairline) solid var(--line);
 }
 
 .sectionTitle {

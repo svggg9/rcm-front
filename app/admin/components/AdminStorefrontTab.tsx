@@ -11,6 +11,7 @@ import {
 } from "react";
 
 import { Button } from "../../components/ui/Button";
+import { useTransientFailure } from "../../components/ui/useTransientFailure";
 import { toast } from "../../components/ui/toast";
 import { getImageUploadMetadataError, PHOTO_FILE_ACCEPT } from "../../lib/imageUploadPolicy";
 import {
@@ -55,6 +56,7 @@ export function AdminStorefrontTab({
   const [loading, setLoading] = useState(!initialHome);
   const [saving, setSaving] = useState(false);
   const [success, setSuccess] = useState(false);
+  const saveFailure = useTransientFailure();
   const [dragActive, setDragActive] = useState(false);
   const [failedImageUrl, setFailedImageUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -147,6 +149,7 @@ export function AdminStorefrontTab({
   }, [initialHome]);
 
   function selectFile(file: File | null) {
+    saveFailure.clear();
     setSuccess(false);
     setError(null);
 
@@ -168,6 +171,7 @@ export function AdminStorefrontTab({
   async function save() {
     if (!selectedFile || saving) return;
 
+    saveFailure.clear();
     setSaving(true);
     setSuccess(false);
     setError(null);
@@ -189,6 +193,7 @@ export function AdminStorefrontTab({
       if (successTimerRef.current) clearTimeout(successTimerRef.current);
       successTimerRef.current = setTimeout(() => setSuccess(false), 1600);
     } catch (caught) {
+      saveFailure.show();
       toast.error(
         caught instanceof Error
           ? caught.message
@@ -318,7 +323,7 @@ export function AdminStorefrontTab({
       <div className={styles.form}>
         <div className={styles.fieldHead}>
           <span className={styles.label}>Главное изображение</span>
-          <span className={styles.requirements}>JPEG, PNG или WebP · до 10 МБ</span>
+          <span className={styles.requirements}>JPEG, PNG или WebP, до 10 МБ</span>
           <span className={styles.requirements}>Исходник сохраняется, версия для показа оптимизируется автоматически</span>
         </div>
 
@@ -419,6 +424,8 @@ export function AdminStorefrontTab({
             disabled={!selectedFile || loading || saving || success}
             loading={saving}
             success={success}
+            successMotion="bounce"
+            failure={saveFailure.failure}
             onClick={() => void save()}
           >
             Сохранить

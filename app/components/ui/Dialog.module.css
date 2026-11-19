@@ -24,7 +24,7 @@
 }
 .header { display: flex; align-items: flex-start; gap: var(--space-3); }
 .mobileHeader { display: none; }
-.header h2 { flex: 1; min-width: 0; margin: 0; font-size: var(--dialog-title-size, var(--font-xl)); line-height: var(--dialog-title-line-height, var(--type-card-line-height)); font-weight: var(--dialog-title-weight, var(--type-card-weight)); letter-spacing: var(--dialog-title-tracking, var(--type-card-tracking)); overflow-wrap: anywhere; }
+.header h2 { flex: 1; min-width: 0; margin: 0; font-size: var(--dialog-title-size, var(--type-h5-size)); line-height: var(--dialog-title-line-height, var(--type-h5-line)); font-weight: var(--dialog-title-weight, var(--type-heading-weight)); letter-spacing: var(--dialog-title-tracking, var(--type-card-tracking)); overflow-wrap: anywhere; }
 .success { flex-shrink: 0; width: 24px; height: 24px; color: var(--success); }
 .close { margin: var(--dialog-close-margin, -10px -10px 0 0); }
 .body { margin: var(--dialog-body-margin, var(--space-5) 0 var(--space-6)); font-size: var(--font-md); line-height: var(--line-height-body); font-weight: var(--font-weight-regular); }
@@ -47,6 +47,13 @@
 .confirmation .body > p { color: var(--muted); }
 .confirmation .actions > :global(*) { flex: 1; margin: 0; }
 .confirmation .actions > :global(button) { min-height: var(--feedback-action-height); height: auto; padding: 11px var(--space-4); font-size: var(--feedback-action-size); line-height: var(--feedback-line-height); font-weight: var(--font-weight-regular); text-transform: uppercase; }
+.dialog.compactConfirmation { width: min(416px, calc(100vw - 32px)); padding: var(--space-6); border: 0; }
+.compactConfirmation .header h2 { font-size: var(--type-h6-size); line-height: var(--type-h6-line); font-weight: var(--type-heading-weight); letter-spacing: normal; }
+.compactConfirmation .body { margin: var(--space-3) 0 var(--space-6); font-size: var(--type-body-2-size); line-height: var(--type-body-2-line); }
+.compactCenter .header { display: block; text-align: center; padding-inline: var(--space-6); }
+.compactCenter .close { position: absolute; top: var(--space-2); right: var(--space-2); margin: 0; }
+.compactCenter .body { text-align: center; }
+.compactCenter .actions > :global(*) { flex: 1; }
 @media (max-width: 640px) {
   .withMobileHeader > .header { display: none; }
   .withMobileHeader > .mobileHeader { display: block; flex-shrink: 0; }
@@ -66,6 +73,6 @@
   .mobileFullscreen { width: 100%; max-width: none; height: 100dvh; max-height: 100dvh; margin: 0; border: 0; padding: var(--space-5); }
   .mobileFullscreen[open] { display: flex; flex-direction: column; overflow: hidden; }
   .mobileFullscreen .header, .mobileFullscreen .actions { flex-shrink: 0; }
-  .mobileFullscreen .header h2 { font-size: var(--font-title-sm); line-height: var(--line-height-title-xs); text-transform: uppercase; }
+  .mobileFullscreen .header h2 { font-size: var(--type-h6-size); line-height: var(--type-h6-line); text-transform: uppercase; }
   .mobileFullscreen .body { overflow-y: auto; min-height: 0; flex: 1; margin-bottom: 0; }
 }

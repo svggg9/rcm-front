@@ -10,6 +10,7 @@ import { TextInput } from "../../components/ui/TextInput";
 import { Icon } from "../../components/ui/Icon";
 import { PhoneInput } from "../../components/ui/PhoneInput";
 import { requestPasswordResetCode } from "../../lib/passwordReset";
+import { changeEmail } from "../../lib/emailChange";
 import { useFieldValidation } from "../../lib/useFieldValidation";
 import { scrollToFirstValidationError } from "../../lib/formValidation";
 import { getRussianPhoneDigits } from "../../lib/phone";
@@ -29,6 +30,9 @@ type Props = AccountProfileUpdate & {
   onEmailChanged: (email: string) => void;
   onSave: (values: AccountProfileUpdate) => Promise<boolean>;
   onEditingChange?: (editing: boolean) => void;
+  initialEditing?: boolean;
+  requestPasswordReset?: typeof requestPasswordResetCode;
+  requestEmailChange?: typeof changeEmail;
 };
 
 type ProfileDraft = AccountProfileUpdate;
@@ -44,8 +48,8 @@ function validateProfileDraft(draft: ProfileDraft): ProfileErrors {
   return errors;
 }
 
-export function AccountProfileTab({ email, emailVerified = false, firstName, lastName, phone, saving, onSave, onEmailChanged, onEditingChange }: Props) {
-  const [editing, setEditing] = useState(false);
+export function AccountProfileTab({ email, emailVerified = false, firstName, lastName, phone, saving, onSave, onEmailChanged, onEditingChange, initialEditing = false, requestPasswordReset: sendPasswordReset = requestPasswordResetCode, requestEmailChange }: Props) {
+  const [editing, setEditing] = useState(initialEditing);
   const [emailChanging, setEmailChanging] = useState(false);
   const [emailBusy, setEmailBusy] = useState(false);
   const [draft, setDraft] = useState<ProfileDraft>(() => createDraft({ firstName, lastName, phone }));
@@ -113,7 +117,7 @@ export function AccountProfileTab({ email, emailVerified = false, firstName, las
     }
     try {
       setPasswordResetSending(true);
-      await requestPasswordResetCode(email);
+      await sendPasswordReset(email);
       setPasswordResetSent(true);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Не удалось отправить письмо для смены пароля");
@@ -132,7 +136,7 @@ export function AccountProfileTab({ email, emailVerified = false, firstName, las
           <TextInput label="Электронная почта" fieldVariant="inline" type="email" value={email} placeholder="" readOnly tabIndex={-1} autoComplete="email"
             trailing={email && emailVerified ? <span className={styles.emailVerified} role="img" aria-label="Почта подтверждена" title="Почта подтверждена"><Icon name="check" size={18} strokeWidth={1.6} /></span> : undefined} />
           {editing && !emailChanging ? <button className={styles.emailChangeLink} type="button" disabled={busy} onClick={() => setEmailChanging(true)}>Изменить почту</button> : null}
-          {editing && emailChanging ? <AccountEmailChange email={email} onBusyChange={setEmailBusy} onCancel={() => setEmailChanging(false)} onChanged={newEmail => {
+          {editing && emailChanging ? <AccountEmailChange email={email} requestChange={requestEmailChange} onBusyChange={setEmailBusy} onCancel={() => setEmailChanging(false)} onChanged={newEmail => {
             onEmailChanged(newEmail); setEmailChanging(false); setPasswordResetSent(false); toast.success("Почта изменена");
           }} /> : null}
           <div className={styles.phoneField} data-empty={!editing && !getRussianPhoneDigits(values.phone).length || undefined}>
@@ -140,7 +144,7 @@ export function AccountProfileTab({ email, emailVerified = false, firstName, las
           </div>
           <div className={styles.detailItem}>
             <span id={passwordLabelId} className={styles.fieldLabel}>Пароль</span>
-            <div className={styles.passwordValue} aria-labelledby={passwordLabelId}>
+            <div className={`typeBody1 ${styles.passwordValue}`} aria-labelledby={passwordLabelId}>
               <span aria-label="Пароль скрыт">••••••••</span>
               {editing ? <button type="button" onClick={() => void requestPasswordReset()} disabled={busy || emailChanging} aria-label={passwordResetSending ? "Отправка письма для смены пароля" : undefined}>
                 {passwordResetSending ? <span className="buttonLoader" aria-hidden="true" /> : passwordResetSent ? "Отправить ещё раз" : "Изменить пароль"}

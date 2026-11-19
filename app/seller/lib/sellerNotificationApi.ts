@@ -42,7 +42,7 @@ export function notificationChannelSummary(preferences: SellerNotificationPrefer
   const channels: string[] = [];
   if (preferences.emailEnabled && preferences.email) channels.push("Email");
   if (preferences.telegramEnabled && preferences.telegramLinked) channels.push("Telegram");
-  return channels.join(" · ") || "Каналы не выбраны";
+  return channels.join(", ") || "Каналы не выбраны";
 }
 
 export async function getSellerNotificationPreferences(): Promise<SellerNotificationPreferences> {

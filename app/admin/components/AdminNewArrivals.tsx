@@ -75,7 +75,7 @@ export function AdminNewArrivals({ home, loading, onSaved }: {
         <FormSelect<number> label="Подборка" value={current.collectionId} disabled={disabled} full
           invalid={Boolean(selectionError)} errorId={selectionError ? selectionErrorId : undefined}
           placeholder="Выберите опубликованную подборку"
-          options={(home?.collections ?? []).map(collection => ({ value: collection.id, label: `${collection.title}${collection.active ? "" : " · Черновик"}`,
+          options={(home?.collections ?? []).map(collection => ({ value: collection.id, label: `${collection.title}${collection.active ? "" : " (черновик)"}`,
             disabled: !collection.active || !collection.products.length }))}
           onChange={collectionId => { setDraft({ ...current, mode: "collection", collectionId }); setError(null); setSelectionError(null); }} />
         {selectionError ? <div className="fieldError" id={selectionErrorId} role="alert">{selectionError}</div> : null}

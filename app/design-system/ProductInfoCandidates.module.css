@@ -1,0 +1,10 @@
+.preview { width: min(100%, 520px); min-width: 0; }
+.titleOptions { display: grid; gap: var(--space-2); margin-top: var(--space-4); }
+.titleOptions p { margin: 0; font-size: var(--type-caption-size); line-height: var(--type-caption-line); color: var(--muted); }
+.selector { display: grid; gap: var(--space-5); min-width: 0; }
+.content { animation: reveal 220ms ease-out; min-width: 0; }
+.preview > button { margin-top: var(--space-2); }
+.dialog[open] { animation: open 240ms ease-out; }
+@keyframes reveal { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes open { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+@media (prefers-reduced-motion: reduce) { .content, .dialog[open] { animation: none; } }

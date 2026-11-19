@@ -4,10 +4,11 @@
 .cells { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 8px; }
 .cells span { display: grid; place-items: center; min-width: 0; height: var(--otp-cell-height, 52px); border: var(--line-width-default) solid var(--line); background: var(--white); color: var(--black); font-size: var(--otp-digit-size, 20px); line-height: var(--otp-digit-line-height, 28px); font-weight: var(--field-control-weight, 400); }
 .input { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: text; font-size: 16px; }
-.control:focus-within .cells span[data-active] { border-color: var(--black); box-shadow: inset 0 0 0 1px var(--black); }
+.control:focus-within .cells span[data-active] { border-color: var(--black); background: var(--field-focus-background); }
 .control[data-error] .cells span { border-color: var(--error); }
-.control[data-error]:focus-within .cells span[data-active] { box-shadow: inset 0 0 0 1px var(--error); }
-.control[data-disabled] { opacity: var(--field-disabled-opacity, 0.55); }
+.control[data-error]:focus-within .cells span[data-active] { border-color: var(--error); }
+@media (forced-colors: active) { .control:focus-within .cells span[data-active] { outline: 2px solid Highlight; outline-offset: 2px; } }
+.control:has(.input:disabled) .cells span { background: var(--field-disabled-background); border-color: var(--field-disabled-border); color: var(--field-disabled-color); }
 .field > p { margin: 12px 0 0; }
 .field > .hint { color: var(--muted); font-size: var(--font-helper); line-height: var(--line-height-helper); }
 @media (prefers-reduced-motion: no-preference) {

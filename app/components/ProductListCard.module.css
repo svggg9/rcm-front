@@ -102,20 +102,6 @@
   object-fit: cover;
 }
 
-.imagePlaceholder {
-  width: 100%;
-  height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: var(--space-2);
-  color: var(--muted);
-  font-size: var(--font-micro);
-  line-height: 1.3;
-  font-weight: var(--font-weight-regular);
-  text-align: center;
-}
-
 .identity,
 .state,
 .fact {
@@ -164,12 +150,6 @@
   font-size: var(--font-helper);
   line-height: 1.35;
   font-weight: var(--font-weight-regular);
-}
-
-.meta > span + span::before {
-  content: "·";
-  margin-right: 10px;
-  color: var(--black);
 }
 
 .suggested {
@@ -401,10 +381,6 @@
   .meta {
     gap: var(--space-1) 7px;
     font-size: var(--font-label-compact);
-  }
-
-  .meta > span + span::before {
-    margin-right: 7px;
   }
 
   .facts {

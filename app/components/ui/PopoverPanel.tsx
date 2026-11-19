@@ -15,23 +15,31 @@ type Props = {
   children: ReactNode;
   initialFocusRef?: RefObject<HTMLElement | null>;
   variant?: "panel" | "hint";
+  appearance?: "default" | "confirmation";
   focusOnOpen?: boolean;
+  /** Optional opening motion; the default preserves existing popover behaviour. */
+  motion?: "settle" | "drop" | "lift";
+  /** Allows the owner to play a closing motion before switching open off. */
+  closing?: boolean;
+  dismissDisabled?: boolean;
 };
 
 const viewportGap = 16;
 const anchorGap = 8;
 
 /** A nonmodal, anchored panel in the browser's top layer. */
-export function PopoverPanel({ id, title, open, onClose, anchorRef, children, initialFocusRef, variant = "panel", focusOnOpen = true }: Props) {
+export function PopoverPanel({ id, title, open, onClose, anchorRef, children, initialFocusRef, variant = "panel", appearance = "default", focusOnOpen = true, motion, closing = false, dismissDisabled = false }: Props) {
   const panelRef = useRef<HTMLDivElement>(null);
   const bodyRef = useRef<HTMLDivElement>(null);
   const onCloseRef = useRef(onClose);
   const openRef = useRef(open);
+  const dismissDisabledRef = useRef(dismissDisabled);
 
   useLayoutEffect(() => {
     onCloseRef.current = onClose;
     openRef.current = open;
-  }, [onClose, open]);
+    dismissDisabledRef.current = dismissDisabled;
+  }, [onClose, open, dismissDisabled]);
 
   useLayoutEffect(() => {
     const panel = panelRef.current;
@@ -68,7 +76,7 @@ export function PopoverPanel({ id, title, open, onClose, anchorRef, children, in
       panel.style.maxHeight = `${availableHeight}px`;
       panel.style.maxWidth = `${Math.max(0, viewportWidth - viewportGap * 2)}px`;
 
-      const panelRect = variant === "hint" ? { width: panel.offsetWidth, height: panel.offsetHeight } : panel.getBoundingClientRect();
+      const panelRect = variant === "hint" || motion ? { width: panel.offsetWidth, height: panel.offsetHeight } : panel.getBoundingClientRect();
       const minLeft = viewportLeft + viewportGap;
       const maxLeft = viewportLeft + viewportWidth - viewportGap - panelRect.width;
       const minTop = viewportTop + viewportGap;
@@ -105,6 +113,7 @@ export function PopoverPanel({ id, title, open, onClose, anchorRef, children, in
     }
 
     function handleOutsideClick(event: MouseEvent) {
+      if (dismissDisabledRef.current) return;
       if (!(event.target instanceof Node) || panel?.contains(event.target) || anchorRef.current?.contains(event.target)) return;
       onCloseRef.current();
     }
@@ -115,6 +124,7 @@ export function PopoverPanel({ id, title, open, onClose, anchorRef, children, in
       // A newer modal must handle Escape itself, not a popover behind it.
       const focusedModal = document.activeElement?.closest("dialog:modal");
       if (focusedModal && !focusedModal.contains(anchorRef.current) && !focusedModal.contains(panel)) return;
+      if (dismissDisabledRef.current) { event.preventDefault(); event.stopPropagation(); return; }
       event.preventDefault();
       event.stopPropagation();
       onCloseRef.current();
@@ -174,17 +184,17 @@ export function PopoverPanel({ id, title, open, onClose, anchorRef, children, in
       if (focusFrame !== null) window.cancelAnimationFrame(focusFrame);
       if (panel.matches(":popover-open")) panel.hidePopover();
     };
-  }, [open, anchorRef, initialFocusRef, focusOnOpen, variant]);
+  }, [open, anchorRef, initialFocusRef, focusOnOpen, variant, motion]);
 
   return (
-    <div ref={panelRef} id={id} popover={variant === "hint" ? "manual" : "auto"} role={variant === "hint" ? "tooltip" : "dialog"} aria-label={title}
-      tabIndex={variant === "hint" ? undefined : -1} hidden={!open} className={`${styles.panel} ${variant === "hint" ? styles.hint : ""}`} data-ui="popover-panel">
+    <div ref={panelRef} id={id} popover={variant === "hint" || motion ? "manual" : "auto"} role={variant === "hint" ? "tooltip" : "dialog"} aria-label={title} aria-busy={dismissDisabled || undefined}
+      tabIndex={variant === "hint" ? undefined : -1} hidden={!open} className={`${styles.panel} ${variant === "hint" ? styles.hint : ""} ${appearance === "confirmation" ? styles.confirmation : ""}`} data-ui="popover-panel" data-motion={motion} data-closing={closing || undefined} inert={closing || undefined}>
       {variant === "panel" && <header className={styles.header}>
         <h2>{title}</h2>
-        <Button type="button" variant="ghost" iconOnly className={styles.close} aria-label={`Закрыть: ${title.toLocaleLowerCase("ru")}`}
+        {appearance !== "confirmation" && <Button type="button" variant="ghost" iconOnly className={styles.close} aria-label={`Закрыть: ${title.toLocaleLowerCase("ru")}`} disabled={dismissDisabled}
           onClick={() => { onClose(); anchorRef.current?.focus({ preventScroll: true }); }}>
           <Icon name="x" size={20} strokeWidth={1.5} />
-        </Button>
+        </Button>}
       </header>}
       <div ref={bodyRef} className={styles.body}>{open ? children : null}</div>
     </div>

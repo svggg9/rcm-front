@@ -24,10 +24,11 @@ const { ProductVariantsCard } = load("app/seller/products/[id]/edit/components/P
   react,
   "../../../../../lib/useFieldValidation": fieldValidation,
   "react/jsx-runtime": { jsx, jsxs: jsx, Fragment: "fragment" },
-  "./VariantNumberInput": { VariantNumberInput: "number-input" },
+  "../../../../../components/ui/NumericField": { NumericField: "number-input" },
+  "../../../../../lib/numericInput": { MONEY_RULES: { fractionDigits: 2, min: 0 }, INTEGER_RULES: { fractionDigits: 0, min: 0 } },
   "../../../../../components/ui/Button": { Button: "button" },
   "../../../../../components/ui/Checkbox": { Checkbox: "checkbox" },
-  "../../../../../components/ui/TextInput": { TextInput: "text-input" },
+  "../../../../../components/ui/InsideLabelInput": { InsideLabelInput: "text-input" },
   "../../../../../components/ui/DesignSystemIcon": { DesignSystemIcon: "icon" },
   "../utils": utils,
   "../ProductEditPage.module.css": { default: {} },
@@ -57,9 +58,9 @@ const variants = [
 ];
 assert.equal(utils.inconsistentProductPriceIndexes(variants).size, 0);
 let result = render(variants);
-let prices = result.nodes.filter(n => n.type === "number-input" && n.props["aria-label"] === "Цена товара");
+let prices = result.nodes.filter(n => n.type === "number-input" && n.props.label === "Цена");
 assert.equal(prices.length, 1, "one price input for the product");
-prices[0].props.onValue(150);
+prices[0].props.onValueChange(150);
 assert.deepEqual(result.updates.map(u => u.index), [0, 1, 2], "changing product price updates every color and size");
 assert.ok(result.updates.every(u => u.patch.price === 150));
 result.nodes.find(n => n.type === "button" && Array.isArray(n.props.children) && n.props.children.includes("Добавить оттенок")).props.onClick();
@@ -71,11 +72,11 @@ const mixedColors = variants.map((v, index) => ({ ...v, price: index === 2 ? 200
 assert.deepEqual([...utils.inconsistentProductPriceIndexes(mixedColors)], [0, 1, 2], "different colors cannot have different prices");
 assert.equal(utils.inconsistentProductPriceIndexes([]).size, 0);
 result = render(mixed);
-prices = result.nodes.filter(n => n.type === "number-input" && n.props["aria-label"] === "Цена товара");
+prices = result.nodes.filter(n => n.type === "number-input" && n.props.label === "Цена");
 assert.equal(prices[0].props.value, null, "legacy mismatches do not silently choose a price");
-assert.equal(prices[0].props["aria-invalid"], true);
+assert.ok(prices[0].props.error);
 assert.equal(result.updates.length, 0, "rendering does not normalize stored prices");
-prices[0].props.onValue(180);
+prices[0].props.onValueChange(180);
 assert.ok(result.updates.every(u => u.patch.price === 180));
 assert.equal(result.updates.length, 3);
 console.log("Product pricing checks passed: one field, all colors/sizes, explicit legacy resolution");

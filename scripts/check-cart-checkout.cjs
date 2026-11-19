@@ -34,6 +34,11 @@ function hooks() {
   return { react, reset() { cursor = 0; values.length = 0; effects.length = 0; }, render(fn) { cursor = 0; return fn(); }, async effects() { for (const fn of effects.splice(0)) fn(); await new Promise(resolve => setImmediate(resolve)); } };
 }
 async function main() {
+  const prefill = load("app/checkout/lib/checkoutPrefill.ts", {});
+  const foreignProfile = { defaultDeliveryCountryCode: "KZ", defaultDeliveryCityCode: 111, defaultDeliveryCityName: "Алматы" };
+  assert.equal(prefill.buildCheckoutPrefill({ me: foreignProfile }).selectedCity.countryCode, "KZ");
+  const draftWins = prefill.buildCheckoutPrefill({ me: foreignProfile, existing: { countryCode: "RU" } });
+  assert.equal(draftWins.countryCode, "RU"); assert.equal(draftWins.selectedCity, null, "Profile city cannot cross the draft country");
   const redirects = load("app/lib/paymentRedirect.ts", {});
   for (const value of ["https://pay.tbank-online.com/test", "http://localhost:3000/mock-pay?orderId=625", "http://127.0.0.1:3000/mock-pay"]) {
     assert.equal(redirects.paymentConfirmationUrl(value), value);
@@ -42,8 +47,11 @@ async function main() {
     assert.equal(redirects.paymentConfirmationUrl(value), null, "Invalid confirmation URLs must not turn into cart/account navigation");
   }
   const checkoutListeners = new Map();
+  let reducedMotion = false;
   global.window = { setTimeout: () => 1, clearTimeout() {}, location: { href: "" },
+    matchMedia: () => ({ matches: reducedMotion }),
     addEventListener: (event, fn) => checkoutListeners.set(event, fn), removeEventListener: event => checkoutListeners.delete(event) };
+  global.document = { body: {}, activeElement: null, querySelector: () => null };
   global.sessionStorage = storage(); global.localStorage = storage();
   global.requestAnimationFrame = fn => { fn(); return 1; };
   const pending = load("app/checkout/lib/pendingPayment.ts", {});
@@ -77,7 +85,7 @@ async function main() {
   let currentProfile = defaultProfile;
   const fixtureRouter = { push() {}, replace: url => orderNavigation.push(url) };
   let holdPayment = false, resolvePayment;
-  let loseCheckoutResponse = false, replayLostRequest = false;
+  let loseCheckoutResponse = false, replayLostRequest = false, changePriceOnConflict = false;
   const quote = { quoteToken: "quote", checkoutToken: "checkout", externalOfferId: "offer", priceAmount: 450, currency: "RUB", expiresAt: new Date(Date.now() + 900000).toISOString(), sellerDeliveryCosts: [{ sellerId: 1, deliveryCostAmount: 450 }] };
   const h = hooks();
   const { CheckoutPageClient } = load("app/checkout/CheckoutPageClient.tsx", {
@@ -86,14 +94,19 @@ async function main() {
     "../lib/api": { API_URL: "http://fixture", apiFetch: async (url, options = {}) => {
       calls.push({ url, body: options.body ? JSON.parse(options.body) : null });
       if (url.endsWith("/api/profile")) return Response.json(currentProfile);
+      if (url.endsWith("/api/delivery/countries")) return Response.json([{ code: "RU", name: "Россия" }, { code: "KZ", name: "Казахстан" }]);
       if (url.endsWith("/orders/777/group")) return Response.json([{ id: 777, orderGroupId: "fixture", paymentStatus: resumedPaymentStatus === "SUCCEEDED" ? "PAID" : "PENDING", paymentAllowed: true,
         subtotalAmount: 2000, deliveryAmount: 450, recipientName: "Тест Покупатель", recipientPhone: "+79990000000", deliveryAddress: "ул. Тверская, 12", pickupPointId: "44-1" }]);
       if (url.endsWith("/payments/order/777/group-last")) return Response.json({ status: resumedPaymentStatus, externalId: "pay777" });
       if (url.endsWith("/payments/pay777/sync")) return Response.json({ status: resumedPaymentStatus });
-      if (url.endsWith("/pickup-points/search")) return Response.json({ points: [{ id: "44-1", fullAddress: "ул. Тверская, 12", cityCode: 44 }] });
+      if (url.endsWith("/pickup-points/search")) return Response.json({ points: options.body && JSON.parse(options.body).countryCode === "KZ" ? [{ id: "KZ-1", fullAddress: "Алматы, ул. Тестовая, 1", cityCode: 111 }] : [{ id: "44-1", fullAddress: "ул. Тверская, 12", cityCode: 44 }] });
       if (url.endsWith("/seller-group-quotes")) return holdQuote ? new Promise(resolve => { quoteResolve = () => resolve(Response.json(quote)); }) : Response.json(quote);
       if (url.includes("/orders/checkout")) {
-        if (rejectStale) { rejectStale = false; return Response.json({ message: "delivery_quote_stale" }, { status: 409 }); }
+        if (rejectStale) {
+          rejectStale = false;
+          if (changePriceOnConflict) { quote.priceAmount = 550; quote.sellerDeliveryCosts[0].deliveryCostAmount = 550; changePriceOnConflict = false; }
+          return Response.json({ message: "delivery_quote_stale" }, { status: 409 });
+        }
         if (replayLostRequest) replayLostRequest = false;
         else {
           createdOrders++;
@@ -115,7 +128,8 @@ async function main() {
     "./components/CheckoutFlow": { CheckoutFlow: "Flow" }, "./components/CheckoutSummary": { CheckoutSummary: "Summary" },
     "./lib/checkoutErrors": errors, "@/app/components/ui/toast": { toast: { error() {}, info() {}, message() {} } },
     "../components/ui/Loader": { Loader: "Loader" }, "../components/ui/EmptyState": { EmptyState: "EmptyState" },
-    "../lib/validation": { isValidPhone: value => /[0-9]{10}/.test(value) },
+    "./lib/checkoutPhone": load("app/checkout/lib/checkoutPhone.ts", { "../../lib/validation": { isValidPhone: value => /^79\d{9}$/.test(value.replace(/\D/g, "")) } }),
+    "./lib/deliveryCountries": load("app/checkout/lib/deliveryCountries.ts", {}),
     "./lib/checkoutDraft": { loadCheckoutDraft: () => ({ email: "old@example.test", fullName: "Старый Получатель", phone: "+79990000001", deliveryMethod: "PICKUP", selectedAddressId: "44-1", selectedCityCode: 44, selectedCityName: "Москва", countryCode: "RU", apartment: "", floor: "", intercom: "", comment: "Старое пожелание из черновика", fittingMode: "WITHOUT_FITTING", paymentMethod: "CARD", deliveryAddress: "" }), saveCheckoutDraft() {}, clearCheckoutDraft() {} },
     "./lib/checkoutPrefill": load("app/checkout/lib/checkoutPrefill.ts", {}), "./Checkout.module.css": { default: {} },
   });
@@ -176,42 +190,77 @@ async function main() {
   assert.equal(await flow.props.onContinue(), true);
   view = controller(); flow = find(view, node => node.type === "Flow");
   assert.equal(flow.props.deliveryCalculated, true, "The new cart gets a new confirmed delivery quote");
+  flow.props.delivery.props.onPickerOpen();
+  flow.props.delivery.props.onCountryChange("KZ");
+  view = controller(); flow = find(view, node => node.type === "Flow");
+  assert.equal(flow.props.cityName, ""); assert.equal(flow.props.pickupLabel, "");
+  assert.equal(flow.props.deliveryCalculated, false, "Changing country clears the previous city, point and quote");
+  flow.props.delivery.props.onCitySelect({ code: 111, cityUuid: "111", fullName: "Алматы", countryCode: "KZ" });
+  view = controller(); flow = find(view, node => node.type === "Flow");
+  await flow.props.delivery.props.onPickupSearch();
+  view = controller(); flow = find(view, node => node.type === "Flow");
+  flow.props.delivery.props.onAddressChange("KZ-1");
+  view = controller(); flow = find(view, node => node.type === "Flow");
+  assert.equal(await flow.props.onContinue(), true);
+  assert.equal(calls.filter(call => call.url.endsWith("/seller-group-quotes")).at(-1).body.quote.address.countryCode, "KZ");
+  view = controller(); flow = find(view, node => node.type === "Flow"); flow.props.delivery.props.onPickerCancel();
+  view = controller(); flow = find(view, node => node.type === "Flow");
+  assert.equal(flow.props.countryCode, "RU"); assert.equal(flow.props.cityName, "Москва");
   const delivery = flow.props.delivery;
   delivery.props.onPickerOpen(); delivery.props.onCitySelect({ code: 137, fullName: "Санкт-Петербург", countryCode: "RU" });
   view = controller(); flow = find(view, node => node.type === "Flow"); flow.props.delivery.props.onPickerCancel();
   view = controller(); flow = find(view, node => node.type === "Flow");
   assert.equal(flow.props.cityName, "Москва"); assert.equal(flow.props.pickupLabel, "ул. Тверская, 12", "Cancel restores committed city and point");
+  quote.expiresAt = new Date(Date.now() + 1000).toISOString();
+  assert.equal(await flow.props.onContinue(), true);
+  view = controller(); flow = find(view, node => node.type === "Flow");
+  quote.expiresAt = new Date(Date.now() + 900000).toISOString();
+  quote.priceAmount = 550; quote.sellerDeliveryCosts[0].deliveryCostAmount = 550;
   holdQuote = true;
   const first = flow.props.onSubmit(); const second = flow.props.onSubmit();
   assert.equal(submissionLocks.at(-1), true, "Cart controls lock synchronously while the order is being created");
   assert.equal(calls.filter(call => call.url.includes("/orders/checkout")).length, 0);
-  assert(quoteResolve, "Final submission refreshes the invalidated quote");
+  assert(quoteResolve, "Final submission refreshes the expiring quote");
   quoteResolve(); await Promise.all([first, second]);
+  assert.equal(calls.filter(call => call.url.includes("/orders/checkout")).length, 0, "Recalculation must not create an order before reviewing the new price");
+  view = controller(); flow = find(view, node => node.type === "Flow");
+  assert.equal(flow.props.deliveryPrice, 550); assert.match(flow.props.error, /проверьте стоимость/i);
+  holdQuote = false; await flow.props.onSubmit();
   assert.equal(submissionLocks.at(-1), true, "Checkout stays locked while navigating to the committed order after payment failure");
   assert.equal(orderNavigation.at(-1), "/account?tab=orders&orderId=777");
   assert.equal(calls.filter(call => call.url.includes("/orders/checkout")).length, 1, "Double click during quote refresh creates one order");
   const orderCall = calls.find(call => call.url.includes("/orders/checkout"));
-  assert.equal(orderCall.body.deliveryQuoteToken, "checkout"); assert.equal(orderCall.body.deliveryPriceAmount, 450);
+  assert.equal(orderCall.body.deliveryQuoteToken, "checkout"); assert.equal(orderCall.body.deliveryPriceAmount, 550);
   assert.equal(orderCall.body.sellerDeliveryCosts[0].sellerId, 1);
   assert(!Object.hasOwn(orderCall.body, "comment"), "Removed wishes must not leak from a legacy draft into an order");
   assert(calls.filter(call => call.url.endsWith("/seller-group-quotes")).every(call => !Object.hasOwn(call.body.quote, "comment")), "Delivery quotes must omit legacy wishes");
+  assert(calls.filter(call => call.url.endsWith("/seller-group-quotes")).every(call => ["RU", "KZ"].includes(call.body.quote.address.countryCode)), "Delivery quotes bind the destination country");
+  assert(calls.filter(call => call.url.endsWith("/pickup-points/search")).some(call => call.body.countryCode === "KZ"), "Pickup searches include the destination country");
   view = controller(); flow = find(view, node => node.type === "Flow");
   assert.equal(flow.props.pendingPayment, undefined);
   await flow.props.onSubmit();
   assert.equal(calls.filter(call => call.url.includes("/orders/checkout")).length, 1, "Navigation after payment failure must not create another order");
   assert.equal(calls.filter(call => call.url.includes("/payments/order/777/group")).length, 1);
-  paymentUrl = "";
+  paymentUrl = ""; quote.priceAmount = 450; quote.sellerDeliveryCosts[0].deliveryCostAmount = 450;
   // A fresh checkout controller belongs to the next cart, even while the
   // previous order remains unpaid and its compatibility hint is retained.
   h.reset();
   for (let i = 0; i < 6; i++) { view = controller(); await h.effects(); }
   view = controller(); flow = find(view, node => node.type === "Flow");
   assert.equal(flow.props.pendingPayment, undefined);
-  holdQuote = false; rejectStale = true;
+  holdQuote = false;
   view = controller(); flow = find(view, node => node.type === "Flow");
+  await flow.props.onContinue();
+  view = controller(); flow = find(view, node => node.type === "Flow");
+  rejectStale = true; changePriceOnConflict = true;
+  await flow.props.onSubmit();
+  assert.equal(calls.filter(call => call.url.includes("/orders/checkout")).length, 2, "A stale quote must not be submitted again without buyer confirmation");
+  view = controller(); flow = find(view, node => node.type === "Flow");
+  assert.equal(flow.props.deliveryPrice, 550); assert.match(flow.props.error, /проверьте стоимость/i);
   await flow.props.onSubmit();
   assert.equal(calls.filter(call => call.url.includes("/orders/checkout")).length, 3, "One explicit retry after a stale quote conflict");
   assert.equal(createdOrders, 2, "A rejected stale quote creates no order");
+  quote.priceAmount = 450; quote.sellerDeliveryCosts[0].deliveryCostAmount = 450;
   pending.clearSucceededPendingPayment("user_fixture", 777, "SUCCEEDED");
   liveCart = { ...cart, items: [] };
   view = controller(); flow = find(view, node => node.type === "Flow");
@@ -220,6 +269,7 @@ async function main() {
   h.reset(); liveCart = cart;
   for (let i = 0; i < 6; i++) { view = controller(); await h.effects(); }
   view = controller(); flow = find(view, node => node.type === "Flow");
+  await flow.props.onContinue(); view = controller(); flow = find(view, node => node.type === "Flow");
   loseCheckoutResponse = true;
   await flow.props.onSubmit();
   view = controller(); flow = find(view, node => node.type === "Flow");
@@ -237,6 +287,7 @@ async function main() {
   paymentUrl = "https://pay.tbank-online.com/test";
   for (let i = 0; i < 6; i++) { view = controller(); await h.effects(); }
   view = controller(); flow = find(view, node => node.type === "Flow");
+  await flow.props.onContinue(); view = controller(); flow = find(view, node => node.type === "Flow");
   const beforeSubmit = createdOrders;
   const openingBank = flow.props.onSubmit();
   await new Promise(resolve => setImmediate(resolve));
@@ -282,7 +333,7 @@ async function main() {
   const cartRouter = { push: url => navigation.push(url), replace: url => navigation.push(url) };
   window.addEventListener = (event, fn) => listeners.set(event, fn);
   window.removeEventListener = event => listeners.delete(event);
-  let cartForPage = cart, mutations = 0, cartSearch = "", cartPaymentStatus = "PENDING", quantityFailure = null;
+  let cartForPage = cart, mutations = 0, cartSearch = "", cartPaymentStatus = "PENDING", quantityFailure = null, removalFailure = null;
   let cartNavigation = () => false;
   let pageLoader = async () => cartForPage;
   const sessionState = { isAuthenticated: true, loading: false, error: null, revision: 0, reload: async () => ({ id: 1 }) };
@@ -306,8 +357,9 @@ async function main() {
     "./lib/quantityLimits": load("app/cart/lib/quantityLimits.ts", {}), "./lib/cartApi": { ...cartApi,
       updateQuantity: async (_id, variantId, quantity) => { if (quantityFailure) throw quantityFailure; mutations++; cartForPage = { ...cartForPage,
         items: cartForPage.items.map(item => item.variantId === variantId ? { ...item, quantity } : item) }; return cartForPage.items; },
-      removeItem: async () => { mutations++; cartForPage = { ...cartForPage, items: [] }; return []; } },
+      removeItem: async (_id, variantId) => { if (removalFailure) throw removalFailure; mutations++; cartForPage = { ...cartForPage, items: cartForPage.items.filter(item => item.variantId !== variantId) }; return cartForPage.items; } },
     "./components/CartItemRow": { CartItemRow: "Row" }, "./components/CartSummary": { CartSummary: "Summary" },
+    "./components/CartClearAction": { CartClearAction: "ClearAction" },
     "./components/EmptyCart": { EmptyCart: "Empty" }, "../components/ui/CommerceSkeleton": { CartContentSkeleton: "Skeleton" },
     "../components/ui/ConfirmActionButton": { ConfirmActionButton: "Confirm" }, "../components/ui/Button": { Button: "Button" },
     "../components/ui/RequestError": { RequestError: "RequestError" },
@@ -330,13 +382,34 @@ async function main() {
   cartView = renderCart(); await cartHooks.effects();
   const row = find(cartView, node => node.type === "Row");
   assert(!row.props.locked); assert.equal(row.props.pending, false);
+  assert.equal(row.props.quantityAnimationRevision, 0, "Initial cart load must not animate the quantity");
   assert.equal(find(cartView, node => node.type === "UnpaidOrders"), null);
   await row.props.onChangeQty(10, 3);
   cartView = renderCart();
   assert.equal(find(cartView, node => node.type === "Row").props.item.quantity, 3);
+  assert.equal(find(cartView, node => node.type === "Row").props.quantityAnimationRevision, 1, "Confirmed change animates the quantity");
+  await find(cartView, node => node.type === "Row").props.onChangeQty(10, 3);
+  cartView = renderCart();
+  assert.equal(find(cartView, node => node.type === "Row").props.quantityAnimationRevision, 1, "Unchanged confirmed quantity does not animate again");
+  removalFailure = new cartApi.CartActionError("Не удалось удалить товар");
   await find(cartView, node => node.type === "Row").props.onRemove(10);
   cartView = renderCart();
-  assert.equal(mutations, 2); assert(find(cartView, node => node.type === "Empty"));
+  assert.equal(find(cartView, node => node.type === "Row").props.error, "Не удалось удалить товар", "A rejected removal retains the item and exposes the failure");
+  assert.equal(find(cartView, node => node.props?.["data-exiting"] === true), null, "A failure must not animate an item away");
+  removalFailure = null;
+  await find(cartView, node => node.type === "Row").props.onRemove(10);
+  cartView = renderCart();
+  assert.equal(mutations, 3);
+  assert.equal(find(cartView, node => node.props?.["data-exiting"] === true), null, "Animation waits for the confirmation dialog to close");
+  assert(find(cartView, node => node.type === "Row"), "Confirmed last item stays as a snapshot until the dialog closes");
+  assert.equal(find(cartView, node => node.type === "Summary"), null, "The visual snapshot is excluded from confirmed totals");
+  assert.equal(find(cartView, node => node.type === "Empty"), null);
+  find(cartView, node => node.type === "Row").props.onAfterRemove(10);
+  cartView = renderCart();
+  assert(find(cartView, node => node.props?.["data-exiting"] === true), "The snapshot starts animating after the dialog closes");
+  await new Promise(resolve => setTimeout(resolve, 700));
+  cartView = renderCart();
+  assert(find(cartView, node => node.type === "Empty"), "After animation the last removed item becomes the empty cart");
   assert.equal(find(cartView, node => node.type === "UnpaidOrders"), null, "Previous orders belong to the account, not an empty cart");
   cartSearch = "checkout=1";
   cartView = renderCart(); await cartHooks.effects();
@@ -363,6 +436,29 @@ async function main() {
   assert.equal(navigation.at(-1), "/account?tab=orders&orderId=777", "Confirmed bank return goes to the paid order even if cart cleanup already completed");
   assert.equal(pending.loadBankReturnOrder(cart.cartId), null);
   assert.equal(pending.loadPendingPaymentOrderId(cart.cartId), 888, "Editing the new cart does not cancel or replace the old order");
+  // A confirmed removal from a non-empty cart keeps only a visual snapshot,
+  // while the summary immediately reflects the remaining confirmed line.
+  cartHooks.reset(); cartSearch = "";
+  cartForPage = { ...cart, items: [{ ...cart.items[0], quantity: 1 }, { ...cart.items[0], variantId: 11, quantity: 1 }] };
+  for (let i = 0; i < 4; i++) { cartView = renderCart(); await cartHooks.effects(); }
+  await find(cartView, node => node.type === "Row" && node.props.item.variantId === 10).props.onRemove(10);
+  cartView = renderCart();
+  assert.equal(find(cartView, node => node.props?.["data-exiting"] === true), null);
+  find(cartView, node => node.type === "Row" && node.props.item.variantId === 10).props.onAfterRemove(10);
+  cartView = renderCart();
+  assert(find(cartView, node => node.props?.["data-exiting"] === true));
+  assert.equal(find(cartView, node => node.type === "Summary").props.subtotal, 1000);
+  assert.equal(find(cartView, node => node.type === "Row" && node.props.item.variantId === 11).props.pending, true);
+  await new Promise(resolve => setTimeout(resolve, 700));
+  cartView = renderCart();
+  assert.equal(find(cartView, node => node.type === "Row" && node.props.item.variantId === 10), null);
+  assert.equal(find(cartView, node => node.type === "Row" && node.props.item.variantId === 11).props.pending, false);
+  reducedMotion = true;
+  await find(cartView, node => node.type === "Row" && node.props.item.variantId === 11).props.onRemove(11);
+  cartView = renderCart();
+  assert(find(cartView, node => node.type === "Empty"), "Reduced motion removes the last item without an animation delay");
+  assert.equal(find(cartView, node => node.props?.["data-exiting"] === true), null);
+  reducedMotion = false;
   // Errors describe a failed attempt; a fresh confirmed cart must not retain them.
   cartHooks.reset(); cartSearch = "";
   cartForPage = { ...cart, items: [{ ...cart.items[0], quantity: 3 }, { ...cart.items[0], variantId: 11, quantity: 2 }] };
@@ -371,11 +467,14 @@ async function main() {
   await find(cartView, node => node.type === "Row").props.onChangeQty(10, 4);
   cartView = renderCart();
   assert.equal(find(cartView, node => node.type === "Row" && node.props.item.variantId === 10).props.error, cartApi.PRODUCT_QUANTITY_LIMIT_MESSAGE);
+  assert.equal(find(cartView, node => node.type === "Row" && node.props.item.variantId === 10).props.quantityAnimationRevision, 0, "Failed update must not animate");
   quantityFailure = null;
   await find(cartView, node => node.type === "Row").props.onChangeQty(11, 1);
   cartView = renderCart();
   assert(!find(cartView, node => node.type === "Row" && node.props.item.variantId === 10).props.error,
     "Reducing another size of the same product clears the obsolete limit error");
+  assert.equal(find(cartView, node => node.type === "Row" && node.props.item.variantId === 10).props.quantityAnimationRevision, 0);
+  assert.equal(find(cartView, node => node.type === "Row" && node.props.item.variantId === 11).props.quantityAnimationRevision, 1, "Only the changed row animates");
   quantityFailure = new cartApi.CartActionError("Доступно только 1 шт", 1);
   await find(cartView, node => node.type === "Row").props.onChangeQty(10, 4);
   cartView = renderCart();
@@ -444,25 +543,37 @@ async function main() {
       "../../components/ui/Button": { Button: "Button" }, "../../components/ui/Icon": { Icon: "Icon" },
       "../../components/ui/Banner": { Banner: "Banner" },
       "../../components/Delivery/CdekLogo": { CdekLogo: "CdekLogo" }, "../../components/ui/Loader": { Loader: "Loader" },
-      "../../lib/phone": { formatRussianPhoneInput: value => value },
+      "../../lib/phone": { formatRussianPhone: value => value },
       "../../lib/buyerPanelActions": { registerBuyerPanelActions: handler => { flowBack = handler; return () => {}; } },
-      "./CheckoutFlow.module.css": { default: {} },
+      "./CheckoutFlow.module.css": { default: { content: "checkoutContent" } },
+      "../../components/ui/StepMotion.module.css": { default: { forward: "stepForward", back: "stepBack" } },
     });
     const flowProps = { delivery: "delivery", contact: "contact", pickupLabel: "ПВЗ", cityName: "Москва", recipient: "Покупатель", phone: "9000000000",
       subtotal: 100, deliveryPrice: 50, deliveryCalculated: true, deliveryCalculating: false, submitting: false, error: null,
       onContinue: async () => { validations++; return true; }, onSubmit() {} };
     const renderFlow = () => flowHooks.render(() => CheckoutFlow(flowProps));
     let flow = renderFlow(); await flowHooks.effects();
+    const stepContent = () => find(flow, node => node.type === "div" && node.props.className?.includes("checkoutContent"));
+    assert.equal(stepContent().props.className.includes("stepForward"), false, "Initial view does not animate as a step transition");
     assert.equal(flowBack("back"), false, "First delivery step delegates Back to the cart");
+    const validContinue = flowProps.onContinue;
+    flowProps.onContinue = async () => false;
+    find(flow, node => node.type === "Button" && node.props.children === "Продолжить").props.onClick();
+    await new Promise(setImmediate);
+    flow = renderFlow(); await flowHooks.effects();
+    assert.equal(stepContent().props.className.includes("stepForward"), false, "Failed validation does not animate or change step");
+    flowProps.onContinue = validContinue;
     for (let i = 0; i < 2; i++) {
       find(flow, node => node.type === "Button" && node.props.children === "Продолжить").props.onClick();
       await new Promise(setImmediate);
       flow = renderFlow(); await flowHooks.effects();
+      assert(stepContent().props.className.includes("stepForward"), "Confirmed forward navigation uses forward motion");
     }
     assert(find(flow, node => node.type === "Button" && node.props.children === "Заказать"));
     assert.equal(validations, 2);
     assert.equal(flowBack("back"), true);
     flow = renderFlow(); await flowHooks.effects();
+    assert(stepContent().props.className.includes("stepBack"), "Back uses the opposite motion");
     assert.equal(find(flow, node => node.type === "button" && node.props["aria-current"] === "step").props.children[2], "Оплата",
       "Review Back opens payment instead of leaving checkout");
     assert.equal(validations, 2, "Back never resubmits delivery validation");
@@ -478,6 +589,7 @@ async function main() {
   console.log("Buyer panels: nested Back, delivery/payment/review return, in-flight guard and committed order safety passed");
   console.log("Cart alerts: corrected sibling variant, refreshed stock and actual limit violation lifecycle passed");
   console.log("Cart error: failure differs from empty, retry keeps its error block and confirmed data replaces it");
+  console.log("Cart removal: failure retains row, confirmed totals exclude exiting row, last-item transition and reduced motion passed");
   console.log("Checkout recipient: current profile, manual override, changed/cleared profile and committed order isolation passed");
 }
 main().catch(error => { console.error(error); process.exitCode = 1; });

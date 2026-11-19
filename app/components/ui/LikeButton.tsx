@@ -12,6 +12,7 @@ type Props = Omit<ButtonHTMLAttributes<HTMLButtonElement>, "onClick" | "children
 export function LikeButton({ liked, pending = false, disabled = false, className = "", onClick, ...props }: Props) {
   const [optimistic, setOptimistic] = useState<boolean | null>(null);
   const [hoverFillSuppressed, setHoverFillSuppressed] = useState(false);
+  const [pulseSequence, setPulseSequence] = useState(0);
   const inFlight = useRef(false);
   const busy = pending || optimistic !== null;
 
@@ -19,6 +20,7 @@ export function LikeButton({ liked, pending = false, disabled = false, className
     event.stopPropagation();
     if (disabled || pending || inFlight.current) return;
     inFlight.current = true;
+    if (!liked) setPulseSequence(sequence => sequence + 1);
     setHoverFillSuppressed(liked);
     setOptimistic(!liked);
     try {
@@ -44,6 +46,6 @@ export function LikeButton({ liked, pending = false, disabled = false, className
     onPointerLeave={event => { setHoverFillSuppressed(false); props.onPointerLeave?.(event); }}
     onClick={click}
   >
-    <span className={styles.icon} aria-hidden="true" />
+    <span key={pulseSequence} className={`${styles.icon} ${pulseSequence ? styles.pulse : ""}`} aria-hidden="true" />
   </button>;
 }

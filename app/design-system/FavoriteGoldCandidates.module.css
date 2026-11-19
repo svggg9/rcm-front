@@ -1,0 +1,9 @@
+.candidates { display: grid; grid-template-columns: repeat(2, minmax(0, 220px)); gap: var(--space-4); align-items: start; }
+.candidate { min-width: 0; }
+.candidate h4 { margin: 0; font-size: var(--font-helper); line-height: var(--caption-line-height); font-weight: var(--font-weight-semibold); }
+.candidate p { margin: var(--space-1) 0 0; font-size: var(--font-helper); line-height: var(--caption-line-height); }
+.sample { display: flex; align-items: center; justify-content: space-between; gap: var(--space-1); margin-top: var(--space-2); font-size: var(--font-label-compact); }
+.card { padding: 0; margin: var(--space-2) 0 0; list-style: none; }
+.black { --like-filled-background: var(--black); }
+.brand { --like-filled-outline-opacity: 1; --like-filled-background: var(--gold); }
+@media (max-width: 640px) { .candidates { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-5) var(--space-3); } }

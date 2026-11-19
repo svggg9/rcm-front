@@ -15,16 +15,25 @@ type Props = Omit<ComponentProps<typeof Button>, "onClick"> & {
   requireConfirmation?: boolean;
   showCancel?: boolean;
   onConfirm: () => void | Promise<void>;
+  onAfterConfirm?: () => void;
 };
 
 /** The destructive callback is never called by opening or dismissing the dialog. */
 export function ConfirmActionButton({ confirmTitle, confirmText, confirmLabel = "Удалить",
   requireConfirmation = true, showCancel = true, onConfirm, variant, loading, disabled, children,
-  reserveLabelSpace, success, confirmVariant, ...props }: Props) {
+  reserveLabelSpace, success, confirmVariant, onAfterConfirm, ...props }: Props) {
   const [open, setOpen] = useState(false);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const inFlight = useRef(false);
+  const confirmed = useRef(false);
+
+  useEffect(() => {
+    if (!open && confirmed.current) {
+      confirmed.current = false;
+      onAfterConfirm?.();
+    }
+  }, [open, onAfterConfirm]);
 
   async function confirm() {
     if (inFlight.current || disabled || loading) return;
@@ -33,7 +42,9 @@ export function ConfirmActionButton({ confirmTitle, confirmText, confirmLabel = 
     setError(null);
     try {
       await onConfirm();
+      if (requireConfirmation) confirmed.current = true;
       setOpen(false);
+      if (!requireConfirmation) onAfterConfirm?.();
     } catch (reason) {
       setError(toApiError(reason, "Не удалось выполнить действие — попробуйте ещё раз").message);
     } finally {

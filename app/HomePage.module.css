@@ -62,10 +62,10 @@
 .sectionLinks a:focus-visible, .brandGrid a:focus-visible { outline: 2px solid var(--black); outline-offset: 4px; }
 .brandGrid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0 var(--space-6); padding: 0; margin: 0; list-style: none; }
 .brandGrid li { min-width: 0; }
-.brandGrid a { display: flex; align-items: center; justify-content: center; min-height: 112px; padding: var(--space-5) var(--space-4); border-bottom: var(--line-width-default) solid var(--line); color: var(--black); text-decoration: none; }
+.brandGrid a { display: flex; align-items: center; justify-content: center; min-height: 112px; padding: var(--space-5) var(--space-4); color: var(--black); text-decoration: none; }
 .brandWordmark { --wordmark-font-size: var(--font-title-xs); max-width: 200px; }
 .brandGrid a:hover { background: var(--surface-hover); }
-.shoppingGrid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--space-6); padding-top: var(--space-6); border-top: var(--line-width-default) solid var(--line); }
+.shoppingGrid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--space-6); padding-top: var(--space-6); }
 .shoppingGrid h3 { margin: 0 0 var(--space-2); font-size: var(--font-sm); line-height: var(--line-height-ui-large); font-weight: var(--font-weight-medium); }
 .shoppingGrid p, .shoppingGrid a { font-size: var(--font-sm); line-height: var(--line-height-ui-large); }
 .shoppingGrid p { margin: 0; color: var(--muted); }

@@ -1,0 +1,8 @@
+.heart { position: fixed; left: var(--flight-x); top: var(--flight-y); width: 15px; height: 15px; z-index: 1000; pointer-events: none; fill: var(--gold); stroke: var(--gold-deep); stroke-width: .8; stroke-linejoin: round; animation: flight 325ms ease-in both; }
+@keyframes flight {
+  0% { opacity: 1; transform: translate(-50%, -50%) scale(1.15); }
+  80% { opacity: 1; }
+  100% { opacity: 0; transform: translate(calc(-50% + var(--flight-dx)), calc(-50% + var(--flight-dy))) scale(.3); }
+}
+@keyframes instant { from, to { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .heart { animation: instant 1ms both; visibility: hidden; } }

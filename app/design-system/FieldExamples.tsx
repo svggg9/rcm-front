@@ -4,10 +4,12 @@ import { useState } from "react";
 import { Button } from "../components/ui/Button";
 import { DesignSystemIcon } from "../components/ui/DesignSystemIcon";
 import { NumericField } from "../components/ui/NumericField";
+import { OneTimeCodeInput } from "../components/ui/OneTimeCodeInput";
 import { PhoneInput } from "../components/ui/PhoneInput";
 import { SegmentedControl } from "../components/ui/SegmentedControl";
 import { TextInput } from "../components/ui/TextInput";
 import { Textarea } from "../components/ui/Textarea";
+import { TextEditor } from "../components/ui/TextEditor";
 import { INTEGER_RULES, WEIGHT_RULES } from "../lib/numericInput";
 import { isValidPhone } from "../lib/validation";
 import styles from "./DesignSystem.module.css";
@@ -55,16 +57,29 @@ export function FieldExamples() {
         <TextInput label="Обязательное поле" required hint="Это название появится в каталоге и результатах поиска, поэтому укажите его так, чтобы покупатель легко нашёл нужный товар" />
         <TextInput label="Поле с ошибкой" type="email" defaultValue="brand@" error="Проверьте адрес электронной почты" />
         <TextInput label="Недоступное поле" defaultValue="На проверке" disabled />
+        <TextInput label="Недоступное пустое поле" placeholder="Введите название" disabled />
         <TextInput label="Поле только для чтения" defaultValue="Подтверждённое значение" readOnly />
         <Textarea label="Описание с ошибкой" rows={3} defaultValue="Коротко" error="Напишите не меньше 10 символов" hint="Расскажите о важных особенностях товара" />
+        <Textarea label="Недоступное описание" rows={3} placeholder="Добавьте описание" disabled />
+      </div>
+    </div>
+
+    <div className={styles.fieldExampleGroup}>
+      <h3>Недоступные составные поля</h3>
+      <div className={styles.formGrid}>
+        <OneTimeCodeInput label="Код из письма" value="123456" disabled onChange={() => {}} />
+        <fieldset disabled style={{ border: 0, padding: 0, margin: 0, minWidth: 0 }}>
+          <p className="label">Недоступный редактор текста</p>
+          <TextEditor label="Недоступный редактор текста" value="" placeholder="Добавьте описание" onChange={() => {}} />
+        </fieldset>
       </div>
     </div>
 
     <div className={styles.fieldExampleGroup}>
       <h3>Размеры и действие внутри поля</h3>
       <div className={styles.formGrid}>
-        <TextInput label="Обычное поле · 44 px" defaultValue="Обычный размер" />
-        <TextInput label="Крупное поле · 48 px" size="large" defaultValue="Крупный размер" />
+        <TextInput label="Обычное поле — 44 px" defaultValue="Обычный размер" />
+        <TextInput label="Крупное поле — 48 px" size="large" defaultValue="Крупный размер" />
         <TextInput label="Пароль для примера" type={passwordVisible ? "text" : "password"} value={password}
           autoComplete="new-password" onChange={event => setPassword(event.target.value)}
           trailing={<Button type="button" variant="ghost" iconOnly aria-label={passwordVisible ? "Скрыть пароль примера" : "Показать пароль примера"}

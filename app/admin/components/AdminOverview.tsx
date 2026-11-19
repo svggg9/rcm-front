@@ -81,7 +81,7 @@ export function AdminOverview() {
           <TimeSeriesChart key={period} points={data.series.map(day=>({date:day.date,value:day[metric]}))} label={metric==="orders"?"Оплаченные заказы":"Оборот товаров"}
             formatValue={value=>metric==="orders"?value.toLocaleString("ru-RU",{maximumFractionDigits:0}):adminMoney(value,"RUB")} />
           {data.totals.orders===0&&<p className="textHint">За выбранный период оплаченных заказов нет</p>}
-          <details className={dashboardStyles.explanation}><summary>{data.totals.estimatedOrderDates>0||data.totals.estimatedRefundDates>0?"Есть приблизительные даты · Как считаются показатели":"Как считаются показатели"}</summary>
+          <details className={dashboardStyles.explanation}><summary>{data.totals.estimatedOrderDates>0||data.totals.estimatedRefundDates>0?"Есть приблизительные даты. Как считаются показатели":"Как считаются показатели"}</summary>
             <p>Оборот — стоимость товаров в оплаченных покупках, без доставки. Возвраты показаны отдельно и не вычитаются из оборота. Это оборот маркетплейса, а не доход площадки.</p>
             {(data.totals.estimatedOrderDates>0||data.totals.estimatedRefundDates>0)&&<p>В старых данных часть дат приблизительная: заказов — {data.totals.estimatedOrderDates}, возвратов — {data.totals.estimatedRefundDates}. Для заказов без даты оплаты используется дата создания, для возвратов без даты завершения — дата последнего обновления.</p>}
           </details>

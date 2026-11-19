@@ -2,6 +2,7 @@
 import { Checkbox } from "../../components/ui/Checkbox";
 import { Loader } from "../../components/ui/Loader";
 import { Button } from "../../components/ui/Button";
+import { TextInput } from "../../components/ui/TextInput";
 import { ConfirmActionButton } from "../../components/ui/ConfirmActionButton";
 import { ProductSelectionOrder } from "../../components/ui/ProductSelectionOrder";
 
@@ -9,6 +10,7 @@ import Image from "next/image";
 import { memo, useEffect, useRef, useState } from "react";
 
 import { Icon } from "../../components/ui/Icon";
+import { PhotoPlaceholder } from "../../components/ui/PhotoPlaceholder";
 import { toast } from "../../components/ui/toast";
 import {
   createAdminStorefrontCollection,
@@ -221,10 +223,11 @@ export const AdminStorefrontCollections = memo(function AdminStorefrontCollectio
         <div>
           <span>Главная страница</span>
           <h2>Глобальные подборки</h2>
-          <p>Состав и порядок товаров в подборках · Обложки и показ карточек настраиваются в разделе выше</p>
+          <p>Состав и порядок товаров в подборках. Обложки и показ карточек настраиваются в разделе выше</p>
         </div>
-        <button
+        <Button
           type="button"
+          variant="primary"
           onClick={() => {
             setDraft({ ...EMPTY_DRAFT });
             ensureProducts();
@@ -232,7 +235,7 @@ export const AdminStorefrontCollections = memo(function AdminStorefrontCollectio
         >
           <Icon name="plus" size={16} />
           Новая подборка
-        </button>
+        </Button>
       </div>
 
       {error ? <p className={styles.error}>{error}</p> : null}
@@ -246,24 +249,22 @@ export const AdminStorefrontCollections = memo(function AdminStorefrontCollectio
             </button>
           </div>
           <div className={styles.fields}>
-            <label data-ui="field">
-              <span>Название</span>
-              <input
+            <TextInput
+                label="Название"
+                fieldVariant="boxed"
                 value={draft.title}
                 maxLength={100}
                 placeholder="Например, Выбор редакции"
                 onChange={(event) => setDraft({ ...draft, title: event.target.value })}
               />
-            </label>
-            <label data-ui="field">
-              <span>Описание</span>
-              <input
+            <TextInput
+                label="Описание"
+                fieldVariant="boxed"
                 value={draft.description}
                 maxLength={240}
                 placeholder="Короткое описание подборки"
                 onChange={(event) => setDraft({ ...draft, description: event.target.value })}
               />
-            </label>
           </div>
           <label className={styles.activeField}>
             <Checkbox size={17}
@@ -289,13 +290,15 @@ export const AdminStorefrontCollections = memo(function AdminStorefrontCollectio
               void loadProducts(0, productQuery, true);
             }}
           >
-            <input
+            <TextInput
+              label="Поиск товаров"
+              hideLabel
+              fieldVariant="boxed"
               value={productQuery}
               onChange={(event) => setProductQuery(event.target.value)}
               placeholder="Найти по названию, бренду или категории"
-              aria-label="Поиск товаров"
             />
-            <button type="submit" disabled={productsLoading}>Найти</button>
+            <Button type="submit" variant="primary" disabled={productsLoading}>Найти</Button>
           </form>
           <div className={styles.productGrid} aria-busy={productsLoading}>
             {productsLoading && products.length === 0 ? (
@@ -313,7 +316,7 @@ export const AdminStorefrontCollections = memo(function AdminStorefrontCollectio
                     {product.coverImage ? (
                       <Image src={product.coverImage} alt="" fill sizes="140px" />
                     ) : (
-                      <Icon name="package" size={20} />
+                      <PhotoPlaceholder />
                     )}
                   </span>
                   <strong>{product.brand || "Без бренда"}</strong>
@@ -326,6 +329,7 @@ export const AdminStorefrontCollections = memo(function AdminStorefrontCollectio
           {productsHasMore ? (
             <Button
               type="button"
+              variant="primary"
               className={styles.loadMore}
               loading={productsLoading}
               onClick={() =>
@@ -336,9 +340,10 @@ export const AdminStorefrontCollections = memo(function AdminStorefrontCollectio
             </Button>
           ) : null}
           <div className={styles.editorActions}>
-            <button type="button" onClick={() => setDraft(null)}>Отмена</button>
+            <Button type="button" onClick={() => setDraft(null)}>Отмена</Button>
             <Button
               type="button"
+              variant="primary"
               loading={saving}
               disabled={!draft.title.trim() || draft.productIds.length === 0 || saving}
               onClick={() => void save()}
@@ -370,7 +375,7 @@ export const AdminStorefrontCollections = memo(function AdminStorefrontCollectio
             <div className={styles.thumbs}>
               {collection.products.slice(0, 4).map((product) => (
                 <span key={product.id}>
-                  {product.coverImage ? <Image src={product.coverImage} alt="" fill sizes="54px" /> : null}
+                  {product.coverImage ? <Image src={product.coverImage} alt="" fill sizes="54px" /> : <PhotoPlaceholder />}
                 </span>
               ))}
             </div>

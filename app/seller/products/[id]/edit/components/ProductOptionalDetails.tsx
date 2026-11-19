@@ -3,6 +3,7 @@
 import { useState, type ReactNode } from "react";
 import { Textarea } from "../../../../../components/ui/Textarea";
 import { TextInput } from "../../../../../components/ui/TextInput";
+import { DisclosureSection } from "../../../../../components/ui/DisclosureSection";
 import { ProductDescriptionEditor } from "./ProductDescriptionEditor";
 import { PRODUCT_DETAILS_FIELDS, productMeasurementHint, type ProductDetailsDraft } from "../../../../../lib/productDetails";
 import styles from "../ProductEditPage.module.css";
@@ -27,8 +28,12 @@ export function ProductOptionalDetails({ composition, details, category, composi
   onCompositionChange: (value: string) => void;
   onChange: (key: keyof ProductDetailsDraft, value: string) => void;
 }) {
-  return <>
-    <p className={`${styles.optionalDetailsHint} textHint`}>Дополнительные сведения — заполните подходящие вашему товару поля</p>
+  const [open, setOpen] = useState(() => Boolean(composition.trim() || Object.values(details).some(value => value.trim())));
+  const hasError = Boolean(compositionError || Object.keys(errors).length);
+  return <div className={styles.fieldFull}>
+    <DisclosureSection title="Дополнительные сведения" summary="Состав, особенности, замеры, уход и город производства"
+      status={hasError ? "Проверьте сведения" : undefined} statusTone={hasError ? "error" : "default"}
+      open={open || hasError} onOpenChange={setOpen}>
     <OptionalSection title="Состав" filled={Boolean(composition.trim())} invalid={compositionError}>
       <ProductDescriptionEditor value={composition} onChange={onCompositionChange} fieldName="Состав"
         maxLength={1000} invalid={compositionError} />
@@ -47,5 +52,6 @@ export function ProductOptionalDetails({ composition, details, category, composi
             ? "Размер образца и замеры самого изделия" : "Укажите подходящие рекомендации"}
           onChange={event => onChange(key, event.target.value)} />}
     </OptionalSection>)}
-  </>;
+    </DisclosureSection>
+  </div>;
 }

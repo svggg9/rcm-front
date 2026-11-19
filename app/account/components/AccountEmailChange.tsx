@@ -9,8 +9,9 @@ import { isValidResetEmail, normalizeResetEmail } from "../../lib/passwordReset"
 import styles from "./AccountProfileTab.module.css";
 
 type Step = "start" | "current" | "email" | "new";
-export function AccountEmailChange({ email, onChanged, onCancel, onBusyChange }: {
+export function AccountEmailChange({ email, onChanged, onCancel, onBusyChange, requestChange = changeEmail }: {
   email: string; onChanged: (email: string) => void; onCancel: () => void; onBusyChange: (busy: boolean) => void;
+  requestChange?: typeof changeEmail;
 }) {
   const [step, setStep] = useState<Step>("start");
   const [code, setCode] = useState("");
@@ -39,17 +40,17 @@ export function AccountEmailChange({ email, onChanged, onCancel, onBusyChange }:
     locked.current = true; setBusy(true); onBusyChange(true);
     try {
       if (step === "start" || step === "current" && resend) {
-        const result = await changeEmail("start");
+        const result = await requestChange("start");
         cooldown(result.resendAfterSeconds); setCode(""); setStep("current");
       } else if (step === "current") {
-        const result = await changeEmail("confirm-current", { code });
+        const result = await requestChange("confirm-current", { code });
         if (!result.changeToken) throw new Error("Не удалось подтвердить текущую почту");
         setProof(result.changeToken); setCode(""); setStep("email");
       } else if (step === "email" || resend) {
-        const result = await changeEmail("new/start", { changeToken: proof, email: normalized });
+        const result = await requestChange("new/start", { changeToken: proof, email: normalized });
         cooldown(result.resendAfterSeconds); setNextEmail(normalized); setCode(""); setStep("new");
       } else {
-        const result = await changeEmail("complete", { changeToken: proof, email: normalized, code });
+        const result = await requestChange("complete", { changeToken: proof, email: normalized, code });
         if (!result.email || result.emailVerified !== true) throw new Error("Не удалось подтвердить смену почты — обновите профиль");
         onChanged(result.email);
       }
@@ -60,8 +61,8 @@ export function AccountEmailChange({ email, onChanged, onCancel, onBusyChange }:
 
   return <div className={styles.emailChange} ref={region} role="region" aria-label="Смена электронной почты" aria-busy={busy}
     onKeyDown={event => { if (event.key === "Enter" && event.target instanceof HTMLInputElement) { event.preventDefault(); void submit(); } }}>
-    <p className={styles.emailChangeTitle}>{step === "start" || step === "current" ? "Подтвердите текущую почту" : step === "email" ? "Укажите новую почту" : "Подтвердите новую почту"}</p>
-    <p className={styles.emailChangeHint}>{step === "start" ? `Отправим код на ${email}` : step === "current" ? `Введите код из письма на ${email}` : step === "email" ? "Старый адрес продолжит работать до подтверждения нового" : `Введите код из письма на ${nextEmail}`}</p>
+    <p className={`typeBody1 ${styles.emailChangeTitle}`}>{step === "start" || step === "current" ? "Подтвердите текущую почту" : step === "email" ? "Укажите новую почту" : "Подтвердите новую почту"}</p>
+    <p className={`textHint ${styles.emailChangeHint}`}>{step === "start" ? `Отправим код на ${email}` : step === "current" ? `Введите код из письма на ${email}` : step === "email" ? "Старый адрес продолжит работать до подтверждения нового" : `Введите код из письма на ${nextEmail}`}</p>
     {step === "email" ? <TextInput label="Новая электронная почта" fieldVariant="inline" type="email" autoComplete="email" enterKeyHint="done" value={nextEmail} disabled={busy} error={error} onChange={event => { setNextEmail(event.target.value); setError(null); }} /> :
       step !== "start" ? <OneTimeCodeInput value={code} onChange={value => { setCode(value); setError(null); }} disabled={busy} error={error} /> : error ? <p className="fieldError" role="alert">{error}</p> : null}
     <Button type="button" variant="primary" loading={busy} onClick={() => void submit()}>{step === "start" || step === "email" ? "Получить код" : step === "current" ? "Продолжить" : "Подтвердить новую почту"}</Button>

@@ -1,0 +1,5 @@
+.example { display: grid; gap: var(--space-4); min-width: 0; }
+.example > p { margin: 0; }
+.example > h3 { margin: var(--space-4) 0 0; }
+.history { display: flex; flex-direction: column; gap: var(--space-6); min-width: 0; }
+.note { margin: 0; font-size: var(--type-caption-size); line-height: var(--type-caption-line); color: var(--muted); }

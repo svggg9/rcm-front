@@ -23,7 +23,7 @@ export function ReturnWorkflowSummary({ workflow, onRefresh }: {
   return <details>
     <summary>Состояние и доступные действия возврата</summary>
     {workflow.events.length > 0 && <ul aria-label="События возврата">{workflow.events.filter(event => event && typeof event.code === "string" && typeof event.occurredAt === "string").map(event => <li key={event.code}>
-      {eventLabels[event.code] ?? event.code} · <time dateTime={event.occurredAt}>{new Date(event.occurredAt).toLocaleString("ru-RU")}</time>
+      {eventLabels[event.code] ?? event.code}, <time dateTime={event.occurredAt}>{new Date(event.occurredAt).toLocaleString("ru-RU")}</time>
     </li>)}</ul>}
     <ul aria-label="Доступность действий возврата">{workflow.actions.filter(item => item && typeof item.code === "string").map(item => {
       const state = returnAction({ workflow }, item.code);

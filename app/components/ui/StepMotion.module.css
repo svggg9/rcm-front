@@ -1,0 +1,7 @@
+@media (prefers-reduced-motion: no-preference) {
+  .forward { animation: stepForward 300ms ease-out; }
+  .back { animation: stepBack 300ms ease-out; }
+}
+
+@keyframes stepForward { from { opacity: 0; transform: translateX(16px); } to { opacity: 1; transform: translateX(0); } }
+@keyframes stepBack { from { opacity: 0; transform: translateX(-16px); } to { opacity: 1; transform: translateX(0); } }

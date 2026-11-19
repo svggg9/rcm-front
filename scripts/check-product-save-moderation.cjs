@@ -17,14 +17,14 @@ function visit(node) {
 }
 visit(ast);
 const code = ts.transpileModule(functions.join('\n'), { compilerOptions: { target: ts.ScriptTarget.ES2020 } }).outputText;
-function setup({ valid = false, dirty = true, failSave = false, stale = false, variantsInput = [], revision = false, failReview = false,
+function setup({ valid = false, dirty = true, failSave = false, stale = false, variantsInput = [], revision = false, failReview = false, manualRequest = false,
   onboardingStatus = {legalCompleted:true, agreementAccepted:true}, onboardingError = false,
   detailsInput = {features:'',measurements:'',care:'',cityOfOrigin:''} } = {}) {
   const calls = []; const notifications = []; let validationCalls = 0; let confirmed = false;
   const noop = () => {};
   const context = {
     saving: false, publishing: false, archiving: false, deleting: false, uploading: false, reordering: false, mediaActionPending: false,
-    saveRequestRef: {current:false}, publishRequestRef: {current:false}, editRevisionRef: {current:0}, publishSuccessReturnFocusRef: {},
+    saveRequestRef: {current:false}, manualSaveRequest: {current:manualRequest}, manualSaveFailed: {current:false}, publishRequestRef: {current:false}, editRevisionRef: {current:0}, publishSuccessReturnFocusRef: {},
     dirty, product: {status:'DRAFT', revisionSourceId:revision ? 5 : null}, productId: 7, API_URL: '', title:'', description:'', composition:'', categoryId:'', brandId:1,
     suggestedCategoryName:'', audience:'UNISEX', packageWidthCm:'', packageHeightCm:'', packageLengthCm:'', packageWeightKg:'', variants:variantsInput,
     inconsistentProductPriceIndexes: utilsExports.inconsistentProductPriceIndexes,
@@ -51,7 +51,7 @@ function setup({ valid = false, dirty = true, failSave = false, stale = false, v
     apiFetch: async (url, options) => { calls.push({url,...options}); return {ok:!(failSave && options.method === 'PUT') && !failReview, json:async()=>({id:5,status:'ACTIVE'}), status:400, text:async()=> 'Save failed'}; },
   };
   const handlers = new Function(...Object.keys(context), code + '\nreturn {saveProduct,publishProduct};')(...Object.values(context));
-  return {...handlers,calls,notifications,validationCalls:()=>validationCalls,confirmed:()=>confirmed};
+  return {...handlers,calls,notifications,validationCalls:()=>validationCalls,confirmed:()=>confirmed,manualSaveFailed:()=>context.manualSaveFailed.current};
 }
 (async () => {
   let test = setup();
@@ -70,6 +70,20 @@ function setup({ valid = false, dirty = true, failSave = false, stale = false, v
   test = setup({failSave:true});
   assert.equal(await test.saveProduct(), false);
   assert.deepEqual(test.notifications, [{type:'error',message:'Ошибка сохранения'}]);
+  assert.equal(test.manualSaveFailed(), false, 'A non-manual request must not flag the manual save button');
+  test = setup({failSave:true});
+  assert.equal(await test.saveProduct(false, true), false);
+  assert.equal(test.manualSaveFailed(), false, 'A failed background autosave must not flag the manual save button');
+  test = setup({failSave:true,manualRequest:true});
+  assert.equal(await test.saveProduct(false, true), false);
+  assert.equal(test.manualSaveFailed(), true, 'A failed manual retry through the autosave queue flags the button');
+  test = setup({manualRequest:true,detailsInput:{...richDetails,cityOfOrigin:'x'.repeat(121)}});
+  assert.equal(await test.saveProduct(), false);
+  assert.equal(test.calls.length, 0);
+  assert.equal(test.manualSaveFailed(), false, 'Local validation must not flag a network failure');
+  test = setup({manualRequest:true});
+  assert.equal(await test.saveProduct(), true);
+  assert.equal(test.manualSaveFailed(), false, 'A confirmed save must never flag a network failure');
   test = setup({stale:true});
   assert.equal(await test.saveProduct(), true, 'Autosave may finish its persisted snapshot while newer edits remain dirty');
   assert.deepEqual(test.notifications, [], 'Stale reload must not confirm a saved product');

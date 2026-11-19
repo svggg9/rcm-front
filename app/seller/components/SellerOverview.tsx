@@ -6,6 +6,7 @@ import { Button } from "../../components/ui/Button";
 import { Price } from "../../components/ui/Price";
 import { CabinetSkeleton } from "../../components/ui/CabinetSkeleton";
 import { DesignSystemIcon as Icon } from "../../components/ui/DesignSystemIcon";
+import { DetailsIcon } from "../../components/ui/DetailsIcon";
 import { EmptyState } from "../../components/ui/EmptyState";
 import { RequestError } from "../../components/ui/RequestError";
 import { StatusBadge } from "../../components/ui/StatusBadge";
@@ -17,6 +18,7 @@ import { SellerOrderCard } from "./SellerOrderCard";
 import { SellerHomeTasks } from "./SellerHomeTasks";
 import { SellerNextActions } from "./SellerNextActions";
 import { SellerHomeProducts } from "./SellerHomeProducts";
+import { SellerStoreIdentity } from "./SellerStoreIdentity";
 import { telegramUrl } from "../../lib/telegram";
 import styles from "./SellerOverview.module.css";
 
@@ -56,9 +58,7 @@ export function SellerOverview({ active, brand, summary, onboarding, onNavigate,
   return <div className={styles.overview} data-seller-overview>
     <section className={`${styles.section} ${styles.store}`} aria-label="Магазин">
       <h1>Ваш магазин</h1>
-      <Link href="/seller/store" className={styles.storeIdentity}>
-        <span><strong>{brand?.name || "Магазин"}</strong><span>Настроить магазин</span></span>
-      </Link>
+      <SellerStoreIdentity name={brand?.name || "Магазин"} />
     </section>
     <div className={styles.products} data-seller-product-preview>
       <SellerHomeProducts active={active} />
@@ -77,7 +77,7 @@ export function SellerOverview({ active, brand, summary, onboarding, onNavigate,
             <Icon name="images" role="utility" /><span>Подборки</span>
           </Link>
           <Link className={styles.quickAction} href="/seller/legal" prefetch={false}>
-            <Icon name="file" role="utility" /><span>Реквизиты</span>
+            <DetailsIcon /><span>Реквизиты</span>
           </Link>
         </div>
       </section>

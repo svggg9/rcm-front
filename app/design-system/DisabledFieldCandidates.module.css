@@ -1,0 +1,13 @@
+.section { display: grid; gap: 20px; grid-column: 1 / -1; scroll-margin-top: 24px; }
+.heading, .cardHeading { display: grid; gap: 4px; }
+.heading h3, .heading p, .cardHeading h4, .cardHeading p { margin: 0; }
+.heading p, .cardHeading p { color: var(--black-soft); font-size: 14px; line-height: 20px; }
+.grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.card { display: grid; align-content: start; gap: 16px; min-width: 0; padding: 20px; border: 1px solid var(--palette-soft-grey); background: var(--white); }
+.cardHeading { min-height: 48px; }
+.cardHeading h4 { font-size: 16px; line-height: 24px; font-weight: 600; }
+
+@media (max-width: 640px) {
+  .grid { grid-template-columns: 1fr; }
+  .cardHeading { min-height: 0; }
+}

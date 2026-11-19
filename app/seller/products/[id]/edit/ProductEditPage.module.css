@@ -182,6 +182,7 @@
 .formGrid,
 .grid {
   display: grid;
+  min-width: 0;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   column-gap: 14px;
   row-gap: 22px;
@@ -191,6 +192,7 @@
 .fieldFull,
 .full {
   position: relative;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
@@ -1402,7 +1404,7 @@
 
   .formGrid,
   .grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .header {
@@ -1882,6 +1884,10 @@
 @media (max-width: 700px) {
   .productSurface[data-editor-page] > header h1 { font-size: var(--font-title-md); line-height: var(--line-height-title-lg); }
 }
+@media (max-width: 400px) {
+  .titleRow { flex-wrap: wrap; gap: var(--space-2); }
+  .editorTitle { overflow-wrap: normal; }
+}
 .comparisonPhotos img { max-width: 100%; object-fit: contain; }
 .productSurface .desktopOnly + section { padding-top: var(--space-4); }
 .noticeDetails summary { cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
@@ -1904,6 +1910,10 @@
 }
 /* Product form: continuous sections, explicit variant groups and compact controls. */
 .productSurface .wizardLayout { display: flex; flex-direction: column; gap: var(--space-8); width: 100%; max-width: 880px; margin-inline: auto; }
+.sectionStack { width: 100%; min-width: 0; }
+.photoContent { width: 100%; max-width: 560px; }
+.sectionStack > details { scroll-margin-top: 16px; }
+.productSurface[data-editor-page] .sectionStack > details { scroll-margin-top: calc(var(--site-header-height) + var(--editor-header-height, 144px) + 16px); }
 .productSurface .main { width: 100%; gap: var(--space-8); }
 .productSurface .photoStep { position: static; width: 100%; max-width: none; max-height: none; padding: 0; overflow: visible; }
 .productSurface .sectionTitle { display: block; margin-bottom: var(--space-5); font-size: var(--font-title-md); font-weight: var(--font-weight-semibold); line-height: var(--line-height-title-lg); }
@@ -1922,7 +1932,7 @@
 .sectionIntro { margin: 0; color: var(--black-soft); font-size: var(--font-sm); line-height: var(--line-height-ui-large); }
 .sizeTable { display: grid; gap: var(--space-5); }
 .sizeTableRow { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 44px; align-items: start; gap: var(--space-3); }
-.productSurface .sizeTableRow .removeSizeButton { width: 44px; min-width: 44px; height: 44px; margin-top: 22px; padding: 0; }
+.productSurface .sizeTableRow .removeSizeButton { width: 44px; min-width: 44px; height: 44px; margin-top: 16px; padding: 0; }
 .productSurface .stockToggle { display: flex; gap: var(--space-3); align-items: center; cursor: pointer; min-height: 44px; font-size: var(--font-ui); }
 .stockToggle span { display: grid; gap: var(--space-1); }
 .stockToggle small { color: var(--muted); font-size: var(--font-helper); }
@@ -1944,7 +1954,7 @@
   .productSurface .variantColorGroup { padding: var(--space-4); gap: var(--space-4); border-radius: 12px; }
   .productSurface .formGrid { grid-template-columns: minmax(0, 1fr); gap: var(--space-4); }
   .productSurface .editorSectionNav button { padding-inline: 14px; font-size: var(--font-xs); }
-  .sizeTableRow { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 44px; gap: var(--space-2); }
+  .sizeTableRow { --field-control-padding-inline: 8px; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 44px; gap: var(--space-2); }
   .productSurface .sizeTableRow .removeSizeButton { width: 44px; min-width: 44px; }
   .productSurface .sizeTableRow .input { padding-inline: 10px; }
   .productSurface .field > span > small { display: block; }

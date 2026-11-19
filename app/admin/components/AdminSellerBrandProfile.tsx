@@ -6,6 +6,7 @@ import { useEffect, useMemo, useState } from "react";
 
 import { CabinetSkeleton } from "../../components/ui/CabinetSkeleton";
 import { Icon } from "../../components/ui/Icon";
+import { PhotoPlaceholder } from "../../components/ui/PhotoPlaceholder";
 import { Price } from "../../components/ui/Price";
 import { RequestError } from "../../components/ui/RequestError";
 import { toApiError } from "../../lib/apiErrors";
@@ -240,7 +241,7 @@ export function AdminSellerBrandProfile({ userId, brandName, brandId, status }: 
                       sizes="(max-width: 560px) 50vw, (max-width: 1100px) 25vw, 220px"
                     />
                   ) : (
-                    <span className={styles.noImage}>Нет изображения</span>
+                    <PhotoPlaceholder />
                   )}
                 </span>
                 <span className={styles.productCategory}>

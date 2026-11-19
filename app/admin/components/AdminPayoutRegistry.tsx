@@ -94,24 +94,13 @@ export function AdminPayoutRegistry() {
     <p className={styles.caption}>Переводы выполняются отдельно в банке. Действия здесь фиксируют банковскую попытку и подтверждённый результат</p>
     {generationError && <RequestError variant="inline" message={generationError} text="Проверьте обновлённую очередь, прежде чем формировать реестры повторно" onRetry={refresh} loading={loading} />}
     {generation && <section className={styles.generationResult} aria-label="Результат формирования реестров" role="status">
-      <p>Сформировано: {generation.payouts.length} · Пропущено: {generation.skipped.length}</p>
-      {generation.skipped.length > 0 && <ul>{generation.skipped.map(row => <li key={row.sellerId}><strong>{row.sellerName} · №{row.sellerId}</strong><span>{payoutSkipReason(row.reason)}</span></li>)}</ul>}
+      <p>Сформировано: {generation.payouts.length}, Пропущено: {generation.skipped.length}</p>
+      {generation.skipped.length > 0 && <ul>{generation.skipped.map(row => <li key={row.sellerId}><strong>{row.sellerName}, №{row.sellerId}</strong><span>{payoutSkipReason(row.reason)}</span></li>)}</ul>}
     </section>}
     {loading ? <CabinetSkeleton variant="list" rows={3} compact /> : current?.error ? <RequestError message={current.error} onRetry={refresh} /> : null}
-    {current?.stats && <dl className={styles.summary}>
-      <Figure label="Готово к обработке" value={payoutMoney(current.stats.readyAmount)} />
-      <Figure label="В обработке / банке" value={payoutMoney(current.stats.inProgressAmount + current.stats.sentAmount)} />
-      <Figure label="Требует сверки" value={payoutMoney(current.stats.reviewAmount)} />
-    </dl>}
+    {current?.stats && <AdminPayoutSummary stats={current.stats} />}
     {current?.rows && <>
-      {current.rows.content.length ? <div className={styles.payoutList}>{current.rows.content.map(row => <article className={styles.payoutCard} key={row.id} aria-label={`Реестр №${row.id}`}>
-        <div className={styles.payoutMain}>
-          <div className={styles.payoutIdentity}><span>Реестр №{row.id} · {date(row.scheduledDate)}</span><strong>{row.sellerName}</strong><small>ИНН {row.inn} · Продавец №{row.sellerId}</small></div>
-          <div className={styles.payoutAmount}><span>К выплате</span><strong>{payoutMoney(row.payoutAmount, row.currency)}</strong><span className={styles.queueStatus}>{PAYOUT_STATUSES[row.status]}</span></div>
-        </div>
-        <div className={styles.cardFooter}><span className={styles.caption}>{row.orderCount ?? 0} заказов · {row.paymentOrderNumber ? `Поручение ${row.paymentOrderNumber}` : "Поручение не зафиксировано"}</span>
-          <Button onClick={() => setSelected(row.id)}>Состав и действия</Button></div>
-      </article>)}</div> : <EmptyState icon="wallet" title="Реестров нет" text={status === "ALL" ? "Сформируйте реестры после окончания холда по доставленным заказам" : "По выбранному статусу выплат пока нет"} />}
+      {current.rows.content.length ? <div className={styles.payoutList}>{current.rows.content.map(row => <AdminPayoutCard key={row.id} row={row} onOpen={() => setSelected(row.id)} />)}</div> : <EmptyState icon="wallet" title="Реестров нет" text={status === "ALL" ? "Сформируйте реестры после окончания холда по доставленным заказам" : "По выбранному статусу выплат пока нет"} />}
       {current.rows.totalPages > 1 && <nav className={styles.queueTools} aria-label="Страницы реестров">
         <Button disabled={page === 0} onClick={() => setPage(value => value - 1)}>Назад</Button>
         <span>Страница {page + 1} из {current.rows.totalPages}</span>
@@ -120,6 +109,26 @@ export function AdminPayoutRegistry() {
     </>}
     {selected !== null && <PayoutDetail key={selected} id={selected} onClose={() => setSelected(null)} onChanged={refresh} />}
   </>;
+}
+
+/** Reused in the registry and its safe design-system example. */
+export function AdminPayoutSummary({ stats }: { stats: Pick<PayoutStats, "readyAmount" | "inProgressAmount" | "sentAmount" | "reviewAmount"> }) {
+  return <dl className={styles.summary}>
+    <Figure label="Готово к обработке" value={payoutMoney(stats.readyAmount)} />
+    <Figure label="В обработке / банке" value={payoutMoney(stats.inProgressAmount + stats.sentAmount)} />
+    <Figure label="Требует сверки" value={payoutMoney(stats.reviewAmount)} />
+  </dl>;
+}
+
+export function AdminPayoutCard({ row, onOpen }: { row: AdminSellerPayout; onOpen: () => void }) {
+  return <article className={styles.payoutCard} aria-label={`Реестр №${row.id}`}>
+    <div className={styles.payoutMain}>
+      <div className={styles.payoutIdentity}><span>Реестр №{row.id}, {date(row.scheduledDate)}</span><strong>{row.sellerName}</strong><small>ИНН {row.inn}, Продавец №{row.sellerId}</small></div>
+      <div className={styles.payoutAmount}><span>К выплате</span><strong>{payoutMoney(row.payoutAmount, row.currency)}</strong><span className={styles.queueStatus}>{PAYOUT_STATUSES[row.status]}</span></div>
+    </div>
+    <div className={styles.cardFooter}><span className={styles.caption}>{row.orderCount ?? 0} заказов, {row.paymentOrderNumber ? `Поручение ${row.paymentOrderNumber}` : "Поручение не зафиксировано"}</span>
+      <Button onClick={onOpen}>Состав и действия</Button></div>
+  </article>;
 }
 
 function PayoutDetail({ id, onClose, onChanged }: { id: number; onClose: () => void; onChanged: () => void }) {
@@ -155,14 +164,22 @@ function PayoutDetail({ id, onClose, onChanged }: { id: number; onClose: () => v
       if (mounted.current) { setBusy(false); if (accepted) setRevision(value => value + 1); }
     }
   }
-  const payout = detail?.payout;
   return <Dialog title={`Реестр №${id}`} size="wide" mobileFullscreen busy={busy} onClose={onClose}
     actions={<><Button disabled={busy} loading={loading} onClick={() => setRevision(value => value + 1)}>Обновить реестр</Button><Button disabled={busy} onClick={onClose}>Закрыть</Button></>}>
     {error && <RequestError variant="inline" message={error} text="До успешного обновления действия недоступны" onRetry={() => setRevision(value => value + 1)} loading={loading} disabled={busy} />}
     {!detail && loading ? <CabinetSkeleton variant="list" rows={3} compact /> : null}
     {notice && <p role="status" className={styles.caption}>{notice}</p>}
-    {payout && <div className={styles.detailContent}>
-      <div className={styles.payoutMain}><div><p>{payout.sellerName} · Продавец №{payout.sellerId}</p><p className={styles.caption}>{PAYOUT_STATUSES[payout.status]}</p></div><strong className={styles.detailAmount}>{payoutMoney(payout.payoutAmount, payout.currency)}</strong></div>
+    {detail && <AdminPayoutDetailContent detail={detail} loading={loading} error={error} busy={busy} onAction={act} />}
+  </Dialog>;
+}
+
+export function AdminPayoutDetailContent({ detail, loading, error, busy, onAction, onDemoOpen }: {
+  detail: AdminPayoutDetail; loading: boolean; error: string; busy: boolean;
+  onAction: (action: PayoutAction, payload: PayoutActionPayload) => Promise<void>; onDemoOpen?: () => void;
+}) {
+  const payout = detail.payout;
+  return <div className={styles.detailContent}>
+      <div className={styles.payoutMain}><div><p>{payout.sellerName}, Продавец №{payout.sellerId}</p><p className={styles.caption}>{PAYOUT_STATUSES[payout.status]}</p></div><strong className={styles.detailAmount}>{payoutMoney(payout.payoutAmount, payout.currency)}</strong></div>
       {payout.status === "REVIEW" && <Banner tone="warning">Результат перевода неизвестен. Повторная отправка заблокирована до подтверждённого результата банка</Banner>}
       {payout.adminComment && <p className={styles.caption}>Комментарий реестра: {payout.adminComment}</p>}
       <section aria-label="Расчёт выплаты"><h3>Расчёт выплаты</h3><dl className={styles.detailFigures}>
@@ -177,26 +194,25 @@ function PayoutDetail({ id, onClose, onChanged }: { id: number; onClose: () => v
       </dl></section>
       <section><h3>Состав реестра</h3><div className={styles.detailTableScroll} tabIndex={0} role="region" aria-label="Заказы и удержания в выплате"><DataTable className={styles.detailTable}>
         <thead><tr><th scope="col">Основание</th><th scope="col">Продажи</th><th scope="col">Комиссия</th><th scope="col">Удержания</th><th scope="col">Итого</th></tr></thead>
-        <tbody>{payout.items?.map(item => <tr key={item.id}><td>{item.orderId ? <Link href={`/admin?tab=orders&orderId=${item.orderId}`}>Заказ №{item.orderId}</Link> : "Корректировка"}</td>
+        <tbody>{payout.items?.map(item => <tr key={item.id}><td>{item.orderId ? <Link href={`/admin?tab=orders&orderId=${item.orderId}`} onClick={onDemoOpen ? event => { event.preventDefault(); onDemoOpen(); } : undefined}>Заказ №{item.orderId}</Link> : "Корректировка"}</td>
           <td>{payoutMoney(item.grossAmount, payout.currency)}</td><td>{payoutMoney(item.commissionAmount, payout.currency)}</td><td>{payoutMoney(item.adjustmentAmount, payout.currency)}</td><td>{payoutMoney(item.netAmount, payout.currency)}</td></tr>)}</tbody>
       </DataTable></div></section>
       {detail && <section><h3>Банковские попытки</h3>{detail.attempts.length ? <ol className={styles.history}>{detail.attempts.map(attempt => <li key={attempt.id}>
-        <strong>Попытка №{attempt.number} · {PAYOUT_STATUSES[attempt.status as AdminSellerPayoutStatus] ?? "Проверка истории"}</strong>
-        <span>Начата {timestamp(attempt.startedAt)} · {attempt.startedBy ? `Оператор №${attempt.startedBy}` : "Импортирована"}</span>
-        <span>Поручение: {attempt.paymentOrderNumber || "—"} · Отправлено: {timestamp(attempt.sentAt)} · Результат: {timestamp(attempt.resolvedAt)}</span>
+        <strong>Попытка №{attempt.number}, {PAYOUT_STATUSES[attempt.status as AdminSellerPayoutStatus] ?? "Проверка истории"}</strong>
+        <span>Начата {timestamp(attempt.startedAt)}, {attempt.startedBy ? `Оператор №${attempt.startedBy}` : "Импортирована"}</span>
+        <span>Поручение: {attempt.paymentOrderNumber || "—"}, Отправлено: {timestamp(attempt.sentAt)}, Результат: {timestamp(attempt.resolvedAt)}</span>
         {attempt.legacy && <span>Перенесено из прежней версии — первоначальная история недоступна</span>}{attempt.evidence && <p>{attempt.evidence}</p>}
       </li>)}</ol> : <p className={styles.caption}>Банковские попытки ещё не начаты</p>}</section>}
       {detail && <section><h3>История действий</h3>{detail.history.length ? <ol className={styles.history}>{detail.history.map(event => <li key={event.id}>
-        <strong>{actionLabels[event.action as PayoutAction] ?? "Создание / перенос реестра"}</strong><span>{timestamp(event.createdAt)} · {event.actorId ? `Оператор №${event.actorId}` : "Система"}</span>
+        <strong>{actionLabels[event.action as PayoutAction] ?? "Создание / перенос реестра"}</strong><span>{timestamp(event.createdAt)}, {event.actorId ? `Оператор №${event.actorId}` : "Система"}</span>
         <span>{event.fromStatus ? `${PAYOUT_STATUSES[event.fromStatus]} → ` : ""}{PAYOUT_STATUSES[event.toStatus]}</span>
         {event.reason && <p>Причина: {event.reason}</p>}{event.evidence && <p>Основание: {event.evidence}</p>}
       </li>)}</ol> : <p className={styles.caption}>Событий пока нет</p>}</section>}
-      {detail && !loading && !error && <PayoutActionForm key={`${id}:${detail.version}`} detail={detail} busy={busy} onAction={act} />}
-    </div>}
-  </Dialog>;
+      {detail && !loading && !error && <PayoutActionForm key={`${payout.id}:${detail.version}`} detail={detail} busy={busy} onAction={onAction} />}
+  </div>;
 }
 
-function PayoutActionForm({ detail, busy, onAction }: { detail: AdminPayoutDetail; busy: boolean; onAction: (action: PayoutAction, payload: PayoutActionPayload) => Promise<void> }) {
+export function PayoutActionForm({ detail, busy, onAction }: { detail: AdminPayoutDetail; busy: boolean; onAction: (action: PayoutAction, payload: PayoutActionPayload) => Promise<void> }) {
   const [action, setAction] = useState<PayoutAction | "">("");
   const [comment, setComment] = useState("");
   const [evidence, setEvidence] = useState("");
@@ -221,7 +237,7 @@ function PayoutActionForm({ detail, busy, onAction }: { detail: AdminPayoutDetai
       <Textarea label={needsReason ? "Причина действия" : "Комментарий (необязательно)"} required={needsReason} disabled={busy} maxLength={1000} value={comment} onChange={event => setComment(event.target.value)} />
       {needsEvidence && <Textarea label="Основание банковского результата" hint="Дата и номер выписки, банковского документа или подтверждения окончательного отказа" required disabled={busy} maxLength={2000} value={evidence} onChange={event => setEvidence(event.target.value)} />}
       <ConfirmActionButton variant="primary" disabled={!valid || busy} loading={busy} confirmTitle={actionLabels[action]}
-        confirmText={`Реестр №${detail.payout.id} · ${payoutMoney(detail.payout.payoutAmount, detail.payout.currency)} · Счёт ${detail.payout.checkingAccount}. ${actionHints[action]}`}
+        confirmText={`Реестр №${detail.payout.id}, ${payoutMoney(detail.payout.payoutAmount, detail.payout.currency)}, Счёт ${detail.payout.checkingAccount}. ${actionHints[action]}`}
         confirmLabel={actionLabels[action]} onConfirm={() => onAction(action, payload)}>{actionLabels[action]}</ConfirmActionButton>
     </>}
   </section>;

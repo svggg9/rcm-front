@@ -7,5 +7,5 @@
 .alertDanger { color: var(--state-text-color, var(--error)); background: var(--feedback-danger-bg); border-color: var(--feedback-danger-border); }
 .alert > svg { color: var(--feedback-info-color, var(--gold-deep)); }
 .alertSuccess > svg { color: var(--success); }
-.alertWarning > svg { color: var(--warning); }
+.alertWarning > svg { color: var(--feedback-warning-icon); }
 .alertDanger > svg { color: var(--error); }

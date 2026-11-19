@@ -1,4 +1,5 @@
 import type { ButtonHTMLAttributes, ReactNode, Ref } from "react";
+import { Icon } from "./Icon";
 import styles from "./Button.module.css";
 
 type ButtonVariant =
@@ -20,6 +21,8 @@ type Props = ButtonHTMLAttributes<HTMLButtonElement> & {
   iconOnly?: boolean;
   loading?: boolean;
   success?: boolean;
+  successMotion?: "bounce";
+  failure?: boolean;
   reserveLabelSpace?: boolean;
   ref?: Ref<HTMLButtonElement>;
 };
@@ -34,6 +37,8 @@ export function Button({
   iconOnly = false,
   loading = false,
   success = false,
+  successMotion,
+  failure = false,
   reserveLabelSpace = true,
   disabled,
   ...props
@@ -51,14 +56,15 @@ export function Button({
   return (
     <button
       className={[variantClass, size === "compact" ? "buttonCompact" : size === "large" ? "buttonLarge" : "", iconOnly ? "buttonIconOnly" : "", className].filter(Boolean).join(" ")}
-      disabled={disabled || loading || success}
+      disabled={disabled || loading || success || failure}
       aria-busy={loading || undefined}
       data-loading={loading || undefined}
       data-success={success || undefined}
+      data-failure={failure || undefined}
       {...props}
     >
       <span className={`buttonContent ${reserveLabelSpace ? styles.stableContent : ""}`}>
-        <span className={[styles.label, loading || success ? reserveLabelSpace ? styles.hidden : styles.visuallyHidden : ""].filter(Boolean).join(" ")}>
+        <span className={[styles.label, loading || success || failure ? reserveLabelSpace ? styles.hidden : styles.visuallyHidden : ""].filter(Boolean).join(" ")}>
           {startIcon && <span className={styles.icon} aria-hidden="true">{startIcon}</span>}
           {children}
           {endIcon && <span className={styles.icon} aria-hidden="true">{endIcon}</span>}
@@ -66,9 +72,11 @@ export function Button({
         {loading ? (
           <span className="buttonLoader" aria-hidden="true" />
         ) : success ? (
-          <svg className="buttonSuccessIcon" viewBox="0 0 20 20" aria-hidden="true">
+          <svg className={["buttonSuccessIcon", successMotion === "bounce" ? styles.successBounce : ""].filter(Boolean).join(" ")} viewBox="0 0 20 20" aria-hidden="true">
             <path d="M4 10.5L8.1 14.5L16 5.8" />
           </svg>
+        ) : failure ? (
+          <Icon name="x" className={styles.failureIcon} size={20} aria-hidden />
         ) : null}
       </span>
     </button>

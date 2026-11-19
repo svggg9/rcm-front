@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import styles from "./ProductCard.module.css";
 import { Price } from "../ui/Price";
+import { PhotoPlaceholder } from "../ui/PhotoPlaceholder";
 import { productPath } from "../../lib/productUrls";
 
 type Variant = {
@@ -40,7 +41,7 @@ export function ProductCard({ product }: { product: Product }) {
               className={styles.imageMain}
             />
           ) : (
-            <div className="image-placeholder">Нет изображения</div>
+            <PhotoPlaceholder />
           )}
 
           {hoverImage ? (

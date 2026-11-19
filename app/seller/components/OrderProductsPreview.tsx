@@ -3,7 +3,7 @@
 import { Loader } from "../../components/ui/Loader";
 import Image from "next/image";
 import { useState } from "react";
-import { Icon } from "../../components/ui/Icon";
+import { PhotoPlaceholder } from "../../components/ui/PhotoPlaceholder";
 import type { OrderCardDetails, SellerOrderCardListItem } from "./SellerOrderCard";
 import styles from "./OrderProductsPreview.module.css";
 
@@ -30,7 +30,7 @@ export function OrderProductsPreview({ order, details, loading, error, onRetry, 
   return <section className={`${styles.preview} ${compact ? styles.compact : ""}`} aria-label={`Товары заказа ${order.id}`} aria-busy={loading || undefined}>
     {items.length ? <ul id={listId} className={styles.list}>
       {(showAll ? items : items.slice(0, 2)).map((item, index) => <li className={styles.product} key={index}>
-        <ProductImage src={item.imageUrl} />
+        <ProductImage src={item.imageUrl} known={Boolean(details) || index === 0} />
         <div className={styles.copy}>
           <span className={styles.title}>{item.productTitle}</span>
           <span className={styles.variant}>
@@ -49,10 +49,10 @@ export function OrderProductsPreview({ order, details, loading, error, onRetry, 
   </section>;
 }
 
-function ProductImage({ src }: { src: string | null }) {
+function ProductImage({ src, known }: { src: string | null; known: boolean }) {
   const [failedSrc, setFailedSrc] = useState<string | null>(null);
   return src && src !== failedSrc ? <Image src={src} alt="" width={48} height={64} className={styles.image} onError={() => setFailedSrc(src)} />
-    : <span className={styles.placeholder} aria-hidden="true"><Icon name="package" size={24} /></span>;
+    : <span className={styles.placeholder}><PhotoPlaceholder decorative={!known} /></span>;
 }
 
 function productWord(count: number) {

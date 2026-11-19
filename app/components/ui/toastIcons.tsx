@@ -1,9 +1,11 @@
 import { DesignSystemIcon } from "./DesignSystemIcon";
+import { FeedbackIcon } from "./FeedbackIcon";
 
 export const toastIcons = {
-  success: <DesignSystemIcon name="check-circle" role="utility" />,
-  error: <DesignSystemIcon name="alert" role="utility" />,
-  warning: <DesignSystemIcon name="alert" role="utility" />,
-  info: <DesignSystemIcon name="info" role="utility" />,
+  normal: <FeedbackIcon tone="info" />,
+  success: <FeedbackIcon tone="success" />,
+  error: <FeedbackIcon tone="error" />,
+  warning: <FeedbackIcon tone="warning" />,
+  info: <FeedbackIcon tone="info" />,
   close: <DesignSystemIcon name="x" role="utility" />,
 };

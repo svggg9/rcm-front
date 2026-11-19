@@ -27,6 +27,8 @@ const extraItems = process.env.RCM_FIXTURE_TWO_ITEMS === "1" ? [{ ...item, produ
 let userItems = [{ ...item }, ...extraItems];
 let guestItems = [{ ...item }, ...extraItems];
 const favoritesScenario = process.env.RCM_FIXTURE_FAVORITES === "1";
+const cartFillScenario = favoritesScenario && process.env.RCM_FIXTURE_CART_FILL === "1";
+if (cartFillScenario) { userItems = []; guestItems = []; }
 const fixtureProfile = { id: 1, email: "fixture@example.test", emailVerified: true, firstName: "Тест",
   lastName: "Покупатель", phone: "+79990000000", role: "USER" };
 const favoriteProducts = favoritesScenario ? [
@@ -67,6 +69,10 @@ const server = http.createServer(async (req, res) => {
   }
   if (checkoutScenario && (url.pathname === "/api/payments/order/777/group-last" || url.pathname === "/api/payments/fixture-pay/sync")) return reply({ status: fixturePaid ? "SUCCEEDED" : "PENDING", externalId: "fixture-pay" });
   if (favoritesScenario) {
+    if (url.pathname === "/api/products/public-by-ids") {
+      const ids = new Set((url.searchParams.get("ids") || "").split(",").map(Number));
+      return reply(favoriteProducts.filter(product => ids.has(product.id)));
+    }
     if (url.pathname === "/api/products/407/page") return reply({ product: {
       ...favoriteProducts[0], sellerId: 1, status: "ACTIVE", article: "100220", description: "Тестовый товар", category: "Одежда",
       variants: [40, 41, 42, 43, 44, 45].map((size, index) => ({ id: 901 + index, size: String(size), color: "Серый", price: 15900, availableQuantity: index === 1 ? 0 : 5 })),
@@ -87,6 +93,18 @@ const server = http.createServer(async (req, res) => {
     }
     if (url.pathname === "/api/cart/add") {
       await new Promise(resolve => setTimeout(resolve, 300));
+      if (cartFillScenario) {
+        const isUserCart = url.searchParams.get("cartId") === userCartId;
+        const contents = isUserCart ? userItems : guestItems;
+        const variantId = Number(url.searchParams.get("variantId"));
+        const qty = Number(url.searchParams.get("qty"));
+        if (!Number.isSafeInteger(variantId) || !Number.isSafeInteger(qty) || qty < 1 || contents.reduce((sum, line) => sum + line.quantity, 0) + qty > 5) return reply({ message: "PRODUCT_QUANTITY_LIMIT" }, 400);
+        const existing = contents.find(line => line.variantId === variantId);
+        const updated = existing ? contents.map(line => line.variantId === variantId ? { ...line, quantity: line.quantity + qty } : line)
+          : [...contents, { ...item, variantId, quantity: qty }];
+        if (isUserCart) userItems = updated; else guestItems = updated;
+        return reply(updated);
+      }
       if (userItems.reduce((sum, line) => sum + line.quantity, 0) >= 5) return reply({ message: "PRODUCT_QUANTITY_LIMIT" }, 400);
       userItems = userItems.map(line => ({ ...line, quantity: line.quantity + 1 }));
       return reply(userItems);
@@ -100,10 +118,16 @@ const server = http.createServer(async (req, res) => {
   if (url.pathname === "/api/auth/email/login/start") {
     if (body.email === "server-error@example.test") return reply({ message: "private SQL /api/stack details" }, 500);
     if (body.email === "rate-limit@example.test") return reply({ message: "email_login_rate_limited" }, 429);
-    if ((deadlines.get(body.email) || 0) > Date.now()) return reply({ message: "email_login_rate_limited" }, 429);
-    deadlines.set(body.email, Date.now() + 60_000); challenges.set(body.email, true);
+    let window = deadlines.get(body.email);
+    if (!window || window.expiresAt <= Date.now()) window = { expiresAt: Date.now() + 60_000, count: 0 };
+    if (window.count >= 3) {
+      res.setHeader("Retry-After", String(Math.max(1, Math.ceil((window.expiresAt - Date.now()) / 1000))));
+      return reply({ message: "email_login_rate_limited" }, 429);
+    }
+    window.count++; deadlines.set(body.email, window); challenges.set(body.email, true);
+    const resendAfterSeconds = window.count < 3 ? 0 : Math.max(1, Math.ceil((window.expiresAt - Date.now()) / 1000));
     await new Promise(resolve => setTimeout(resolve, 250));
-    return reply({ ttlSeconds: 600, resendAfterSeconds: 60 }, 202);
+    return reply({ ttlSeconds: 600, resendAfterSeconds }, 202);
   }
   if (url.pathname === "/api/auth/email/login/complete") {
     await new Promise(resolve => setTimeout(resolve, 1000));

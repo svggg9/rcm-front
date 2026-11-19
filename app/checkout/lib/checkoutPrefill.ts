@@ -45,7 +45,7 @@ export type CheckoutPrefill = {
 };
 
 function normalizeCountryCode(value?: string | null): CountryCode {
-  return value === "RU" ? "RU" : "RU";
+  return value && /^[A-Z]{2}$/.test(value) ? value : "RU";
 }
 
 function isEmailLike(value?: string | null): boolean {
@@ -85,6 +85,8 @@ export function buildCheckoutPrefill(params: {
   const profileFullName = me && ("firstName" in me || "lastName" in me)
     ? [me.firstName?.trim(), me.lastName?.trim()].filter(Boolean).join(" ")
     : me?.displayName?.trim() ?? "";
+  const countryCode = existing.countryCode || normalizeCountryCode(me?.defaultDeliveryCountryCode);
+  const city = existing.selectedCity ?? buildCityOption(me);
 
   return {
     email: me
@@ -104,11 +106,9 @@ export function buildCheckoutPrefill(params: {
       me?.defaultDeliveryAddress?.trim() ||
       "",
 
-    countryCode:
-      existing.countryCode || normalizeCountryCode(me?.defaultDeliveryCountryCode),
+    countryCode,
 
-    selectedCity:
-      existing.selectedCity ?? buildCityOption(me),
+    selectedCity: city?.countryCode === countryCode ? city : null,
 
     selectedAddressId: "",
 

@@ -1,0 +1,14 @@
+.candidates { margin-top: var(--space-7); }
+.candidates > h3 { margin: 0 0 var(--space-1); font-size: var(--type-h5-size); line-height: var(--type-h5-line); font-weight: var(--type-heading-weight); }
+.intro, .description { margin: 0; font-size: var(--font-xs); line-height: 1.5; }
+.grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--space-4); margin-top: var(--space-4); }
+.card { min-width: 0; padding: var(--space-4); background: var(--soft); }
+.card h4 { margin: 0 0 var(--space-1); font-size: var(--font-sm); font-weight: var(--font-weight-semibold); }
+.description { min-height: 3em; margin-bottom: var(--space-4); }
+.current .caption { font-size: var(--font-helper); font-weight: var(--font-weight-regular); }
+.emphasis .caption { font-size: 13px; font-weight: 700; }
+.larger .caption { font-size: 14px; font-weight: 700; }
+.card :is(.name, .phone) { font-size: 16px; font-weight: 400; }
+
+@media (max-width: 900px) { .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 480px) { .grid { grid-template-columns: minmax(0, 1fr); } .description { min-height: 0; } }

@@ -15,7 +15,7 @@ export function NumberField({ label, value, invalid = false, decimal = false, on
   const externalInvalid = invalid;
   invalid = invalid || !!validation.errors.value;
   return <NumericField {...(decimal ? WEIGHT_RULES : { ...INTEGER_RULES, min: 1 })}
-      label={label} required
+      label={label} required appearance="warm"
       value={value === "" ? null : value} onBlur={() => validation.touch("value")}
       aria-label={label}
       onValueChange={next => { if (externalInvalid) validation.touch("value"); onChange(next ?? ""); }}

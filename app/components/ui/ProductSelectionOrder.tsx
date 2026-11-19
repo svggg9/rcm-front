@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { Button } from "./Button";
 import { DesignSystemIcon } from "./DesignSystemIcon";
+import { PhotoPlaceholder } from "./PhotoPlaceholder";
 import { Price } from "./Price";
 import styles from "./ProductSelectionOrder.module.css";
 
@@ -28,7 +29,7 @@ export function ProductSelectionOrder({ ids, products, disabled = false, onChang
         const product = byId.get(id);
         const name = product?.title?.trim() || `Товар №${id}`;
         return <li key={id}>
-          <div className={styles.cover}>{product?.coverImage ? <Image src={product.coverImage} alt="" fill sizes="180px" /> : <DesignSystemIcon name="package" role="empty" />}</div>
+          <div className={styles.cover}>{product?.coverImage ? <Image src={product.coverImage} alt="" fill sizes="180px" /> : <PhotoPlaceholder />}</div>
           <span className={styles.name}>{name}</span>
           {product?.minPrice != null ? <Price amount={product.minPrice} className={styles.price} /> : null}
           <span className={styles.actions}>

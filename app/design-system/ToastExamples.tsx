@@ -27,17 +27,23 @@ export function ToastExamples() {
     description: "Рекомендуем загрузить более качественные исходники",
     action: undefined,
   });
-  const info = (toasterId?: string) => toast.info("Изменения ещё не опубликованы", {
+  const neutral = (toasterId?: string) => toast.message("Изменения ещё не опубликованы", {
     id: toasterId ? "ds-editor-feedback" : "ds-feedback", toasterId,
     description: "Отправьте карточку на модерацию",
     action: undefined,
   });
+  const info = (toasterId?: string) => toast.info("Доступны новые способы доставки", {
+    id: toasterId ? "ds-editor-feedback" : "ds-feedback", toasterId,
+    description: "Выберите подходящий способ при оформлении",
+    action: undefined,
+  });
 
   return <>
-    <Button onClick={() => success()}>Показать уведомление об успехе</Button>
-    <Button onClick={() => error()}>Показать уведомление об ошибке</Button>
-    <Button onClick={() => warning()}>Показать предупреждение</Button>
+    <Button onClick={() => neutral()}>Показать нейтральное уведомление</Button>
     <Button onClick={() => info()}>Показать информацию</Button>
+    <Button onClick={() => success()}>Показать уведомление об успехе</Button>
+    <Button onClick={() => warning()}>Показать предупреждение</Button>
+    <Button onClick={() => error()}>Показать уведомление об ошибке</Button>
     <Button onClick={() => { toast.dismiss("ds-feedback"); setEditorOpen(true); }}>Проверить уведомления в редакторе</Button>
     {editorOpen ? <EditorSurface title="Пример уведомлений" centered toastId={editorId}
       onClose={() => setEditorOpen(false)}
@@ -47,6 +53,7 @@ export function ToastExamples() {
         <Button variant="secondary" onClick={() => error(editorId)}>Ошибка</Button>
         <Button variant="secondary" onClick={() => warning(editorId)}>Предупреждение</Button>
         <Button variant="secondary" onClick={() => info(editorId)}>Информация</Button>
+        <Button variant="secondary" onClick={() => neutral(editorId)}>Нейтральное</Button>
       </div>
     </EditorSurface> : null}
   </>;

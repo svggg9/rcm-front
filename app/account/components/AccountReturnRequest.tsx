@@ -25,7 +25,7 @@ function Photo({file,onRemove}:{file:File;onRemove:()=>void}){
     <img ref={image} alt={file.name}/><button onClick={onRemove} aria-label={`Удалить ${file.name}`}>×</button>
   </div>;
 }
-export function AccountReturnRequest({order,existingReturns,onCreated}:{order:Order;existingReturns:ReturnRequest[];onCreated:(request:ReturnRequest)=>void}){
+export function AccountReturnRequest({order,existingReturns,onCreated,submitReturn=createOrderReturn,onRefreshReturn}:{order:Order;existingReturns:ReturnRequest[];onCreated:(request:ReturnRequest)=>void;submitReturn?:typeof createOrderReturn;onRefreshReturn?:()=>void}){
   const action = useOrderActions(order);
   const [open,setOpen]=useState(false),[drafts,setDrafts]=useState<Record<string,Draft>>({}),[editing,setEditing]=useState<string|null>(null);
   const [review,setReview]=useState(false),[submitting,setSubmitting]=useState(false),[error,setError]=useState<string|null>(null);
@@ -52,7 +52,7 @@ export function AccountReturnRequest({order,existingReturns,onCreated}:{order:Or
     try{
       for(const item of selected){
         const key=keyOf(item),draft=drafts[key];
-        const result=await createOrderReturn({orderId:order.id,productId:item.productId,variantId:item.variantId,quantity:draft.quantity,reason:draft.reason as ReturnReason,comment:draft.comment,photos:draft.photos,requestKey:draft.requestKey});
+        const result=await submitReturn({orderId:order.id,productId:item.productId,variantId:item.variantId,quantity:draft.quantity,reason:draft.reason as ReturnReason,comment:draft.comment,photos:draft.photos,requestKey:draft.requestKey});
         onCreated(result);
         setDrafts(current=>{const next={...current};delete next[key];return next;});
       }
@@ -63,7 +63,7 @@ export function AccountReturnRequest({order,existingReturns,onCreated}:{order:Or
   const activeItem=items.find(item=>keyOf(item)===editing);
   const active=editing?drafts[editing]:null;
   return <div className={styles.wrapper}>
-    {existingReturns.map(request=><div className={styles.existing} key={request.id}><span>Возврат № {request.id} · {request.productTitle}</span><span>{returnStatusLabels[request.status]}</span>{request.adminComment?<p>{request.adminComment}</p>:null}<ReturnWorkflowSummary workflow={request.workflow}/></div>)}
+    {existingReturns.map(request=><div className={styles.existing} key={request.id}><span>Возврат № {request.id}, {request.productTitle}</span><span>{returnStatusLabels[request.status]}</span>{request.adminComment?<p>{request.adminComment}</p>:null}<ReturnWorkflowSummary workflow={request.workflow} onRefresh={onRefreshReturn}/></div>)}
     {items.length&&action("REQUEST_RETURN").allowed?<Button variant="secondary" onClick={()=>setOpen(true)}>Оформить возврат</Button>:null}
     {open?<EditorSurface className={styles.returnSurface} title={review?"Проверка возврата":"Выбор товаров для возврата"} onClose={()=>{if(!uncertain){setDrafts({});setReview(false);}setOpen(false);}} dirty={selected.length>0&&!uncertain} busy={submitting} guardNavigation
       actions={<><span className={styles.footerTotal}>{selected.reduce((sum,item)=>sum+drafts[keyOf(item)].quantity,0)} ед. <span>|</span> <Price amount={total}/></span>{review&&!uncertain?<Button variant="ghost" disabled={submitting} onClick={()=>setReview(false)}>Изменить</Button>:null}<Button variant="primary" loading={submitting} disabled={!selected.length} onClick={review?()=>void submit():proceed}>{review?(uncertain?"Повторить отправку":selected.length>1?"Отправить заявки":"Отправить заявку"):"Продолжить"}</Button></>}>
@@ -91,7 +91,7 @@ export function AccountReturnRequest({order,existingReturns,onCreated}:{order:Or
           if(validationMessage){setError(validationMessage);return;}
           if(active.photos.length+next.length>5){setError("Можно добавить не больше 5 фотографий");return;}
           update(editing,{photos:[...active.photos,...next]});
-        }}/><span>От 1 до 5 файлов · JPG, PNG или WebP · до 10 МБ каждый</span></label>
+        }}/><span>От 1 до 5 файлов, JPG, PNG или WebP, до 10 МБ каждый</span></label>
         <div className={styles.photos}>{active.photos.map((file,index)=><Photo key={index} file={file} onRemove={()=>update(editing,{photos:active.photos.filter((_,i)=>i!==index)})}/>)}</div>
         {error?<p className={styles.error} role="alert">{error}</p>:null}
       </EditorSurface>:null}

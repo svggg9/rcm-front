@@ -13,7 +13,6 @@
 
 .catalogPage[data-brand="true"] { margin-top: var(--space-4); }
 .brandNavigation .subcategoryScroller { display: block; }
-.brandNavigation .subcategories { border-bottom: var(--line-width-default) solid var(--line); }
 .brandProductCount { margin: var(--space-3) 0 var(--space-5); color: var(--muted); font-size: var(--font-helper); line-height: var(--caption-line-height); }
 
 .primaryCategories,

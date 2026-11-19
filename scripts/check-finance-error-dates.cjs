@@ -35,7 +35,7 @@ assert.match(presentation.formatFinanceDateTime("2026-10-29T10:00:00.123456789Z"
 const { EmptyState } = load("app/components/ui/EmptyState.tsx", {
   "react/jsx-runtime": jsx, "./Icon": { Icon: () => jsx.jsx("svg", {}) },
 });
-const { Button } = load("app/components/ui/Button.tsx", { "react/jsx-runtime": jsx, "./Button.module.css": { default: {} } });
+const { Button } = load("app/components/ui/Button.tsx", { "react/jsx-runtime": jsx, "./Icon": { Icon: () => jsx.jsx("svg", {}) }, "./Button.module.css": { default: {} } });
 const { RequestError } = load("app/components/ui/RequestError.tsx", {
   "react/jsx-runtime": jsx, "./Button": { Button }, "./EmptyState": { EmptyState },
   "./Icon": { Icon: () => jsx.jsx("svg", {}) }, "./RequestError.module.css": { default: {} },
@@ -47,7 +47,9 @@ const modalLifecycle = load("app/components/ui/useModalDialog.ts", {
 const financeImports = {
   "react/jsx-runtime": jsx, react: require("react"), "next/link": { default: link },
   "next/navigation": { useSearchParams: () => new URLSearchParams(), useRouter: () => ({ push() {}, replace() {} }) },
-  "../../components/ui/NumericInput": { NumericInput: () => null }, "../../components/ui/Button": { Button },
+  "../../components/ui/NumericField": { NumericField: () => null },
+  "../../components/ui/TextInput": { TextInput: () => null },
+  "../../components/ui/FormSelect": { FormSelect: () => null }, "../../components/ui/Button": { Button },
   "../../components/ui/DataTable": load("app/components/ui/DataTable.tsx", { "react/jsx-runtime": jsx }),
   "../../components/ui/CabinetPanel": { CabinetPanel: ({ children }) => jsx.jsx("div", { children }) },
   "../../components/ui/SectionHeader": { SectionHeader: ({ title }) => jsx.jsx("h1", { children: title }) },

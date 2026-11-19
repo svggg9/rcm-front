@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
-import { DesignSystemIcon } from "./DesignSystemIcon";
+import { PhotoPlaceholder } from "./PhotoPlaceholder";
 import styles from "./StorefrontSectionCard.module.css";
 
 type Props = {
@@ -42,9 +42,7 @@ export function StorefrontSectionCard({
         style={{ objectPosition: `${focusPosition(coverPositionX)}% ${focusPosition(coverPositionY)}%` }}
         unoptimized={source.startsWith("blob:")}
         onError={() => setFailedSource(source)}
-      /> : <span className={styles.placeholder} aria-hidden="true">
-        <DesignSystemIcon name="images" role="empty" />
-      </span>}
+      /> : <PhotoPlaceholder />}
     </div>
     <span className={styles.title}>{title}</span>
   </>;

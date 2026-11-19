@@ -19,7 +19,7 @@ export function Dialog({ title, children, actions, mobileHeader, busy = false, s
   toastId?: string;
   size?: "default" | "wide";
   mobileFullscreen?: boolean;
-  variant?: "default" | "confirmation";
+  variant?: "default" | "confirmation" | "confirmation-compact-left" | "confirmation-compact-center";
   className?: string;
   closeOnBackdrop?: boolean;
   fallbackFocusRef?: RefObject<HTMLElement | null>;
@@ -50,7 +50,7 @@ export function Dialog({ title, children, actions, mobileHeader, busy = false, s
   }, [toastId, actions]);
 
   return (
-    <dialog ref={ref} className={`${styles.dialog}${toastId ? ` ${styles.withNotifications}` : ""}${size === "wide" ? ` ${styles.wide}` : ""}${mobileFullscreen ? ` ${styles.mobileFullscreen}` : ""}${mobileHeader ? ` ${styles.withMobileHeader}` : ""}${variant === "confirmation" ? ` ${styles.confirmation}` : ""} ${className}`.trim()} aria-labelledby={titleId}
+    <dialog ref={ref} className={`${styles.dialog}${toastId ? ` ${styles.withNotifications}` : ""}${size === "wide" ? ` ${styles.wide}` : ""}${mobileFullscreen ? ` ${styles.mobileFullscreen}` : ""}${mobileHeader ? ` ${styles.withMobileHeader}` : ""}${variant === "confirmation" ? ` ${styles.confirmation}` : ""}${variant === "confirmation-compact-left" ? ` ${styles.compactConfirmation}` : ""}${variant === "confirmation-compact-center" ? ` ${styles.compactConfirmation} ${styles.compactCenter}` : ""} ${className}`.trim()} aria-labelledby={titleId}
       aria-busy={busy || undefined}
       onCancel={(event) => { event.preventDefault(); event.stopPropagation(); if (!busy) onClose(); }}
       onMouseDown={event => {

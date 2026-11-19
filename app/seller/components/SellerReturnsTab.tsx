@@ -16,7 +16,7 @@ import { TextInput } from "../../components/ui/TextInput";
 import linkedRow from "../../components/ui/LinkedListRow.module.css";
 import listStyles from "../../components/ui/CabinetListLayout.module.css";
 import { getSellerReturns, returnReasonLabels, returnStatusLabels, type SellerReturnListItem } from "../../lib/returns";
-import { filterSellerReturns, parseSellerReturnGroup, sellerReturnSegments } from "../lib/sellerReturnListPresentation";
+import { filterSellerReturns, parseSellerReturnGroup, sellerReturnSegments, type SellerReturnGroup } from "../lib/sellerReturnListPresentation";
 import styles from "./SellerReturnsTab.module.css";
 
 const PAGE_SIZE = 20;
@@ -27,10 +27,6 @@ export function SellerReturnsTab() {
   const searchParams = useSearchParams();
   const group = parseSellerReturnGroup(searchParams.get("group"));
   const query = searchParams.get("q") ?? "";
-  const [searchOpen, setSearchOpen] = useState(false);
-  const searchId = useId();
-  const searchToggle = useRef<HTMLButtonElement>(null);
-  const searchInput = useRef<HTMLInputElement>(null);
   const [requests, setRequests] = useState<SellerReturnListItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -99,6 +95,31 @@ export function SellerReturnsTab() {
     }
   }
 
+  function resetQuery() {
+    const next = new URLSearchParams(searchParams.toString()); next.delete("q"); next.delete("group"); replaceQuery(next);
+  }
+  function retry() {
+    if (error === "more") { void loadMore(); return; }
+    setLoading(true); setAttempt(value => value + 1);
+  }
+  return <SellerReturnsListView requests={requests} group={group} query={query} loading={loading} loadingMore={loadingMore}
+    hasMore={hasMore} totalItems={totalItems} error={error} onChangeGroup={next => updateQuery("group", next)}
+    onChangeQuery={next => updateQuery("q", next)} onReset={resetQuery} onRetry={retry} onLoadMore={() => void loadMore()} />;
+}
+
+type SellerReturnsListViewProps = {
+  requests: SellerReturnListItem[]; group: SellerReturnGroup; query: string; loading: boolean; loadingMore: boolean;
+  hasMore: boolean; totalItems: number; error: "initial" | "more" | null;
+  onChangeGroup: (value: SellerReturnGroup) => void; onChangeQuery: (value: string) => void;
+  onReset: () => void; onRetry: () => void; onLoadMore: () => void;
+};
+
+export function SellerReturnsListView({ requests, group, query, loading, loadingMore, hasMore, totalItems, error,
+  onChangeGroup, onChangeQuery, onReset, onRetry, onLoadMore }: SellerReturnsListViewProps) {
+  const [searchOpen, setSearchOpen] = useState(false);
+  const searchId = useId();
+  const searchToggle = useRef<HTMLButtonElement>(null);
+  const searchInput = useRef<HTMLInputElement>(null);
   const visibleRequests = useMemo(() => filterSellerReturns(requests, group, query), [requests, group, query]);
   const filtered = group !== "all" || Boolean(query.trim());
 
@@ -106,7 +127,7 @@ export function SellerReturnsTab() {
     <SectionHeader title="Возвраты" large className={listStyles.heading} />
     <div className={listStyles.toolbar}>
       <div className={listStyles.segments}>
-        <SegmentedControl items={sellerReturnSegments} value={group} ariaLabel="Состояние возвратов" onChange={next => updateQuery("group", next)} />
+        <SegmentedControl items={sellerReturnSegments} value={group} ariaLabel="Состояние возвратов" onChange={onChangeGroup} />
       </div>
       <div className={listStyles.tools}>
         <Button ref={searchToggle} variant="secondary" className={`${listStyles.iconButton} ${searchOpen || query ? listStyles.iconButtonActive : ""}`}
@@ -116,9 +137,9 @@ export function SellerReturnsTab() {
       <PopoverPanel id={searchId} title="Поиск возвратов" open={searchOpen} onClose={() => setSearchOpen(false)} anchorRef={searchToggle} initialFocusRef={searchInput}>
         <div className={listStyles.search}>
           <TextInput ref={searchInput} label="Номер возврата, заказа или товар" hideLabel type="search" placeholder="Номер возврата, заказа или товар"
-            maxLength={200} value={query} onChange={event => updateQuery("q", event.target.value)} />
+            maxLength={200} value={query} onChange={event => onChangeQuery(event.target.value)} />
           <p className={listStyles.caption}>Поиск по загруженным возвратам</p>
-          {query ? <Button variant="tertiary" onClick={() => updateQuery("q", "")}>Сбросить поиск</Button> : null}
+          {query ? <Button variant="tertiary" onClick={() => onChangeQuery("")}>Сбросить поиск</Button> : null}
         </div>
       </PopoverPanel>
     </div>
@@ -149,14 +170,9 @@ export function SellerReturnsTab() {
     </div> : null}
     {!loading && !error && requests.length > 0 && !visibleRequests.length ? <EmptyState title="Возвраты не найдены"
       text={hasMore ? "Измените условия или загрузите следующие возвраты" : "Измените условия поиска или выберите другую группу"}
-      actions={<Button variant="secondary" onClick={() => {
-        const next = new URLSearchParams(searchParams.toString()); next.delete("q"); next.delete("group"); replaceQuery(next);
-      }}>Сбросить условия</Button>} /> : null}
+      actions={<Button variant="secondary" onClick={onReset}>Сбросить условия</Button>} /> : null}
     {error ? <RequestError message={error === "more" ? "Не удалось загрузить следующие возвраты" : "Не удалось загрузить возвраты"}
-      variant={requests.length ? "inline" : "section"} loading={loading || loadingMore} onRetry={() => {
-        if (error === "more") { void loadMore(); return; }
-        setLoading(true); setAttempt(value => value + 1);
-      }} /> : null}
-    {hasMore && !error ? <div className={styles.loadMore}><Button variant="secondary" loading={loadingMore} onClick={() => void loadMore()}>Показать ещё</Button></div> : null}
+      variant={requests.length ? "inline" : "section"} loading={loading || loadingMore} onRetry={onRetry} /> : null}
+    {hasMore && !error ? <div className={styles.loadMore}><Button variant="secondary" loading={loadingMore} onClick={onLoadMore}>Показать ещё</Button></div> : null}
   </section>;
 }

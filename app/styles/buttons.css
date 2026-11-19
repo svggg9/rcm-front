@@ -123,8 +123,9 @@
   border: 0;
   background: var(--white);
   color: var(--black);
-  font-size: var(--font-sm);
-  font-weight: 400;
+  font-size: var(--type-button-2-size);
+  line-height: var(--type-button-2-line);
+  font-weight: var(--type-button-weight);
   transition: none;
 }
 @media (hover: hover) {
@@ -133,7 +134,7 @@
 :is(.buttonUtility, .utilityAction):active:not(:disabled) { background: var(--surface-hover); }
 
 /* Busy/success keep their variant; unavailable actions share one readable neutral state. */
-:is(.buttonPrimary, .buttonPrimaryShimmer, .buttonSecondary, .buttonTertiary, .buttonGhost, .buttonUtility, .buttonDanger):disabled:not([data-loading]):not([data-success]) {
+:is(.buttonPrimary, .buttonPrimaryShimmer, .buttonSecondary, .buttonTertiary, .buttonGhost, .buttonUtility, .buttonDanger):disabled:not([data-loading]):not([data-success]):not([data-failure]) {
   background: var(--button-disabled-bg);
   border-color: var(--button-disabled-border);
   color: var(--button-disabled-text);

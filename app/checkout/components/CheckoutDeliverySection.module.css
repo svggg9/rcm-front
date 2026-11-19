@@ -14,7 +14,7 @@
 .edit { margin: 0 calc(-1 * var(--space-2)); }
 .editLabel { display: inline-flex; align-items: center; gap: var(--space-1); }
 .error { margin: var(--space-3) 0 0; color: var(--error); font-size: var(--font-helper); line-height: var(--caption-line-height); }
-.city { min-width: 0; }
+.city { min-width: 0; display: grid; gap: var(--space-3); }
 @container (max-width: 420px) {
   .selectionLayout:has(.mapPreview) { grid-template-columns: minmax(0, 1fr); }
   .mapPreview { height: 144px; }
