@@ -10,6 +10,7 @@ import { getSellerBrands } from "../../seller/lib/sellerBrandApi";
 import { getSellerDashboardSummaryClient } from "../../seller/lib/sellerClientDataApi";
 import type { SellerBrand, SellerDashboardSummary, SellerTab } from "../../seller/types";
 import { SellerSidebar, SellerSectionTabs } from "../../seller/components/SellerSidebar";
+import { storefrontOrigin } from "../../lib/partnerSso";
 
 import styles from "./SellerHeader.module.css";
 
@@ -54,7 +55,7 @@ export function SellerHeader() {
     <div className={`pageContainer ${styles.inner}`} data-seller-header-inner>
     <div className={styles.bar}>
       <div className={styles.identity}>
-        <Link href="/" className={styles.logo} aria-label="рцмаркет — главная">
+        <Link href={storefrontOrigin() || "/"} className={styles.logo} aria-label="рцмаркет — главная">
           <Image src="/brand/wordmark-black.svg" alt="рцмаркет" width={794} height={100} priority />
         </Link>
         <span className={styles.caption}>Для продавцов</span>

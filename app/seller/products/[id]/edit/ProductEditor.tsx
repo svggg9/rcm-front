@@ -2,6 +2,7 @@ import { notFound, redirect } from "next/navigation";
 
 import { API_URL } from "../../../../lib/config";
 import { getServerSession } from "../../../../lib/session";
+import { sellerDeniedPath, sellerLoginPath } from "../../../../lib/partnerSso";
 import {
   getSellerAccessAndBrandsServer,
   getSellerProductDetailsServer,
@@ -42,10 +43,10 @@ export default async function ProductEditor({ params, intercepted = false, prese
     const session = await getServerSession();
 
     if (!session) {
-      redirect(`/auth/login?next=${isNew ? "/seller/products/new" : `/seller/products/${productId}/${presentation === "page" ? "create" : "edit"}`}`);
+      redirect(sellerLoginPath(isNew ? "/seller/products/new" : `/seller/products/${productId}/${presentation === "page" ? "create" : "edit"}`));
     }
 
-    redirect("/");
+    redirect(sellerDeniedPath());
   }
 
   if (accessAndBrands.status >= 400) {

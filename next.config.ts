@@ -2,6 +2,9 @@
 const nextConfig = {
   async redirects() {
     return [
+      ...(process.env.RCM_PARTNER_INSTANCE === "true"
+        ? [{ source: "/", destination: "/seller/home", permanent: false }]
+        : []),
       {
         source: "/checkout/result/:orderId([1-9]\\d*)",
         destination: "/account?tab=orders&orderId=:orderId",

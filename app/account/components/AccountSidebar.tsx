@@ -1,6 +1,7 @@
 "use client";
 import Link from "next/link";
 import type { MouseEvent } from "react";
+import { partnerSellerHref } from "../../lib/partnerSso";
 import styles from "./AccountSidebar.module.css";
 export type AccountTab = "home" | "profile" | "orders" | "returns" | "favorites" | "brands" | "info";
 export const accountTabTitles: Record<AccountTab, string> = { home: "Профиль", profile: "Личные данные", orders: "Заказы", returns: "Возвраты", favorites: "Избранное", brands: "Мои бренды", info: "Помощь" };
@@ -18,7 +19,7 @@ export function AccountSidebar({ currentTab, showSellerCabinet = false, onNaviga
     </nav>
     <div className={styles.secondary}>
       <Link href="/account?tab=info" onClick={event=>click(event,"/account?tab=info")}>Помощь и контакты</Link>
-      {showSellerCabinet ? <Link href="/seller/home" prefetch={false}>Кабинет продавца ↗</Link> : null}
+      {showSellerCabinet ? <Link href={partnerSellerHref()} prefetch={false}>Кабинет продавца ↗</Link> : null}
       <button type="button" onClick={onLogout} disabled={logoutPending}>{logoutPending ? "Выходим…" : "Выйти"}</button>
     </div>
   </aside>;
