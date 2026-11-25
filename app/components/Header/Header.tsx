@@ -23,6 +23,7 @@ import { useBuyerPanelReturn } from "../../lib/useBuyerPanelReturn";
 import { handleBuyerPanelAction } from "../../lib/buyerPanelActions";
 import { HeaderIcon } from "./HeaderIcon";
 import { isSellerCabinetPath, SellerHeader } from "./SellerHeader";
+import { partnerSellerHref } from "../../lib/partnerSso";
 import { Button } from "../ui/Button";
 import { loadMenuCategories, type MenuCategory } from "./menuCategories";
 import { subscribeCategoriesChanged } from "../../lib/categoryEvents";
@@ -347,7 +348,7 @@ function HeaderContent({ initialCategories }: HeaderProps) {
               ) : null}
 
               {isAuth === true && isSellerRole(role) ? (
-                <Link href="/seller/home" className={`${styles.mobileProfileLink} ${styles.mobileMenuEmphasis}`} onClick={() => setMenuOpen(false)}>
+                <Link href={partnerSellerHref()} className={`${styles.mobileProfileLink} ${styles.mobileMenuEmphasis}`} onClick={() => setMenuOpen(false)}>
                   <span>Кабинет продавца</span>
                   <span className={styles.mobileChevron} aria-hidden="true" />
                 </Link>

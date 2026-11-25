@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 
 import { getServerSession } from "../lib/session";
+import { sellerDeniedPath, sellerLoginPath } from "../lib/partnerSso";
 import { SellerPageClient } from "./SellerPageClient";
 import {
   getSellerAccessAndBrandsServer,
@@ -70,10 +71,10 @@ export async function SellerDashboardRoute({ initialTab, searchParams: _searchPa
     if (!session) {
       const paths: Record<SellerTab, string> = { home: "home", products: "products", orders: "orders",
         returns: "returns", finance: "finance", brand: "store", legal: "legal" };
-      redirect(`/auth/login?next=/seller/${paths[initialTab]}`);
+      redirect(sellerLoginPath(`/seller/${paths[initialTab]}`));
     }
 
-    redirect("/");
+    redirect(sellerDeniedPath());
   }
 
   if (accessAndBrands.status >= 400) {

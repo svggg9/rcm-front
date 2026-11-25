@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { partnerSellerHref } from "../../lib/partnerSso";
 import styles from "./Footer.module.css";
 
 const footerGroups = [
@@ -40,7 +41,7 @@ const legalLinks = [
 
 function GroupLinks({ group }: { group: typeof footerGroups[number] }) {
   return <nav className={styles.nav} aria-label={group.title}>
-    {group.links.map(link => <Link key={link.href} href={link.href}>{link.label}</Link>)}
+    {group.links.map(link => <Link key={link.href} href={link.href === "/seller/home" ? partnerSellerHref() : link.href}>{link.label}</Link>)}
   </nav>;
 }
 

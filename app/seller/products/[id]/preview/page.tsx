@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 
 import { getServerSession } from "../../../../lib/session";
+import { sellerDeniedPath, sellerLoginPath } from "../../../../lib/partnerSso";
 import { SellerProductPreviewPageClient } from "./SellerProductPreviewPageClient";
 
 type Props = {
@@ -13,11 +14,11 @@ export default async function SellerProductPreviewPage({ params }: Props) {
   const session = await getServerSession();
 
   if (!session) {
-    redirect("/auth/login?next=/seller/products");
+    redirect(sellerLoginPath("/seller/products"));
   }
 
   if (session.role !== "SELLER" && session.role !== "ADMIN") {
-    redirect("/");
+    redirect(sellerDeniedPath());
   }
 
   const { id } = await params;

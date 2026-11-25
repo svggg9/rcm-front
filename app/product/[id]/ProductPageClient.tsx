@@ -15,6 +15,7 @@ import { ProductInfoPanel } from "./components/ProductInfoPanel";
 
 import type { Product } from "./lib/types";
 import { useCurrentUser } from "../../lib/useCurrentUser";
+import { partnerSellerHref } from "../../lib/partnerSso";
 import { addVariantToCart } from "./lib/productPageApi";
 import { getMinPrice } from "./lib/productPageUtils";
 import { compactProductMedia, productColorVariants, resolveProductColorway } from "../../lib/productPresentation";
@@ -296,7 +297,7 @@ export default function ProductPageClient({
               onAddToCart={handleAddToCart}
               onToggleFavorite={handleToggleFavorite}
               onEditProduct={() =>
-                router.push(`/seller/products/${product.id}/edit`)
+                router.push(partnerSellerHref(`/seller/products/${product.id}/edit`))
               }
               selectedColorwayId={selectedColorwayId}
               onChangeColorway={handleChangeColorway}
